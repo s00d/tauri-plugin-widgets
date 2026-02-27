@@ -1,4 +1,4 @@
-[![npm version](https://img.shields.io/npm/v/tauri-plugin-centrifugo-api/latest?style=for-the-badge)](https://www.npmjs.com/package/tauri-plugin-widgets-api)
+[![npm version](https://img.shields.io/npm/v/tauri-plugin-widgets-api/latest?style=for-the-badge)](https://www.npmjs.com/package/tauri-plugin-widgets-api)
 [![Crates.io](https://img.shields.io/crates/v/tauri-plugin-widgets?style=for-the-badge)](https://crates.io/crates/tauri-plugin-widgets)
 [![Documentation](https://img.shields.io/badge/docs-docs.rs-blue?style=for-the-badge)](https://docs.rs/tauri-plugin-widgets/)
 [![GitHub issues](https://img.shields.io/badge/github-issues-orange?style=for-the-badge)](https://github.com/s00d/tauri-plugin-widgets/issues)
