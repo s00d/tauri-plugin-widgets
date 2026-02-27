@@ -25,7 +25,8 @@
     "dist-js",
     "bin",
     "templates",
-    "swift",
+    "swift/Package.swift",
+    "swift/Sources",
     "widget.html",
     "README.md",
     "LICENSE"
