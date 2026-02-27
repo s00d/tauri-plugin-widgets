@@ -9,17 +9,6 @@
 
 A Tauri v2 plugin for building **native widgets** on Android, iOS and macOS, with desktop widget windows on Windows and Linux. Includes a **universal JSON-based UI generator** — send a single config from your Tauri app and the plugin renders it natively on every platform (SwiftUI on Apple, Jetpack Glance on Android, HTML on desktop).
 
-[![Crates.io][crates-badge]][crates-url]
-[![npm][npm-badge]][npm-url]
-[![MIT licensed][mit-badge]][mit-url]
-
-[crates-badge]: https://img.shields.io/crates/v/tauri-plugin-widgets.svg
-[crates-url]: https://crates.io/crates/tauri-plugin-widgets
-[npm-badge]: https://img.shields.io/npm/v/tauri-plugin-widgets-api.svg
-[npm-url]: https://www.npmjs.com/package/tauri-plugin-widgets-api
-[mit-badge]: https://img.shields.io/badge/license-MIT-blue.svg
-[mit-url]: LICENSE
-
 ## Demo
 
 <div align="center">
