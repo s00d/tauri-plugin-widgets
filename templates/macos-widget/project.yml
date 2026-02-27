@@ -1,0 +1,34 @@
+name: TauriWidgetExtension
+
+options:
+  deploymentTarget:
+    macOS: "14.0"
+  xcodeVersion: "15.0"
+
+packages:
+  TauriWidgets:
+    path: TAURI_WIDGETS_SWIFT_PATH
+
+targets:
+  TauriWidgetExtension:
+    type: app-extension
+    platform: macOS
+    sources:
+      - path: Sources
+    info:
+      path: Info.plist
+      properties:
+        CFBundleDisplayName: TauriWidgetExtension
+        NSExtension:
+          NSExtensionPointIdentifier: com.apple.widgetkit-extension
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: WIDGET_BUNDLE_ID
+        PRODUCT_NAME: TauriWidgetExtension
+        SWIFT_VERSION: "5.9"
+        CODE_SIGN_ENTITLEMENTS: TauriWidgetExtension.entitlements
+        MARKETING_VERSION: "1.0"
+        CURRENT_PROJECT_VERSION: "1"
+        SKIP_INSTALL: YES
+    dependencies:
+      - package: TauriWidgets

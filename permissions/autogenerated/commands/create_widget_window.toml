@@ -1,0 +1,13 @@
+# Automatically generated - DO NOT EDIT!
+
+"$schema" = "../../schemas/schema.json"
+
+[[permission]]
+identifier = "allow-create-widget-window"
+description = "Enables the create_widget_window command without any pre-configured scope."
+commands.allow = ["create_widget_window"]
+
+[[permission]]
+identifier = "deny-create-widget-window"
+description = "Denies the create_widget_window command without any pre-configured scope."
+commands.deny = ["create_widget_window"]

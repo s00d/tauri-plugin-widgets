@@ -1,0 +1,20 @@
+[package]
+name = "tauri-plugin-widgets-example"
+version = "0.3.0"
+description = "Example app for tauri-plugin-widgets"
+authors = ["s00d"]
+edition = "2021"
+
+[lib]
+name = "tauri_plugin_widgets_example_lib"
+crate-type = ["staticlib", "cdylib", "rlib"]
+
+[build-dependencies]
+tauri-build = { version = "2", features = [] }
+
+[dependencies]
+tauri = { version = "2", features = [] }
+tauri-plugin-opener = "2"
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+tauri-plugin-widgets = { path = "../../.." }

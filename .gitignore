@@ -1,0 +1,12 @@
+target
+node_modules
+dist-js
+dist
+.idea
+.DS_Store
+.r2x
+output.md
+swift/.build
+*.xcarchive
+DerivedData
+GUIDE.md

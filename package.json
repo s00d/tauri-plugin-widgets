@@ -1,0 +1,50 @@
+{
+  "name": "tauri-plugin-widgets-api",
+  "version": "0.3.0",
+  "author": "s00d",
+  "description": "A Tauri v2 plugin to interact with App Widgets on Android and iOS, with desktop fallback. SharedPreferences / UserDefaults / WidgetKit / AppWidgetManager.",
+  "license": "MIT",
+  "type": "module",
+  "types": "./dist-js/index.d.ts",
+  "main": "./dist-js/index.cjs",
+  "module": "./dist-js/index.js",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/s00d/tauri-plugin-widgets.git"
+  },
+  "exports": {
+    "types": "./dist-js/index.d.ts",
+    "import": "./dist-js/index.js",
+    "require": "./dist-js/index.cjs"
+  },
+  "bin": {
+    "tauri-plugin-widgets-api": "./bin/cli.mjs",
+    "tauri-widgets": "./bin/cli.mjs"
+  },
+  "files": [
+    "dist-js",
+    "bin",
+    "templates",
+    "swift",
+    "widget.html",
+    "README.md",
+    "LICENSE"
+  ],
+  "scripts": {
+    "build": "rollup -c rollup.config.mjs",
+    "prepublishOnly": "pnpm build",
+    "pretest": "pnpm build",
+    "tauri-widgets": "node bin/cli.mjs",
+    "playground": "pnpm --dir examples/tauri-plugin-widgets-example run tauri dev"
+  },
+  "dependencies": {
+    "@tauri-apps/api": ">=2.0.0",
+    "citty": "^0.2.1"
+  },
+  "devDependencies": {
+    "@rollup/plugin-typescript": "^12.0.0",
+    "rollup": "^4.9.6",
+    "tslib": "^2.6.2",
+    "typescript": "^5.3.3"
+  }
+}

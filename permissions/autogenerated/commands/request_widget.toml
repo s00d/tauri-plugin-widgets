@@ -1,0 +1,13 @@
+# Automatically generated - DO NOT EDIT!
+
+"$schema" = "../../schemas/schema.json"
+
+[[permission]]
+identifier = "allow-request-widget"
+description = "Enables the request_widget command without any pre-configured scope."
+commands.allow = ["request_widget"]
+
+[[permission]]
+identifier = "deny-request-widget"
+description = "Denies the request_widget command without any pre-configured scope."
+commands.deny = ["request_widget"]

@@ -1,0 +1,18 @@
+"$schema" = "schemas/schema.json"
+
+[default]
+description = "Default permissions for the widgets plugin — enables all commands."
+permissions = [
+    "allow-set-items",
+    "allow-get-items",
+    "allow-set-register-widget",
+    "allow-reload-all-timelines",
+    "allow-reload-timelines",
+    "allow-request-widget",
+    "allow-create-widget-window",
+    "allow-close-widget-window",
+    "allow-set-widget-config",
+    "allow-get-widget-config",
+    "allow-widget-action",
+    "allow-poll-pending-actions",
+]

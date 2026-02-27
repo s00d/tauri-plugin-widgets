@@ -1,0 +1,38 @@
+[package]
+name = "tauri-plugin-widgets"
+version = "0.3.0"
+authors = ["s00d"]
+description = "A Tauri plugin to interact with App Widgets on Android, iOS, and macOS (WidgetKit). On Windows/Linux a desktop-widget window approach is supported."
+edition = "2021"
+rust-version = "1.70"
+exclude = ["/examples", "/dist-js", "/guest-js", "/node_modules", "demo.gif"]
+links = "tauri-plugin-widgets"
+license = "MIT"
+repository = "https://github.com/s00d/tauri-plugin-widgets"
+
+[package.metadata.docs.rs]
+rustc-args = ["--cfg", "docsrs"]
+rustdoc-args = ["--cfg", "docsrs"]
+
+[package.metadata.platforms.support]
+android = { level = "full", notes = "Full AppWidgetManager + SharedPreferences support" }
+ios = { level = "full", notes = "WidgetKit (iOS 17+) + App Groups shared container" }
+macos = { level = "full", notes = "WidgetKit (macOS 14+) + App Groups shared container" }
+windows = { level = "partial", notes = "JSON file storage + Tauri event-based desktop widget windows" }
+linux = { level = "partial", notes = "JSON file storage + Tauri event-based desktop widget windows" }
+
+[dependencies]
+tauri = { version = "2" }
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+log = "0.4"
+
+[build-dependencies]
+tauri-plugin = { version = "2", features = ["build"] }
+
+[profile.release]
+panic = "abort"
+codegen-units = 1
+lto = true
+incremental = false
+opt-level = "s"

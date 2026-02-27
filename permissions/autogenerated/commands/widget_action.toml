@@ -1,0 +1,13 @@
+# Automatically generated - DO NOT EDIT!
+
+"$schema" = "../../schemas/schema.json"
+
+[[permission]]
+identifier = "allow-widget-action"
+description = "Enables the widget_action command without any pre-configured scope."
+commands.allow = ["widget_action"]
+
+[[permission]]
+identifier = "deny-widget-action"
+description = "Denies the widget_action command without any pre-configured scope."
+commands.deny = ["widget_action"]

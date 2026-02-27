@@ -1,0 +1,1 @@
+{"default":{"identifier":"default","description":"Capability for all windows","local":true,"windows":["main","desktop-widget"],"permissions":["core:default","opener:default","widgets:default","widgets:allow-poll-pending-actions"]}}

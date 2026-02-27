@@ -1,0 +1,13 @@
+# Automatically generated - DO NOT EDIT!
+
+"$schema" = "../../schemas/schema.json"
+
+[[permission]]
+identifier = "allow-poll-pending-actions"
+description = "Enables the poll_pending_actions command without any pre-configured scope."
+commands.allow = ["poll_pending_actions"]
+
+[[permission]]
+identifier = "deny-poll-pending-actions"
+description = "Denies the poll_pending_actions command without any pre-configured scope."
+commands.deny = ["poll_pending_actions"]

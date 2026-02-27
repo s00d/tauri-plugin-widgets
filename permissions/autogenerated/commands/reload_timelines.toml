@@ -1,0 +1,13 @@
+# Automatically generated - DO NOT EDIT!
+
+"$schema" = "../../schemas/schema.json"
+
+[[permission]]
+identifier = "allow-reload-timelines"
+description = "Enables the reload_timelines command without any pre-configured scope."
+commands.allow = ["reload_timelines"]
+
+[[permission]]
+identifier = "deny-reload-timelines"
+description = "Denies the reload_timelines command without any pre-configured scope."
+commands.deny = ["reload_timelines"]
