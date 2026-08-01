@@ -2,7 +2,7 @@
 name = "tauri-plugin-widgets"
 version = "0.4.0"
 authors = ["s00d"]
-description = "A Tauri plugin to interact with App Widgets on Android, iOS, and macOS (WidgetKit). On Windows/Linux a desktop-widget window approach is supported."
+description = "Tauri plugin for App Widgets on Android, iOS, and macOS (WidgetKit); Windows Widgets Board (Adaptive Cards) + desktop webview; Linux desktop webview with X11 DESKTOP pin."
 edition = "2021"
 rust-version = "1.70"
 exclude = ["/examples", "/dist-js", "/guest-js", "/node_modules", "demo.gif"]

@@ -7,7 +7,14 @@
 
 # Tauri Plugin Widgets
 
-A Tauri v2 plugin for building **native widgets** on Android, iOS and macOS, with desktop widget windows on Windows and Linux. Includes a **universal JSON-based UI generator** — send a single config from your Tauri app and the plugin renders it natively on every platform (SwiftUI on Apple, Jetpack Glance on Android, HTML on desktop).
+A Tauri v2 plugin for **cross-platform widgets** from one JSON UI config:
+
+- **Android** — Jetpack Glance AppWidget
+- **iOS / macOS** — WidgetKit + SwiftUI (`TauriWidgets` package)
+- **Windows** — Widgets Board via Adaptive Cards **and** desktop webview fallback
+- **Linux** — desktop webview pinned as `_NET_WM_WINDOW_TYPE_DESKTOP` (optional gtk-layer-shell on Wayland)
+
+Each OS backend is an optional Cargo feature (all enabled by default). See [Platform Support](#platform-support).
 
 ## Demo
 
@@ -48,19 +55,21 @@ The plugin acts as a **library**, not a builder:
 
 | Component | Role |
 |-----------|------|
-| **Rust plugin** (`src/`) | Data storage, FFI bridge, WidgetKit reload commands |
-| **Swift Package** (`swift/TauriWidgets`) | Cross-platform SwiftUI views, models, data store for iOS/macOS widgets |
-| **Android plugin** (`android/`) | Jetpack Glance renderer, `GlanceAppWidgetReceiver`, `BroadcastReceiver` |
-| **Desktop** (`widget.html`) | HTML/CSS renderer for transparent webview widget windows |
-| **Templates** (`templates/`) | Starter files for iOS and macOS widget extensions |
+| **Rust plugin** (`src/`) | Storage, FFI, reload, desktop windows, Adaptive Cards transpile, receipts |
+| **Swift Package** (`swift/TauriWidgets`) | SwiftUI views/models/store for iOS/macOS WidgetKit extensions |
+| **Android plugin** (`android/`) | Jetpack Glance renderer + receivers |
+| **Desktop HTML** (`widget.html`) | HTML/CSS renderer for frameless webview widget windows |
+| **Adaptive Cards** (`src/adaptive_card.rs`) | IR → Adaptive Cards 1.5 for Windows Widgets Board |
+| **Linux pin** (`src/linux/`) | X11 `_NET_WM_*` desktop hints; optional `layer-shell` |
+| **Templates** (`templates/`) | Starters for iOS, macOS, and Windows widget providers |
 
-**Data flow:** Your Tauri app calls `setWidgetConfig(json, group, widgetId)` → plugin writes JSON to platform storage (with freshness `nonce`) → reload / Glance update → native widget reads config for that `widgetId` and renders.
+**Data flow:** `setWidgetConfig(json, group, widgetId)` → platform storage (with freshness `nonce`) → reload / Glance update / Widgets Board provider → native UI for that `widgetId`.
 
-On Apple the host **fan-outs** writes across App Group file, UserDefaults suite, and (macOS) widget sandbox file so data still reaches the extension under ad-hoc signing. The extension **picks the freshest** map by `nonce` / `updatedAt`.
+On Apple the host **fan-outs** writes across App Group file, UserDefaults suite, and (macOS) widget sandbox file; the extension **picks the freshest** map by `nonce` / `updatedAt`. Render **receipts** narrow fan-out after the extension reports what it painted.
 
-Storage keys (0.4+): `config:{widgetId}`, `pending_actions`, `__meta_nonce__`, `__meta_updated_at__`.
+Storage keys (0.4+): `config:{widgetId}`, `pending_actions`, `__meta_nonce__`, `__meta_updated_at__`. On Windows also `ac:template:{widgetId}` / `ac:data:{widgetId}` for Widgets Board.
 
-The developer owns the widget extension target — the plugin provides reusable SwiftUI components via the `TauriWidgets` Swift Package.
+The developer owns the widget extension / provider target — the plugin supplies reusable components and bridges.
 
 ---
 
@@ -76,18 +85,40 @@ The developer owns the widget extension target — the plugin provides reusable 
 
 ## Capability matrix (element × platform)
 
-See the generated matrix: [`docs/capability-matrix.md`](docs/capability-matrix.md)
-(source of truth: Rust `src/capabilities.rs`).
+Source of truth: Rust [`src/capabilities.rs`](src/capabilities.rs) → generated [`docs/capability-matrix.md`](docs/capability-matrix.md) (5 platforms: **iOS**, **macOS**, **Android**, **Desktop** HTML, **Windows** Adaptive Cards).
 
-Highlights:
+### Core elements
 
-| Concern | iOS/macOS | Android Glance | Desktop HTML |
-|---------|-----------|----------------|--------------|
-| Layout stacks / container | full | full (prefer flatter trees) | full |
-| `image.url` | unsupported | preprocess to localPath | full |
-| Gradients | linear primary | **first color only** | full |
-| `timer` live | Text.timer | static snapshot | setInterval |
-| `canvas.path` | M/L/H/V/Z subset | limited | SVG path |
+| Element | iOS | macOS | Android | Desktop | Windows |
+|---------|-----|-------|---------|---------|---------|
+| `vstack` / `hstack` / `grid` / `container` | full | full | full | full | full (AC 1.5) |
+| `zstack` | full | full | full | full | degraded (flattened, no overlay) |
+| `text` / `label` / `spacer` / `divider` | full | full | full | full | full (AC 1.5) |
+| `progress` / `button` / `toggle` / `date` / `link` | full | full | full | full | full (AC 1.5) |
+| `image` | full | full | degraded | full | degraded |
+| `shape` | full | full | full | full | degraded (PNG) |
+
+### Extended elements
+
+| Element | iOS | macOS | Android | Desktop | Windows |
+|---------|-----|-------|---------|---------|---------|
+| `gauge` | full | full | full | full | degraded (PNG) |
+| `chart` | full | full | degraded | full (SVG) | degraded (PNG) |
+| `list` | full | full | full | full | degraded (TextBlocks) |
+| `timer` | full | full | degraded | full | degraded (static) |
+| `canvas` | full | full | degraded | full (SVG) | degraded (PNG) |
+
+### Feature notes
+
+| Feature | iOS | macOS | Android | Desktop | Windows |
+|---------|-----|-------|---------|---------|---------|
+| `image.url` | unsupported | unsupported | full (→ localPath) | full | full |
+| `image.systemName` | full (SF Symbols) | full | degraded | degraded | unsupported |
+| `background.gradient` | degraded (linear primary) | degraded | degraded (1st stop) | full | unsupported |
+| `canvas.path` | degraded (M/L/H/V/Z) | degraded | degraded | full | degraded (PNG) |
+| `timer.live` | full | full | **unsupported** | full | **unsupported** |
+
+Full notes and wording: [`docs/capability-matrix.md`](docs/capability-matrix.md).
 
 ## Authoring widgets
 
@@ -120,20 +151,22 @@ Capability warnings (degraded / unsupported) are logged when a config **changes*
 
 ---
 
-- **Universal Widget UI** — describe widgets as JSON, render natively on all platforms.
-- **Three size families** — `small`, `medium`, `large` layouts in a single config.
+- **Universal Widget UI** — one JSON IR, five renderers (SwiftUI, Glance, HTML, Adaptive Cards).
+- **Three size families** — `small`, `medium`, `large` in a single config.
 - **21 element types** — text, image, progress, gauge, chart, list, button, toggle, divider, spacer, date, link, shape, timer, label, canvas, and layout containers (vstack, hstack, zstack, grid, container).
-- **Action buttons & tappable wrappers** — buttons and `link` elements can emit `widget-action` Tauri events back to the main app, enabling two-way communication.
-- **Dark mode & adaptive colors** — semantic color names (`"label"`, `"systemBackground"`, `"accent"`) and adaptive `{ light, dark }` color objects auto-switch with the system theme.
-- **Semantic typography** — `textStyle` property (`"largeTitle"`, `"body"`, `"caption"`, etc.) respects platform Dynamic Type / accessibility settings.
-- **Flexible layout** — `flex` property for proportional space distribution, `clipShape` for content masking (circle, capsule, rectangle).
-- **Full styling** — padding, gradient backgrounds, corner radius, opacity, borders, shadows, frames.
-- **Declarative canvas** — draw arbitrary shapes (circles, lines, arcs, paths) via JSON commands.
-- **Swift Package** — reusable `TauriWidgets` package for iOS/macOS widget extensions.
-- **File-based data sharing** — JSON file in App Group shared container (reliable, atomic, sandbox-safe).
-- **Configurable reload throttling** — WidgetKit reload rate-limit with sensible defaults and `TAURI_WIDGET_MIN_RELOAD_SECS` override.
-- **Desktop widget windows** — frameless, transparent Tauri webview windows for Windows/Linux.
-- **Low-level data API** — `setItems`/`getItems` for arbitrary key-value storage shared with native widgets.
+- **Action buttons & tappable wrappers** — `button` / `link` emit `widget-action` events back to the app.
+- **Dark mode & adaptive colors** — semantic names and `{ light, dark }` objects.
+- **Semantic typography** — `textStyle` (`largeTitle`, `body`, `caption`, …).
+- **Flexible layout** — `flex`, `clipShape`, padding, gradients, borders, shadows, frames.
+- **Declarative canvas** — circles, lines, arcs, paths via JSON commands.
+- **Swift Package** — reusable `TauriWidgets` for iOS/macOS extensions.
+- **Windows Widgets Board** — Adaptive Cards transpile + optional WorkerW wallpaper parenting.
+- **Linux desktop pin** — X11 `_NET_WM_WINDOW_TYPE_DESKTOP` (+ optional Wayland `layer-shell`).
+- **Optional OS Cargo features** — enable only the backends you need.
+- **File-based / shared storage** — App Group, SharedPreferences, or JSON files on desktop.
+- **Configurable reload throttling** — `TAURI_WIDGET_MIN_RELOAD_SECS` for WidgetKit.
+- **Desktop widget windows** — frameless transparent Tauri webviews (Windows / Linux / macOS host).
+- **Low-level data API** — `setItems` / `getItems` shared with native widgets.
 
 ## Recent Android Updates
 
@@ -146,13 +179,23 @@ Capability warnings (degraded / unsupported) are logged when a config **changes*
 
 ## Platform Support
 
-| Platform | Native Widget | UI Generator | Data Storage | Reload |
-|----------|--------------|-------------|-------------|--------|
-| **Android** | AppWidget | Jetpack Glance from JSON | SharedPreferences + Glance state | Glance `updateAll()` |
-| **iOS** | WidgetKit (17+) | SwiftUI from JSON | App Group shared container (JSON file) | WidgetCenter |
-| **macOS** | WidgetKit (14+) | SwiftUI from JSON | App Group shared container (JSON file) | WidgetCenter |
-| **Windows** | Desktop window | HTML/CSS from JSON | JSON file | Tauri event |
-| **Linux** | Desktop window | HTML/CSS from JSON | JSON file | Tauri event |
+| Platform | Surface | UI | Storage | Reload / update | Cargo feature |
+|----------|---------|----|---------|-----------------|---------------|
+| **Android** | AppWidget | Jetpack Glance from JSON | SharedPreferences + Glance state | Glance `updateAll()` | `android` (default) |
+| **iOS** | WidgetKit (17+) | SwiftUI from JSON | App Group (JSON + suite fan-out) | WidgetCenter | `ios` (default) |
+| **macOS** | WidgetKit (14+) | SwiftUI from JSON | App Group + sandbox fan-out | WidgetCenter | `macos` (default) |
+| **Windows** | Widgets Board **+** desktop webview | Adaptive Cards 1.5 **and** HTML/CSS | JSON file + `ac:template` / `ac:data` | Provider / Tauri | `windows` (default) |
+| **Linux** | Desktop webview (X11 DESKTOP pin; optional layer-shell) | HTML/CSS from JSON | JSON file | Tauri | `linux` (default) |
+
+Extra features: `rasterize` (SVG→PNG for AC), `workerw` (Windows wallpaper parent), `layer-shell` (Wayland), `macos-private-api` (transparent macOS webviews), `all-platforms` (alias for the five OS features).
+
+```toml
+# Full (default)
+tauri-plugin-widgets = "0.4"
+
+# Desktop Linux + Windows only
+tauri-plugin-widgets = { version = "0.4", default-features = false, features = ["rasterize", "linux", "windows"] }
+```
 
 ---
 
@@ -164,6 +207,8 @@ Capability warnings (degraded / unsupported) are logged when a config **changes*
 # src-tauri/Cargo.toml
 [dependencies]
 tauri-plugin-widgets = "0.4"
+# Or slim backends:
+# tauri-plugin-widgets = { version = "0.4", default-features = false, features = ["rasterize", "linux", "windows"] }
 ```
 
 ```bash
@@ -255,7 +300,13 @@ Recommended card pattern:
 
 ## CLI — Quick Init
 
-The plugin includes a CLI tool to scaffold native widget extensions automatically. It reads your `tauri.conf.json` to auto-detect the bundle identifier and app group.
+The plugin includes a CLI tool to scaffold native widget extensions. It reads your `tauri.conf.json` to auto-detect the bundle identifier and app group.
+
+```bash
+npx tauri-plugin-widgets-api init-macos
+npx tauri-plugin-widgets-api init-ios
+npx tauri-plugin-widgets-api init-windows
+```
 
 ### macOS Widget Extension
 
@@ -605,9 +656,11 @@ If you need custom behavior, create your own `GlanceAppWidget` / `GlanceAppWidge
 
 ---
 
-### Desktop Setup (Windows / Linux / macOS)
+### Desktop Setup (Windows / Linux / macOS host)
 
-Desktop widgets are transparent frameless webview windows that render the JSON config as HTML/CSS.
+Desktop hosts can show widgets as **frameless transparent webview windows** that render the JSON config via `widget.html` (built-in `widgetview` protocol).
+
+**Windows** also supports **Widgets Board** via Adaptive Cards (see below). **Linux** pins webview windows with X11 `_NET_WM_WINDOW_TYPE_DESKTOP` when the `linux` feature is on (Wayland: optional `layer-shell`).
 
 #### Option A: Declarative (tauri.conf.json)
 
@@ -642,11 +695,42 @@ await createWidgetWindow({
   y: 80,
   skipTaskbar: true,
   group: "group.com.example.myapp",
+  widgetId: "weather",
   size: "small",
 });
 
 await closeWidgetWindow("weather");
 ```
+
+Pass `group`, `widgetId`, and `size` so the built-in renderer loads the right config.
+
+#### Windows Widgets Board (Adaptive Cards)
+
+```bash
+npx tauri-plugin-widgets-api init-windows
+```
+
+This scaffolds a C# `IWidgetProvider` under `templates/windows-widget/` (see [`docs/windows-surfaces.md`](docs/windows-surfaces.md)). On `setWidgetConfig` the plugin writes Adaptive Cards JSON under `ac:template:{widgetId}` / `ac:data:{widgetId}`.
+
+Visual goldens: `tests/golden/windows/` — regenerate with:
+
+```bash
+cargo run --bin gen-windows-goldens --features rasterize
+# or: just gen-windows-goldens / just test-windows-visual
+```
+
+Optional wallpaper parenting (not Widgets Board): enable Cargo feature `workerw`.
+
+#### Linux harness (Docker)
+
+Live webview screenshots and X11 property gates:
+
+```bash
+just test-linux-x11          # xprop DESKTOP + SKIP_TASKBAR + PNGs
+just shot-linux weather small
+```
+
+Details: [`docs/linux-harness.md`](docs/linux-harness.md). Goldens: `tests/golden/linux/`.
 
 ---
 
@@ -1129,6 +1213,7 @@ const stop = await startWidgetUpdater(
     },
   }),
   "group.com.example.myapp",
+  "clock",
   {
     intervalMs: 60_000,
     reload: true,
@@ -1144,7 +1229,7 @@ stop();
 
 | Option | Type | Default | Description |
 |--------|------|---------|-------------|
-| `intervalMs` | `number` | `1000` | Update interval (ms). Use `60000+` for native widgets. |
+| `intervalMs` | `number` | `5000` | Update interval (ms). Use `60000+` for native WidgetKit hosts. |
 | `immediate` | `boolean` | `true` | Run builder immediately on start |
 | `reload` | `boolean` | `false` | Call `reloadAllTimelines()` after each tick. Throttled by `TAURI_WIDGET_MIN_RELOAD_SECS` on iOS/macOS. |
 | `onAction` | `function` | — | Subscribe to `widget-action` events |
@@ -1179,8 +1264,8 @@ await reloadAllTimelines();
 |----------|-------------|
 | `setItems(key, value, group)` | Store a key-value pair |
 | `getItems(key, group)` | Read a stored value |
-| `setWidgetConfig(config, group, skipReload?)` | Send a full UI config |
-| `getWidgetConfig(group)` | Read the current UI config |
+| `setWidgetConfig(config, group, widgetId, skipReload?)` | Send a full UI config |
+| `getWidgetConfig(group, widgetId)` | Read the current UI config |
 | `setRegisterWidget(widgets)` | Register widget provider class names |
 | `reloadAllTimelines()` | Reload all widget timelines |
 | `reloadTimelines(ofKind)` | Reload a specific widget kind |
@@ -1189,7 +1274,7 @@ await reloadAllTimelines();
 | `closeWidgetWindow(label)` | Close a desktop widget window |
 | `widgetAction(action, payload?)` | Emit a `widget-action` event |
 | `onWidgetAction(callback)` | Listen for `widget-action` events |
-| `startWidgetUpdater(builder, group, options?)` | Periodic config updater |
+| `startWidgetUpdater(builder, group, widgetId, options?)` | Periodic config updater |
 
 ---
 
@@ -1212,53 +1297,33 @@ fn update_widget(app: &tauri::AppHandle) {
 
 ```
 ├── android/                    Android plugin (Jetpack Glance renderer)
-│   └── src/main/java/
-│       ├── TauriGlanceWidget.kt       Glance UI renderer
-│       ├── WidgetBridgePlugin.kt       Tauri bridge
-│       ├── TauriGlanceWidgetReceiver.kt Universal AppWidget receiver
-│       └── WidgetActionReceiver.kt    Button action handler
 ├── ios/                        iOS plugin (Tauri bridge)
-│   └── Sources/
-│       └── WidgetPlugin.swift         setItems/getItems/reload via FileManager
-├── macos/
-│   └── WidgetReload.swift      Minimal FFI bridge (reload + shared container path)
+├── macos/                      macOS FFI bridge (reload + container path)
 ├── swift/                      TauriWidgets Swift Package
-│   ├── Package.swift
-│   └── Sources/TauriWidgets/
-│       ├── Models.swift                Widget UI models (public, Codable)
-│       ├── DynamicElementView.swift    SwiftUI renderer
-│       ├── TauriWidgetProvider.swift   TimelineProvider + TauriWidgetView
-│       ├── WidgetDataStore.swift       App Group file I/O
-│       └── WidgetActionIntent.swift    AppIntent for button actions
 ├── src/                        Rust plugin core
 │   ├── lib.rs                  Plugin init + commands
-│   ├── desktop.rs              Desktop: file storage + widget windows
-│   ├── mobile.rs               Mobile: native bridge + throttled reload
+│   ├── desktop.rs              Desktop storage + widget windows
+│   ├── mobile.rs               Mobile bridge + throttled reload
+│   ├── linux/                  X11 DESKTOP pin / optional layer-shell
+│   ├── windows/                Optional WorkerW helper
 │   ├── models.rs               WidgetConfig / WidgetElement (IR SoT)
 │   ├── capabilities.rs         Platform × element support matrix
-│   ├── snapshot.rs             Core layout dump / snapshot contract
-│   ├── codegen.rs              Real TS emitter (IR_SPEC)
-│   ├── store.rs                Shared storage keys / action envelope
-├── guest-js/                   TypeScript API
-│   ├── index.ts                Runtime APIs (re-exports generated IR types)
-│   └── generated/widget-types.ts  Generated from Rust SoT (`pnpm codegen`)
-├── schemas/widget-config.v1.json  JSON Schema (schemars)
-├── docs/capability-matrix.md   Generated capability table
+│   ├── adaptive_card.rs        IR → Adaptive Cards 1.5
+│   ├── rasterize.rs            SVG → PNG for AC
+│   ├── receipt.rs / transport.rs  Render receipts + Apple fan-out
+│   ├── snapshot.rs / codegen.rs / store.rs
+├── guest-js/                   TypeScript API + generated IR types
+├── schemas/widget-config.v1.json
+├── docs/
+│   ├── capability-matrix.md    Generated capability table
+│   ├── linux-harness.md        Docker X11/Wayland harness
+│   └── windows-surfaces.md     Widgets Board + webview notes
 ├── tests/fixtures/             Golden WidgetConfig JSON
-├── templates/                  Starter files for widget extensions
-│   ├── ios-widget/MyWidget.swift
-│   └── macos-widget/
-│       ├── MyWidget.swift              Widget Swift code template
-│       ├── Entitlements.plist          App Group entitlements
-│       ├── project.yml                 xcodegen project spec
-│       └── build-widget.sh            Build script (xcodebuild)
-├── bin/
-│   └── cli.mjs                        CLI tool (npx tauri-plugin-widgets-api)
-├── widget.html                 Desktop widget HTML renderer
-├── build.rs                    Minimal: tauri_plugin::Builder + macOS FFI bridge
-├── GUIDE.md                    Русскоязычная инструкция запуска примера
-└── examples/
-    └── tauri-plugin-widgets-example/   Complete demo app
+├── tests/golden/{android,ios,macos,desktop,windows,linux}/
+├── templates/{ios,macos,windows}-widget/
+├── examples/widget-probe/      Minimal host for Linux Docker shots
+├── widget.html                 Desktop HTML renderer
+└── examples/tauri-plugin-widgets-example/
 ```
 
 ---
@@ -1297,8 +1362,10 @@ fn update_widget(app: &tauri::AppHandle) {
 
 ### Desktop widget window not appearing
 
-- Ensure `createWidgetWindow(...)` is called, or the window is defined in `tauri.conf.json`.
-- Add `"desktop-widget"` to the `windows` array in `capabilities/default.json`.
+- Call `createWidgetWindow(...)` (or define a window in `tauri.conf.json`).
+- Allow the window label in capabilities (`widgets:default` / window permissions).
+- On Linux, enable the `linux` feature for X11 DESKTOP pinning; harness: [`docs/linux-harness.md`](docs/linux-harness.md).
+- On Windows Widgets Board, run `init-windows` and verify `ac:template:*` after `setWidgetConfig`.
 
 ---
 
