@@ -106,13 +106,13 @@ pub mod store;
 pub mod transport;
 pub mod receipt;
 
-#[cfg(target_os = "windows")]
+#[cfg(all(target_os = "windows", feature = "windows"))]
 pub mod windows;
 
-#[cfg(target_os = "linux")]
+#[cfg(all(target_os = "linux", feature = "linux"))]
 pub mod linux;
 
-#[cfg(target_os = "macos")]
+#[cfg(all(target_os = "macos", feature = "macos"))]
 pub mod macos_transport;
 
 pub use adaptive_card::{to_adaptive_card, to_adaptive_card_for_size, TranspileResult};

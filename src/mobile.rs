@@ -30,20 +30,26 @@ fn reload_min_interval_secs() -> u64 {
     }
 }
 
-#[cfg(target_os = "android")]
+#[cfg(all(target_os = "android", feature = "android"))]
 const PLUGIN_IDENTIFIER: &str = "git.s00d.widgets";
 
-#[cfg(target_os = "ios")]
+#[cfg(all(target_os = "ios", feature = "ios"))]
 tauri::ios_plugin_binding!(init_plugin_widgets);
 
 pub fn init<R: Runtime, C: DeserializeOwned>(
     app: &AppHandle<R>,
     api: PluginApi<R, C>,
 ) -> crate::Result<Widget<R>> {
-    #[cfg(target_os = "android")]
+    #[cfg(all(target_os = "android", feature = "android"))]
     let handle = api.register_android_plugin(PLUGIN_IDENTIFIER, "WidgetBridgePlugin")?;
-    #[cfg(target_os = "ios")]
+    #[cfg(all(target_os = "ios", feature = "ios"))]
     let handle = api.register_ios_plugin(init_plugin_widgets)?;
+
+    #[cfg(all(target_os = "android", not(feature = "android")))]
+    compile_error!("tauri-plugin-widgets: enable feature `android` when targeting Android");
+    #[cfg(all(target_os = "ios", not(feature = "ios")))]
+    compile_error!("tauri-plugin-widgets: enable feature `ios` when targeting iOS");
+
     Ok(Widget {
         app: app.clone(),
         handle,

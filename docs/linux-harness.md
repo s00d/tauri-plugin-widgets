@@ -2,6 +2,29 @@
 
 Native **arm64** Ubuntu 24.04 container — do **not** use `--platform linux/amd64` on Apple Silicon (qemu is 5–10× slower).
 
+## Platform features
+
+Each OS backend is an optional Cargo feature. **Default enables all of them** plus `rasterize`:
+
+| Feature | Default | What it gates |
+|---------|---------|----------------|
+| `linux` | yes | X11 desktop pin (`_NET_WM_*`) + optional `layer-shell` |
+| `windows` | yes | Windows webview URL scheme + `workerw` prerequisite |
+| `macos` | yes | WidgetKit / App Group transport |
+| `ios` | yes | iOS plugin bridge |
+| `android` | yes | Android plugin bridge |
+| `rasterize` | yes | SVG→PNG for Adaptive Cards |
+
+```toml
+# Full (same as default)
+tauri-plugin-widgets = "0.4"
+
+# Desktop Linux + Windows only
+tauri-plugin-widgets = { version = "0.4", default-features = false, features = ["rasterize", "linux", "windows"] }
+```
+
+`all-platforms` is a convenience alias for the five OS features.
+
 ## What is tested
 
 | Gate | How | Flaky? |

@@ -16,4 +16,10 @@ tauri-plugin-widgets = { path = "../.." }
 
 [features]
 default = []
+# Forward plugin OS / layer-shell features for harness variants.
+linux = ["tauri-plugin-widgets/linux"]
+windows = ["tauri-plugin-widgets/windows"]
+macos = ["tauri-plugin-widgets/macos"]
+ios = ["tauri-plugin-widgets/ios"]
+android = ["tauri-plugin-widgets/android"]
 layer-shell = ["tauri-plugin-widgets/layer-shell"]

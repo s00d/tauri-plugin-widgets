@@ -37,34 +37,18 @@ impl WidgetPlatform {
         }
     }
 
-    /// Platform matching the current compile target.
+    /// Platform matching the current compile target (and enabled OS feature).
     pub fn current() -> WidgetPlatform {
-        #[cfg(target_os = "ios")]
-        {
+        if cfg!(all(target_os = "ios", feature = "ios")) {
             WidgetPlatform::Ios
-        }
-        #[cfg(target_os = "macos")]
-        {
+        } else if cfg!(all(target_os = "macos", feature = "macos")) {
             WidgetPlatform::Macos
-        }
-        #[cfg(target_os = "android")]
-        {
+        } else if cfg!(all(target_os = "android", feature = "android")) {
             WidgetPlatform::Android
-        }
-        #[cfg(target_os = "windows")]
-        {
-            // Prefer Widgets Board Adaptive Cards when building the Windows target.
-            // Desktop webview fallback still uses Desktop for log_capabilities if needed;
-            // host apps can call validate_config(..., Desktop) explicitly.
+        } else if cfg!(all(target_os = "windows", feature = "windows")) {
+            // Prefer Widgets Board Adaptive Cards when the Windows backend is enabled.
             WidgetPlatform::Windows
-        }
-        #[cfg(not(any(
-            target_os = "ios",
-            target_os = "macos",
-            target_os = "android",
-            target_os = "windows"
-        )))]
-        {
+        } else {
             WidgetPlatform::Desktop
         }
     }

@@ -32,15 +32,24 @@ base64 = { version = "0.22", optional = true }
 
 [target.'cfg(target_os = "linux")'.dependencies]
 gtk = "0.18"
-x11rb = "0.13"
-raw-window-handle = "0.6"
+x11rb = { version = "0.13", optional = true }
+raw-window-handle = { version = "0.6", optional = true }
 gtk-layer-shell = { version = "0.8", optional = true }
 
 [dev-dependencies]
 tempfile = "3"
 
 [features]
-default = ["rasterize"]
+default = ["rasterize", "linux", "windows", "macos", "ios", "android"]
+# Platform backends (optional). Default enables all; pick a subset with
+# `default-features = false` + explicit list (e.g. `["rasterize", "linux", "windows"]`).
+linux = ["dep:x11rb", "dep:raw-window-handle"]
+windows = []
+macos = []
+ios = []
+android = []
+# Convenience: every OS backend.
+all-platforms = ["linux", "windows", "macos", "ios", "android"]
 schema = ["dep:schemars"]
 codegen = ["schema"]
 # SVG → PNG for Adaptive Cards (chart/canvas/gauge).
@@ -48,9 +57,9 @@ rasterize = ["dep:resvg", "dep:base64"]
 # Enables transparent desktop widget windows on macOS (requires host `tauri.conf` macosPrivateApi).
 macos-private-api = ["tauri/macos-private-api"]
 # Windows wallpaper WorkerW parenting (not Widgets Board).
-workerw = []
+workerw = ["windows"]
 # Wayland: remap widget windows onto gtk-layer-shell Background (Linux only).
-layer-shell = ["dep:gtk-layer-shell"]
+layer-shell = ["linux", "dep:gtk-layer-shell"]
 
 [[bin]]
 name = "gen-schema"
