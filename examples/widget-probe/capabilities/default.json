@@ -1,0 +1,10 @@
+{
+  "$schema": "https://schema.tauri.app/config/2",
+  "identifier": "default",
+  "description": "widget-probe capabilities",
+  "windows": ["main", "widget-probe"],
+  "permissions": [
+    "core:default",
+    "widgets:default"
+  ]
+}

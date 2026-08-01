@@ -155,7 +155,7 @@ function renderEl(d, parentAxis){
     case'zstack':return renderZStack(d);
     case'grid':return renderGrid(d);
     case'container':return renderContainer(d);
-    case'text':return renderText(d);
+    case'text':return renderText(d, parentAxis);
     case'image':return renderImage(d);
     case'progress':return renderProgress(d);
     case'gauge':return renderGauge(d);
@@ -243,7 +243,7 @@ function renderContainer(d){
   return e;
 }
 
-function renderText(d){
+function renderText(d, parentAxis){
   var e=document.createElement('span');
   e.textContent=d.content||'';
   var ts=d.textStyle&&TEXT_STYLE_SIZES[d.textStyle];
@@ -251,12 +251,17 @@ function renderText(d){
   e.style.fontWeight=(d.textStyle&&TEXT_STYLE_BOLD[d.textStyle])?700:fw(d.fontWeight);
   e.style.color=d.color?resolveColor(d.color):'inherit';
   e.style.textAlign=d.alignment==='center'?'center':d.alignment==='trailing'?'right':'left';
-  // Full width so textAlign leading/center/trailing works inside centered vstacks.
   e.style.display=d.lineLimit?'-webkit-box':'block';
-  e.style.width='100%';
   e.style.boxSizing='border-box';
-  e.style.alignSelf='stretch';
   e.style.flexShrink='0';
+  // In hstack hug content width so siblings (divider / trailing text) stay visible.
+  // In vstack (or unknown axis) stretch full width so textAlign leading/center/trailing works.
+  if(parentAxis==='horizontal'){
+    e.style.width='auto';
+  }else{
+    e.style.width='100%';
+    e.style.alignSelf='stretch';
+  }
   if(d.fontDesign==='monospaced')e.style.fontFamily='monospace';
   else if(d.fontDesign==='serif')e.style.fontFamily='serif';
   else if(d.fontDesign==='rounded')e.style.fontFamily='ui-rounded, "SF Pro Rounded", system-ui, sans-serif';
@@ -640,11 +645,18 @@ function render(cfg, source){
   if(!data){root.innerHTML='<div class="w-empty"><div><div style="font-size:28px;margin-bottom:4px">&#x1F4CC;</div><div style="font-size:14px;opacity:.7">No config for size &quot;'+SIZE+'&quot;</div></div></div>';return}
 
   root.innerHTML='';
+  // Readable defaults when fixtures leave color/background null (avoids black-on-black
+  // and WebKit leftover Loading purple under transparent surfaces).
+  document.documentElement.style.color='#e5e7eb';
+  document.body.style.color='#e5e7eb';
   var wrapper=document.createElement('div');
   wrapper.style.cssText='width:100%;height:100%;overflow:hidden;position:relative';
 
   var content=renderEl(data);
   content.style.width='100%';content.style.height='100%';
+  if(!content.style.background && !content.style.backgroundColor){
+    content.style.background='#0f172a';
+  }
   wrapper.appendChild(content);
 
   var drag=document.createElement('div');drag.id='drag-handle';

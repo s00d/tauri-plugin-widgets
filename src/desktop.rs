@@ -209,49 +209,111 @@ impl<R: Runtime> Widget<R> {
 
     pub fn create_widget_window(&self, config: WidgetWindowConfig) -> crate::Result<bool> {
         let app = self.app.clone();
-        let label_log = config.label.clone();
+        // Already on the GTK/UI thread (e.g. `setup`) — build inline to avoid deadlock
+        // waiting for a scheduled task that cannot run until we return.
+        #[cfg(target_os = "linux")]
+        {
+            if gtk::glib::MainContext::default().is_owner() {
+                return Self::create_widget_window_on_main(&app, config);
+            }
+        }
 
+        let (tx, rx) = std::sync::mpsc::sync_channel(1);
         self.app
             .run_on_main_thread(move || {
-                let url = match config.url.as_deref() {
-                    Some(u) if !u.is_empty() => WebviewUrl::App(u.into()),
-                    _ => {
-                        let group = config.group.as_deref().unwrap_or("default");
-                        let size = config.size.as_deref().unwrap_or("small");
-                        let widget_id = config.widget_id.as_deref().unwrap_or("default");
-                        builtin_widget_url(group, size, widget_id)
-                    }
-                };
-                let mut builder = WebviewWindowBuilder::new(&app, &config.label, url)
-                    .title("")
-                    .inner_size(config.width, config.height)
-                    .decorations(false)
-                    .skip_taskbar(config.skip_taskbar)
-                    .always_on_top(config.always_on_top)
-                    .resizable(false)
-                    .visible(true);
-                // Transparent windows on macOS require the host app's `macos-private-api`.
-                #[cfg(any(not(target_os = "macos"), feature = "macos-private-api"))]
-                {
-                    builder = builder.transparent(true);
-                }
-
-                if let (Some(x), Some(y)) = (config.x, config.y) {
-                    builder = builder.position(x, y);
-                }
-
-                if let Err(e) = builder.build() {
-                    log::error!("create_widget_window '{}': {}", config.label, e);
-                }
+                let _ = tx.send(Self::create_widget_window_on_main(&app, config));
             })
             .map_err(|e| Error::new(format!("main thread dispatch: {e}")))?;
 
+        match rx.recv_timeout(std::time::Duration::from_secs(8)) {
+            Ok(result) => result,
+            // Setup on non-Linux (or before the loop pumps): task is queued.
+            Err(std::sync::mpsc::RecvTimeoutError::Timeout) => Ok(true),
+            Err(std::sync::mpsc::RecvTimeoutError::Disconnected) => Err(Error::new(
+                "create_widget_window: main thread dropped",
+            )),
+        }
+    }
+
+    fn create_widget_window_on_main(
+        app: &AppHandle<R>,
+        config: WidgetWindowConfig,
+    ) -> crate::Result<bool> {
+        let label_log = config.label.clone();
+        let url = match config.url.as_deref() {
+            Some(u) if !u.is_empty() => WebviewUrl::App(u.into()),
+            _ => {
+                let group = config.group.as_deref().unwrap_or("default");
+                let size = config.size.as_deref().unwrap_or("small");
+                let widget_id = config.widget_id.as_deref().unwrap_or("default");
+                builtin_widget_url(group, size, widget_id)
+            }
+        };
+        let skip_taskbar = config.skip_taskbar;
+        // Close any prior window with this label so rebuilds (watch/inbox) succeed.
+        if let Some(prev) = app.get_webview_window(&config.label) {
+            let _ = prev.close();
+        }
+        let mut builder = WebviewWindowBuilder::new(app, &config.label, url)
+            // Label doubles as WM_NAME so harnesses can find the window (xdotool).
+            .title(&config.label)
+            .inner_size(config.width, config.height)
+            .decorations(false)
+            .skip_taskbar(skip_taskbar)
+            .always_on_top(config.always_on_top)
+            .resizable(false)
+            .visible(true);
+        // Transparent windows on macOS require the host app's `macos-private-api`.
+        #[cfg(any(not(target_os = "macos"), feature = "macos-private-api"))]
+        {
+            builder = builder.transparent(true);
+        }
+
+        if let (Some(x), Some(y)) = (config.x, config.y) {
+            builder = builder.position(x, y);
+        }
+
+        let win = builder.build().map_err(|e| {
+            Error::new(format!("create_widget_window '{}': {e}", config.label))
+        })?;
+        #[cfg(target_os = "linux")]
+        crate::linux::pin_widget_window(&win, skip_taskbar);
         log::debug!("created widget window '{label_log}'");
         Ok(true)
     }
 
     pub fn close_widget_window(&self, label: &str) -> crate::Result<bool> {
-        if let Some(win) = self.app.get_webview_window(label) {
+        let app = self.app.clone();
+        let label = label.to_string();
+
+        #[cfg(target_os = "linux")]
+        {
+            if gtk::glib::MainContext::default().is_owner() {
+                return Self::close_widget_window_on_main(&app, &label);
+            }
+        }
+
+        let (tx, rx) = std::sync::mpsc::sync_channel(1);
+        self.app
+            .run_on_main_thread(move || {
+                let _ = tx.send(Self::close_widget_window_on_main(&app, &label));
+            })
+            .map_err(|e| Error::new(format!("main thread dispatch: {e}")))?;
+
+        match rx.recv_timeout(std::time::Duration::from_secs(3)) {
+            Ok(result) => result,
+            Err(std::sync::mpsc::RecvTimeoutError::Timeout) => Ok(true),
+            Err(std::sync::mpsc::RecvTimeoutError::Disconnected) => {
+                Err(Error::new("close_widget_window: main thread dropped"))
+            }
+        }
+    }
+
+    fn close_widget_window_on_main(
+        app: &AppHandle<R>,
+        label: &str,
+    ) -> crate::Result<bool> {
+        if let Some(win) = app.get_webview_window(label) {
             win.close().map_err(|e| Error::new(e.to_string()))?;
             Ok(true)
         } else {

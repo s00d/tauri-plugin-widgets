@@ -119,3 +119,97 @@ win-pack:
 win-sideload:
     scp {{repo}}/tools/win/sideload.ps1 utm-win:C:/work/sideload.ps1
     ssh utm-win 'powershell -NoProfile -ExecutionPolicy Bypass -File C:\work\sideload.ps1'
+
+# ─── Linux / Docker (native arm64; X11 xprop + optional Wayland layer-shell) ─
+
+linux-up:
+    bash {{repo}}/tools/linux-up.sh
+
+linux-up-wl:
+    bash {{repo}}/tools/linux-up-wl.sh
+
+linux-down:
+    -docker rm -f wshot wshot-wl
+
+# Property gate (xprop) — one-shot container (does not use wshot watch probe).
+test-linux-x11:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    ROOT="{{repo}}"
+    IMAGE="${WSHOT_IMAGE:-widgets-linux}"
+    if ! docker image inspect "$IMAGE" >/dev/null 2>&1; then
+      docker build -t "$IMAGE" "$ROOT/tests/linux"
+    fi
+    docker volume create widgets-cargo >/dev/null 2>&1 || true
+    docker run --rm \
+      -v "$ROOT:/work" \
+      -v widgets-cargo:/root/.cargo/registry \
+      -v widgets-cargo-git:/root/.cargo/git \
+      "$IMAGE" bash tests/linux/run-x11.sh
+
+test-linux-wayland:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    ROOT="{{repo}}"
+    IMAGE="${WSHOT_IMAGE:-widgets-linux}"
+    if ! docker image inspect "$IMAGE" >/dev/null 2>&1; then
+      docker build -t "$IMAGE" "$ROOT/tests/linux"
+    fi
+    docker volume create widgets-cargo >/dev/null 2>&1 || true
+    docker run --rm \
+      -v "$ROOT:/work" \
+      -v widgets-cargo:/root/.cargo/registry \
+      -v widgets-cargo-git:/root/.cargo/git \
+      "$IMAGE" bash tests/linux/run-wayland.sh
+
+test-linux-fallback:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    ROOT="{{repo}}"
+    IMAGE="${WSHOT_IMAGE:-widgets-linux}"
+    if ! docker image inspect "$IMAGE" >/dev/null 2>&1; then
+      docker build -t "$IMAGE" "$ROOT/tests/linux"
+    fi
+    docker volume create widgets-cargo >/dev/null 2>&1 || true
+    docker run --rm \
+      -v "$ROOT:/work" \
+      -v widgets-cargo:/root/.cargo/registry \
+      -v widgets-cargo-git:/root/.cargo/git \
+      "$IMAGE" bash tests/linux/run-wayland-fallback.sh
+
+shot-linux FX SIZE="small":
+    bash {{repo}}/tools/shot-linux.sh {{FX}} {{SIZE}}
+
+# Copy triage capture into golden corpus (explicit).
+record-linux case:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    CASE={{case}}
+    SIZE="$(jq -r '.size // "small"' "{{repo}}/tests/cases/${CASE}.json" 2>/dev/null || echo small)"
+    FX="$(jq -r '.fixture // empty' "{{repo}}/tests/cases/${CASE}.json" 2>/dev/null || true)"
+    bash {{repo}}/tools/linux-up.sh
+    if [[ -n "$FX" ]]; then
+      bash {{repo}}/tools/shot-linux.sh "$CASE" "$SIZE"
+    else
+      bash {{repo}}/tools/shot-linux.sh "$CASE" "$SIZE"
+    fi
+    mkdir -p "{{repo}}/tests/golden/linux"
+    SRC="{{repo}}/out/linux/${CASE}-${SIZE}.png"
+    if [[ ! -f "$SRC" ]]; then
+      # shot may name by fixture stem — accept any matching out/linux file.
+      SRC="$(ls -1 "{{repo}}/out/linux/"*"${SIZE}.png" 2>/dev/null | head -1 || true)"
+    fi
+    [[ -f "$SRC" ]] || { echo "record-linux: no PNG for $CASE"; exit 1; }
+    cp "$SRC" "{{repo}}/tests/golden/linux/${CASE}.png"
+    echo "record-linux: tests/golden/linux/${CASE}.png"
+
+hosts:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    xcrun simctl list devices booted 2>/dev/null | grep -q Booted && echo "ios     ok" || echo "ios     DOWN"
+    adb devices 2>/dev/null | grep -q emulator && echo "android ok" || echo "android DOWN"
+    docker ps -q -f name=^/wshot$ | grep -q . && echo "linux   ok" || echo "linux   DOWN"
+    docker ps -q -f name=^/wshot-wl$ | grep -q . && echo "linux-wl ok" || echo "linux-wl DOWN"
+    ssh -o ConnectTimeout=2 -o BatchMode=yes utm-win exit 2>/dev/null && echo "windows ok" || echo "windows DOWN"
+    pgrep -f widget-probe >/dev/null 2>&1 && echo "desktop ok" || echo "desktop DOWN"
+

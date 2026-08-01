@@ -2,7 +2,7 @@
 /**
  * Batch visual audit contact sheets for all declarative cases.
  *
- * Panels: Desktop | iOS | macOS | Android | Windows
+ * Panels: Desktop | iOS | macOS | Android | Windows | Linux
  * Output: out/audit/<case>.png + out/audit/index.html
  *
  *   pnpm audit:sheets
@@ -18,6 +18,7 @@ const REPO = path.resolve(__dirname, "..");
 const CASES = path.join(REPO, "tests/cases");
 const GOLDEN = path.join(REPO, "tests/golden");
 const OUT = path.join(REPO, "out/audit");
+const OUT_LINUX = path.join(REPO, "out/linux");
 
 const PLATFORMS = [
   { id: "desktop", label: "Desktop" },
@@ -25,6 +26,7 @@ const PLATFORMS = [
   { id: "macos", label: "macOS" },
   { id: "android", label: "Android" },
   { id: "windows", label: "Windows" },
+  { id: "linux", label: "Linux" },
 ];
 
 function arg(name, fallback) {
@@ -70,7 +72,21 @@ async function sheetForCase(caseName, panelW = 280, panelH = 300) {
 
   for (let i = 0; i < n; i++) {
     const { id, label } = PLATFORMS[i];
-    const pngPath = path.join(GOLDEN, id, `${caseName}.png`);
+    let pngPath = path.join(GOLDEN, id, `${caseName}.png`);
+    // Linux triage shots land in out/linux/<case>-<size>.png before record-linux.
+    if (id === "linux" && !fs.existsSync(pngPath)) {
+      const size = caseName.split(".").pop() || "small";
+      const alt = path.join(OUT_LINUX, `${caseName}.png`);
+      const alt2 = path.join(OUT_LINUX, `${caseName.replace(/\.(small|medium|large)$/, "")}-${size}.png`);
+      if (fs.existsSync(alt)) pngPath = alt;
+      else if (fs.existsSync(alt2)) pngPath = alt2;
+      else {
+        const hits = fs.existsSync(OUT_LINUX)
+          ? fs.readdirSync(OUT_LINUX).filter((f) => f.startsWith(caseName) && f.endsWith(".png"))
+          : [];
+        if (hits[0]) pngPath = path.join(OUT_LINUX, hits[0]);
+      }
+    }
     const panel = await loadOrBlank(pngPath, label, panelW, panelH);
     const labelSvg = Buffer.from(
       `<svg xmlns="http://www.w3.org/2000/svg" width="${panelW}" height="${labelH}">

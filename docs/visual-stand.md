@@ -17,7 +17,7 @@ Hosts are pinned; readiness is polled (`awaitStable`). Goldens update **one case
 ```
 tests/cases/<name>.json     # { fixture, size, theme, locale, macos? }
 tests/fixtures/...          # IR
-tests/golden/{android,ios,desktop,macos}/<name>.png
+tests/golden/{android,ios,desktop,macos,windows,linux}/<name>.png
 out/{platform}/             # actual + diff (gitignored)
 ```
 
@@ -172,6 +172,22 @@ node tests/windows/compare.mjs
 
 Goldens live in `tests/golden/windows/`. See [windows-surfaces.md](windows-surfaces.md).
 
+## Linux desktop (Docker)
+
+Live Tauri webview inside Ubuntu 24.04 (Xvfb + openbox). **CI gate is `xprop`**, not pixels:
+
+- `_NET_WM_WINDOW_TYPE_DESKTOP`
+- `_NET_WM_STATE_SKIP_TASKBAR`
+
+Wayland/layer-shell checked separately under sway headless. See [linux-harness.md](linux-harness.md).
+
+```bash
+just linux-up
+just test-linux-x11
+just shot-linux weather small
+just record-linux weather.small   # copies triage PNG → tests/golden/linux/
+```
+
 Geometry Level-1 still lives in `tests/expected/geometry` and updates with `UPDATE_SNAPSHOTS=1` (bulk OK for trees). Pixel goldens never bulk-overwrite.
 
 ## Audit (batch contact sheets)
@@ -179,7 +195,7 @@ Geometry Level-1 still lives in `tests/expected/geometry` and updates with `UPDA
 ```bash
 pnpm audit:sheets
 # → out/audit/<case>.png + out/audit/index.html
-# panels: Desktop | iOS | macOS | Android | Windows
+# panels: Desktop | iOS | macOS | Android | Windows | Linux
 open out/audit/index.html
 ```
 
@@ -205,5 +221,9 @@ Findings from the last full pass live in `out/audit/CATALOG.md` (gitignored unde
 | Record macOS case | `just record-macos x.y` |
 | macOS transports (C1) | `just test-macos-transports` |
 | macOS pipeline (C2) | `just test-macos-pipeline` |
+| Linux up / x11 gate | `just linux-up` / `just test-linux-x11` |
+| Linux shot / record | `just shot-linux weather small` / `just record-linux weather.small` |
+| Linux Wayland / fallback | `just test-linux-wayland` / `just test-linux-fallback` |
+| Hosts status | `just hosts` |
 
 See also [render-testing.md](./render-testing.md) for Level-1 geometry.

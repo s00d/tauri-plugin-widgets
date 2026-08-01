@@ -19,7 +19,7 @@ android = { level = "full", notes = "Full AppWidgetManager + SharedPreferences s
 ios = { level = "full", notes = "WidgetKit (iOS 17+) + App Groups shared container" }
 macos = { level = "full", notes = "WidgetKit (macOS 14+) + App Groups shared container" }
 windows = { level = "partial", notes = "Widgets Board Adaptive Cards + desktop webview fallback; optional workerw wallpaper" }
-linux = { level = "partial", notes = "JSON file storage + Tauri event-based desktop widget windows" }
+linux = { level = "partial", notes = "Desktop webview + X11 _NET_WM_WINDOW_TYPE_DESKTOP; optional gtk-layer-shell on Wayland" }
 
 [dependencies]
 tauri = { version = "2" }
@@ -29,6 +29,12 @@ log = "0.4"
 schemars = { version = "0.8", optional = true }
 resvg = { version = "0.45", optional = true }
 base64 = { version = "0.22", optional = true }
+
+[target.'cfg(target_os = "linux")'.dependencies]
+gtk = "0.18"
+x11rb = "0.13"
+raw-window-handle = "0.6"
+gtk-layer-shell = { version = "0.8", optional = true }
 
 [dev-dependencies]
 tempfile = "3"
@@ -43,6 +49,8 @@ rasterize = ["dep:resvg", "dep:base64"]
 macos-private-api = ["tauri/macos-private-api"]
 # Windows wallpaper WorkerW parenting (not Widgets Board).
 workerw = []
+# Wayland: remap widget windows onto gtk-layer-shell Background (Linux only).
+layer-shell = ["dep:gtk-layer-shell"]
 
 [[bin]]
 name = "gen-schema"
