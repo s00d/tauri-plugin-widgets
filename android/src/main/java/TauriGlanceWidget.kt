@@ -358,13 +358,32 @@ internal fun RenderElement(
             }
         }
         "container" -> {
-            val alignment = parseContentAlignment(el.widgetString("contentAlignment", ""))
+            val alignment = parseContentAlignment(el.widgetString("contentAlignment", "center"))
             Box(modifier = baseModifier, contentAlignment = alignment) {
                 val children = el.optJSONArray("children")
                 when {
+                    children != null && children.length() == 1 -> {
+                        // Single child: let Box contentAlignment position it (no full-width Column).
+                        RenderElement(
+                            context,
+                            children.getJSONObject(0),
+                            GlanceModifier,
+                            sizeFamily,
+                            inHorizontal = false,
+                        )
+                    }
                     children != null && children.length() > 0 -> {
-                        Column(modifier = GlanceModifier.fillMaxWidth()) {
-                            renderChildrenVertical(context, children, spacing, sizeFamily)
+                        Column(
+                            modifier = GlanceModifier,
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                        ) {
+                            renderChildrenVertical(
+                                context,
+                                children,
+                                spacing,
+                                sizeFamily = sizeFamily,
+                                expandWidth = false,
+                            )
                         }
                     }
                     else -> {
@@ -489,8 +508,14 @@ internal fun RenderElement(
             Column(modifier = colMod, horizontalAlignment = Alignment.CenterHorizontally) {
                 // Gauge: labels drawn inside bitmap. Progress: optional external label (linear only).
                 if (type != "gauge" && barStyle != "circular") {
-                    el.widgetString("label", "").takeIf { it.isNotBlank() }?.let {
-                        Text(it, style = textStyleFromElement(context, el))
+                    el.widgetString("label", "").takeIf { it.isNotBlank() }?.let { lbl ->
+                        val labelEl = JSONObject(el.toString()).apply {
+                            if (!has("color") || isNull("color")) {
+                                opt("tint")?.let { put("color", it) }
+                            }
+                            put("fontSize", optDouble("fontSize", 10.0))
+                        }
+                        Text(lbl, style = textStyleFromElement(context, labelEl))
                     }
                 }
                 val bmp = if (type == "gauge") drawGaugeBitmap(context, el, pct) else drawProgressBitmap(context, el, pct)
@@ -792,7 +817,13 @@ private fun ColumnScope.renderChildrenVertical(
         val child = visible[idx]
         val flex = child.optDouble("flex", 0.0)
         val type = child.widgetString("type", "")
-        val widthMod = if (expandWidth) GlanceModifier.fillMaxWidth() else GlanceModifier
+        // Buttons/images/shapes hug content — fillMaxWidth makes Tap a full-bleed bar.
+        val hugWidth = type in setOf("button", "toggle", "image", "shape", "label")
+        val widthMod = when {
+            hugWidth -> GlanceModifier
+            expandWidth -> GlanceModifier.fillMaxWidth()
+            else -> GlanceModifier
+        }
         val base = when {
             flex > 0.0 -> widthMod.defaultWeight()
             type == "spacer" && !child.has("minLength") -> widthMod.defaultWeight()
@@ -922,11 +953,15 @@ private fun applyCommonStyle(context: Context, modifier: GlanceModifier, el: JSO
     val clipRadius = when {
         explicitRadius > 0f -> explicitRadius
         clipShape == "circle" -> {
-            val base = listOf(frameW, frameH).filter { it > 0f }.minOrNull() ?: 24f
+            val base = listOf(frameW, frameH, el.optDouble("size", -1.0).toFloat())
+                .filter { it > 0f }
+                .minOrNull() ?: 24f
             (base / 2f).coerceAtLeast(1f)
         }
         clipShape == "capsule" -> {
-            val base = listOf(frameW, frameH).filter { it > 0f }.minOrNull() ?: 28f
+            val base = listOf(frameW, frameH, el.optDouble("size", -1.0).toFloat())
+                .filter { it > 0f }
+                .minOrNull() ?: 28f
             (base / 2f).coerceAtLeast(1f)
         }
         clipShape == "rectangle" -> 0f
@@ -2030,7 +2065,7 @@ private fun formatDateValue(raw: String, style: String): String {
     val date = parseIsoDate(raw) ?: return raw
     val now = System.currentTimeMillis()
     return when (style.lowercase(Locale.US)) {
-        "time" -> SimpleDateFormat("HH:mm", Locale.getDefault()).format(date)
+        "time" -> SimpleDateFormat("h:mm a", Locale.US).format(date)
         "relative" -> formatRelativeSpan(date.time - now)
         "offset" -> formatDuration(date.time - now)
         "timer" -> formatDuration(date.time - now)
@@ -2104,9 +2139,9 @@ private fun iconGlyph(systemName: String): String {
         "moon.stars.fill" -> "\u263E"
         "paintpalette.fill" -> "\u2698"
         "location.fill" -> "\u2302"
-        "person.fill" -> "\u25C9"
-        "person.2.fill" -> "\u25C9\u25C9"
-        "person.badge.plus" -> "\u25C9+"
+        "person.fill" -> "\uD83D\uDC64"
+        "person.2.fill" -> "\uD83D\uDC65"
+        "person.badge.plus" -> "\uD83D\uDC64+"
         "heart.fill" -> "\u2764"
         "star.fill" -> "\u2B50"
         "gear", "gearshape", "gearshape.fill" -> "\u2699"

@@ -7,7 +7,9 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 export const REPO_ROOT = path.resolve(__dirname, "../..");
 export const FIXTURES_ROOT = path.join(REPO_ROOT, "tests/fixtures");
 export const EXPECTED_GEOMETRY = path.join(REPO_ROOT, "tests/expected/geometry");
+/** @deprecated Level-2 pixels live under tests/golden/ — kept for events PNGs. */
 export const EXPECTED_PIXELS = path.join(REPO_ROOT, "tests/expected/pixels");
+export const GOLDEN_ROOT = path.join(REPO_ROOT, "tests/golden");
 export const WIDGET_HTML = path.join(REPO_ROOT, "widget.html");
 
 export const SIZE_VIEWPORTS: Record<string, { width: number; height: number }> = {

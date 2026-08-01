@@ -1,0 +1,10 @@
+{
+  "fixture": "core/link-chip",
+  "size": "small",
+  "theme": "dark",
+  "locale": "en_US",
+  "macos": {
+    "width": 158,
+    "height": 158
+  }
+}

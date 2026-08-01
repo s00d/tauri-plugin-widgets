@@ -101,9 +101,14 @@ pub mod error;
 pub mod models;
 pub mod snapshot;
 pub mod store;
+pub mod transport;
+
+#[cfg(target_os = "macos")]
+pub mod macos_transport;
 
 pub use error::{Error, Result};
 pub use store::WidgetActionEnvelope;
+pub use transport::{Health, Receipt, Transport, TransportSet};
 
 #[cfg(desktop)]
 pub use desktop::Widget;

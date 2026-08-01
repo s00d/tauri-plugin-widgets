@@ -1,208 +1,126 @@
 import XCTest
 import SwiftUI
-import ImageIO
-import UniformTypeIdentifiers
 @testable import TauriWidgets
 #if canImport(AppKit)
 import AppKit
 #endif
 
-/// Level-2 iOS/macOS ImageRenderer snapshots + sanity invariants.
-/// PNG goldens: ../../tests/expected/pixels/ios/<fixture>.<size>.png
+/// Level-2 visual stand: declarative cases → SwiftUI chrome → PNG golden assert.
+/// Not SpringBoard — WidgetKit chrome (background + corner mask) is simulated.
 final class RenderTests: XCTestCase {
-    private static let sizePoints: [String: CGSize] = [
-        "small": CGSize(width: 155, height: 155),
-        "medium": CGSize(width: 329, height: 155),
-        "large": CGSize(width: 329, height: 345),
-    ]
+    private static let precision: Double = 0.98
 
-    func testFixturesDecodeAndRenderSane() async throws {
-        let fixtures = try Self.listFixtures()
-        XCTAssertFalse(fixtures.isEmpty, "no fixtures found under \(Self.fixturesRoot().path)")
+    func testCases() async throws {
+        let filter = ProcessInfo.processInfo.environment["CASE"]
+        let cases = try VisualCase.loadAll(casesRoot: RepoPaths.cases, filter: filter)
+        XCTAssertFalse(cases.isEmpty, "no cases under \(RepoPaths.cases.path)")
 
         let record =
-            ProcessInfo.processInfo.environment["SNAPSHOT_TESTING_RECORD"] != nil
+            ProcessInfo.processInfo.environment["GOLDEN_RECORD"] == "1"
+            || ProcessInfo.processInfo.environment["GOLDEN_RECORD"] == "true"
             || ProcessInfo.processInfo.environment["UPDATE_SNAPSHOTS"] == "1"
+        let recordAll = ProcessInfo.processInfo.environment["GOLDEN_RECORD_ALL"] == "1"
 
-        for fx in fixtures {
-            let data = try Data(contentsOf: fx.url)
-            let cfg = try JSONDecoder().decode(WidgetUIConfig.self, from: data)
-            for (sizeName, size) in Self.sizePoints {
-                let element: WidgetElement?
-                switch sizeName {
-                case "large": element = cfg.large
-                case "medium": element = cfg.medium
-                default: element = cfg.small
-                }
-                guard let element else { continue }
+        if record && !recordAll {
+            XCTAssertNotNil(filter, "GOLDEN_RECORD requires CASE=<name> (one case at a time)")
+        }
 
-                let image = try await MainActor.run {
-                    try Self.renderImage(element: element, size: size)
-                }
-                try Self.assertSane(image: image, fixture: fx.id, size: sizeName)
-
-                #if os(macOS)
-                let pngURL = Self.pixelsRoot().appendingPathComponent(
-                    "\(fx.id.replacingOccurrences(of: "/", with: "__")).\(sizeName).png"
-                )
-                if record || !FileManager.default.fileExists(atPath: pngURL.path) {
-                    try Self.writePNG(image, to: pngURL)
-                }
-                #endif
+        var failures: [String] = []
+        for c in cases {
+            do {
+                try await runCase(c, record: record)
+            } catch {
+                failures.append("\(c.name): \(error.localizedDescription)")
             }
         }
+        XCTAssertTrue(failures.isEmpty, failures.joined(separator: "\n"))
     }
 
     func testNullFieldsNeverRenderLiteralNull() async throws {
-        let url = Self.fixturesRoot().appendingPathComponent("bugs/null-fields.json")
-        let data = try Data(contentsOf: url)
-        let cfg = try JSONDecoder().decode(WidgetUIConfig.self, from: data)
-        guard let element = cfg.small else {
-            return XCTFail("null-fields missing small")
+        let cases = try VisualCase.loadAll(casesRoot: RepoPaths.cases, filter: "null-fields.small")
+        guard let c = cases.first else {
+            return XCTFail("null-fields.small case missing")
+        }
+        let cfg = try c.config(fixturesRoot: RepoPaths.fixtures)
+        guard let el = c.layout(from: cfg) else {
+            return XCTFail("null-fields missing layout")
         }
         let image = try await MainActor.run {
-            try Self.renderImage(element: element, size: Self.sizePoints["small"]!)
+            try Self.renderImage(case: c, element: el)
         }
-        try Self.assertSane(image: image, fixture: "bugs/null-fields", size: "small")
+        try PixelCompare.assertNonUniform(image: image, caseName: c.name)
     }
 
-    // MARK: - Helpers
-
-    private struct FixtureRef {
-        let id: String
-        let url: URL
-    }
-
-    private static func fixturesRoot() -> URL {
-        URL(fileURLWithPath: #filePath)
-            .deletingLastPathComponent() // TauriWidgetsTests
-            .deletingLastPathComponent() // Tests
-            .deletingLastPathComponent() // swift
-            .deletingLastPathComponent() // repo root
-            .appendingPathComponent("tests/fixtures")
-    }
-
-    private static func pixelsRoot() -> URL {
-        URL(fileURLWithPath: #filePath)
-            .deletingLastPathComponent()
-            .deletingLastPathComponent()
-            .deletingLastPathComponent()
-            .deletingLastPathComponent()
-            .appendingPathComponent("tests/expected/pixels/ios")
-    }
-
-    private static func listFixtures() throws -> [FixtureRef] {
-        let root = fixturesRoot()
-        var out: [FixtureRef] = []
-        for folder in ["core", "bugs", "presets"] {
-            let dir = root.appendingPathComponent(folder)
-            guard let files = try? FileManager.default.contentsOfDirectory(
-                at: dir,
-                includingPropertiesForKeys: nil
-            ) else { continue }
-            for url in files.filter({ $0.pathExtension == "json" }).sorted(by: { $0.lastPathComponent < $1.lastPathComponent }) {
-                let id = "\(folder)/\(url.deletingPathExtension().lastPathComponent)"
-                out.append(FixtureRef(id: id, url: url))
-            }
+    private func runCase(_ c: VisualCase, record: Bool) async throws {
+        let cfg = try c.config(fixturesRoot: RepoPaths.fixtures)
+        guard let el = c.layout(from: cfg) else {
+            throw NSError(
+                domain: "TauriWidgetsTests",
+                code: 11,
+                userInfo: [NSLocalizedDescriptionKey: "no layout for size \(c.size)"],
+            )
         }
-        return out
+        let image = try await MainActor.run {
+            try Self.renderImage(case: c, element: el)
+        }
+        try PixelCompare.assertNonUniform(image: image, caseName: c.name)
+
+        let goldenURL = RepoPaths.goldenIos.appendingPathComponent("\(c.name).png")
+        if record {
+            try PixelCompare.writePNG(image, to: goldenURL)
+            return
+        }
+        guard FileManager.default.fileExists(atPath: goldenURL.path) else {
+            throw NSError(
+                domain: "TauriWidgetsTests",
+                code: 12,
+                userInfo: [
+                    NSLocalizedDescriptionKey:
+                        "missing golden \(goldenURL.path) — GOLDEN_RECORD=1 CASE=\(c.name) swift test",
+                ],
+            )
+        }
+        let expected = try PixelCompare.loadPNG(goldenURL)
+        let match = PixelCompare.similarity(expected, image)
+        if match < Self.precision {
+            let outDir = RepoPaths.outIos
+            try FileManager.default.createDirectory(at: outDir, withIntermediateDirectories: true)
+            try PixelCompare.writePNG(image, to: outDir.appendingPathComponent("\(c.name).actual.png"))
+            throw NSError(
+                domain: "TauriWidgetsTests",
+                code: 13,
+                userInfo: [
+                    NSLocalizedDescriptionKey: String(
+                        format: "golden mismatch \(c.name): similarity %.4f < %.2f (actual → \(outDir.path))",
+                        match,
+                        Self.precision,
+                    ),
+                ],
+            )
+        }
     }
 
     @MainActor
-    private static func renderImage(element: WidgetElement, size: CGSize) throws -> CGImage {
-        // Match production: content fills the widget frame (no letterboxing).
-        // Prefer dark colorScheme so `.primary` ink stays readable on typical dark widget fills;
-        // fixtures with explicit colors still win.
-        let view = DynamicElementView(element: element)
-            .frame(maxWidth: .infinity, maxHeight: .infinity)
-            .frame(width: size.width, height: size.height)
-            .background(Color(red: 0.05, green: 0.05, blue: 0.07))
-            .environment(\.colorScheme, .dark)
+    private static func renderImage(case c: VisualCase, element: WidgetElement) throws -> CGImage {
+        let scheme: ColorScheme = c.theme == "light" ? .light : .dark
+        let view = WidgetChrome.framed(
+            element: element,
+            width: c.points.width,
+            height: c.points.height,
+        )
+        .environment(\.colorScheme, scheme)
+        .environment(\.locale, Locale(identifier: c.locale.replacingOccurrences(of: "_", with: "-")))
+        .environment(\.sizeCategory, .large)
+
         let renderer = ImageRenderer(content: view)
         renderer.scale = 2
         guard let image = renderer.cgImage else {
-            throw NSError(domain: "TauriWidgetsTests", code: 1, userInfo: [
-                NSLocalizedDescriptionKey: "ImageRenderer returned nil",
-            ])
+            throw NSError(
+                domain: "TauriWidgetsTests",
+                code: 1,
+                userInfo: [NSLocalizedDescriptionKey: "ImageRenderer returned nil"],
+            )
         }
         return image
-    }
-
-    private static func writePNG(_ image: CGImage, to url: URL) throws {
-        try FileManager.default.createDirectory(
-            at: url.deletingLastPathComponent(),
-            withIntermediateDirectories: true
-        )
-        guard let dest = CGImageDestinationCreateWithURL(url as CFURL, UTType.png.identifier as CFString, 1, nil) else {
-            throw NSError(domain: "TauriWidgetsTests", code: 2, userInfo: [
-                NSLocalizedDescriptionKey: "CGImageDestinationCreateWithURL failed",
-            ])
-        }
-        CGImageDestinationAddImage(dest, image, nil)
-        guard CGImageDestinationFinalize(dest) else {
-            throw NSError(domain: "TauriWidgetsTests", code: 3, userInfo: [
-                NSLocalizedDescriptionKey: "CGImageDestinationFinalize failed",
-            ])
-        }
-    }
-
-    /// Invariants: not uniform, content bbox inside frame.
-    private static func assertSane(image: CGImage, fixture: String, size: String) throws {
-        let w = image.width
-        let h = image.height
-        XCTAssertGreaterThan(w, 0)
-        XCTAssertGreaterThan(h, 0)
-
-        guard let data = image.dataProvider?.data,
-              let ptr = CFDataGetBytePtr(data) else {
-            return XCTFail("no pixel data \(fixture)/\(size)")
-        }
-        let bpp = max(1, image.bitsPerPixel / 8)
-        let bpr = image.bytesPerRow
-
-        var minX = w, minY = h, maxX = 0, maxY = 0
-        var nonUniform = false
-        let first = (Int(ptr[0]), Int(ptr[1]), Int(ptr[2]), Int(ptr[3]))
-        let step = max(1, min(w, h) / 64)
-
-        for y in stride(from: 0, to: h, by: step) {
-            for x in stride(from: 0, to: w, by: step) {
-                let o = y * bpr + x * bpp
-                guard o + 3 < CFDataGetLength(data) else { continue }
-                let px = (Int(ptr[o]), Int(ptr[o + 1]), Int(ptr[o + 2]), Int(ptr[o + 3]))
-                if px != first { nonUniform = true }
-                let lum = px.0 + px.1 + px.2
-                if px.3 > 8 && (lum > 8 || px.3 < 250) {
-                    minX = min(minX, x)
-                    minY = min(minY, y)
-                    maxX = max(maxX, x)
-                    maxY = max(maxY, y)
-                }
-            }
-        }
-
-        XCTAssertTrue(nonUniform, "\(fixture)/\(size): uniform image (dead render?)")
-        if maxX >= minX && maxY >= minY {
-            XCTAssertGreaterThanOrEqual(minX, 0)
-            XCTAssertGreaterThanOrEqual(minY, 0)
-            XCTAssertLessThan(maxX, w)
-            XCTAssertLessThan(maxY, h)
-            let contentH = maxY - minY + 1
-            let minContent = Int(Double(h) * 0.15)
-            let skipHeight =
-                fixture.contains("vstack-spacer")
-                || fixture.contains("canvas")
-                || fixture.contains("list")
-                || fixture.contains("zstack")
-                || fixture.contains("shape-capsule")
-                || fixture.contains("tasks")
-            if !skipHeight {
-                XCTAssertGreaterThan(
-                    contentH,
-                    minContent,
-                    "\(fixture)/\(size): content height \(contentH) ≤ 15% of \(h) (dead spacer?)"
-                )
-            }
-        }
     }
 }

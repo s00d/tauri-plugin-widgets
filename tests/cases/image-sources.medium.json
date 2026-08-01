@@ -1,0 +1,10 @@
+{
+  "fixture": "core/image-sources",
+  "size": "medium",
+  "theme": "dark",
+  "locale": "en_US",
+  "macos": {
+    "width": 338,
+    "height": 158
+  }
+}

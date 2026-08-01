@@ -4,7 +4,7 @@ use std::collections::HashMap;
 use std::fs;
 use std::hash::{Hash, Hasher};
 use std::path::PathBuf;
-use std::sync::Mutex;
+use std::sync::{Arc, Mutex};
 use tauri::{
     plugin::PluginApi, AppHandle, Emitter, Manager, Runtime, WebviewUrl, WebviewWindowBuilder,
 };
@@ -16,7 +16,9 @@ use crate::store::{
 };
 
 #[cfg(target_os = "macos")]
-use std::ffi::{CStr, CString};
+use std::ffi::CString;
+#[cfg(target_os = "macos")]
+use crate::transport::TransportSet;
 
 /// Protocol name registered by the plugin for the built-in widget renderer.
 pub(crate) const BUILTIN_PROTOCOL: &str = "widgetview";
@@ -46,6 +48,8 @@ pub fn init<R: Runtime, C: DeserializeOwned>(
         known_groups: Mutex::new(Vec::new()),
         #[cfg(target_os = "macos")]
         poller_started: Mutex::new(false),
+        #[cfg(target_os = "macos")]
+        transport_sets: Mutex::new(HashMap::new()),
     })
 }
 
@@ -58,6 +62,9 @@ pub struct Widget<R: Runtime> {
     known_groups: Mutex<Vec<String>>,
     #[cfg(target_os = "macos")]
     poller_started: Mutex<bool>,
+    /// Per-group Apple transport health (fan-out → receipt → narrow).
+    #[cfg(target_os = "macos")]
+    transport_sets: Mutex<HashMap<String, Arc<TransportSet>>>,
 }
 
 impl<R: Runtime> Widget<R> {
@@ -71,8 +78,17 @@ impl<R: Runtime> Widget<R> {
     fn storage_path(&self, group: &str) -> crate::Result<PathBuf> {
         #[cfg(target_os = "macos")]
         {
-            if let Some(path) = macos_shared_container(group) {
-                let dir = path;
+            if let Some(path) = crate::macos_transport::app_group_data_override() {
+                if let Some(parent) = path.parent() {
+                    if !parent.exists() {
+                        fs::create_dir_all(parent)?;
+                    }
+                }
+                return Ok(path);
+            }
+            // Prefer App Group file when the OS returns a container URL.
+            // Note: URL presence ≠ delivery — TransportSet receipts gate narrowing.
+            if let Some(dir) = macos_shared_container(group) {
                 if !dir.exists() {
                     fs::create_dir_all(&dir)?;
                 }
@@ -102,6 +118,21 @@ impl<R: Runtime> Widget<R> {
         Ok(dir.join(format!("{safe}.json")))
     }
 
+    #[cfg(target_os = "macos")]
+    fn transport_set(&self, group: &str) -> Arc<TransportSet> {
+        let mut sets = self.transport_sets.lock().unwrap();
+        sets.entry(group.to_string())
+            .or_insert_with(|| {
+                let set = Arc::new(crate::macos_transport::apple_transport_set(group));
+                if let Ok(ver) = std::env::var("WIDGET_BUNDLE_VERSION") {
+                    let team = std::env::var("WIDGET_TEAM_ID_HASH").unwrap_or_default();
+                    set.invalidate_if_install_changed(&ver, &team);
+                }
+                set
+            })
+            .clone()
+    }
+
     fn load_map_locked<'a>(
         store: &'a mut HashMap<String, DataMap>,
         path: &PathBuf,
@@ -119,15 +150,19 @@ impl<R: Runtime> Widget<R> {
         })
     }
 
-    /// Persist map to local path + macOS multi-transport fan-out.
+    /// Persist map: Apple TransportSet (fan-out or narrowed) / single file elsewhere.
     fn persist_map(&self, group: &str, map: &DataMap) -> crate::Result<()> {
-        let path = self.storage_path(group)?;
-        let json = serde_json::to_string_pretty(map)?;
-        atomic_write(&path, json.as_bytes())?;
-
         #[cfg(target_os = "macos")]
         {
-            macos_fanout_write(group, map, &json);
+            let set = self.transport_set(group);
+            set.reconcile();
+            set.write(map)?;
+        }
+        #[cfg(not(target_os = "macos"))]
+        {
+            let path = self.storage_path(group)?;
+            let json = serde_json::to_string_pretty(map)?;
+            atomic_write(&path, json.as_bytes())?;
         }
 
         let _ = self.app.emit("widget-update", group);
@@ -148,10 +183,18 @@ impl<R: Runtime> Widget<R> {
     }
 
     pub fn get_items(&self, key: &str, group: &str) -> crate::Result<Option<String>> {
-        let path = self.storage_path(group)?;
-        let mut store = self.store.lock().unwrap();
-        let map = Self::load_map_locked(&mut store, &path, group);
-        Ok(map.get(key).cloned())
+        #[cfg(target_os = "macos")]
+        {
+            let freshest = self.macos_freshest_map(group)?;
+            return Ok(freshest.get(key).cloned());
+        }
+        #[cfg(not(target_os = "macos"))]
+        {
+            let path = self.storage_path(group)?;
+            let mut store = self.store.lock().unwrap();
+            let map = Self::load_map_locked(&mut store, &path, group);
+            Ok(map.get(key).cloned())
+        }
     }
 
     pub fn create_widget_window(&self, config: WidgetWindowConfig) -> crate::Result<bool> {
@@ -312,12 +355,33 @@ impl<R: Runtime> Widget<R> {
         }
     }
 
+    /// Merge disk transports + in-memory, pick freshest, refresh store if disk wins.
+    #[cfg(target_os = "macos")]
+    fn macos_freshest_map(&self, group: &str) -> crate::Result<DataMap> {
+        let set = self.transport_set(group);
+        set.reconcile();
+        let mut maps = set.read_all();
+        let path = self.storage_path(group)?;
+        let mut store = self.store.lock().unwrap();
+        let map = Self::load_map_locked(&mut store, &path, group);
+        maps.push(map.clone());
+        let freshest = store::pick_freshest(maps);
+        if store::map_nonce(&freshest) > store::map_nonce(map) {
+            *map = freshest.clone();
+        }
+        Ok(freshest)
+    }
+
     /// Drain pending actions for a group (CAS clear under store lock).
     pub fn poll_pending_actions(&self, group: &str) -> crate::Result<Vec<serde_json::Value>> {
         self.remember_group(group);
 
         #[cfg(target_os = "macos")]
-        let disk_maps = macos_read_all_transports(group);
+        let disk_maps = {
+            let set = self.transport_set(group);
+            set.reconcile();
+            set.read_all()
+        };
         #[cfg(not(target_os = "macos"))]
         let disk_maps: Vec<DataMap> = {
             let path = self.storage_path(group)?;
@@ -408,15 +472,11 @@ extern "C" {
     fn macos_widget_reload_kind(kind: *const std::ffi::c_char) -> bool;
     fn macos_widget_container_path(group: *const std::ffi::c_char) -> *mut std::ffi::c_char;
     fn macos_widget_free_string(ptr: *mut std::ffi::c_char);
-    fn macos_widget_set_defaults(
-        group: *const std::ffi::c_char,
-        key: *const std::ffi::c_char,
-        value: *const std::ffi::c_char,
-    ) -> bool;
 }
 
 #[cfg(target_os = "macos")]
 fn macos_shared_container(group: &str) -> Option<PathBuf> {
+    use std::ffi::CStr;
     let c_group = CString::new(group).ok()?;
     let ptr = unsafe { macos_widget_container_path(c_group.as_ptr()) };
     if ptr.is_null() {
@@ -429,77 +489,7 @@ fn macos_shared_container(group: &str) -> Option<PathBuf> {
     Some(PathBuf::from(path))
 }
 
-/// Fan-out write to App Group file (already written by caller path when available),
-/// UserDefaults suite, and WidgetSandboxFile.
-#[cfg(target_os = "macos")]
-fn macos_fanout_write(group: &str, map: &DataMap, json: &str) {
-    // UserDefaults: write each key (incl. meta) so suite mirrors file.
-    for (k, v) in map {
-        if let (Ok(c_group), Ok(c_key), Ok(c_value)) =
-            (CString::new(group), CString::new(k.as_str()), CString::new(v.as_str()))
-        {
-            unsafe {
-                macos_widget_set_defaults(c_group.as_ptr(), c_key.as_ptr(), c_value.as_ptr());
-            }
-        }
-    }
-
-    // WidgetSandboxFile — required for ad-hoc signing when App Groups don't share.
-    macos_write_to_widget_container(group, json);
-}
-
-#[cfg(target_os = "macos")]
-fn macos_write_to_widget_container(group: &str, json: &str) {
-    let app_id = group.strip_prefix("group.").unwrap_or(group);
-    let widget_bundle = format!("{app_id}.widgetkit");
-    let home = match std::env::var("HOME") {
-        Ok(h) => h,
-        Err(_) => return,
-    };
-    let container = PathBuf::from(&home)
-        .join("Library/Containers")
-        .join(&widget_bundle)
-        .join("Data");
-    let _ = fs::create_dir_all(&container);
-    let path = container.join("widget_data.json");
-    let _ = atomic_write(&path, json.as_bytes());
-}
-
-#[cfg(target_os = "macos")]
-fn macos_read_all_transports(group: &str) -> Vec<DataMap> {
-    let mut maps = Vec::new();
-
-    // App Group file
-    if let Some(dir) = macos_shared_container(group) {
-        let path = dir.join("widget_data.json");
-        if let Ok(s) = fs::read_to_string(&path) {
-            if let Ok(m) = serde_json::from_str::<DataMap>(&s) {
-                maps.push(m);
-            }
-        }
-    }
-
-    // WidgetSandboxFile
-    let app_id = group.strip_prefix("group.").unwrap_or(group);
-    let widget_bundle = format!("{app_id}.widgetkit");
-    if let Ok(home) = std::env::var("HOME") {
-        let path = PathBuf::from(home)
-            .join("Library/Containers")
-            .join(&widget_bundle)
-            .join("Data")
-            .join("widget_data.json");
-        if let Ok(s) = fs::read_to_string(&path) {
-            if let Ok(m) = serde_json::from_str::<DataMap>(&s) {
-                maps.push(m);
-            }
-        }
-    }
-
-    // UserDefaults is written key-by-key; reconstructing full map from FFI is
-    // not exposed — file transports cover poll. Nonce pick still works across files.
-    maps
-}
-
+#[cfg(not(target_os = "macos"))]
 fn atomic_write(path: &PathBuf, data: &[u8]) -> std::io::Result<()> {
     let tmp = path.with_extension("tmp");
     fs::write(&tmp, data)?;

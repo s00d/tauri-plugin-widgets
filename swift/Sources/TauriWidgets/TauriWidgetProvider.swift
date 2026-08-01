@@ -58,7 +58,7 @@ public struct TauriWidgetView: View {
         if let el = layoutForFamily() {
             DynamicElementView(element: el)
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
-                .containerBackground(for: .widget) { backgroundView(for: el) }
+                .containerBackground(for: .widget) { WidgetChrome.background(for: el) }
         } else {
             placeholderView()
                 .containerBackground(for: .widget) {
@@ -75,35 +75,6 @@ public struct TauriWidgetView: View {
         case .systemMedium: return cfg.medium ?? cfg.large ?? cfg.small
         case .systemLarge:  return cfg.large ?? cfg.medium ?? cfg.small
         default:            return cfg.medium ?? cfg.small ?? cfg.large
-        }
-    }
-
-    @ViewBuilder
-    private func backgroundView(for el: WidgetElement) -> some View {
-        switch el.background {
-        case .solid(let hex):
-            if let sem = Color.semantic(hex) { sem } else { Color(hex: hex) }
-        case .gradient(let g):
-            let colors = g.colors.map { Color(hex: $0) }
-            let (s, e): (UnitPoint, UnitPoint) = {
-                switch g.direction {
-                case "bottomToTop": return (.bottom, .top)
-                case "leadingToTrailing": return (.leading, .trailing)
-                case "trailingToLeading": return (.trailing, .leading)
-                case "topLeadingToBottomTrailing": return (.topLeading, .bottomTrailing)
-                case "topTrailingToBottomLeading": return (.topTrailing, .bottomLeading)
-                default: return (.top, .bottom)
-                }
-            }()
-            LinearGradient(colors: colors, startPoint: s, endPoint: e)
-        case .adaptive(let light, let dark):
-            Color.adaptive(light: light, dark: dark)
-        case nil:
-            #if os(macOS)
-            Color(.windowBackgroundColor)
-            #else
-            Color(.systemBackground)
-            #endif
         }
     }
 

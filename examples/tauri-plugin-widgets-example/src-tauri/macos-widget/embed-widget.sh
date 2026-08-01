@@ -115,6 +115,12 @@ fi
 
 # ─── Rebuild DMG ──────────────────────────────────────────────────────────────
 
+if [ "${WIDGET_SKIP_DMG:-}" = "1" ]; then
+    echo "[widget] Skipping DMG rebuild (WIDGET_SKIP_DMG=1)"
+    echo "[widget] Done!"
+    exit 0
+fi
+
 ARCH=$(uname -m)
 case "$ARCH" in
     arm64)  ARCH_LABEL="aarch64" ;;
@@ -145,7 +151,9 @@ if [ -n "$APP_VERSION" ]; then
     rm -rf "$DMG_STAGE"
 
     echo "[widget] DMG ready: $DMG_PATH"
-    open "$DMG_PATH"
+    if [ "${WIDGET_SKIP_DMG_OPEN:-}" != "1" ]; then
+        open "$DMG_PATH"
+    fi
 else
     echo "[widget] Skipping DMG rebuild (version not found)"
 fi

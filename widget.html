@@ -268,7 +268,7 @@ function renderText(d){
 function systemGlyph(name){
   var n=String(name||'').toLowerCase();
   var map={
-    'star.fill':'\u2B50','person.fill':'\u25C9','person.2.fill':'\u25C9',
+    'star.fill':'\u2B50','person.fill':'\u{1F464}','person.2.fill':'\u{1F465}',
     'gear':'\u2699','gearshape':'\u2699','gearshape.fill':'\u2699',
     'heart.fill':'\u2764','bolt.fill':'\u26A1','moon.stars.fill':'\u263E',
     'sun.max.fill':'\u2600','cloud.fill':'\u2601','clock':'\u23F0','globe':'\u25CE'
@@ -339,12 +339,12 @@ function renderGauge(d){
     tr.appendChild(f);e.appendChild(tr);applyStyle(e,d);return e;
   }
   var wr=document.createElement('div');wr.style.textAlign='center';
-  var sw=document.createElement('div');sw.style.cssText='width:48px;height:48px;position:relative;margin:0 auto';
+  var sw=document.createElement('div');sw.style.cssText='width:56px;height:56px;position:relative;margin:0 auto';
   var s=svg('svg',{viewBox:'0 0 36 36'});s.style.cssText='width:100%;height:100%';
-  s.appendChild(svg('path',{d:'M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831',fill:'none',stroke:track,'stroke-width':'3'}));
-  s.appendChild(svg('path',{d:'M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831',fill:'none',stroke:tint,'stroke-width':'3','stroke-dasharray':pct.toFixed(1)+', 100','stroke-linecap':'round'}));
+  s.appendChild(svg('path',{d:'M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831',fill:'none',stroke:track,'stroke-width':'4'}));
+  s.appendChild(svg('path',{d:'M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831',fill:'none',stroke:tint,'stroke-width':'4','stroke-dasharray':pct.toFixed(1)+', 100','stroke-linecap':'round'}));
   sw.appendChild(s);
-  if(d.currentValueLabel){var cv=document.createElement('div');cv.style.cssText='position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:10px';cv.style.color=clr;cv.textContent=d.currentValueLabel;sw.appendChild(cv)}
+  if(d.currentValueLabel){var cv=document.createElement('div');cv.style.cssText='position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:600';cv.style.color=clr;cv.textContent=d.currentValueLabel;sw.appendChild(cv)}
   wr.appendChild(sw);
   if(d.label){var l=document.createElement('div');l.style.cssText='font-size:10px;margin-top:2px;opacity:0.7';l.style.color=clr;l.textContent=d.label;wr.appendChild(l)}
   applyStyle(wr,d);return wr;

@@ -1,6 +1,5 @@
 package git.s00d.widgets
 
-import android.graphics.Bitmap
 import org.json.JSONObject
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
@@ -11,7 +10,6 @@ import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 import org.robolectric.annotation.GraphicsMode
 import java.io.File
-import java.io.FileOutputStream
 
 /**
  * Level-1 Android geometry harness: Glance compose → measure → dumpTree.
@@ -59,14 +57,7 @@ class GeometryFixturesTest {
         if (RenderHarness.updateSnapshots()) {
             outFile.parentFile?.mkdirs()
             outFile.writeText(tree.toString(2) + "\n")
-            val png = File(
-                RenderHarness.expectedPixelsDir(),
-                "${fixtureId.replace("/", "__")}.$size.png",
-            )
-            png.parentFile?.mkdirs()
-            FileOutputStream(png).use { out ->
-                rendered.bitmap.compress(Bitmap.CompressFormat.PNG, 100, out)
-            }
+            // Pixel goldens are Level-2 AppWidgetHost (tests/golden/android), not Robolectric.
             return
         }
         if (outFile.exists()) {

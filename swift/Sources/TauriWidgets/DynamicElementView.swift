@@ -158,6 +158,8 @@ public struct DynamicElementView: View {
                     DynamicElementView(element: children[idx])
                 }
             }
+            // Expand so contentAlignment centers inside frame/padding, not intrinsic hug.
+            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: a)
         } else {
             EmptyView()
         }
@@ -268,7 +270,11 @@ public struct DynamicElementView: View {
             VStack(alignment: .leading, spacing: 2) {
                 if let lbl = element.label {
                     Text(lbl).font(.caption2)
-                        .foregroundColor(resolveColor(element.color) ?? .secondary)
+                        .foregroundColor(
+                            resolveColor(element.color)
+                                ?? resolveColor(element.tint)
+                                ?? .secondary
+                        )
                 }
                 GeometryReader { geo in
                     ZStack(alignment: .leading) {
@@ -290,12 +296,25 @@ public struct DynamicElementView: View {
         let span = max(hi - lo, 0.0001)
         let frac = min(max((v - lo) / span, 0), 1)
         if element.gaugeStyle == "linear" {
-            let gauge = Gauge(value: v, in: lo...hi) {
-                if let lbl = element.label { Text(lbl).font(.caption2) }
-            } currentValueLabel: {
-                if let cvl = element.currentValueLabel { Text(cvl).font(.caption) }
+            // Match desktop/HTML: label row + capsule bar (not accessoryLinear slider chrome).
+            VStack(alignment: .leading, spacing: 2) {
+                HStack {
+                    if let lbl = element.label {
+                        Text(lbl).font(.caption2).foregroundColor(ink.opacity(0.7))
+                    }
+                    Spacer(minLength: 0)
+                    if let cvl = element.currentValueLabel {
+                        Text(cvl).font(.caption).fontWeight(.semibold).foregroundColor(ink)
+                    }
+                }
+                GeometryReader { geo in
+                    ZStack(alignment: .leading) {
+                        Capsule().fill(tc.opacity(0.25))
+                        Capsule().fill(tc).frame(width: max(geo.size.width * frac, 2))
+                    }
+                }
+                .frame(height: 6)
             }
-            gauge.gaugeStyle(.accessoryLinear).tint(tc)
         } else {
             // Custom ring — accessoryCircular is blank/misaligned under ImageRenderer.
             VStack(spacing: 4) {
@@ -585,10 +604,13 @@ public struct DynamicElementView: View {
         let h = absSec / 3600
         let m = (absSec % 3600) / 60
         let s = absSec % 60
-        let label = String(format: "%@%02d:%02d:%02d", sign, h, m, s)
+        let label = String(format: "%@%d:%02d:%02d", sign, h, m, s)
         Text(label)
             .font(.system(size: element.fontSize ?? 14, weight: fontWeight(element.fontWeight)).monospacedDigit())
             .foregroundColor(resolveColor(element.color) ?? .primary)
+            .lineLimit(1)
+            .minimumScaleFactor(0.55)
+            .allowsTightening(true)
     }
 
     // MARK: Label

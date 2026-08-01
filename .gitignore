@@ -19,3 +19,5 @@ android/build/
 android/.cxx/
 
 test-results/
+out/
+tools/hosts.env

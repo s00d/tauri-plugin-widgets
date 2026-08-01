@@ -7,15 +7,25 @@ private let logger = Logger(subsystem: "com.tauri.widgets", category: "DataStore
 /// - `config:{widgetId}` — widget UI JSON
 /// - `pending_actions` — JSON array of action envelopes
 /// - `__meta_nonce__` / `__meta_updated_at__` — freshness for multi-transport pick
+/// - Receipts live in a **sibling** file/key (`widget_receipt.json` / `widget_receipt`) —
+///   never inside the config map (must not bump nonce).
 public enum TauriWidgetStoreKeys {
     public static let configPrefix = "config:"
     public static let pendingActions = "pending_actions"
     public static let metaNonce = "__meta_nonce__"
     public static let metaUpdatedAt = "__meta_updated_at__"
+    public static let receiptDefaultsKey = "widget_receipt"
 
     public static func configKey(_ widgetId: String) -> String {
         configPrefix + widgetId
     }
+}
+
+/// Transport names — must match Rust `transport::NAME_*`.
+public enum TauriWidgetTransportName {
+    public static let appGroup = "appgroup"
+    public static let defaults = "defaults"
+    public static let container = "container"
 }
 
 public struct WidgetActionEnvelope: Codable {
@@ -38,13 +48,41 @@ public struct WidgetActionEnvelope: Codable {
     }
 }
 
+/// Async delivery receipt from the widget extension (outside config nonce space).
+public struct WidgetTransportReceipt: Codable {
+    public let readFrom: String
+    public let nonce: UInt64
+    public let ts: UInt64
+
+    public init(readFrom: String, nonce: UInt64, ts: UInt64) {
+        self.readFrom = readFrom
+        self.nonce = nonce
+        self.ts = ts
+    }
+}
+
 public struct TauriWidgetDataStore {
 
+    /// Load config and plant a delivery receipt (does not bump config nonce).
     public static func loadConfig(appGroup: String, widgetId: String = "default") -> WidgetUIConfig? {
-        guard let raw = readValue(forKey: TauriWidgetStoreKeys.configKey(widgetId), appGroup: appGroup) else {
+        loadConfigAcknowledging(appGroup: appGroup, widgetId: widgetId)
+    }
+
+    public static func loadConfigAcknowledging(appGroup: String, widgetId: String = "default") -> WidgetUIConfig? {
+        let (map, source) = loadFreshestMapWithSource(appGroup: appGroup)
+        defer {
+            let nonce = UInt64(map[TauriWidgetStoreKeys.metaNonce] ?? "0") ?? 0
+            let receipt = WidgetTransportReceipt(
+                readFrom: source,
+                nonce: nonce,
+                ts: UInt64(Date().timeIntervalSince1970 * 1000)
+            )
+            writeReceiptEverywhere(receipt, appGroup: appGroup)
+        }
+        guard let raw = map[TauriWidgetStoreKeys.configKey(widgetId)],
+              let data = raw.data(using: .utf8) else {
             return nil
         }
-        guard let data = raw.data(using: .utf8) else { return nil }
         do {
             return try JSONDecoder().decode(WidgetUIConfig.self, from: data)
         } catch {
@@ -86,29 +124,44 @@ public struct TauriWidgetDataStore {
     // MARK: - Multi-transport
 
     public static func loadFreshestMap(appGroup: String) -> [String: String] {
-        var candidates: [[String: String]] = []
-
-        if let m = readOwnContainerMap() { candidates.append(m) }
-        if let m = readUserDefaultsMap(appGroup: appGroup) { candidates.append(m) }
-        if let m = readAppGroupFileMap(appGroup: appGroup) { candidates.append(m) }
-
-        return pickFreshest(candidates)
+        loadFreshestMapWithSource(appGroup: appGroup).0
     }
 
-    private static func pickFreshest(_ maps: [[String: String]]) -> [String: String] {
+    /// Same as `loadFreshestMap`, but also returns which transport won.
+    public static func loadFreshestMapWithSource(appGroup: String) -> ([String: String], String) {
+        var candidates: [(String, [String: String])] = []
+
+        if let m = readOwnContainerMap() {
+            candidates.append((TauriWidgetTransportName.container, m))
+        }
+        if let m = readUserDefaultsMap(appGroup: appGroup) {
+            candidates.append((TauriWidgetTransportName.defaults, m))
+        }
+        if let m = readAppGroupFileMap(appGroup: appGroup) {
+            candidates.append((TauriWidgetTransportName.appGroup, m))
+        }
+
+        return pickFreshestWithSource(candidates)
+    }
+
+    private static func pickFreshestWithSource(
+        _ maps: [(String, [String: String])]
+    ) -> ([String: String], String) {
         var best: [String: String] = [:]
+        var bestSource = TauriWidgetTransportName.container
         var bestNonce: UInt64 = 0
         var bestTs: UInt64 = 0
-        for map in maps {
+        for (source, map) in maps {
             let n = UInt64(map[TauriWidgetStoreKeys.metaNonce] ?? "0") ?? 0
             let t = UInt64(map[TauriWidgetStoreKeys.metaUpdatedAt] ?? "0") ?? 0
             if best.isEmpty || n > bestNonce || (n == bestNonce && t > bestTs) {
                 best = map
+                bestSource = source
                 bestNonce = n
                 bestTs = t
             }
         }
-        return best
+        return (best, bestSource)
     }
 
     private static func touchMeta(_ map: inout [String: String]) {
@@ -123,9 +176,75 @@ public struct TauriWidgetDataStore {
         writeAppGroupFileMap(map, appGroup: appGroup)
     }
 
+    // MARK: - Receipts (separate namespace — never touch config map / nonce)
+
+    public static func writeReceiptEverywhere(_ receipt: WidgetTransportReceipt, appGroup: String) {
+        guard let data = try? JSONEncoder().encode(receipt),
+              let json = String(data: data, encoding: .utf8) else { return }
+
+        // Own container file
+        let receiptURL = URL(fileURLWithPath: ownContainerReceiptPath())
+        try? FileManager.default.createDirectory(
+            at: receiptURL.deletingLastPathComponent(),
+            withIntermediateDirectories: true
+        )
+        try? data.write(to: receiptURL, options: .atomic)
+
+        // UserDefaults suite (sibling key, not inside widget_data)
+        let plainSuite = appGroup.hasPrefix("group.") ? String(appGroup.dropFirst(6)) : appGroup
+        for suite in [appGroup, plainSuite] {
+            if let defaults = UserDefaults(suiteName: suite) {
+                defaults.set(json, forKey: TauriWidgetStoreKeys.receiptDefaultsKey)
+                defaults.synchronize()
+            }
+        }
+
+        // App Group shared file
+        if let dataURL = dataFileURL(appGroup: appGroup) {
+            let url = dataURL.deletingLastPathComponent()
+                .appendingPathComponent("widget_receipt.json")
+            try? FileManager.default.createDirectory(
+                at: url.deletingLastPathComponent(),
+                withIntermediateDirectories: true
+            )
+            try? data.write(to: url, options: .atomic)
+        }
+    }
+
+    /// Own-container / WidgetSandboxFile path.
+    ///
+    /// Overrides (tests / host parity with Rust):
+    /// - `WIDGET_SANDBOX_DATA_FILE` — absolute path to `widget_data.json`
+    /// - else `WIDGET_CONTAINER_ROOT` + `WIDGET_EXTENSION_BUNDLE` →
+    ///   `{root}/Library/Containers/{bundle}/Data/widget_data.json`
+    /// - else extension home: `NSHomeDirectory()/widget_data.json`
+    public static func ownContainerDataPath() -> String {
+        let env = ProcessInfo.processInfo.environment
+        if let p = env["WIDGET_SANDBOX_DATA_FILE"], !p.isEmpty {
+            return p
+        }
+        if let root = env["WIDGET_CONTAINER_ROOT"], !root.isEmpty,
+           let bundle = env["WIDGET_EXTENSION_BUNDLE"], !bundle.isEmpty {
+            return URL(fileURLWithPath: root)
+                .appendingPathComponent("Library/Containers")
+                .appendingPathComponent(bundle)
+                .appendingPathComponent("Data")
+                .appendingPathComponent("widget_data.json")
+                .path
+        }
+        return NSHomeDirectory() + "/widget_data.json"
+    }
+
+    public static func ownContainerReceiptPath() -> String {
+        URL(fileURLWithPath: ownContainerDataPath())
+            .deletingLastPathComponent()
+            .appendingPathComponent("widget_receipt.json")
+            .path
+    }
+
     // WidgetSandboxFile (macOS ad-hoc / no App Group share)
     private static func readOwnContainerMap() -> [String: String]? {
-        let ownFile = NSHomeDirectory() + "/widget_data.json"
+        let ownFile = ownContainerDataPath()
         guard let data = try? Data(contentsOf: URL(fileURLWithPath: ownFile)),
               let json = try? JSONSerialization.jsonObject(with: data) as? [String: String] else {
             return nil
@@ -134,11 +253,16 @@ public struct TauriWidgetDataStore {
     }
 
     private static func writeOwnContainerMap(_ map: [String: String]) {
-        let ownFile = NSHomeDirectory() + "/widget_data.json"
+        let ownFile = ownContainerDataPath()
+        let url = URL(fileURLWithPath: ownFile)
+        try? FileManager.default.createDirectory(
+            at: url.deletingLastPathComponent(),
+            withIntermediateDirectories: true
+        )
         guard let out = try? JSONSerialization.data(withJSONObject: map, options: [.prettyPrinted, .sortedKeys]) else {
             return
         }
-        try? out.write(to: URL(fileURLWithPath: ownFile), options: .atomic)
+        try? out.write(to: url, options: .atomic)
     }
 
     // App Group UserDefaults
@@ -178,10 +302,18 @@ public struct TauriWidgetDataStore {
               let out = try? JSONSerialization.data(withJSONObject: map, options: [.prettyPrinted, .sortedKeys]) else {
             return
         }
+        try? FileManager.default.createDirectory(
+            at: url.deletingLastPathComponent(),
+            withIntermediateDirectories: true
+        )
         try? out.write(to: url, options: .atomic)
     }
 
     public static func dataFileURL(appGroup: String) -> URL? {
+        let env = ProcessInfo.processInfo.environment
+        if let p = env["WIDGET_APP_GROUP_DATA_FILE"], !p.isEmpty {
+            return URL(fileURLWithPath: p)
+        }
         guard let container = FileManager.default.containerURL(
             forSecurityApplicationGroupIdentifier: appGroup
         ) else { return nil }

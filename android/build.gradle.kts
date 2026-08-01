@@ -12,6 +12,19 @@ android {
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         consumerProguardFiles("consumer-rules.pro")
+
+        val record =
+            (project.findProperty("golden.record")?.toString())
+                ?: System.getenv("GOLDEN_RECORD")
+                ?: "false"
+        testInstrumentationRunnerArguments["golden.record"] = record
+        val caseFilter =
+            (project.findProperty("case")?.toString())
+                ?: System.getenv("CASE")
+                ?: ""
+        if (caseFilter.isNotBlank()) {
+            testInstrumentationRunnerArguments["case"] = caseFilter
+        }
     }
 
     buildTypes {
@@ -42,8 +55,22 @@ android {
     }
 }
 
-dependencies {
+val syncVisualTestAssets by tasks.registering(Sync::class) {
+    from("${rootProject.projectDir}/../tests/cases") { into("cases") }
+    from("${rootProject.projectDir}/../tests/fixtures") { into("fixtures") }
+    from("${rootProject.projectDir}/../tests/golden/android") { into("golden") }
+    into(layout.buildDirectory.dir("generated/visualAssets"))
+}
 
+android.sourceSets.getByName("androidTest").assets.srcDir(
+    syncVisualTestAssets.map { it.destinationDir },
+)
+
+tasks.matching { it.name.contains("AndroidTest", ignoreCase = true) }.configureEach {
+    dependsOn(syncVisualTestAssets)
+}
+
+dependencies {
     implementation("androidx.core:core-ktx:1.9.0")
     implementation("androidx.appcompat:appcompat:1.6.0")
     implementation("com.google.android.material:material:1.7.0")
@@ -53,6 +80,8 @@ dependencies {
     testImplementation("androidx.test:core:1.5.0")
     androidTestImplementation("androidx.test.ext:junit:1.1.5")
     androidTestImplementation("androidx.test.espresso:espresso-core:3.5.1")
+    androidTestImplementation("androidx.test:runner:1.5.2")
+    androidTestImplementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.7.3")
     implementation(project(":tauri-android"))
     implementation("androidx.glance:glance-appwidget:1.1.1")
     implementation("androidx.glance:glance-material3:1.1.1")
@@ -72,9 +101,8 @@ tasks.withType<Test>().configureEach {
     systemProperty("expected.geometry", expected)
     systemProperty(
         "expected.pixels",
-        file("${rootProject.projectDir}/../tests/expected/pixels/android").absolutePath,
+        file("${rootProject.projectDir}/../out/android-robolectric").absolutePath,
     )
     systemProperty("update.snapshots", update)
-    // Also expose as env for harness helpers.
     environment("UPDATE_SNAPSHOTS", if (update == "true" || update == "1") "1" else "0")
 }

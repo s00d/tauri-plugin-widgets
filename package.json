@@ -41,13 +41,19 @@
     "check:codegen": "pnpm codegen && git diff --exit-code schemas/widget-config.v1.json guest-js/generated/widget-types.ts docs/capability-matrix.md",
     "test:desktop": "playwright test -c tests/desktop/playwright.config.ts",
     "test:desktop:update": "UPDATE_SNAPSHOTS=1 playwright test -c tests/desktop/playwright.config.ts",
+    "test:visual:desktop": "playwright test -c tests/desktop/playwright.config.ts tests/desktop/render.spec.ts",
     "test:events": "playwright test -c tests/desktop/playwright.config.ts tests/desktop/events.spec.ts",
     "test:events:update": "UPDATE_SNAPSHOTS=1 playwright test -c tests/desktop/playwright.config.ts tests/desktop/events.spec.ts",
     "test:geometry": "node tests/desktop/geometry-diff.mjs",
     "test:geometry:update": "pnpm test:desktop:update",
     "test:android": "cd android && ./gradlew :testDebugUnitTest",
     "test:android:update": "cd android && ./gradlew :testDebugUnitTest -PupdateSnapshots=true",
-    "triage": "node --experimental-strip-types tools/triage.ts"
+    "test:android:visual": "cd android && ./gradlew :connectedDebugAndroidTest -Pandroid.testInstrumentationRunnerArguments.class=git.s00d.widgets.WidgetRenderTest",
+    "test:macos:visual": "cd swift && swift test --filter MacRenderTests",
+    "test:macos:transports": "cargo test --lib transport:: && cargo test --test macos_transports && cd swift && swift test --filter TransportTests",
+    "test:macos:pipeline": "bash tests/macos/pipeline.sh",
+    "triage": "node --experimental-strip-types tools/triage.ts",
+    "audit:sheets": "node --experimental-strip-types tools/audit-sheets.ts"
   },
   "dependencies": {
     "@tauri-apps/api": ">=2.0.0",
