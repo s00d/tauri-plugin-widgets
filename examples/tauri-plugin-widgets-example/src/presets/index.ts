@@ -19,6 +19,7 @@ import { liveMetrics } from "./liveMetrics";
 import { calculator } from "./calculator";
 import { userProfile } from "./userProfile";
 import { darkModeDemo } from "./darkModeDemo";
+import { upcomingPayments } from "./upcomingPayments";
 
 export const PRESETS: Record<string, PresetDef> = {
   weather,
@@ -39,4 +40,5 @@ export const PRESETS: Record<string, PresetDef> = {
   calculator,
   userProfile,
   darkModeDemo,
+  upcomingPayments,
 };

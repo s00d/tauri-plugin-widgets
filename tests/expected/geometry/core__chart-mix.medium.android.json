@@ -1,0 +1,218 @@
+{
+  "kind": "FrameLayout",
+  "rect": [
+    0,
+    0,
+    1080,
+    510
+  ],
+  "children": [
+    {
+      "kind": "FrameLayout",
+      "rect": [
+        0,
+        0,
+        1080,
+        510
+      ],
+      "children": [
+        {
+          "kind": "FrameLayout",
+          "rect": [
+            0,
+            0,
+            1080,
+            510
+          ],
+          "children": [
+            {
+              "kind": "LinearLayout",
+              "rect": [
+                0,
+                0,
+                1080,
+                510
+              ],
+              "children": [
+                {
+                  "kind": "FrameLayout",
+                  "rect": [
+                    30,
+                    101,
+                    320,
+                    308
+                  ],
+                  "children": [
+                    {
+                      "kind": "LinearLayout",
+                      "rect": [
+                        0,
+                        0,
+                        320,
+                        308
+                      ],
+                      "children": [
+                        {
+                          "kind": "TextView",
+                          "rect": [
+                            0,
+                            0,
+                            50,
+                            44
+                          ],
+                          "text": "Bar",
+                          "px": 33,
+                          "color": "#FF94A3B8"
+                        },
+                        {
+                          "kind": "FrameLayout",
+                          "rect": [
+                            0,
+                            44,
+                            320,
+                            12
+                          ]
+                        },
+                        {
+                          "kind": "ImageView",
+                          "rect": [
+                            0,
+                            56,
+                            320,
+                            252
+                          ]
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "kind": "FrameLayout",
+                  "rect": [
+                    350,
+                    30,
+                    30,
+                    450
+                  ]
+                },
+                {
+                  "kind": "FrameLayout",
+                  "rect": [
+                    380,
+                    101,
+                    320,
+                    308
+                  ],
+                  "children": [
+                    {
+                      "kind": "LinearLayout",
+                      "rect": [
+                        0,
+                        0,
+                        320,
+                        308
+                      ],
+                      "children": [
+                        {
+                          "kind": "TextView",
+                          "rect": [
+                            0,
+                            0,
+                            62,
+                            44
+                          ],
+                          "text": "Line",
+                          "px": 33,
+                          "color": "#FF94A3B8"
+                        },
+                        {
+                          "kind": "FrameLayout",
+                          "rect": [
+                            0,
+                            44,
+                            320,
+                            12
+                          ]
+                        },
+                        {
+                          "kind": "ImageView",
+                          "rect": [
+                            0,
+                            56,
+                            320,
+                            252
+                          ]
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "kind": "FrameLayout",
+                  "rect": [
+                    700,
+                    30,
+                    30,
+                    450
+                  ]
+                },
+                {
+                  "kind": "FrameLayout",
+                  "rect": [
+                    730,
+                    107,
+                    320,
+                    296
+                  ],
+                  "children": [
+                    {
+                      "kind": "LinearLayout",
+                      "rect": [
+                        0,
+                        0,
+                        240,
+                        296
+                      ],
+                      "children": [
+                        {
+                          "kind": "TextView",
+                          "rect": [
+                            96,
+                            0,
+                            47,
+                            44
+                          ],
+                          "text": "Pie",
+                          "px": 33,
+                          "color": "#FF94A3B8"
+                        },
+                        {
+                          "kind": "FrameLayout",
+                          "rect": [
+                            0,
+                            44,
+                            240,
+                            12
+                          ]
+                        },
+                        {
+                          "kind": "ImageView",
+                          "rect": [
+                            0,
+                            56,
+                            240,
+                            240
+                          ]
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

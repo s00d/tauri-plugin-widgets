@@ -3638,7 +3638,7 @@ dependencies = [
 
 [[package]]
 name = "tauri-plugin-widgets"
-version = "0.3.0"
+version = "0.4.0"
 dependencies = [
  "log",
  "serde",
@@ -3649,7 +3649,7 @@ dependencies = [
 
 [[package]]
 name = "tauri-plugin-widgets-example"
-version = "0.3.0"
+version = "0.4.0"
 dependencies = [
  "serde",
  "serde_json",

@@ -83,6 +83,8 @@ use tauri::{
     plugin::{Builder, TauriPlugin},
     Manager, Runtime,
 };
+#[cfg(mobile)]
+use tauri::RunEvent;
 
 #[cfg(desktop)]
 use std::borrow::Cow;
@@ -93,10 +95,15 @@ pub mod desktop;
 pub mod mobile;
 
 mod commands;
+pub mod capabilities;
+pub mod codegen;
 pub mod error;
 pub mod models;
+pub mod snapshot;
+pub mod store;
 
 pub use error::{Error, Result};
+pub use store::WidgetActionEnvelope;
 
 #[cfg(desktop)]
 pub use desktop::Widget;
@@ -139,6 +146,18 @@ pub fn init<R: Runtime>() -> TauriPlugin<R> {
             app.manage(widget);
             Ok(())
         });
+
+    #[cfg(mobile)]
+    let builder = builder.on_event(|app, event| {
+        match event {
+            RunEvent::Ready | RunEvent::Resumed => {
+                if let Some(widget) = app.try_state::<Widget<R>>() {
+                    widget.inner().drain_pending_actions_to_events();
+                }
+            }
+            _ => {}
+        }
+    });
 
     #[cfg(desktop)]
     let builder = builder.register_uri_scheme_protocol(

@@ -1,6 +1,6 @@
 {
   "name": "tauri-plugin-widgets-api",
-  "version": "0.3.0",
+  "version": "0.4.0",
   "author": "s00d",
   "description": "A Tauri v2 plugin to interact with App Widgets on Android and iOS, with desktop fallback. SharedPreferences / UserDefaults / WidgetKit / AppWidgetManager.",
   "license": "MIT",
@@ -36,15 +36,28 @@
     "prepublishOnly": "pnpm build",
     "pretest": "pnpm build",
     "tauri-widgets": "node bin/cli.mjs",
-    "playground": "pnpm --dir examples/tauri-plugin-widgets-example run tauri dev"
+    "playground": "pnpm --dir examples/tauri-plugin-widgets-example run tauri dev",
+    "codegen": "cargo run --bin gen-schema --features codegen && cargo run --bin gen-ts --features codegen",
+    "check:codegen": "pnpm codegen && git diff --exit-code schemas/widget-config.v1.json guest-js/generated/widget-types.ts docs/capability-matrix.md",
+    "test:desktop": "playwright test -c tests/desktop/playwright.config.ts",
+    "test:desktop:update": "UPDATE_SNAPSHOTS=1 playwright test -c tests/desktop/playwright.config.ts",
+    "test:events": "playwright test -c tests/desktop/playwright.config.ts tests/desktop/events.spec.ts",
+    "test:events:update": "UPDATE_SNAPSHOTS=1 playwright test -c tests/desktop/playwright.config.ts tests/desktop/events.spec.ts",
+    "test:geometry": "node tests/desktop/geometry-diff.mjs",
+    "test:geometry:update": "pnpm test:desktop:update",
+    "test:android": "cd android && ./gradlew :testDebugUnitTest",
+    "test:android:update": "cd android && ./gradlew :testDebugUnitTest -PupdateSnapshots=true",
+    "triage": "node --experimental-strip-types tools/triage.ts"
   },
   "dependencies": {
     "@tauri-apps/api": ">=2.0.0",
     "citty": "^0.2.1"
   },
   "devDependencies": {
+    "@playwright/test": "^1.49.0",
     "@rollup/plugin-typescript": "^12.0.0",
     "rollup": "^4.9.6",
+    "sharp": "^0.33.5",
     "tslib": "^2.6.2",
     "typescript": "^5.3.3"
   }

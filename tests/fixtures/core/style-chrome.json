@@ -1,0 +1,42 @@
+{
+  "version": 1,
+  "small": {
+    "type": "vstack",
+    "padding": 12,
+    "spacing": 10,
+    "cornerRadius": 16,
+    "background": {
+      "gradientType": "linear",
+      "colors": ["#0f172a", "#312e81"],
+      "direction": "topLeadingToBottomTrailing"
+    },
+    "border": { "color": "#6366f1", "width": 2 },
+    "shadow": { "color": "rgba(99,102,241,0.45)", "radius": 10, "x": 0, "y": 4 },
+    "children": [
+      {
+        "type": "hstack",
+        "spacing": 10,
+        "alignment": "center",
+        "children": [
+          {
+            "type": "image",
+            "systemName": "person.fill",
+            "size": 36,
+            "color": "#fff",
+            "clipShape": "circle",
+            "background": "#6366f1",
+            "frame": { "width": 36, "height": 36 }
+          },
+          {
+            "type": "text",
+            "content": "Chrome",
+            "fontSize": 15,
+            "fontWeight": "semibold",
+            "color": "#f8fafc",
+            "opacity": 0.85
+          }
+        ]
+      }
+    ]
+  }
+}

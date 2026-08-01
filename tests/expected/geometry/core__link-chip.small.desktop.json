@@ -1,0 +1,68 @@
+{
+  "kind": "div",
+  "rect": [
+    0,
+    0,
+    170,
+    170
+  ],
+  "children": [
+    {
+      "kind": "div",
+      "rect": [
+        0,
+        0,
+        170,
+        170
+      ],
+      "children": [
+        {
+          "kind": "div",
+          "rect": [
+            41,
+            14,
+            87,
+            32
+          ],
+          "children": [
+            {
+              "kind": "div",
+              "rect": [
+                49,
+                22,
+                71,
+                16
+              ],
+              "children": [
+                {
+                  "kind": "span",
+                  "rect": [
+                    49,
+                    23,
+                    14,
+                    14
+                  ],
+                  "text": "⚙",
+                  "px": 14,
+                  "color": "#38BDF8"
+                },
+                {
+                  "kind": "span",
+                  "rect": [
+                    69,
+                    22,
+                    71,
+                    16
+                  ],
+                  "text": "Settings",
+                  "px": 13,
+                  "color": "#E2E8F0"
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

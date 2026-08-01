@@ -1,0 +1,49 @@
+name: CI
+
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+
+jobs:
+  rust:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: aarch64-linux-android
+      - name: Lib tests
+        run: cargo test --lib
+      - name: Android target check
+        run: cargo check --target aarch64-linux-android --lib
+      - name: Codegen drift
+        run: |
+          cargo run --bin gen-schema --features codegen
+          cargo run --bin gen-ts --features codegen
+          cargo test --lib capabilities::write_docs::capability_matrix_doc_matches
+          git diff --exit-code schemas/widget-config.v1.json guest-js/generated/widget-types.ts docs/capability-matrix.md
+
+  rust-ios:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: aarch64-apple-ios
+      - name: iOS target check
+        run: cargo check --target aarch64-apple-ios --lib
+
+  js:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install
+      - run: pnpm build

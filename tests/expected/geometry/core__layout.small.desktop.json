@@ -1,0 +1,127 @@
+{
+  "kind": "div",
+  "rect": [
+    0,
+    0,
+    170,
+    170
+  ],
+  "children": [
+    {
+      "kind": "div",
+      "rect": [
+        0,
+        0,
+        170,
+        170
+      ],
+      "children": [
+        {
+          "kind": "span",
+          "rect": [
+            12,
+            12,
+            146,
+            21
+          ],
+          "text": "Hello",
+          "px": 18,
+          "color": "#FFFFFF"
+        },
+        {
+          "kind": "div",
+          "rect": [
+            12,
+            41,
+            146,
+            20
+          ],
+          "children": [
+            {
+              "kind": "div",
+              "rect": [
+                12,
+                41,
+                16,
+                8
+              ]
+            },
+            {
+              "kind": "hr",
+              "rect": [
+                32,
+                41,
+                1,
+                20
+              ]
+            },
+            {
+              "kind": "div",
+              "rect": [
+                37,
+                41,
+                0,
+                20
+              ]
+            },
+            {
+              "kind": "div",
+              "rect": [
+                41,
+                41,
+                117,
+                20
+              ],
+              "children": [
+                {
+                  "kind": "div",
+                  "rect": [
+                    41,
+                    41,
+                    117,
+                    12
+                  ],
+                  "text": "OK",
+                  "px": 10,
+                  "color": "#4CAF50"
+                },
+                {
+                  "kind": "div",
+                  "rect": [
+                    41,
+                    55,
+                    117,
+                    6
+                  ],
+                  "children": [
+                    {
+                      "kind": "div",
+                      "rect": [
+                        41,
+                        55,
+                        58,
+                        6
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "kind": "div",
+          "rect": [
+            63,
+            69,
+            42,
+            29
+          ],
+          "text": "Go",
+          "px": 14,
+          "color": "#FFFFFF"
+        }
+      ]
+    }
+  ]
+}

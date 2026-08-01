@@ -1,0 +1,97 @@
+{
+  "kind": "FrameLayout",
+  "rect": [
+    0,
+    0,
+    510,
+    510
+  ],
+  "children": [
+    {
+      "kind": "FrameLayout",
+      "rect": [
+        0,
+        0,
+        510,
+        510
+      ],
+      "children": [
+        {
+          "kind": "FrameLayout",
+          "rect": [
+            0,
+            0,
+            510,
+            510
+          ],
+          "children": [
+            {
+              "kind": "LinearLayout",
+              "rect": [
+                0,
+                0,
+                510,
+                510
+              ],
+              "children": [
+                {
+                  "kind": "TextView",
+                  "rect": [
+                    36,
+                    36,
+                    438,
+                    145
+                  ],
+                  "text": "72°",
+                  "px": 108,
+                  "color": "#FFFFFFFF"
+                },
+                {
+                  "kind": "FrameLayout",
+                  "rect": [
+                    36,
+                    181,
+                    438,
+                    24
+                  ]
+                },
+                {
+                  "kind": "LinearLayout",
+                  "rect": [
+                    36,
+                    205,
+                    438,
+                    93
+                  ],
+                  "children": [
+                    {
+                      "kind": "TextView",
+                      "rect": [
+                        135,
+                        0,
+                        168,
+                        57
+                      ],
+                      "text": "Humidity",
+                      "px": 42,
+                      "color": "#FFF2F2F7"
+                    },
+                    {
+                      "kind": "ImageView",
+                      "rect": [
+                        0,
+                        57,
+                        438,
+                        36
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

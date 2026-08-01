@@ -1,0 +1,21 @@
+{
+  "version": 1,
+  "small": {
+    "type": "vstack",
+    "padding": 8,
+    "background": "#0f172a",
+    "alignment": "center",
+    "children": [
+      {
+        "type": "gauge",
+        "value": 0.72,
+        "min": 0,
+        "max": 1,
+        "label": "CPU",
+        "currentValueLabel": "72%",
+        "tint": "#7aa2f7",
+        "gaugeStyle": "circular"
+      }
+    ]
+  }
+}

@@ -1,0 +1,268 @@
+{
+  "kind": "div",
+  "rect": [
+    0,
+    0,
+    170,
+    170
+  ],
+  "children": [
+    {
+      "kind": "div",
+      "rect": [
+        0,
+        0,
+        170,
+        170
+      ],
+      "children": [
+        {
+          "kind": "div",
+          "rect": [
+            10,
+            10,
+            150,
+            40
+          ],
+          "children": [
+            {
+              "kind": "div",
+              "rect": [
+                10,
+                10,
+                40,
+                40
+              ],
+              "children": [
+                {
+                  "kind": "svg",
+                  "rect": [
+                    10,
+                    10,
+                    40,
+                    40
+                  ],
+                  "children": [
+                    {
+                      "kind": "path",
+                      "rect": [
+                        12,
+                        12,
+                        35,
+                        35
+                      ]
+                    },
+                    {
+                      "kind": "path",
+                      "rect": [
+                        12,
+                        12,
+                        35,
+                        35
+                      ]
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "kind": "div",
+              "rect": [
+                62,
+                10,
+                98,
+                40
+              ],
+              "children": [
+                {
+                  "kind": "div",
+                  "rect": [
+                    62,
+                    10,
+                    98,
+                    12
+                  ],
+                  "text": "Linear",
+                  "px": 10,
+                  "color": "#94A3B8"
+                },
+                {
+                  "kind": "div",
+                  "rect": [
+                    62,
+                    24,
+                    98,
+                    6
+                  ],
+                  "children": [
+                    {
+                      "kind": "div",
+                      "rect": [
+                        62,
+                        24,
+                        39,
+                        6
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "kind": "div",
+          "rect": [
+            10,
+            58,
+            150,
+            62
+          ],
+          "children": [
+            {
+              "kind": "div",
+              "rect": [
+                10,
+                58,
+                48,
+                62
+              ],
+              "children": [
+                {
+                  "kind": "div",
+                  "rect": [
+                    10,
+                    58,
+                    48,
+                    48
+                  ],
+                  "children": [
+                    {
+                      "kind": "svg",
+                      "rect": [
+                        10,
+                        58,
+                        48,
+                        48
+                      ],
+                      "children": [
+                        {
+                          "kind": "path",
+                          "rect": [
+                            12,
+                            60,
+                            42,
+                            42
+                          ]
+                        },
+                        {
+                          "kind": "path",
+                          "rect": [
+                            12,
+                            60,
+                            42,
+                            42
+                          ]
+                        }
+                      ]
+                    },
+                    {
+                      "kind": "div",
+                      "rect": [
+                        10,
+                        58,
+                        48,
+                        48
+                      ],
+                      "text": "72%",
+                      "px": 10,
+                      "color": "#E2E8F0"
+                    }
+                  ]
+                },
+                {
+                  "kind": "div",
+                  "rect": [
+                    10,
+                    108,
+                    48,
+                    12
+                  ],
+                  "text": "Circ",
+                  "px": 10,
+                  "color": "#E2E8F0"
+                }
+              ]
+            },
+            {
+              "kind": "div",
+              "rect": [
+                74,
+                58,
+                86,
+                62
+              ],
+              "children": [
+                {
+                  "kind": "div",
+                  "rect": [
+                    74,
+                    58,
+                    86,
+                    13
+                  ],
+                  "children": [
+                    {
+                      "kind": "div",
+                      "rect": [
+                        74,
+                        59,
+                        14,
+                        12
+                      ],
+                      "text": "Lin",
+                      "px": 10,
+                      "color": "#E2E8F0"
+                    },
+                    {
+                      "kind": "div",
+                      "rect": [
+                        134,
+                        58,
+                        25,
+                        13
+                      ],
+                      "text": "45%",
+                      "px": 11,
+                      "color": "#E2E8F0"
+                    }
+                  ]
+                },
+                {
+                  "kind": "div",
+                  "rect": [
+                    74,
+                    73,
+                    86,
+                    6
+                  ],
+                  "children": [
+                    {
+                      "kind": "div",
+                      "rect": [
+                        74,
+                        73,
+                        38,
+                        6
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

@@ -78,8 +78,15 @@ func resolveColor(_ cv: ColorValue?) -> Color? {
 
 public struct DynamicElementView: View {
     public let element: WidgetElement
+    var parentAxis: Axis? = nil
+    /// When true, text must not expand to maxWidth (breaks ZStack badge centering).
+    var inZStack: Bool = false
 
-    public init(element: WidgetElement) { self.element = element }
+    public init(element: WidgetElement, parentAxis: Axis? = nil, inZStack: Bool = false) {
+        self.element = element
+        self.parentAxis = parentAxis
+        self.inZStack = inZStack
+    }
 
     public var body: some View { applyStyle(to: renderElement(), element: element) }
 
@@ -116,16 +123,24 @@ public struct DynamicElementView: View {
     @ViewBuilder private func renderVStack() -> some View {
         let align: HorizontalAlignment = element.alignment == "leading" ? .leading
             : element.alignment == "trailing" ? .trailing : .center
-        VStack(alignment: align, spacing: element.spacing ?? 0) { renderChildren() }
+        VStack(alignment: align, spacing: element.spacing ?? 0) { renderChildren(axis: .vertical) }
     }
 
     @ViewBuilder private func renderHStack() -> some View {
         let align: VerticalAlignment = element.alignment == "top" ? .top
             : element.alignment == "bottom" ? .bottom : .center
-        HStack(alignment: align, spacing: element.spacing ?? 0) { renderChildren() }
+        HStack(alignment: align, spacing: element.spacing ?? 0) { renderChildren(axis: .horizontal) }
     }
 
-    @ViewBuilder private func renderZStack() -> some View { ZStack { renderChildren() } }
+    @ViewBuilder private func renderZStack() -> some View {
+        ZStack(alignment: parseAlignment(element.alignment)) {
+            if let children = element.children {
+                ForEach(children.indices, id: \.self) { idx in
+                    DynamicElementView(element: children[idx], inZStack: true)
+                }
+            }
+        }
+    }
 
     @ViewBuilder private func renderGrid() -> some View {
         let cols = element.columns ?? 2; let sp = element.spacing ?? 4
@@ -148,9 +163,11 @@ public struct DynamicElementView: View {
         }
     }
 
-    @ViewBuilder private func renderChildren() -> some View {
+    @ViewBuilder private func renderChildren(axis: Axis? = nil) -> some View {
         if let children = element.children {
-            ForEach(children.indices, id: \.self) { DynamicElementView(element: children[$0]) }
+            ForEach(children.indices, id: \.self) {
+                DynamicElementView(element: children[$0], parentAxis: axis)
+            }
         }
     }
 
@@ -166,8 +183,22 @@ public struct DynamicElementView: View {
                                   weight: fontWeight(element.fontWeight),
                                   design: fontDesign(element.fontDesign)))
         }()
-        let colored = resolveColor(element.color).map { txt.foregroundColor($0) } ?? txt
-        if let limit = element.lineLimit { colored.lineLimit(Int(limit)) } else { colored }
+        let colored = txt.foregroundColor(resolveColor(element.color) ?? .primary)
+        let alignRaw = (element.alignment ?? "leading").lowercased()
+        let textAlign: TextAlignment = alignRaw == "trailing" || alignRaw == "right" || alignRaw == "end" ? .trailing
+            : (alignRaw == "center" || alignRaw == "middle" ? .center : .leading)
+        let frameAlign: Alignment = alignRaw == "trailing" || alignRaw == "right" || alignRaw == "end" ? .trailing
+            : (alignRaw == "center" || alignRaw == "middle" ? .center : .leading)
+        let base = colored.multilineTextAlignment(textAlign)
+        Group {
+            if let limit = element.lineLimit {
+                base.lineLimit(Int(limit))
+            } else {
+                base
+            }
+        }
+        .fixedSize(horizontal: inZStack, vertical: false)
+        .frame(maxWidth: inZStack ? nil : .infinity, alignment: frameAlign)
     }
 
     // MARK: Image
@@ -179,23 +210,37 @@ public struct DynamicElementView: View {
                 .aspectRatio(contentMode: element.contentMode == "fill" ? .fill : .fit)
                 .frame(width: s, height: s)
             if let c = resolveColor(element.color) { img.foregroundColor(c) } else { img }
-        } else if let b64 = element.data, let raw = Data(base64Encoded: b64) {
-            #if canImport(UIKit)
-            if let uiImage = UIImage(data: raw) {
-                Image(uiImage: uiImage).resizable()
-                    .aspectRatio(contentMode: element.contentMode == "fill" ? .fill : .fit)
-                    .frame(width: s, height: s)
-            } else { placeholderImage(s) }
-            #elseif canImport(AppKit)
-            if let nsImage = NSImage(data: raw) {
-                Image(nsImage: nsImage).resizable()
-                    .aspectRatio(contentMode: element.contentMode == "fill" ? .fill : .fit)
-                    .frame(width: s, height: s)
-            } else { placeholderImage(s) }
-            #endif
+        } else if let decoded = decodeImageData(element.data) {
+            decodedImageView(decoded, size: s)
+        } else if let url = element.url, let decoded = decodeImageData(url) {
+            decodedImageView(decoded, size: s)
         } else {
             placeholderImage(s)
         }
+    }
+
+    private func decodeImageData(_ raw: String?) -> Data? {
+        guard var s = raw?.trimmingCharacters(in: .whitespacesAndNewlines), !s.isEmpty else { return nil }
+        if s.hasPrefix("data:"), let comma = s.firstIndex(of: ",") {
+            s = String(s[s.index(after: comma)...])
+        }
+        return Data(base64Encoded: s)
+    }
+
+    @ViewBuilder private func decodedImageView(_ raw: Data, size: CGFloat) -> some View {
+        #if canImport(UIKit)
+        if let uiImage = UIImage(data: raw) {
+            Image(uiImage: uiImage).resizable()
+                .aspectRatio(contentMode: element.contentMode == "fill" ? .fill : .fit)
+                .frame(width: size, height: size)
+        } else { placeholderImage(size) }
+        #elseif canImport(AppKit)
+        if let nsImage = NSImage(data: raw) {
+            Image(nsImage: nsImage).resizable()
+                .aspectRatio(contentMode: element.contentMode == "fill" ? .fill : .fit)
+                .frame(width: size, height: size)
+        } else { placeholderImage(size) }
+        #endif
     }
 
     @ViewBuilder private func placeholderImage(_ s: CGFloat) -> some View {
@@ -206,17 +251,32 @@ public struct DynamicElementView: View {
     // MARK: Progress
 
     @ViewBuilder private func renderProgress() -> some View {
-        let v = element.value ?? 0; let t = element.total ?? 1
+        let v = element.value ?? 0; let t = max(element.total ?? 1, 0.0001)
         let tc = resolveColor(element.tint) ?? Color.accentColor
+        let frac = min(max(v / t, 0), 1)
         if element.barStyle == "circular" {
-            ProgressView(value: v, total: t).progressViewStyle(CircularProgressViewStyle(tint: tc))
+            // Custom ring — ProgressView breaks under ImageRenderer / macOS snapshots.
+            ZStack {
+                Circle().stroke(tc.opacity(0.25), lineWidth: 4)
+                Circle()
+                    .trim(from: 0, to: frac)
+                    .stroke(tc, style: StrokeStyle(lineWidth: 4, lineCap: .round))
+                    .rotationEffect(.degrees(-90))
+            }
+            .frame(width: 40, height: 40)
         } else {
             VStack(alignment: .leading, spacing: 2) {
                 if let lbl = element.label {
                     Text(lbl).font(.caption2)
                         .foregroundColor(resolveColor(element.color) ?? .secondary)
                 }
-                ProgressView(value: v, total: t).tint(tc)
+                GeometryReader { geo in
+                    ZStack(alignment: .leading) {
+                        Capsule().fill(tc.opacity(0.25))
+                        Capsule().fill(tc).frame(width: max(geo.size.width * frac, 2))
+                    }
+                }
+                .frame(height: 6)
             }
         }
     }
@@ -226,11 +286,35 @@ public struct DynamicElementView: View {
     @ViewBuilder private func renderGauge() -> some View {
         let v = element.value ?? 0; let lo = element.min ?? 0; let hi = element.max ?? 1
         let tc = resolveColor(element.tint) ?? Color.accentColor
-        Gauge(value: v, in: lo...hi) {
-            if let lbl = element.label { Text(lbl).font(.caption2) }
-        } currentValueLabel: {
-            if let cvl = element.currentValueLabel { Text(cvl).font(.caption) }
-        }.gaugeStyle(.accessoryCircular).tint(tc)
+        let ink = resolveColor(element.color) ?? .primary
+        let span = max(hi - lo, 0.0001)
+        let frac = min(max((v - lo) / span, 0), 1)
+        if element.gaugeStyle == "linear" {
+            let gauge = Gauge(value: v, in: lo...hi) {
+                if let lbl = element.label { Text(lbl).font(.caption2) }
+            } currentValueLabel: {
+                if let cvl = element.currentValueLabel { Text(cvl).font(.caption) }
+            }
+            gauge.gaugeStyle(.accessoryLinear).tint(tc)
+        } else {
+            // Custom ring — accessoryCircular is blank/misaligned under ImageRenderer.
+            VStack(spacing: 4) {
+                ZStack {
+                    Circle().stroke(tc.opacity(0.25), lineWidth: 5)
+                    Circle()
+                        .trim(from: 0, to: frac)
+                        .stroke(tc, style: StrokeStyle(lineWidth: 5, lineCap: .round))
+                        .rotationEffect(.degrees(-90))
+                    if let cvl = element.currentValueLabel {
+                        Text(cvl).font(.caption).fontWeight(.semibold).foregroundColor(ink)
+                    }
+                }
+                .frame(width: 56, height: 56)
+                if let lbl = element.label {
+                    Text(lbl).font(.caption2).foregroundColor(ink)
+                }
+            }
+        }
     }
 
     // MARK: Button
@@ -243,7 +327,7 @@ public struct DynamicElementView: View {
         let hasExplicitAlign = element.textAlignment != nil || element.alignment != nil
         let baseText = Text(lbl)
             .font(.system(size: element.fontSize ?? 14, weight: .medium))
-            .foregroundColor(resolveColor(element.color) ?? .white)
+            .foregroundColor(resolveColor(element.color) ?? .primary)
             .multilineTextAlignment(textAlign)
         let alignedText: AnyView = hasExplicitAlign
             ? AnyView(baseText.frame(maxWidth: .infinity, alignment: frameAlign))
@@ -265,7 +349,7 @@ public struct DynamicElementView: View {
 
     @ViewBuilder private func renderToggle() -> some View {
         let isOn = element.isOn ?? false
-        HStack(spacing: 6) {
+        let content = HStack(spacing: 6) {
             Image(systemName: isOn ? "checkmark.circle.fill" : "circle")
                 .foregroundColor(isOn ? (resolveColor(element.tint) ?? .green) : .gray)
                 .font(.system(size: 18))
@@ -274,13 +358,26 @@ public struct DynamicElementView: View {
                     .foregroundColor(resolveColor(element.color) ?? .primary)
             }
         }
+        if let act = element.action, !act.isEmpty {
+            Button(intent: WidgetActionIntent(actionName: act, payload: isOn ? "false" : "true")) {
+                content
+            }.buttonStyle(.plain)
+        } else {
+            content
+        }
     }
 
     // MARK: Divider / Spacer
 
     @ViewBuilder private func renderDivider() -> some View {
-        Rectangle().fill(resolveColor(element.color) ?? Color.gray.opacity(0.3))
-            .frame(height: element.thickness ?? 1)
+        let fill = Rectangle().fill(resolveColor(element.color) ?? Color.gray.opacity(0.3))
+        let thickness = element.thickness ?? 1
+        if parentAxis == .horizontal {
+            fill.frame(width: thickness)
+        } else {
+            fill.frame(height: thickness)
+                .padding(.vertical, 4)
+        }
     }
 
     @ViewBuilder private func renderSpacer() -> some View {
@@ -294,6 +391,8 @@ public struct DynamicElementView: View {
             guard let ds = element.date else { return Date() }
             let f = ISO8601DateFormatter()
             f.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+            if let parsed = f.date(from: ds) { return parsed }
+            f.formatOptions = [.withInternetDateTime]
             return f.date(from: ds) ?? Date()
         }()
         let tv: Text = {
@@ -325,6 +424,7 @@ public struct DynamicElementView: View {
 
     @ViewBuilder private func renderList() -> some View {
         let rows = element.items ?? []
+        let anyCheckbox = rows.contains { $0.checked != nil }
         VStack(alignment: .leading, spacing: element.spacing ?? 4) {
             ForEach(rows.indices, id: \.self) { i in
                 let row = rows[i]
@@ -334,6 +434,9 @@ public struct DynamicElementView: View {
                         Image(systemName: (row.checked ?? false) ? "checkmark.circle.fill" : "circle")
                             .foregroundColor((row.checked ?? false) ? .green : .gray)
                             .font(.system(size: 12))
+                            .frame(width: 14)
+                    } else if anyCheckbox {
+                        Color.clear.frame(width: 14, height: 12)
                     }
                     Text(row.text)
                         .font(.system(size: element.fontSize ?? 13))
@@ -357,7 +460,7 @@ public struct DynamicElementView: View {
                 VStack(spacing: 2) {
                     RoundedRectangle(cornerRadius: 2)
                         .fill(resolveColor(pt.color) ?? tc).frame(height: Swift.max(h * 60, 2))
-                    Text(pt.label).font(.system(size: 8)).foregroundColor(.secondary).lineLimit(1)
+                    Text(pt.label).font(.system(size: 8)).foregroundColor(.white.opacity(0.7)).lineLimit(1)
                 }
             }
         }
@@ -450,8 +553,8 @@ public struct DynamicElementView: View {
             }
         case "capsule":
             ZStack {
-                Capsule().fill(fc).frame(height: s)
-                if let c = sc { Capsule().stroke(c, lineWidth: sw).frame(height: s) }
+                Capsule().fill(fc).frame(width: s * 2, height: s)
+                if let c = sc { Capsule().stroke(c, lineWidth: sw).frame(width: s * 2, height: s) }
             }
         default:
             let cr = element.cornerRadius ?? 0
@@ -467,11 +570,24 @@ public struct DynamicElementView: View {
     @ViewBuilder private func renderTimer() -> some View {
         let target: Date = {
             guard let ds = element.targetDate else { return Date() }
-            let f = ISO8601DateFormatter(); f.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+            let f = ISO8601DateFormatter()
+            f.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+            if let parsed = f.date(from: ds) { return parsed }
+            f.formatOptions = [.withInternetDateTime]
             return f.date(from: ds) ?? Date()
         }()
-        Text(target, style: .timer)
-            .font(.system(size: element.fontSize ?? 14, weight: fontWeight(element.fontWeight)))
+        let countingUp = (element.counting ?? "down").lowercased() == "up"
+        let diffMs = countingUp
+            ? Date().timeIntervalSince(target) * 1000
+            : target.timeIntervalSinceNow * 1000
+        let sign = diffMs < 0 ? "-" : ""
+        let absSec = Int(abs(diffMs) / 1000)
+        let h = absSec / 3600
+        let m = (absSec % 3600) / 60
+        let s = absSec % 60
+        let label = String(format: "%@%02d:%02d:%02d", sign, h, m, s)
+        Text(label)
+            .font(.system(size: element.fontSize ?? 14, weight: fontWeight(element.fontWeight)).monospacedDigit())
             .foregroundColor(resolveColor(element.color) ?? .primary)
     }
 
@@ -534,10 +650,19 @@ public struct DynamicElementView: View {
                 case "text":
                     let fs = (cmd.fontSize ?? 12) * s
                     let txt = SwiftUI.Text(cmd.content ?? "").font(.system(size: fs))
-                        .foregroundColor(resolveColor(cmd.color) ?? .primary)
+                        .foregroundColor(resolveColor(cmd.color) ?? .white)
                     let pt = CGPoint(x: (cmd.x ?? 0) * sx, y: (cmd.y ?? 0) * sy)
                     let anchor: UnitPoint = cmd.anchor == "end" ? .trailing : cmd.anchor == "middle" ? .center : .leading
                     context.draw(context.resolve(txt), at: pt, anchor: anchor)
+                case "path":
+                    if let d = cmd.d {
+                        var path = parseSVGPath(d)
+                        path = path.applying(CGAffineTransform(scaleX: sx, y: sy))
+                        if let f = resolveColor(cmd.fill) { context.fill(path, with: .color(f)) }
+                        if let st = resolveColor(cmd.stroke) {
+                            context.stroke(path, with: .color(st), lineWidth: (cmd.strokeWidth ?? 1) * s)
+                        }
+                    }
                 default: break
                 }
             }
@@ -559,8 +684,8 @@ public struct DynamicElementView: View {
         view
             .modifier(FlexMod(flex: el.flex))
             .modifier(PaddingMod(p: el.padding))
-            .modifier(BgMod(bg: el.background, cr: el.cornerRadius))
             .modifier(FrameMod(f: el.frame))
+            .modifier(BgMod(bg: el.background, cr: el.cornerRadius))
             .modifier(BorderMod(b: el.border, cr: el.cornerRadius))
             .modifier(ClipShapeMod(shape: el.clipShape, cr: el.cornerRadius))
             .modifier(OpacityMod(o: el.opacity))
@@ -715,4 +840,52 @@ private struct OpacityMod: ViewModifier {
     func body(content: Content) -> some View {
         if let o = o { content.opacity(o) } else { content }
     }
+}
+
+/// Minimal SVG path parser (M/m L/l H/h V/v Z/z). Enough for simple canvas paths.
+private func parseSVGPath(_ data: String) -> Path {
+    var path = Path()
+    let tokens = data.replacingOccurrences(of: ",", with: " ")
+        .split(whereSeparator: { $0.isWhitespace })
+        .map(String.init)
+    var i = 0
+    var cx: CGFloat = 0
+    var cy: CGFloat = 0
+    func nextNumber() -> CGFloat? {
+        guard i < tokens.count, let v = Double(tokens[i]) else { return nil }
+        i += 1
+        return CGFloat(v)
+    }
+    while i < tokens.count {
+        let cmd = tokens[i]
+        // Command letters may be glued to numbers; handle single-letter cmds
+        if cmd.count == 1, let c = cmd.first, c.isLetter {
+            i += 1
+            switch c {
+            case "M":
+                if let x = nextNumber(), let y = nextNumber() { cx = x; cy = y; path.move(to: CGPoint(x: x, y: y)) }
+            case "m":
+                if let x = nextNumber(), let y = nextNumber() { cx += x; cy += y; path.move(to: CGPoint(x: cx, y: cy)) }
+            case "L":
+                if let x = nextNumber(), let y = nextNumber() { cx = x; cy = y; path.addLine(to: CGPoint(x: x, y: y)) }
+            case "l":
+                if let x = nextNumber(), let y = nextNumber() { cx += x; cy += y; path.addLine(to: CGPoint(x: cx, y: cy)) }
+            case "H":
+                if let x = nextNumber() { cx = x; path.addLine(to: CGPoint(x: cx, y: cy)) }
+            case "h":
+                if let x = nextNumber() { cx += x; path.addLine(to: CGPoint(x: cx, y: cy)) }
+            case "V":
+                if let y = nextNumber() { cy = y; path.addLine(to: CGPoint(x: cx, y: cy)) }
+            case "v":
+                if let y = nextNumber() { cy += y; path.addLine(to: CGPoint(x: cx, y: cy)) }
+            case "Z", "z":
+                path.closeSubpath()
+            default:
+                break
+            }
+        } else {
+            i += 1
+        }
+    }
+    return path
 }

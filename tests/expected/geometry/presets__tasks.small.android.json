@@ -1,0 +1,140 @@
+{
+  "kind": "FrameLayout",
+  "rect": [
+    0,
+    0,
+    510,
+    510
+  ],
+  "children": [
+    {
+      "kind": "FrameLayout",
+      "rect": [
+        0,
+        0,
+        510,
+        510
+      ],
+      "children": [
+        {
+          "kind": "FrameLayout",
+          "rect": [
+            0,
+            0,
+            510,
+            510
+          ],
+          "children": [
+            {
+              "kind": "LinearLayout",
+              "rect": [
+                0,
+                0,
+                510,
+                510
+              ],
+              "children": [
+                {
+                  "kind": "TextView",
+                  "rect": [
+                    30,
+                    30,
+                    450,
+                    73
+                  ],
+                  "text": "Tasks",
+                  "px": 54,
+                  "color": "#FF111111"
+                },
+                {
+                  "kind": "FrameLayout",
+                  "rect": [
+                    30,
+                    103,
+                    450,
+                    18
+                  ]
+                },
+                {
+                  "kind": "LinearLayout",
+                  "rect": [
+                    30,
+                    121,
+                    450,
+                    128
+                  ],
+                  "children": [
+                    {
+                      "kind": "LinearLayout",
+                      "rect": [
+                        0,
+                        0,
+                        450,
+                        128
+                      ],
+                      "children": [
+                        {
+                          "kind": "FrameLayout",
+                          "rect": [
+                            0,
+                            0,
+                            450,
+                            58
+                          ],
+                          "children": [
+                            {
+                              "kind": "TextView",
+                              "rect": [
+                                0,
+                                0,
+                                450,
+                                58
+                              ],
+                              "text": "○ Buy milk",
+                              "px": 42,
+                              "color": "#FF111111"
+                            },
+                            {
+                              "kind": "ImageView",
+                              "rect": [
+                                0,
+                                0,
+                                450,
+                                58
+                              ]
+                            }
+                          ]
+                        },
+                        {
+                          "kind": "FrameLayout",
+                          "rect": [
+                            0,
+                            58,
+                            450,
+                            12
+                          ]
+                        },
+                        {
+                          "kind": "TextView",
+                          "rect": [
+                            0,
+                            70,
+                            450,
+                            58
+                          ],
+                          "text": "✓ Ship 0.4",
+                          "px": 42,
+                          "color": "#FF111111"
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

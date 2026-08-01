@@ -1,0 +1,65 @@
+{
+  "kind": "div",
+  "rect": [
+    0,
+    0,
+    170,
+    170
+  ],
+  "children": [
+    {
+      "kind": "div",
+      "rect": [
+        0,
+        0,
+        170,
+        170
+      ],
+      "children": [
+        {
+          "kind": "div",
+          "rect": [
+            65,
+            65,
+            40,
+            40
+          ],
+          "children": [
+            {
+              "kind": "div",
+              "rect": [
+                65,
+                65,
+                40,
+                40
+              ]
+            }
+          ]
+        },
+        {
+          "kind": "div",
+          "rect": [
+            79,
+            74,
+            11,
+            21
+          ],
+          "children": [
+            {
+              "kind": "span",
+              "rect": [
+                79,
+                74,
+                11,
+                21
+              ],
+              "text": "Z",
+              "px": 18,
+              "color": "#FFFFFF"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

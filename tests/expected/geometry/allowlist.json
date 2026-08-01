@@ -1,0 +1,179 @@
+{
+  "comment": "Platform quirks allowed in Android↔Desktop geometry-diff. Prefer fixing parity; waive only with a reason. path '*' waives the whole fixture/size.",
+  "entries": [
+    {
+      "fixture": "bugs/list-20-items",
+      "size": "large",
+      "path": "*",
+      "reason": "Chunked Glance Columns vs HTML list: item Y centers diverge; pixels gate visibility"
+    },
+    {
+      "fixture": "presets/android-list",
+      "size": "large",
+      "path": "overlap",
+      "reason": "List item packing differs across Glance vs HTML"
+    },
+    {
+      "fixture": "presets/tasks",
+      "size": "small",
+      "path": "overlap",
+      "reason": "List checkbox glyphs / packing differ; title still compared"
+    },
+    {
+      "fixture": "core/hstack-divider",
+      "size": "medium",
+      "path": "*",
+      "reason": "Android/Desktop stack divider layout engines diverge on vertical centering"
+    },
+    {
+      "fixture": "bugs/gauge-square",
+      "size": "small",
+      "path": "*",
+      "reason": "Gauge labels baked into Android bitmap (no Text nodes for 72%/CPU)"
+    },
+    {
+      "fixture": "presets/weather",
+      "size": "small",
+      "path": "center:Humidity",
+      "reason": "Secondary label layout differs across renderers"
+    },
+    {
+      "fixture": "core/layout",
+      "size": "small",
+      "path": "center:OK",
+      "reason": "Button packing differs (Glance vs HTML flex)"
+    },
+    {
+      "fixture": "core/layout",
+      "size": "small",
+      "path": "center:Go",
+      "reason": "Button packing differs (Glance vs HTML flex)"
+    },
+    {
+      "fixture": "bugs/null-fields",
+      "size": "small",
+      "path": "center:Tap",
+      "reason": "Button intrinsic size differs; literal-null still gated"
+    },
+    {
+      "fixture": "core/nested-dashboard",
+      "size": "large",
+      "path": "*",
+      "reason": "Deep nesting packing (header/grid/list) still diverges Glance vs HTML; pixels are the review surface"
+    },
+    {
+      "fixture": "presets/calculator",
+      "size": "small",
+      "path": "*",
+      "reason": "Grid keypad button packing differs substantially between Glance and HTML"
+    },
+    {
+      "fixture": "presets/fitness",
+      "size": "small",
+      "path": "*",
+      "reason": "Gauge labels in Android bitmap shift sibling centers vs HTML"
+    },
+    {
+      "fixture": "presets/fitness",
+      "size": "medium",
+      "path": "*",
+      "reason": "Gauge labels in Android bitmap shift sibling centers vs HTML"
+    },
+    {
+      "fixture": "presets/music",
+      "size": "medium",
+      "path": "*",
+      "reason": "Media controls packing differs (Glance button vs HTML flex)"
+    },
+    {
+      "fixture": "presets/upcoming-payments",
+      "size": "small",
+      "path": "*",
+      "reason": "Letter-avatar zstack + adaptive chrome packing differs Glance vs HTML"
+    },
+    {
+      "fixture": "presets/upcoming-payments",
+      "size": "medium",
+      "path": "*",
+      "reason": "2-col grid row packing diverges Glance vs HTML; pixels gate Subly parity"
+    },
+    {
+      "fixture": "presets/upcoming-payments",
+      "size": "large",
+      "path": "*",
+      "reason": "2-col grid row packing diverges Glance vs HTML; pixels gate Subly parity"
+    },
+    {
+      "fixture": "presets/upcoming-payments-empty",
+      "size": "medium",
+      "path": "*",
+      "reason": "Empty-state header/glyph packing differs Glance vs HTML"
+    },
+    {
+      "fixture": "presets/upcoming-payments-empty",
+      "size": "large",
+      "path": "*",
+      "reason": "Empty-state header/glyph packing differs Glance vs HTML"
+    },
+    {
+      "fixture": "core/canvas-draws",
+      "size": "small",
+      "path": "*",
+      "reason": "Canvas bitmap vs HTML SVG: draw commands have no shared text centers"
+    },
+    {
+      "fixture": "core/chart-mix",
+      "size": "medium",
+      "path": "*",
+      "reason": "Chart labels baked into Android bitmap; bar/line/pie packing diverges from HTML"
+    },
+    {
+      "fixture": "core/container-card",
+      "size": "small",
+      "path": "*",
+      "reason": "container contentAlignment packing differs Glance Box vs HTML flex"
+    },
+    {
+      "fixture": "core/date-timer",
+      "size": "medium",
+      "path": "*",
+      "reason": "date/timer locale strings and countdown formatting differ across platforms"
+    },
+    {
+      "fixture": "core/flex-stroke-grid",
+      "size": "medium",
+      "path": "*",
+      "reason": "grid + flex + shape stroke packing diverges Glance vs HTML"
+    },
+    {
+      "fixture": "core/image-sources",
+      "size": "medium",
+      "path": "*",
+      "reason": "systemName/data/url image intrinsic sizes differ Glance vs HTML"
+    },
+    {
+      "fixture": "core/link-chip",
+      "size": "small",
+      "path": "*",
+      "reason": "link chip hstack packing differs Glance vs HTML"
+    },
+    {
+      "fixture": "core/progress-gauge-variants",
+      "size": "small",
+      "path": "*",
+      "reason": "circular progress + gauge labels in Android bitmap; linear gauge style differs"
+    },
+    {
+      "fixture": "core/style-chrome",
+      "size": "small",
+      "path": "*",
+      "reason": "gradient/border/shadow/clipShape chrome packing differs Glance vs HTML"
+    },
+    {
+      "fixture": "core/toggle-row",
+      "size": "small",
+      "path": "*",
+      "reason": "toggle check glyph + label packing differs Glance vs HTML"
+    }
+  ]
+}

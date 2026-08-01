@@ -1,0 +1,200 @@
+{
+  "kind": "FrameLayout",
+  "rect": [
+    0,
+    0,
+    510,
+    510
+  ],
+  "children": [
+    {
+      "kind": "FrameLayout",
+      "rect": [
+        0,
+        0,
+        510,
+        510
+      ],
+      "children": [
+        {
+          "kind": "FrameLayout",
+          "rect": [
+            0,
+            0,
+            510,
+            510
+          ],
+          "children": [
+            {
+              "kind": "LinearLayout",
+              "rect": [
+                0,
+                0,
+                510,
+                510
+              ],
+              "children": [
+                {
+                  "kind": "TextView",
+                  "rect": [
+                    36,
+                    36,
+                    438,
+                    61
+                  ],
+                  "text": "Activity",
+                  "px": 45,
+                  "color": "#FFFFFFFF"
+                },
+                {
+                  "kind": "FrameLayout",
+                  "rect": [
+                    36,
+                    97,
+                    438,
+                    24
+                  ]
+                },
+                {
+                  "kind": "LinearLayout",
+                  "rect": [
+                    36,
+                    121,
+                    438,
+                    267
+                  ],
+                  "children": [
+                    {
+                      "kind": "ImageView",
+                      "rect": [
+                        111,
+                        0,
+                        216,
+                        267
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "kind": "FrameLayout",
+                  "rect": [
+                    36,
+                    388,
+                    438,
+                    24
+                  ]
+                },
+                {
+                  "kind": "LinearLayout",
+                  "rect": [
+                    36,
+                    412,
+                    438,
+                    62
+                  ],
+                  "children": [
+                    {
+                      "kind": "FrameLayout",
+                      "rect": [
+                        0,
+                        0,
+                        438,
+                        62
+                      ],
+                      "children": [
+                        {
+                          "kind": "LinearLayout",
+                          "rect": [
+                            0,
+                            0,
+                            438,
+                            62
+                          ],
+                          "children": [
+                            {
+                              "kind": "TextView",
+                              "rect": [
+                                189,
+                                0,
+                                60,
+                                57
+                              ],
+                              "text": "Cal",
+                              "px": 42,
+                              "color": "#FF94A3B8"
+                            },
+                            {
+                              "kind": "ImageView",
+                              "rect": [
+                                0,
+                                57,
+                                438,
+                                36
+                              ]
+                            }
+                          ]
+                        }
+                      ]
+                    },
+                    {
+                      "kind": "FrameLayout",
+                      "rect": [
+                        438,
+                        0,
+                        24,
+                        62
+                      ]
+                    },
+                    {
+                      "kind": "FrameLayout",
+                      "rect": [
+                        462,
+                        0,
+                        0,
+                        62
+                      ],
+                      "children": [
+                        {
+                          "kind": "LinearLayout",
+                          "rect": [
+                            0,
+                            0,
+                            0,
+                            62
+                          ],
+                          "children": [
+                            {
+                              "kind": "TextView",
+                              "rect": [
+                                0,
+                                0,
+                                0,
+                                62
+                              ],
+                              "text": "H2O",
+                              "px": 42,
+                              "color": "#FF94A3B8"
+                            },
+                            {
+                              "kind": "ImageView",
+                              "rect": [
+                                0,
+                                62,
+                                0,
+                                36
+                              ]
+                            }
+                          ]
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,141 @@
+{
+  "kind": "div",
+  "rect": [
+    0,
+    0,
+    360,
+    170
+  ],
+  "children": [
+    {
+      "kind": "div",
+      "rect": [
+        0,
+        0,
+        360,
+        170
+      ],
+      "children": [
+        {
+          "kind": "div",
+          "rect": [
+            12,
+            12,
+            336,
+            15
+          ],
+          "children": [
+            {
+              "kind": "span",
+              "rect": [
+                12,
+                12,
+                11,
+                15
+              ],
+              "text": "●",
+              "px": 12,
+              "color": "#3878FA"
+            },
+            {
+              "kind": "span",
+              "rect": [
+                27,
+                13,
+                56,
+                13
+              ],
+              "text": "Upcoming",
+              "px": 11,
+              "color": "#FFFFFF"
+            }
+          ]
+        },
+        {
+          "kind": "div",
+          "rect": [
+            12,
+            35,
+            336,
+            22
+          ]
+        },
+        {
+          "kind": "div",
+          "rect": [
+            12,
+            65,
+            336,
+            40
+          ],
+          "children": [
+            {
+              "kind": "div",
+              "rect": [
+                160,
+                65,
+                40,
+                40
+              ],
+              "children": [
+                {
+                  "kind": "div",
+                  "rect": [
+                    160,
+                    65,
+                    40,
+                    40
+                  ]
+                }
+              ]
+            },
+            {
+              "kind": "div",
+              "rect": [
+                169,
+                74,
+                22,
+                22
+              ],
+              "children": [
+                {
+                  "kind": "span",
+                  "rect": [
+                    169,
+                    74,
+                    22,
+                    22
+                  ],
+                  "text": "C",
+                  "px": 22,
+                  "color": "#3878FA"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "kind": "span",
+          "rect": [
+            12,
+            113,
+            336,
+            15
+          ],
+          "text": "No upcoming payments",
+          "px": 12,
+          "color": "#EBEBF5"
+        },
+        {
+          "kind": "div",
+          "rect": [
+            12,
+            136,
+            336,
+            22
+          ]
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,106 @@
+{
+  "kind": "div",
+  "rect": [
+    0,
+    0,
+    170,
+    170
+  ],
+  "children": [
+    {
+      "kind": "div",
+      "rect": [
+        0,
+        0,
+        170,
+        170
+      ],
+      "children": [
+        {
+          "kind": "div",
+          "rect": [
+            14,
+            14,
+            142,
+            16
+          ]
+        },
+        {
+          "kind": "div",
+          "rect": [
+            14,
+            40,
+            142,
+            48
+          ],
+          "children": [
+            {
+              "kind": "div",
+              "rect": [
+                61,
+                40,
+                48,
+                48
+              ],
+              "children": [
+                {
+                  "kind": "div",
+                  "rect": [
+                    61,
+                    40,
+                    48,
+                    48
+                  ]
+                }
+              ]
+            },
+            {
+              "kind": "div",
+              "rect": [
+                71,
+                50,
+                28,
+                28
+              ],
+              "children": [
+                {
+                  "kind": "span",
+                  "rect": [
+                    71,
+                    50,
+                    28,
+                    28
+                  ],
+                  "text": "C",
+                  "px": 28,
+                  "color": "#3878FA"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "kind": "span",
+          "rect": [
+            14,
+            98,
+            142,
+            32
+          ],
+          "text": "No upcoming payments",
+          "px": 13,
+          "color": "#EBEBF5"
+        },
+        {
+          "kind": "div",
+          "rect": [
+            14,
+            140,
+            142,
+            16
+          ]
+        }
+      ]
+    }
+  ]
+}

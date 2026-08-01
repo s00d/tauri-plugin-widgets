@@ -28,7 +28,8 @@ fn main() {
         result.unwrap();
     }
 
-    if target.contains("apple-darwin") {
+    // Skip native Swift bridge when building codegen tooling (avoids duplicate `main`).
+    if target.contains("apple-darwin") && std::env::var("CARGO_FEATURE_CODEGEN").is_err() {
         let sdk = macos_sdk_path();
         let arch = if target.contains("aarch64") {
             "arm64"

@@ -1,0 +1,87 @@
+{
+  "version": 1,
+  "medium": {
+    "type": "vstack",
+    "padding": 12,
+    "spacing": 8,
+    "cornerRadius": 14,
+    "background": "#0f172a",
+    "children": [
+      {
+        "type": "text",
+        "content": "Schedule",
+        "fontSize": 15,
+        "fontWeight": "semibold",
+        "color": "#f8fafc"
+      },
+      {
+        "type": "hstack",
+        "spacing": 16,
+        "alignment": "center",
+        "children": [
+          {
+            "type": "vstack",
+            "spacing": 4,
+            "alignment": "leading",
+            "children": [
+              {
+                "type": "text",
+                "content": "Time",
+                "fontSize": 11,
+                "color": "#94a3b8"
+              },
+              {
+                "type": "date",
+                "date": "2099-06-15T14:30:00Z",
+                "dateStyle": "time",
+                "fontSize": 14,
+                "color": "#e2e8f0"
+              }
+            ]
+          },
+          {
+            "type": "vstack",
+            "spacing": 4,
+            "alignment": "leading",
+            "children": [
+              {
+                "type": "text",
+                "content": "Relative",
+                "fontSize": 11,
+                "color": "#94a3b8"
+              },
+              {
+                "type": "date",
+                "date": "2099-12-25T00:00:00Z",
+                "dateStyle": "relative",
+                "fontSize": 14,
+                "color": "#e2e8f0"
+              }
+            ]
+          },
+          {
+            "type": "vstack",
+            "spacing": 4,
+            "alignment": "leading",
+            "children": [
+              {
+                "type": "text",
+                "content": "Countdown",
+                "fontSize": 11,
+                "color": "#94a3b8"
+              },
+              {
+                "type": "timer",
+                "targetDate": "2099-01-01T00:00:00Z",
+                "counting": "down",
+                "fontSize": 14,
+                "fontWeight": "semibold",
+                "color": "#38bdf8"
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  }
+}

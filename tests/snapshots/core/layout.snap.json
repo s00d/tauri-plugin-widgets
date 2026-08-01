@@ -1,0 +1,63 @@
+{
+  "small": {
+    "background": "#1a1a2e",
+    "children": [
+      {
+        "alignment": "center",
+        "color": "#fff",
+        "content": "Hello",
+        "fontSize": 18.0,
+        "fontWeight": "bold",
+        "tier": "core",
+        "type": "text"
+      },
+      {
+        "children": [
+          {
+            "fill": "#4CAF50",
+            "height": 8.0,
+            "shapeType": "capsule",
+            "size": 8.0,
+            "tier": "core",
+            "type": "shape",
+            "width": 16.0
+          },
+          {
+            "axis": "vertical",
+            "tier": "core",
+            "type": "divider"
+          },
+          {
+            "flex": true,
+            "tier": "core",
+            "type": "spacer"
+          },
+          {
+            "label": "OK",
+            "tier": "core",
+            "tint": "#4CAF50",
+            "total": 1.0,
+            "type": "progress",
+            "value": 0.5
+          }
+        ],
+        "spacing": 4.0,
+        "tier": "core",
+        "type": "hstack"
+      },
+      {
+        "action": "go",
+        "backgroundColor": "#2196F3",
+        "color": "#fff",
+        "label": "Go",
+        "tier": "core",
+        "type": "button"
+      }
+    ],
+    "padding": 12.0,
+    "spacing": 8.0,
+    "tier": "core",
+    "type": "vstack"
+  },
+  "version": 1
+}

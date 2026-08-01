@@ -4,13 +4,14 @@ import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
 import org.json.JSONArray
+import org.json.JSONObject
 
 class WidgetActionReceiver : BroadcastReceiver() {
     companion object {
         const val ACTION_WIDGET_ACTION = "git.s00d.widgets.WIDGET_ACTION"
         const val EXTRA_ACTION_NAME = "action_name"
         const val EXTRA_GROUP = "group"
-        const val PENDING_KEY = "__widget_pending_actions__"
+        const val EXTRA_WIDGET_ID = "widget_id"
     }
 
     override fun onReceive(context: Context, intent: Intent) {
@@ -18,24 +19,24 @@ class WidgetActionReceiver : BroadcastReceiver() {
         val groupRaw = intent.getStringExtra(EXTRA_GROUP) ?: return
         val group = WidgetSanitizer.sanitizeGroup(groupRaw, context.packageName)
         val payload = intent.getStringExtra(WidgetBridgePlugin.EXTRA_EVENT_PAYLOAD)
+        val widgetId = intent.getStringExtra(EXTRA_WIDGET_ID) ?: "default"
 
         val plugin = WidgetBridgePlugin.pluginInstance
         if (plugin != null) {
-            plugin.emitWidgetAction(actionName, payload)
+            plugin.emitWidgetAction(actionName, payload, widgetId, group)
             return
         }
 
         val prefs = context.getSharedPreferences(group, Context.MODE_PRIVATE)
-        val existing = prefs.getString(PENDING_KEY, "[]") ?: "[]"
+        val existing = prefs.getString(WidgetStoreKeys.PENDING_ACTIONS, "[]") ?: "[]"
         val arr = try { JSONArray(existing) } catch (_: Exception) { JSONArray() }
-        if (payload != null) {
-            val obj = org.json.JSONObject()
-            obj.put("action", actionName)
-            obj.put("payload", payload)
-            arr.put(obj)
-        } else {
-            arr.put(actionName)
-        }
-        prefs.edit().putString(PENDING_KEY, arr.toString()).apply()
+        val obj = JSONObject()
+        obj.put("action", actionName)
+        if (payload != null) obj.put("payload", payload)
+        obj.put("ts", System.currentTimeMillis())
+        obj.put("widgetId", widgetId)
+        obj.put("group", group)
+        arr.put(obj)
+        prefs.edit().putString(WidgetStoreKeys.PENDING_ACTIONS, arr.toString()).apply()
     }
 }

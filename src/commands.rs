@@ -87,9 +87,15 @@ pub fn set_widget_config<R: Runtime>(
     widget: State<'_, Widget<R>>,
     config: WidgetConfig,
     group: String,
+    widget_id: String,
     skip_reload: Option<bool>,
 ) -> Result<bool, Error> {
-    widget.set_widget_config(&config, &group, skip_reload.unwrap_or(false))
+    widget.set_widget_config(
+        &config,
+        &group,
+        &widget_id,
+        skip_reload.unwrap_or(false),
+    )
 }
 
 #[tauri::command]
@@ -97,8 +103,9 @@ pub fn get_widget_config<R: Runtime>(
     _app: AppHandle<R>,
     widget: State<'_, Widget<R>>,
     group: String,
+    widget_id: String,
 ) -> Result<Option<WidgetConfig>, Error> {
-    widget.get_widget_config(&group)
+    widget.get_widget_config(&group, &widget_id)
 }
 
 #[tauri::command]
@@ -106,8 +113,16 @@ pub fn widget_action<R: Runtime>(
     app: AppHandle<R>,
     action: String,
     payload: Option<String>,
+    widget_id: Option<String>,
+    group: Option<String>,
 ) -> Result<bool, Error> {
-    let data = serde_json::json!({ "action": action, "payload": payload });
+    let data = serde_json::json!({
+        "action": action,
+        "payload": payload,
+        "ts": crate::store::now_ms(),
+        "widgetId": widget_id.unwrap_or_default(),
+        "group": group.unwrap_or_default(),
+    });
     app.emit("widget-action", data)
         .map_err(|e| Error::new(format!("emit widget-action: {e}")))?;
     Ok(true)

@@ -1,0 +1,130 @@
+{
+  "kind": "FrameLayout",
+  "rect": [
+    0,
+    0,
+    510,
+    510
+  ],
+  "children": [
+    {
+      "kind": "FrameLayout",
+      "rect": [
+        0,
+        0,
+        510,
+        510
+      ],
+      "children": [
+        {
+          "kind": "FrameLayout",
+          "rect": [
+            0,
+            0,
+            510,
+            510
+          ],
+          "children": [
+            {
+              "kind": "LinearLayout",
+              "rect": [
+                0,
+                0,
+                510,
+                510
+              ],
+              "children": [
+                {
+                  "kind": "FrameLayout",
+                  "rect": [
+                    42,
+                    42,
+                    426,
+                    69
+                  ]
+                },
+                {
+                  "kind": "FrameLayout",
+                  "rect": [
+                    42,
+                    111,
+                    426,
+                    30
+                  ]
+                },
+                {
+                  "kind": "FrameLayout",
+                  "rect": [
+                    42,
+                    141,
+                    426,
+                    144
+                  ],
+                  "children": [
+                    {
+                      "kind": "ImageView",
+                      "rect": [
+                        141,
+                        0,
+                        144,
+                        144
+                      ]
+                    },
+                    {
+                      "kind": "ImageView",
+                      "rect": [
+                        171,
+                        30,
+                        84,
+                        84
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "kind": "FrameLayout",
+                  "rect": [
+                    42,
+                    285,
+                    426,
+                    30
+                  ]
+                },
+                {
+                  "kind": "TextView",
+                  "rect": [
+                    42,
+                    315,
+                    426,
+                    53
+                  ],
+                  "text": "No upcoming payments",
+                  "px": 39,
+                  "color": "#FF555555"
+                },
+                {
+                  "kind": "FrameLayout",
+                  "rect": [
+                    42,
+                    368,
+                    426,
+                    30
+                  ]
+                },
+                {
+                  "kind": "FrameLayout",
+                  "rect": [
+                    42,
+                    398,
+                    426,
+                    70
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,38 @@
+{
+  "version": 1,
+  "small": {
+    "type": "vstack",
+    "padding": 6,
+    "spacing": 3,
+    "cornerRadius": 14,
+    "background": "#1c1c1e",
+    "children": [
+      { "type": "text", "content": "0", "fontSize": 22, "fontWeight": "bold", "color": "#ffffff", "alignment": "trailing", "lineLimit": 1 },
+      { "type": "divider", "color": "#3a3a3c", "thickness": 1 },
+      {
+        "type": "grid",
+        "columns": 4,
+        "spacing": 2,
+        "rowSpacing": 2,
+        "children": [
+          { "type": "button", "label": "C", "action": "calc:C", "backgroundColor": "#636366", "color": "#fff", "fontSize": 11, "cornerRadius": 6 },
+          { "type": "button", "label": "±", "action": "calc:+-", "backgroundColor": "#636366", "color": "#fff", "fontSize": 11, "cornerRadius": 6 },
+          { "type": "button", "label": "⌫", "action": "calc:BS", "backgroundColor": "#636366", "color": "#fff", "fontSize": 11, "cornerRadius": 6 },
+          { "type": "button", "label": "÷", "action": "calc:/", "backgroundColor": "#f09a36", "color": "#fff", "fontSize": 11, "cornerRadius": 6 },
+          { "type": "button", "label": "7", "action": "calc:7", "backgroundColor": "#3a3a3c", "color": "#fff", "fontSize": 12, "cornerRadius": 6 },
+          { "type": "button", "label": "8", "action": "calc:8", "backgroundColor": "#3a3a3c", "color": "#fff", "fontSize": 12, "cornerRadius": 6 },
+          { "type": "button", "label": "9", "action": "calc:9", "backgroundColor": "#3a3a3c", "color": "#fff", "fontSize": 12, "cornerRadius": 6 },
+          { "type": "button", "label": "×", "action": "calc:*", "backgroundColor": "#f09a36", "color": "#fff", "fontSize": 11, "cornerRadius": 6 },
+          { "type": "button", "label": "4", "action": "calc:4", "backgroundColor": "#3a3a3c", "color": "#fff", "fontSize": 12, "cornerRadius": 6 },
+          { "type": "button", "label": "5", "action": "calc:5", "backgroundColor": "#3a3a3c", "color": "#fff", "fontSize": 12, "cornerRadius": 6 },
+          { "type": "button", "label": "6", "action": "calc:6", "backgroundColor": "#3a3a3c", "color": "#fff", "fontSize": 12, "cornerRadius": 6 },
+          { "type": "button", "label": "−", "action": "calc:-", "backgroundColor": "#f09a36", "color": "#fff", "fontSize": 11, "cornerRadius": 6 },
+          { "type": "button", "label": "1", "action": "calc:1", "backgroundColor": "#3a3a3c", "color": "#fff", "fontSize": 12, "cornerRadius": 6 },
+          { "type": "button", "label": "2", "action": "calc:2", "backgroundColor": "#3a3a3c", "color": "#fff", "fontSize": 12, "cornerRadius": 6 },
+          { "type": "button", "label": "3", "action": "calc:3", "backgroundColor": "#3a3a3c", "color": "#fff", "fontSize": 12, "cornerRadius": 6 },
+          { "type": "button", "label": "+", "action": "calc:+", "backgroundColor": "#f09a36", "color": "#fff", "fontSize": 11, "cornerRadius": 6 }
+        ]
+      }
+    ]
+  }
+}

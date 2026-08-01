@@ -1,0 +1,119 @@
+{
+  "kind": "FrameLayout",
+  "rect": [
+    0,
+    0,
+    510,
+    510
+  ],
+  "children": [
+    {
+      "kind": "FrameLayout",
+      "rect": [
+        0,
+        0,
+        510,
+        510
+      ],
+      "children": [
+        {
+          "kind": "FrameLayout",
+          "rect": [
+            0,
+            0,
+            510,
+            510
+          ],
+          "children": [
+            {
+              "kind": "LinearLayout",
+              "rect": [
+                0,
+                0,
+                510,
+                510
+              ],
+              "children": [
+                {
+                  "kind": "TextView",
+                  "rect": [
+                    30,
+                    30,
+                    450,
+                    68
+                  ],
+                  "text": "Headline",
+                  "px": 51,
+                  "color": "#FFF8FAFC"
+                },
+                {
+                  "kind": "FrameLayout",
+                  "rect": [
+                    30,
+                    98,
+                    450,
+                    18
+                  ]
+                },
+                {
+                  "kind": "TextView",
+                  "rect": [
+                    30,
+                    116,
+                    450,
+                    53
+                  ],
+                  "text": "mono 0123",
+                  "px": 39,
+                  "color": "#FF38BDF8"
+                },
+                {
+                  "kind": "FrameLayout",
+                  "rect": [
+                    30,
+                    169,
+                    450,
+                    18
+                  ]
+                },
+                {
+                  "kind": "TextView",
+                  "rect": [
+                    30,
+                    187,
+                    450,
+                    57
+                  ],
+                  "text": "Serif body",
+                  "px": 42,
+                  "color": "#FFE2E8F0"
+                },
+                {
+                  "kind": "FrameLayout",
+                  "rect": [
+                    30,
+                    244,
+                    450,
+                    18
+                  ]
+                },
+                {
+                  "kind": "TextView",
+                  "rect": [
+                    30,
+                    262,
+                    450,
+                    49
+                  ],
+                  "text": "Caption line",
+                  "px": 36,
+                  "color": "#FF94A3B8"
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

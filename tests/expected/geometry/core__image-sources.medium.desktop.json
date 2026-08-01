@@ -1,0 +1,143 @@
+{
+  "kind": "div",
+  "rect": [
+    0,
+    0,
+    360,
+    170
+  ],
+  "children": [
+    {
+      "kind": "div",
+      "rect": [
+        0,
+        0,
+        360,
+        170
+      ],
+      "children": [
+        {
+          "kind": "div",
+          "rect": [
+            12,
+            61,
+            32,
+            48
+          ],
+          "children": [
+            {
+              "kind": "span",
+              "rect": [
+                12,
+                61,
+                32,
+                12
+              ],
+              "text": "SF",
+              "px": 10,
+              "color": "#94A3B8"
+            },
+            {
+              "kind": "span",
+              "rect": [
+                12,
+                77,
+                32,
+                32
+              ],
+              "text": "⭐",
+              "px": 32,
+              "color": "#FBBF24"
+            }
+          ]
+        },
+        {
+          "kind": "div",
+          "rect": [
+            60,
+            61,
+            32,
+            48
+          ],
+          "children": [
+            {
+              "kind": "span",
+              "rect": [
+                60,
+                61,
+                32,
+                12
+              ],
+              "text": "Data",
+              "px": 10,
+              "color": "#94A3B8"
+            },
+            {
+              "kind": "span",
+              "rect": [
+                60,
+                77,
+                32,
+                32
+              ],
+              "children": [
+                {
+                  "kind": "img",
+                  "rect": [
+                    60,
+                    77,
+                    32,
+                    32
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "kind": "div",
+          "rect": [
+            108,
+            61,
+            32,
+            48
+          ],
+          "children": [
+            {
+              "kind": "span",
+              "rect": [
+                108,
+                61,
+                32,
+                12
+              ],
+              "text": "URL",
+              "px": 10,
+              "color": "#94A3B8"
+            },
+            {
+              "kind": "span",
+              "rect": [
+                108,
+                77,
+                32,
+                32
+              ],
+              "children": [
+                {
+                  "kind": "img",
+                  "rect": [
+                    108,
+                    77,
+                    32,
+                    32
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

@@ -18,10 +18,16 @@ public struct TauriWidgetEntry: TimelineEntry {
 
 public struct TauriWidgetProvider: TimelineProvider {
     public let appGroup: String
+    public let widgetId: String
+    /// Timeline refresh interval in minutes (default 15 to respect WidgetKit budget).
+    public let refreshMinutes: Int
 
-    public init(appGroup: String) {
+    public init(appGroup: String, widgetId: String = "default", refreshMinutes: Int = 15) {
         self.appGroup = appGroup
+        self.widgetId = widgetId
+        self.refreshMinutes = max(1, refreshMinutes)
         TauriWidgetsConfig.appGroup = appGroup
+        TauriWidgetsConfig.widgetId = widgetId
     }
 
     public func placeholder(in context: Context) -> TauriWidgetEntry {
@@ -29,14 +35,14 @@ public struct TauriWidgetProvider: TimelineProvider {
     }
 
     public func getSnapshot(in context: Context, completion: @escaping (TauriWidgetEntry) -> Void) {
-        let cfg = context.isPreview ? nil : TauriWidgetDataStore.loadConfig(appGroup: appGroup)
+        let cfg = context.isPreview ? nil : TauriWidgetDataStore.loadConfig(appGroup: appGroup, widgetId: widgetId)
         completion(TauriWidgetEntry(date: Date(), config: cfg, family: context.family))
     }
 
     public func getTimeline(in context: Context, completion: @escaping (Timeline<TauriWidgetEntry>) -> Void) {
-        let cfg = TauriWidgetDataStore.loadConfig(appGroup: appGroup)
+        let cfg = TauriWidgetDataStore.loadConfig(appGroup: appGroup, widgetId: widgetId)
         let entry = TauriWidgetEntry(date: Date(), config: cfg, family: context.family)
-        let nextUpdate = Calendar.current.date(byAdding: .minute, value: 5, to: Date()) ?? Date()
+        let nextUpdate = Calendar.current.date(byAdding: .minute, value: refreshMinutes, to: Date()) ?? Date()
         completion(Timeline(entries: [entry], policy: .after(nextUpdate)))
     }
 }

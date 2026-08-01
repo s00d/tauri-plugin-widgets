@@ -1,0 +1,1166 @@
+{
+  "kind": "FrameLayout",
+  "rect": [
+    0,
+    0,
+    510,
+    510
+  ],
+  "children": [
+    {
+      "kind": "FrameLayout",
+      "rect": [
+        0,
+        0,
+        510,
+        510
+      ],
+      "children": [
+        {
+          "kind": "FrameLayout",
+          "rect": [
+            0,
+            0,
+            510,
+            510
+          ],
+          "children": [
+            {
+              "kind": "LinearLayout",
+              "rect": [
+                0,
+                0,
+                510,
+                510
+              ],
+              "children": [
+                {
+                  "kind": "TextView",
+                  "rect": [
+                    18,
+                    18,
+                    474,
+                    88
+                  ],
+                  "text": "0",
+                  "px": 66,
+                  "color": "#FFFFFFFF"
+                },
+                {
+                  "kind": "FrameLayout",
+                  "rect": [
+                    18,
+                    106,
+                    474,
+                    9
+                  ]
+                },
+                {
+                  "kind": "LinearLayout",
+                  "rect": [
+                    18,
+                    115,
+                    474,
+                    30
+                  ],
+                  "children": [
+                    {
+                      "kind": "FrameLayout",
+                      "rect": [
+                        0,
+                        0,
+                        474,
+                        12
+                      ]
+                    },
+                    {
+                      "kind": "FrameLayout",
+                      "rect": [
+                        0,
+                        12,
+                        474,
+                        6
+                      ]
+                    },
+                    {
+                      "kind": "FrameLayout",
+                      "rect": [
+                        0,
+                        18,
+                        474,
+                        12
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "kind": "FrameLayout",
+                  "rect": [
+                    18,
+                    145,
+                    474,
+                    9
+                  ]
+                },
+                {
+                  "kind": "LinearLayout",
+                  "rect": [
+                    18,
+                    154,
+                    474,
+                    338
+                  ],
+                  "children": [
+                    {
+                      "kind": "LinearLayout",
+                      "rect": [
+                        0,
+                        0,
+                        474,
+                        82
+                      ],
+                      "children": [
+                        {
+                          "kind": "FrameLayout",
+                          "rect": [
+                            0,
+                            0,
+                            114,
+                            80
+                          ],
+                          "children": [
+                            {
+                              "kind": "FrameLayout",
+                              "rect": [
+                                0,
+                                0,
+                                114,
+                                80
+                              ],
+                              "children": [
+                                {
+                                  "kind": "FrameLayout",
+                                  "rect": [
+                                    0,
+                                    0,
+                                    114,
+                                    80
+                                  ],
+                                  "children": [
+                                    {
+                                      "kind": "TextView",
+                                      "rect": [
+                                        30,
+                                        18,
+                                        21,
+                                        44
+                                      ],
+                                      "text": "C",
+                                      "px": 33,
+                                      "color": "#FFFFFFFF"
+                                    }
+                                  ]
+                                },
+                                {
+                                  "kind": "ImageView",
+                                  "rect": [
+                                    0,
+                                    0,
+                                    114,
+                                    80
+                                  ]
+                                }
+                              ]
+                            }
+                          ]
+                        },
+                        {
+                          "kind": "FrameLayout",
+                          "rect": [
+                            114,
+                            0,
+                            6,
+                            82
+                          ]
+                        },
+                        {
+                          "kind": "FrameLayout",
+                          "rect": [
+                            120,
+                            0,
+                            114,
+                            80
+                          ],
+                          "children": [
+                            {
+                              "kind": "FrameLayout",
+                              "rect": [
+                                0,
+                                0,
+                                114,
+                                80
+                              ],
+                              "children": [
+                                {
+                                  "kind": "FrameLayout",
+                                  "rect": [
+                                    0,
+                                    0,
+                                    114,
+                                    80
+                                  ],
+                                  "children": [
+                                    {
+                                      "kind": "TextView",
+                                      "rect": [
+                                        30,
+                                        18,
+                                        18,
+                                        44
+                                      ],
+                                      "text": "±",
+                                      "px": 33,
+                                      "color": "#FFFFFFFF"
+                                    }
+                                  ]
+                                },
+                                {
+                                  "kind": "ImageView",
+                                  "rect": [
+                                    0,
+                                    0,
+                                    114,
+                                    80
+                                  ]
+                                }
+                              ]
+                            }
+                          ]
+                        },
+                        {
+                          "kind": "FrameLayout",
+                          "rect": [
+                            234,
+                            0,
+                            6,
+                            82
+                          ]
+                        },
+                        {
+                          "kind": "FrameLayout",
+                          "rect": [
+                            240,
+                            0,
+                            114,
+                            82
+                          ],
+                          "children": [
+                            {
+                              "kind": "FrameLayout",
+                              "rect": [
+                                0,
+                                0,
+                                114,
+                                82
+                              ],
+                              "children": [
+                                {
+                                  "kind": "FrameLayout",
+                                  "rect": [
+                                    0,
+                                    0,
+                                    114,
+                                    82
+                                  ],
+                                  "children": [
+                                    {
+                                      "kind": "TextView",
+                                      "rect": [
+                                        30,
+                                        18,
+                                        36,
+                                        46
+                                      ],
+                                      "text": "⌫",
+                                      "px": 33,
+                                      "color": "#FFFFFFFF"
+                                    }
+                                  ]
+                                },
+                                {
+                                  "kind": "ImageView",
+                                  "rect": [
+                                    0,
+                                    0,
+                                    114,
+                                    82
+                                  ]
+                                }
+                              ]
+                            }
+                          ]
+                        },
+                        {
+                          "kind": "FrameLayout",
+                          "rect": [
+                            354,
+                            0,
+                            6,
+                            82
+                          ]
+                        },
+                        {
+                          "kind": "FrameLayout",
+                          "rect": [
+                            360,
+                            0,
+                            114,
+                            80
+                          ],
+                          "children": [
+                            {
+                              "kind": "FrameLayout",
+                              "rect": [
+                                0,
+                                0,
+                                114,
+                                80
+                              ],
+                              "children": [
+                                {
+                                  "kind": "FrameLayout",
+                                  "rect": [
+                                    0,
+                                    0,
+                                    114,
+                                    80
+                                  ],
+                                  "children": [
+                                    {
+                                      "kind": "TextView",
+                                      "rect": [
+                                        30,
+                                        18,
+                                        19,
+                                        44
+                                      ],
+                                      "text": "÷",
+                                      "px": 33,
+                                      "color": "#FFFFFFFF"
+                                    }
+                                  ]
+                                },
+                                {
+                                  "kind": "ImageView",
+                                  "rect": [
+                                    0,
+                                    0,
+                                    114,
+                                    80
+                                  ]
+                                }
+                              ]
+                            }
+                          ]
+                        }
+                      ]
+                    },
+                    {
+                      "kind": "FrameLayout",
+                      "rect": [
+                        0,
+                        82,
+                        474,
+                        6
+                      ]
+                    },
+                    {
+                      "kind": "LinearLayout",
+                      "rect": [
+                        0,
+                        88,
+                        474,
+                        85
+                      ],
+                      "children": [
+                        {
+                          "kind": "FrameLayout",
+                          "rect": [
+                            0,
+                            0,
+                            114,
+                            85
+                          ],
+                          "children": [
+                            {
+                              "kind": "FrameLayout",
+                              "rect": [
+                                0,
+                                0,
+                                114,
+                                85
+                              ],
+                              "children": [
+                                {
+                                  "kind": "FrameLayout",
+                                  "rect": [
+                                    0,
+                                    0,
+                                    114,
+                                    85
+                                  ],
+                                  "children": [
+                                    {
+                                      "kind": "TextView",
+                                      "rect": [
+                                        30,
+                                        18,
+                                        20,
+                                        49
+                                      ],
+                                      "text": "7",
+                                      "px": 36,
+                                      "color": "#FFFFFFFF"
+                                    }
+                                  ]
+                                },
+                                {
+                                  "kind": "ImageView",
+                                  "rect": [
+                                    0,
+                                    0,
+                                    114,
+                                    85
+                                  ]
+                                }
+                              ]
+                            }
+                          ]
+                        },
+                        {
+                          "kind": "FrameLayout",
+                          "rect": [
+                            114,
+                            0,
+                            6,
+                            85
+                          ]
+                        },
+                        {
+                          "kind": "FrameLayout",
+                          "rect": [
+                            120,
+                            0,
+                            114,
+                            85
+                          ],
+                          "children": [
+                            {
+                              "kind": "FrameLayout",
+                              "rect": [
+                                0,
+                                0,
+                                114,
+                                85
+                              ],
+                              "children": [
+                                {
+                                  "kind": "FrameLayout",
+                                  "rect": [
+                                    0,
+                                    0,
+                                    114,
+                                    85
+                                  ],
+                                  "children": [
+                                    {
+                                      "kind": "TextView",
+                                      "rect": [
+                                        30,
+                                        18,
+                                        20,
+                                        49
+                                      ],
+                                      "text": "8",
+                                      "px": 36,
+                                      "color": "#FFFFFFFF"
+                                    }
+                                  ]
+                                },
+                                {
+                                  "kind": "ImageView",
+                                  "rect": [
+                                    0,
+                                    0,
+                                    114,
+                                    85
+                                  ]
+                                }
+                              ]
+                            }
+                          ]
+                        },
+                        {
+                          "kind": "FrameLayout",
+                          "rect": [
+                            234,
+                            0,
+                            6,
+                            85
+                          ]
+                        },
+                        {
+                          "kind": "FrameLayout",
+                          "rect": [
+                            240,
+                            0,
+                            114,
+                            85
+                          ],
+                          "children": [
+                            {
+                              "kind": "FrameLayout",
+                              "rect": [
+                                0,
+                                0,
+                                114,
+                                85
+                              ],
+                              "children": [
+                                {
+                                  "kind": "FrameLayout",
+                                  "rect": [
+                                    0,
+                                    0,
+                                    114,
+                                    85
+                                  ],
+                                  "children": [
+                                    {
+                                      "kind": "TextView",
+                                      "rect": [
+                                        30,
+                                        18,
+                                        20,
+                                        49
+                                      ],
+                                      "text": "9",
+                                      "px": 36,
+                                      "color": "#FFFFFFFF"
+                                    }
+                                  ]
+                                },
+                                {
+                                  "kind": "ImageView",
+                                  "rect": [
+                                    0,
+                                    0,
+                                    114,
+                                    85
+                                  ]
+                                }
+                              ]
+                            }
+                          ]
+                        },
+                        {
+                          "kind": "FrameLayout",
+                          "rect": [
+                            354,
+                            0,
+                            6,
+                            85
+                          ]
+                        },
+                        {
+                          "kind": "FrameLayout",
+                          "rect": [
+                            360,
+                            0,
+                            114,
+                            80
+                          ],
+                          "children": [
+                            {
+                              "kind": "FrameLayout",
+                              "rect": [
+                                0,
+                                0,
+                                114,
+                                80
+                              ],
+                              "children": [
+                                {
+                                  "kind": "FrameLayout",
+                                  "rect": [
+                                    0,
+                                    0,
+                                    114,
+                                    80
+                                  ],
+                                  "children": [
+                                    {
+                                      "kind": "TextView",
+                                      "rect": [
+                                        30,
+                                        18,
+                                        18,
+                                        44
+                                      ],
+                                      "text": "×",
+                                      "px": 33,
+                                      "color": "#FFFFFFFF"
+                                    }
+                                  ]
+                                },
+                                {
+                                  "kind": "ImageView",
+                                  "rect": [
+                                    0,
+                                    0,
+                                    114,
+                                    80
+                                  ]
+                                }
+                              ]
+                            }
+                          ]
+                        }
+                      ]
+                    },
+                    {
+                      "kind": "FrameLayout",
+                      "rect": [
+                        0,
+                        173,
+                        474,
+                        6
+                      ]
+                    },
+                    {
+                      "kind": "LinearLayout",
+                      "rect": [
+                        0,
+                        179,
+                        474,
+                        85
+                      ],
+                      "children": [
+                        {
+                          "kind": "FrameLayout",
+                          "rect": [
+                            0,
+                            0,
+                            114,
+                            85
+                          ],
+                          "children": [
+                            {
+                              "kind": "FrameLayout",
+                              "rect": [
+                                0,
+                                0,
+                                114,
+                                85
+                              ],
+                              "children": [
+                                {
+                                  "kind": "FrameLayout",
+                                  "rect": [
+                                    0,
+                                    0,
+                                    114,
+                                    85
+                                  ],
+                                  "children": [
+                                    {
+                                      "kind": "TextView",
+                                      "rect": [
+                                        30,
+                                        18,
+                                        20,
+                                        49
+                                      ],
+                                      "text": "4",
+                                      "px": 36,
+                                      "color": "#FFFFFFFF"
+                                    }
+                                  ]
+                                },
+                                {
+                                  "kind": "ImageView",
+                                  "rect": [
+                                    0,
+                                    0,
+                                    114,
+                                    85
+                                  ]
+                                }
+                              ]
+                            }
+                          ]
+                        },
+                        {
+                          "kind": "FrameLayout",
+                          "rect": [
+                            114,
+                            0,
+                            6,
+                            85
+                          ]
+                        },
+                        {
+                          "kind": "FrameLayout",
+                          "rect": [
+                            120,
+                            0,
+                            114,
+                            85
+                          ],
+                          "children": [
+                            {
+                              "kind": "FrameLayout",
+                              "rect": [
+                                0,
+                                0,
+                                114,
+                                85
+                              ],
+                              "children": [
+                                {
+                                  "kind": "FrameLayout",
+                                  "rect": [
+                                    0,
+                                    0,
+                                    114,
+                                    85
+                                  ],
+                                  "children": [
+                                    {
+                                      "kind": "TextView",
+                                      "rect": [
+                                        30,
+                                        18,
+                                        20,
+                                        49
+                                      ],
+                                      "text": "5",
+                                      "px": 36,
+                                      "color": "#FFFFFFFF"
+                                    }
+                                  ]
+                                },
+                                {
+                                  "kind": "ImageView",
+                                  "rect": [
+                                    0,
+                                    0,
+                                    114,
+                                    85
+                                  ]
+                                }
+                              ]
+                            }
+                          ]
+                        },
+                        {
+                          "kind": "FrameLayout",
+                          "rect": [
+                            234,
+                            0,
+                            6,
+                            85
+                          ]
+                        },
+                        {
+                          "kind": "FrameLayout",
+                          "rect": [
+                            240,
+                            0,
+                            114,
+                            85
+                          ],
+                          "children": [
+                            {
+                              "kind": "FrameLayout",
+                              "rect": [
+                                0,
+                                0,
+                                114,
+                                85
+                              ],
+                              "children": [
+                                {
+                                  "kind": "FrameLayout",
+                                  "rect": [
+                                    0,
+                                    0,
+                                    114,
+                                    85
+                                  ],
+                                  "children": [
+                                    {
+                                      "kind": "TextView",
+                                      "rect": [
+                                        30,
+                                        18,
+                                        20,
+                                        49
+                                      ],
+                                      "text": "6",
+                                      "px": 36,
+                                      "color": "#FFFFFFFF"
+                                    }
+                                  ]
+                                },
+                                {
+                                  "kind": "ImageView",
+                                  "rect": [
+                                    0,
+                                    0,
+                                    114,
+                                    85
+                                  ]
+                                }
+                              ]
+                            }
+                          ]
+                        },
+                        {
+                          "kind": "FrameLayout",
+                          "rect": [
+                            354,
+                            0,
+                            6,
+                            85
+                          ]
+                        },
+                        {
+                          "kind": "FrameLayout",
+                          "rect": [
+                            360,
+                            0,
+                            114,
+                            80
+                          ],
+                          "children": [
+                            {
+                              "kind": "FrameLayout",
+                              "rect": [
+                                0,
+                                0,
+                                114,
+                                80
+                              ],
+                              "children": [
+                                {
+                                  "kind": "FrameLayout",
+                                  "rect": [
+                                    0,
+                                    0,
+                                    114,
+                                    80
+                                  ],
+                                  "children": [
+                                    {
+                                      "kind": "TextView",
+                                      "rect": [
+                                        30,
+                                        18,
+                                        19,
+                                        44
+                                      ],
+                                      "text": "−",
+                                      "px": 33,
+                                      "color": "#FFFFFFFF"
+                                    }
+                                  ]
+                                },
+                                {
+                                  "kind": "ImageView",
+                                  "rect": [
+                                    0,
+                                    0,
+                                    114,
+                                    80
+                                  ]
+                                }
+                              ]
+                            }
+                          ]
+                        }
+                      ]
+                    },
+                    {
+                      "kind": "FrameLayout",
+                      "rect": [
+                        0,
+                        264,
+                        474,
+                        6
+                      ]
+                    },
+                    {
+                      "kind": "LinearLayout",
+                      "rect": [
+                        0,
+                        270,
+                        474,
+                        68
+                      ],
+                      "children": [
+                        {
+                          "kind": "FrameLayout",
+                          "rect": [
+                            0,
+                            0,
+                            114,
+                            68
+                          ],
+                          "children": [
+                            {
+                              "kind": "FrameLayout",
+                              "rect": [
+                                0,
+                                0,
+                                114,
+                                68
+                              ],
+                              "children": [
+                                {
+                                  "kind": "FrameLayout",
+                                  "rect": [
+                                    0,
+                                    0,
+                                    114,
+                                    68
+                                  ],
+                                  "children": [
+                                    {
+                                      "kind": "TextView",
+                                      "rect": [
+                                        30,
+                                        18,
+                                        20,
+                                        32
+                                      ],
+                                      "text": "1",
+                                      "px": 36,
+                                      "color": "#FFFFFFFF"
+                                    }
+                                  ]
+                                },
+                                {
+                                  "kind": "ImageView",
+                                  "rect": [
+                                    0,
+                                    0,
+                                    114,
+                                    68
+                                  ]
+                                }
+                              ]
+                            }
+                          ]
+                        },
+                        {
+                          "kind": "FrameLayout",
+                          "rect": [
+                            114,
+                            0,
+                            6,
+                            68
+                          ]
+                        },
+                        {
+                          "kind": "FrameLayout",
+                          "rect": [
+                            120,
+                            0,
+                            114,
+                            68
+                          ],
+                          "children": [
+                            {
+                              "kind": "FrameLayout",
+                              "rect": [
+                                0,
+                                0,
+                                114,
+                                68
+                              ],
+                              "children": [
+                                {
+                                  "kind": "FrameLayout",
+                                  "rect": [
+                                    0,
+                                    0,
+                                    114,
+                                    68
+                                  ],
+                                  "children": [
+                                    {
+                                      "kind": "TextView",
+                                      "rect": [
+                                        30,
+                                        18,
+                                        20,
+                                        32
+                                      ],
+                                      "text": "2",
+                                      "px": 36,
+                                      "color": "#FFFFFFFF"
+                                    }
+                                  ]
+                                },
+                                {
+                                  "kind": "ImageView",
+                                  "rect": [
+                                    0,
+                                    0,
+                                    114,
+                                    68
+                                  ]
+                                }
+                              ]
+                            }
+                          ]
+                        },
+                        {
+                          "kind": "FrameLayout",
+                          "rect": [
+                            234,
+                            0,
+                            6,
+                            68
+                          ]
+                        },
+                        {
+                          "kind": "FrameLayout",
+                          "rect": [
+                            240,
+                            0,
+                            114,
+                            68
+                          ],
+                          "children": [
+                            {
+                              "kind": "FrameLayout",
+                              "rect": [
+                                0,
+                                0,
+                                114,
+                                68
+                              ],
+                              "children": [
+                                {
+                                  "kind": "FrameLayout",
+                                  "rect": [
+                                    0,
+                                    0,
+                                    114,
+                                    68
+                                  ],
+                                  "children": [
+                                    {
+                                      "kind": "TextView",
+                                      "rect": [
+                                        30,
+                                        18,
+                                        20,
+                                        32
+                                      ],
+                                      "text": "3",
+                                      "px": 36,
+                                      "color": "#FFFFFFFF"
+                                    }
+                                  ]
+                                },
+                                {
+                                  "kind": "ImageView",
+                                  "rect": [
+                                    0,
+                                    0,
+                                    114,
+                                    68
+                                  ]
+                                }
+                              ]
+                            }
+                          ]
+                        },
+                        {
+                          "kind": "FrameLayout",
+                          "rect": [
+                            354,
+                            0,
+                            6,
+                            68
+                          ]
+                        },
+                        {
+                          "kind": "FrameLayout",
+                          "rect": [
+                            360,
+                            0,
+                            114,
+                            68
+                          ],
+                          "children": [
+                            {
+                              "kind": "FrameLayout",
+                              "rect": [
+                                0,
+                                0,
+                                114,
+                                68
+                              ],
+                              "children": [
+                                {
+                                  "kind": "FrameLayout",
+                                  "rect": [
+                                    0,
+                                    0,
+                                    114,
+                                    68
+                                  ],
+                                  "children": [
+                                    {
+                                      "kind": "TextView",
+                                      "rect": [
+                                        30,
+                                        18,
+                                        19,
+                                        32
+                                      ],
+                                      "text": "+",
+                                      "px": 33,
+                                      "color": "#FFFFFFFF"
+                                    }
+                                  ]
+                                },
+                                {
+                                  "kind": "ImageView",
+                                  "rect": [
+                                    0,
+                                    0,
+                                    114,
+                                    68
+                                  ]
+                                }
+                              ]
+                            }
+                          ]
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

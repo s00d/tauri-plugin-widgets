@@ -1,0 +1,28 @@
+{
+  "version": 1,
+  "small": {
+    "type": "vstack",
+    "padding": 12,
+    "spacing": 10,
+    "cornerRadius": 14,
+    "background": "#1C1C1E",
+    "children": [
+      {
+        "type": "toggle",
+        "isOn": true,
+        "label": "Wi-Fi",
+        "tint": "#22c55e",
+        "color": "#e2e8f0",
+        "action": "toggle_wifi"
+      },
+      {
+        "type": "toggle",
+        "isOn": false,
+        "label": "Bluetooth",
+        "tint": "#3b82f6",
+        "color": "#e2e8f0",
+        "action": "toggle_bt"
+      }
+    ]
+  }
+}

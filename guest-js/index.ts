@@ -22,7 +22,7 @@
  *       { type: "progress", value: 0.7, tint: "#4CAF50" },
  *     ],
  *   },
- * }, "group.com.example.myapp");
+ * }, "group.com.example.myapp", "weather");
  *
  * // Or raw data for custom native widgets
  * await setItems("temperature", "72", "group.com.example.myapp");
@@ -167,6 +167,10 @@ export interface WidgetWindowConfig {
    */
   group?: string;
   /**
+   * Widget identity within the group. Required for the built-in renderer.
+   */
+  widgetId?: string;
+  /**
    * Size family the built-in renderer should display:
    * `"small"`, `"medium"`, or `"large"`.  Defaults to `"small"`.
    */
@@ -194,6 +198,7 @@ export interface WidgetWindowConfig {
  *   width: 280,
  *   height: 200,
  *   group: "group.com.example.myapp",
+ *   widgetId: "weather",
  *   size: "small",
  * });
  *
@@ -210,6 +215,9 @@ export async function createWidgetWindow(
   config: WidgetWindowConfig,
 ): Promise<boolean> {
   if (!config.label) throw new Error("createWidgetWindow: 'label' is required");
+  if (!config.url && !config.widgetId) {
+    throw new Error("createWidgetWindow: 'widgetId' is required for the built-in renderer");
+  }
   return await invoke<boolean>(`${PLUGIN_ID}|create_widget_window`, { config });
 }
 
@@ -227,827 +235,9 @@ export async function closeWidgetWindow(label: string): Promise<boolean> {
 
 // ─── Widget Config API ──────────────────────────────────────────────────────
 
-// ── Enums ──
-
-/**
- * Font weight for text elements.
- * Maps to SwiftUI `Font.Weight` / CSS `font-weight`.
- */
-export type FontWeight = "ultralight" | "thin" | "light" | "regular" | "medium" | "semibold" | "bold" | "heavy" | "black";
-
-/** Font design style. Maps to SwiftUI `Font.Design`. */
-export type FontDesign = "default" | "monospaced" | "rounded" | "serif";
-
-/** Text horizontal alignment. */
-export type TextAlignment = "leading" | "center" | "trailing";
-
-/** Horizontal alignment for VStack children. */
-export type HorizontalAlignment = "leading" | "center" | "trailing";
-
-/** Vertical alignment for HStack children. */
-export type VerticalAlignment = "top" | "center" | "bottom";
-
-/** How an image fills its frame. */
-export type ContentMode = "fit" | "fill";
-
-/** Progress bar visual style. */
-export type ProgressStyle = "linear" | "circular";
-
-/** Gauge visual style. */
-export type GaugeStyle = "circular" | "linear";
-
-/**
- * Date display style.
- * - `time` — shows time only (e.g. `"10:00 AM"`)
- * - `date` — shows date only (e.g. `"Mar 1, 2026"`)
- * - `relative` — relative to now (e.g. `"in 2 days"`)
- * - `offset` — offset from now (e.g. `"+2 days"`)
- * - `timer` — countdown/up timer (e.g. `"48:00:00"`)
- */
-export type DateStyle = "time" | "date" | "relative" | "offset" | "timer";
-
-/** Chart visualization type. */
-export type ChartType = "bar" | "line" | "area" | "pie";
-
-/** Shape type for the `shape` element. */
-export type ShapeType = "circle" | "capsule" | "rectangle";
-
-/** Timer counting direction. */
-export type TimerCounting = "up" | "down";
-
-/** Clip shape for content masking (e.g. circular avatar). */
-export type ClipShape = "circle" | "capsule" | "rectangle";
-
-/**
- * Semantic text style — respects Dynamic Type / accessibility settings.
- * Overrides `fontSize` when set. Uses platform-native scaling.
- */
-export type TextStyle =
-  | "largeTitle" | "title" | "title2" | "title3"
-  | "headline" | "subheadline"
-  | "body" | "callout"
-  | "footnote" | "caption" | "caption2";
-
-/** Gradient type for background gradients. */
-export type GradientType = "linear" | "radial" | "angular";
-
-/** Direction for linear gradients. */
-export type GradientDirection =
-  | "topToBottom"
-  | "bottomToTop"
-  | "leadingToTrailing"
-  | "trailingToLeading"
-  | "topLeadingToBottomTrailing"
-  | "topTrailingToBottomLeading";
-
-// ── Supporting types ──
-
-/**
- * Color value — hex string, semantic name, or adaptive `{ light, dark }` pair.
- *
- * Semantic names (auto-adapt to dark mode):
- * `"label"`, `"secondaryLabel"`, `"systemBackground"`,
- * `"secondarySystemBackground"`, `"accent"`, `"separator"`
- *
- * @example
- * ```ts
- * // Hex string
- * color: "#FF5733"
- *
- * // Semantic (auto-adapts to dark mode)
- * color: "label"
- *
- * // Adaptive pair
- * color: { light: "#000000", dark: "#FFFFFF" }
- * ```
- */
-export type ColorValue = string | { light: string; dark: string };
-
-/** A single data point in a chart. */
-export interface ChartDataPoint {
-  /** X-axis label. */
-  label: string;
-  /** Numeric value. */
-  value: number;
-  /** Override color for this data point. Falls back to chart `tint`. */
-  color?: ColorValue;
-}
-
-/**
- * Frame size constraints.
- * Use `"infinity"` for `maxWidth`/`maxHeight` to fill available space.
- */
-export interface FrameConfig {
-  /** Fixed width in points. */
-  width?: number;
-  /** Fixed height in points. */
-  height?: number;
-  /** Maximum width. Use `"infinity"` to expand. */
-  maxWidth?: number | "infinity";
-  /** Maximum height. Use `"infinity"` to expand. */
-  maxHeight?: number | "infinity";
-}
-
-/** Border configuration. */
-export interface BorderConfig {
-  /** Border color (hex). */
-  color: string;
-  /** Border width in points. Default: `1`. */
-  width?: number;
-}
-
-/** Gradient background configuration. */
-export interface GradientConfig {
-  /** Gradient type. */
-  gradientType: GradientType;
-  /** Array of hex color stops. */
-  colors: string[];
-  /** Direction for linear gradients. */
-  direction?: GradientDirection;
-}
-
-/** Shadow configuration. */
-export interface ShadowConfig {
-  /** Shadow color (hex). */
-  color?: string;
-  /** Blur radius in points. */
-  radius?: number;
-  /** Horizontal offset. */
-  x?: number;
-  /** Vertical offset. */
-  y?: number;
-}
-
-/**
- * Background value — solid hex, adaptive `{ light, dark }`, or gradient config.
- *
- * @example
- * ```ts
- * // Solid color
- * background: "#1a1a2e"
- *
- * // Adaptive (auto dark mode)
- * background: { light: "#FFFFFF", dark: "#1a1a2e" }
- *
- * // Linear gradient
- * background: { gradientType: "linear", colors: ["#ff0000", "#0000ff"], direction: "topToBottom" }
- * ```
- */
-export type BackgroundValue = string | GradientConfig | { light: string; dark: string };
-
-/**
- * Padding value — either uniform (a single number) or per-edge.
- *
- * @example
- * ```ts
- * // Uniform: 12pt on all sides
- * padding: 12
- *
- * // Per-edge
- * padding: { top: 8, bottom: 16, leading: 12, trailing: 12 }
- * ```
- */
-export type PaddingValue = number | {
-  top?: number;
-  bottom?: number;
-  leading?: number;
-  trailing?: number;
-};
-
-/**
- * Common style properties applicable to any element (except `spacer`).
- *
- * These are flattened into the element JSON — just add them alongside
- * the element-specific properties.
- */
-export interface ElementStyle {
-  /** Padding inside the element. */
-  padding?: PaddingValue;
-  /** Background — solid hex color, adaptive pair, or gradient config. */
-  background?: BackgroundValue;
-  /** Corner radius in points. */
-  cornerRadius?: number;
-  /** Opacity from 0.0 (transparent) to 1.0 (opaque). */
-  opacity?: number;
-  /** Frame size constraints. */
-  frame?: FrameConfig;
-  /** Border around the element. */
-  border?: BorderConfig;
-  /** Drop shadow. */
-  shadow?: ShadowConfig;
-  /** Clip content to a shape (e.g. `"circle"` for round avatar). */
-  clipShape?: ClipShape;
-  /**
-   * Layout weight for flexible sizing inside stacks.
-   * Elements with `flex > 0` expand to fill available space.
-   * Maps to SwiftUI `layoutPriority` / Android `layout_weight`.
-   */
-  flex?: number;
-}
-
-// ── Element interfaces ──
-
-/**
- * Vertical stack — arranges children top-to-bottom.
- *
- * @example
- * ```json
- * { "type": "vstack", "spacing": 8, "alignment": "leading", "children": [...] }
- * ```
- */
-export interface VStackElement extends ElementStyle {
-  type: "vstack";
-  children: WidgetElement[];
-  /** Space between children (points). */
-  spacing?: number;
-  /** Horizontal alignment of children. */
-  alignment?: HorizontalAlignment;
-}
-
-/**
- * Horizontal stack — arranges children left-to-right.
- *
- * @example
- * ```json
- * { "type": "hstack", "spacing": 10, "alignment": "center", "children": [...] }
- * ```
- */
-export interface HStackElement extends ElementStyle {
-  type: "hstack";
-  children: WidgetElement[];
-  /** Space between children (points). */
-  spacing?: number;
-  /** Vertical alignment of children. */
-  alignment?: VerticalAlignment;
-}
-
-/** Overlay stack — layers children on top of each other. */
-export interface ZStackElement extends ElementStyle {
-  type: "zstack";
-  children: WidgetElement[];
-  /** Alignment within the stack. */
-  alignment?: string;
-}
-
-/**
- * Grid layout — arranges children in a grid with configurable columns.
- *
- * @example
- * ```json
- * { "type": "grid", "columns": 2, "spacing": 8, "rowSpacing": 8, "children": [...] }
- * ```
- */
-export interface GridElement extends ElementStyle {
-  type: "grid";
-  children: WidgetElement[];
-  /** Number of columns. Default: `2`. */
-  columns?: number;
-  /** Column spacing (points). */
-  spacing?: number;
-  /** Row spacing (points). */
-  rowSpacing?: number;
-}
-
-/**
- * Container (Box) — wraps children with alignment and styling.
- *
- * Use for cards, badges, overlays, or any case where you need a
- * styled wrapper around a single element with precise alignment.
- *
- * @example
- * ```json
- * {
- *   "type": "container",
- *   "contentAlignment": "center",
- *   "background": "#1a1a2e",
- *   "cornerRadius": 12,
- *   "padding": 16,
- *   "children": [
- *     { "type": "text", "content": "Centered!", "color": "#fff" }
- *   ]
- * }
- * ```
- */
-export interface ContainerElement extends ElementStyle {
-  type: "container";
-  /** Child elements rendered inside container. */
-  children?: WidgetElement[];
-  /**
-   * Content alignment within the container.
-   * Values: `"center"`, `"topLeading"`, `"top"`, `"topTrailing"`,
-   * `"leading"`, `"trailing"`, `"bottomLeading"`, `"bottom"`, `"bottomTrailing"`.
-   */
-  contentAlignment?: string;
-}
-
-/**
- * Text element — displays a string with configurable typography.
- *
- * @example
- * ```json
- * { "type": "text", "content": "Hello", "fontSize": 24, "fontWeight": "bold", "color": "#fff" }
- * ```
- */
-export interface TextElement extends ElementStyle {
-  type: "text";
-  /** The text string to display. */
-  content: string;
-  /**
-   * Font size in points. Ignored when `textStyle` is set.
-   */
-  fontSize?: number;
-  /** Font weight. */
-  fontWeight?: FontWeight;
-  /** Font design style. */
-  fontDesign?: FontDesign;
-  /**
-   * Semantic text style — uses Dynamic Type (Apple) or sp scaling (Android).
-   * When set, overrides `fontSize` for platform-appropriate sizing.
-   *
-   * @example `"headline"`, `"body"`, `"caption"`, `"title"`
-   */
-  textStyle?: TextStyle;
-  /** Text color — hex, semantic name, or adaptive pair. */
-  color?: ColorValue;
-  /** Text alignment. */
-  alignment?: TextAlignment;
-  /** Maximum number of lines. Text is truncated beyond this. */
-  lineLimit?: number;
-}
-
-/**
- * Image element — displays an SF Symbol, base64 data, or remote URL.
- *
- * @example
- * ```json
- * { "type": "image", "systemName": "cloud.sun.fill", "size": 32, "color": "#ffcc00" }
- * ```
- */
-export interface ImageElement extends ElementStyle {
-  type: "image";
-  /** SF Symbol name (Apple) or icon hint (Android). */
-  systemName?: string;
-  /** Base64-encoded image data. */
-  data?: string;
-  /** Remote image URL. */
-  url?: string;
-  /** Display size in points. */
-  size?: number;
-  /** Tint color — hex, semantic, or adaptive. */
-  color?: ColorValue;
-  /** How the image fills its frame. */
-  contentMode?: ContentMode;
-}
-
-/**
- * Progress bar — shows completion as a linear or circular indicator.
- *
- * @example
- * ```json
- * { "type": "progress", "value": 0.7, "total": 1.0, "tint": "#4CAF50", "label": "Steps" }
- * ```
- */
-export interface ProgressElement extends ElementStyle {
-  type: "progress";
-  /** Current progress value. */
-  value: number;
-  /** Maximum value. Default: `1.0`. */
-  total?: number;
-  /** Label text shown alongside the progress bar. */
-  label?: string;
-  /** Bar color — hex, semantic, or adaptive. */
-  tint?: ColorValue;
-  /** Text color for label — hex, semantic, or adaptive. */
-  color?: ColorValue;
-  /** Visual style: `"linear"` (default) or `"circular"`. */
-  barStyle?: ProgressStyle;
-}
-
-/**
- * Gauge — circular or linear meter showing a value within a range.
- *
- * @example
- * ```json
- * {
- *   "type": "gauge", "value": 0.72,
- *   "min": 0, "max": 1,
- *   "label": "CPU", "currentValueLabel": "72%",
- *   "tint": "#7aa2f7", "gaugeStyle": "circular"
- * }
- * ```
- */
-export interface GaugeElement extends ElementStyle {
-  type: "gauge";
-  /** Current value. */
-  value: number;
-  /** Minimum value. Default: `0`. */
-  min?: number;
-  /** Maximum value. Default: `1`. */
-  max?: number;
-  /** Caption below the gauge. */
-  label?: string;
-  /** Value label displayed inside the gauge. */
-  currentValueLabel?: string;
-  /** Gauge color — hex, semantic, or adaptive. */
-  tint?: ColorValue;
-  /** Text color for value/label — hex, semantic, or adaptive. */
-  color?: ColorValue;
-  /** Visual style: `"circular"` or `"linear"`. */
-  gaugeStyle?: GaugeStyle;
-}
-
-/**
- * Button — tappable element that opens a URL or triggers an action event.
- *
- * Two modes:
- * - **`url`** — opens a deep-link URL when tapped (e.g. `"myapp://home"`).
- * - **`action`** — emits a `widget-action` Tauri event with the action name
- *   as payload, so the main app can react (e.g. refresh data, navigate, etc.).
- *
- * At least one of `url` or `action` should be set. If both are set, `action`
- * takes priority on desktop; on native widgets both are encoded into the URL.
- *
- * @example
- * ```json
- * { "type": "button", "label": "Refresh", "action": "refresh_data", "backgroundColor": "#2196F3", "color": "#fff" }
- * ```
- */
-export interface ButtonElement extends ElementStyle {
-  type: "button";
-  /** Button text. */
-  label: string;
-  /** Deep-link URL to open when tapped. */
-  url?: string;
-  /** Action identifier — emits a `widget-action` event when tapped. */
-  action?: string;
-  /** Text color — hex, semantic, or adaptive. */
-  color?: ColorValue;
-  /** Background color — hex, semantic, or adaptive. */
-  backgroundColor?: ColorValue;
-  /** Font size in points. */
-  fontSize?: number;
-  /** Button label alignment. */
-  textAlignment?: TextAlignment;
-}
-
-/**
- * Toggle — visual on/off indicator (read-only in widgets).
- *
- * @example
- * ```json
- * { "type": "toggle", "isOn": true, "label": "Dark Mode", "tint": "#4CAF50" }
- * ```
- */
-export interface ToggleElement extends ElementStyle {
-  type: "toggle";
-  /** Whether the toggle is on. */
-  isOn: boolean;
-  /** Label text next to the toggle. */
-  label?: string;
-  /** Toggle tint color when on — hex, semantic, or adaptive. */
-  tint?: ColorValue;
-  /** Label text color — hex, semantic, or adaptive. */
-  color?: ColorValue;
-  /** Action identifier sent back to the app (for future interactivity). */
-  action?: string;
-}
-
-/**
- * Divider — a horizontal line separating content.
- *
- * @example
- * ```json
- * { "type": "divider", "color": "#333333", "thickness": 1 }
- * ```
- */
-export interface DividerElement extends ElementStyle {
-  type: "divider";
-  /** Line color — hex, semantic, or adaptive. */
-  color?: ColorValue;
-  /** Line thickness in points. */
-  thickness?: number;
-}
-
-/**
- * Spacer — flexible space that pushes siblings apart within a stack.
- *
- * @example
- * ```json
- * { "type": "spacer", "minLength": 10 }
- * ```
- */
-export interface SpacerElement {
-  type: "spacer";
-  /** Minimum space in points. */
-  minLength?: number;
-}
-
-/**
- * Date element — displays a date/time with live formatting.
- *
- * @example
- * ```json
- * { "type": "date", "date": "2026-03-01T10:00:00Z", "dateStyle": "relative", "color": "#fff" }
- * ```
- */
-export interface DateElement extends ElementStyle {
-  type: "date";
-  /** ISO 8601 date string. */
-  date: string;
-  /** How to format the date. */
-  dateStyle?: DateStyle;
-  /** Font size in points. */
-  fontSize?: number;
-  /** Text color — hex, semantic, or adaptive. */
-  color?: ColorValue;
-}
-
-/**
- * Chart element — bar or line chart from data points.
- *
- * @example
- * ```json
- * {
- *   "type": "chart", "chartType": "bar", "tint": "#89b4fa",
- *   "chartData": [
- *     { "label": "Mon", "value": 120 },
- *     { "label": "Tue", "value": 180, "color": "#a6e3a1" }
- *   ]
- * }
- * ```
- */
-export interface ChartElement extends ElementStyle {
-  type: "chart";
-  /** Chart visualization type. */
-  chartType: ChartType;
-  /** Array of data points. */
-  chartData: ChartDataPoint[];
-  /** Default color for bars/lines — hex, semantic, or adaptive. */
-  tint?: ColorValue;
-}
-
-/** Android list item for `list` widgets. */
-export interface ListItem {
-  /** Row label text. */
-  text: string;
-  /** Optional checked state marker. */
-  checked?: boolean;
-  /** Optional action emitted on row tap. */
-  action?: string;
-  /** Optional payload forwarded with row action. */
-  payload?: string;
-}
-
-/**
- * Android-only collection list backed by `RemoteViewsService`.
- *
- * Use this for larger lists to avoid binder payload limits of deeply nested layouts.
- */
-export interface ListElement extends ElementStyle {
-  type: "list";
-  items: ListItem[];
-  /** Space between rows (points). */
-  spacing?: number;
-  /** Row font size (points). */
-  fontSize?: number;
-  /** Row text color. */
-  color?: ColorValue;
-}
-
-// ── Canvas drawing commands ──
-
-/** Circle draw command. */
-export interface CanvasCircle {
-  draw: "circle";
-  cx: number; cy: number; r: number;
-  fill?: ColorValue; stroke?: ColorValue; strokeWidth?: number;
-}
-/** Line draw command. */
-export interface CanvasLine {
-  draw: "line";
-  x1: number; y1: number; x2: number; y2: number;
-  stroke?: ColorValue; strokeWidth?: number; lineCap?: "butt" | "round" | "square";
-}
-/** Rectangle draw command. */
-export interface CanvasRect {
-  draw: "rect";
-  x: number; y: number; width: number; height: number;
-  fill?: ColorValue; stroke?: ColorValue; strokeWidth?: number; cornerRadius?: number;
-}
-/** Arc draw command (angles in degrees). */
-export interface CanvasArc {
-  draw: "arc";
-  cx: number; cy: number; r: number;
-  startAngle: number; endAngle: number;
-  fill?: ColorValue; stroke?: ColorValue; strokeWidth?: number;
-}
-/** Text draw command. */
-export interface CanvasText {
-  draw: "text";
-  x: number; y: number; content: string;
-  fontSize?: number; color?: ColorValue; anchor?: "start" | "middle" | "end";
-}
-/** SVG path draw command. */
-export interface CanvasPath {
-  draw: "path";
-  d: string;
-  fill?: ColorValue; stroke?: ColorValue; strokeWidth?: number;
-}
-
-/** Union of all canvas drawing commands. */
-export type CanvasDrawCommand = CanvasCircle | CanvasLine | CanvasRect | CanvasArc | CanvasText | CanvasPath;
-
-/**
- * Canvas element — draw arbitrary shapes via declarative JSON commands.
- *
- * The app computes all coordinates and passes them in the config.
- * The widget renders them using platform-native drawing:
- * - **iOS/macOS**: SwiftUI `Canvas` / `Path`
- * - **Android**: `Bitmap` + `android.graphics.Canvas`
- * - **Desktop**: SVG
- *
- * @example
- * ```json
- * {
- *   "type": "canvas", "width": 120, "height": 120,
- *   "elements": [
- *     { "draw": "circle", "cx": 60, "cy": 60, "r": 55, "fill": "#1a1a2e", "stroke": "#fff", "strokeWidth": 2 },
- *     { "draw": "line", "x1": 60, "y1": 60, "x2": 60, "y2": 20, "stroke": "#fff", "strokeWidth": 3 },
- *     { "draw": "circle", "cx": 60, "cy": 60, "r": 4, "fill": "#e94560" }
- *   ]
- * }
- * ```
- */
-export interface CanvasElement extends ElementStyle {
-  type: "canvas";
-  /** Canvas width in points. */
-  width: number;
-  /** Canvas height in points. */
-  height: number;
-  /** Array of draw commands. */
-  elements: CanvasDrawCommand[];
-}
-
-/**
- * Tappable wrapper — makes nested content clickable.
- *
- * @example
- * ```json
- * {
- *   "type": "link", "action": "open_detail",
- *   "children": [
- *     { "type": "hstack", "spacing": 8, "children": [
- *       { "type": "image", "systemName": "star.fill", "color": "#ffcc00", "size": 20 },
- *       { "type": "text", "content": "Tap me!", "fontSize": 16, "color": "#fff" }
- *     ]}
- *   ]
- * }
- * ```
- */
-export interface LinkElement extends ElementStyle {
-  type: "link";
-  children: WidgetElement[];
-  /** Deep-link URL to open. */
-  url?: string;
-  /** Action identifier — emits `widget-action` event. */
-  action?: string;
-}
-
-/**
- * Colored shape — circle, capsule, or rounded rectangle.
- *
- * @example
- * ```json
- * { "type": "shape", "shapeType": "circle", "fill": "#ff0000", "size": 12 }
- * ```
- */
-export interface ShapeElement extends ElementStyle {
-  type: "shape";
-  /** Shape kind. */
-  shapeType: ShapeType;
-  /** Fill color — hex, semantic, or adaptive. */
-  fill?: ColorValue;
-  /** Stroke color — hex, semantic, or adaptive. */
-  stroke?: ColorValue;
-  /** Stroke width in points. */
-  strokeWidth?: number;
-  /** Size in points (width & height). */
-  size?: number;
-}
-
-/**
- * Live countdown/countup timer that updates in real-time without timeline refresh.
- *
- * - **iOS/macOS**: `Text(date, style: .timer)`
- * - **Android**: `Chronometer`
- * - **Desktop**: JavaScript `setInterval`
- *
- * @example
- * ```json
- * { "type": "timer", "targetDate": "2026-04-06T00:00:00Z", "counting": "down", "fontSize": 24, "color": "#fff" }
- * ```
- */
-export interface TimerElement extends ElementStyle {
-  type: "timer";
-  /** ISO 8601 target date. */
-  targetDate: string;
-  /** Count direction. Default: `"down"`. */
-  counting?: TimerCounting;
-  /** Font size in points. */
-  fontSize?: number;
-  /** Font weight. */
-  fontWeight?: FontWeight;
-  /** Text color — hex, semantic, or adaptive. */
-  color?: ColorValue;
-}
-
-/**
- * Convenience element: icon + text combined.
- *
- * @example
- * ```json
- * { "type": "label", "text": "Favorites", "systemName": "star.fill", "iconColor": "#ffcc00", "fontSize": 14 }
- * ```
- */
-export interface LabelElement extends ElementStyle {
-  type: "label";
-  /** Text string. */
-  text: string;
-  /** SF Symbol name (Apple) or icon hint (Android). */
-  systemName: string;
-  /** Icon tint color — hex, semantic, or adaptive. */
-  iconColor?: ColorValue;
-  /** Font size in points. */
-  fontSize?: number;
-  /** Font weight. */
-  fontWeight?: FontWeight;
-  /** Text color — hex, semantic, or adaptive. */
-  color?: ColorValue;
-  /** Space between icon and text (points). */
-  spacing?: number;
-}
-
-/**
- * Union of all widget element types.
- *
- * Elements are differentiated by the `type` field. Layout containers
- * (`vstack`, `hstack`, `zstack`, `grid`, `link`) contain `children` arrays.
- * Leaf elements render specific content.
- */
-export type WidgetElement =
-  | VStackElement
-  | HStackElement
-  | ZStackElement
-  | GridElement
-  | ContainerElement
-  | TextElement
-  | ImageElement
-  | ProgressElement
-  | GaugeElement
-  | ButtonElement
-  | ToggleElement
-  | DividerElement
-  | SpacerElement
-  | DateElement
-  | ChartElement
-  | ListElement
-  | LinkElement
-  | ShapeElement
-  | TimerElement
-  | LabelElement
-  | CanvasElement;
-
-/**
- * Widget configuration with layouts per size family.
- *
- * Each property defines the root element for that widget size.
- * The native widget picks the layout matching its display size.
- * Unset sizes fall back in order: `small` → `medium` → `large`.
- *
- * @example
- * ```ts
- * const config: WidgetConfig = {
- *   small: {
- *     type: "vstack", padding: 12, background: "#1a1a2e",
- *     children: [
- *       { type: "text", content: "Hello!", fontSize: 24, color: "#fff" },
- *     ],
- *   },
- *   medium: { ... },
- *   large: { ... },
- * };
- * ```
- */
-export interface WidgetConfig {
-  /** Schema version (default: `1`). Reserved for future changes. */
-  version?: number;
-  /** Root element for small widgets (e.g. 2x2 on iOS). */
-  small?: WidgetElement;
-  /** Root element for medium widgets (e.g. 4x2 on iOS). */
-  medium?: WidgetElement;
-  /** Root element for large widgets (e.g. 4x4 on iOS). */
-  large?: WidgetElement;
-}
+/** IR types generated from Rust `src/models.rs` (SoT). Do not hand-edit. */
+export * from "./generated/widget-types";
+import type { WidgetConfig } from "./generated/widget-types";
 
 /**
  * Send a declarative UI configuration to native widgets.
@@ -1075,19 +265,21 @@ export interface WidgetConfig {
  *       { type: "progress", value: 0.7, tint: "#4CAF50" },
  *     ],
  *   },
- * }, "group.com.example.myapp");
+ * }, "group.com.example.myapp", "weather");
  * ```
  */
 export async function setWidgetConfig(
   config: WidgetConfig,
   group: string,
+  widgetId: string,
   /** Skip native widget reload (WidgetKit / AppWidgetManager).
    *  Desktop widget windows are always updated instantly via eval push. */
   skipReload = false,
 ): Promise<boolean> {
   if (!group) throw new Error("setWidgetConfig: 'group' must not be empty");
+  if (!widgetId) throw new Error("setWidgetConfig: 'widgetId' must not be empty");
   return await invoke<boolean>(`${PLUGIN_ID}|set_widget_config`, {
-    config, group, skipReload,
+    config, group, widgetId, skipReload,
   });
 }
 
@@ -1095,13 +287,19 @@ export async function setWidgetConfig(
  * Read the current widget UI configuration from the data store.
  *
  * @param group - Widget group identifier.
+ * @param widgetId - Widget identity within the group.
  * @returns The current `WidgetConfig`, or `null` if none has been set.
  */
 export async function getWidgetConfig(
   group: string,
+  widgetId: string,
 ): Promise<WidgetConfig | null> {
   if (!group) throw new Error("getWidgetConfig: 'group' must not be empty");
-  return await invoke<WidgetConfig | null>(`${PLUGIN_ID}|get_widget_config`, { group });
+  if (!widgetId) throw new Error("getWidgetConfig: 'widgetId' must not be empty");
+  return await invoke<WidgetConfig | null>(`${PLUGIN_ID}|get_widget_config`, {
+    group,
+    widgetId,
+  });
 }
 
 // ─── Widget Action API ──────────────────────────────────────────────────────
@@ -1112,6 +310,12 @@ export interface WidgetActionPayload {
   action: string;
   /** Optional extra data (e.g. serialized JSON from the widget). */
   payload?: string;
+  /** Unix epoch ms when the action was enqueued / emitted. */
+  ts?: number;
+  /** Widget identity that emitted the action. */
+  widgetId?: string;
+  /** App group / prefs namespace. */
+  group?: string;
 }
 
 /**
@@ -1127,9 +331,15 @@ export interface WidgetActionPayload {
 export async function widgetAction(
   action: string,
   payload?: string,
+  opts?: { widgetId?: string; group?: string },
 ): Promise<boolean> {
   if (!action) throw new Error("widgetAction: 'action' must not be empty");
-  return await invoke<boolean>(`${PLUGIN_ID}|widget_action`, { action, payload });
+  return await invoke<boolean>(`${PLUGIN_ID}|widget_action`, {
+    action,
+    payload,
+    widgetId: opts?.widgetId,
+    group: opts?.group,
+  });
 }
 
 /**
@@ -1180,11 +390,20 @@ export async function pollPendingWidgetActions(
   if (!Array.isArray(raw)) return [];
   const parsed: Array<WidgetActionPayload | null> = raw.map((item) => {
     if (!item || typeof item !== "object") return null;
-    const obj = item as { action?: unknown; payload?: unknown };
+    const obj = item as {
+      action?: unknown;
+      payload?: unknown;
+      ts?: unknown;
+      widgetId?: unknown;
+      group?: unknown;
+    };
     if (typeof obj.action !== "string" || obj.action.length === 0) return null;
     return {
       action: obj.action,
       ...(typeof obj.payload === "string" ? { payload: obj.payload } : {}),
+      ...(typeof obj.ts === "number" ? { ts: obj.ts } : {}),
+      ...(typeof obj.widgetId === "string" ? { widgetId: obj.widgetId } : {}),
+      ...(typeof obj.group === "string" ? { group: obj.group } : {}),
     };
   });
   return parsed.filter((v): v is WidgetActionPayload => v !== null);
@@ -1238,6 +457,7 @@ export async function pollPendingWidgetActions(
  *     },
  *   }),
  *   "group.com.example.myapp",
+ *   "clock",
  *   {
  *     intervalMs: 60_000,
  *     reload: true,
@@ -1254,6 +474,7 @@ export async function pollPendingWidgetActions(
 export async function startWidgetUpdater(
   builder: () => WidgetConfig | Promise<WidgetConfig>,
   group: string,
+  widgetId: string,
   options?: {
     /** Tick interval in ms.  Use `0` for a one-shot call (no periodic updates). Default: `1000`. */
     intervalMs?: number;
@@ -1267,7 +488,8 @@ export async function startWidgetUpdater(
     onAction?: (action: string, payload?: string) => void;
   },
 ): Promise<() => void> {
-  const intervalMs = options?.intervalMs ?? 1000;
+  if (!widgetId) throw new Error("startWidgetUpdater: 'widgetId' must not be empty");
+  const intervalMs = options?.intervalMs ?? 5000;
   const immediate = options?.immediate ?? true;
   const reload = options?.reload ?? false;
 
@@ -1277,8 +499,22 @@ export async function startWidgetUpdater(
     if (running) return;
     running = true;
     try {
+      // Drain native pending_actions (iOS WidgetKit / Android fallback) into handlers.
+      try {
+        const pending = await pollPendingWidgetActions(group);
+        if (options?.onAction) {
+          for (const item of pending) {
+            if (item.widgetId && item.widgetId !== widgetId) continue;
+            if (item.group && item.group !== group) continue;
+            options.onAction(item.action, item.payload);
+          }
+        }
+      } catch (e) {
+        console.debug("[widget-updater] pollPendingWidgetActions failed:", e);
+      }
+
       const config = await builder();
-      await setWidgetConfig(config, group);
+      await setWidgetConfig(config, group, widgetId);
       if (reload) {
         await reloadAllTimelines();
       }
@@ -1299,6 +535,8 @@ export async function startWidgetUpdater(
   if (options?.onAction) {
     const handler = options.onAction;
     actionUnsub = await onWidgetAction((data) => {
+      if (data.widgetId && data.widgetId !== widgetId) return;
+      if (data.group && data.group !== group) return;
       handler(data.action, data.payload);
     });
   }

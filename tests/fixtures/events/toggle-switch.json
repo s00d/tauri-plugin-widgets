@@ -1,0 +1,61 @@
+{
+  "id": "toggle-switch",
+  "size": "small",
+  "action": "toggle_wifi",
+  "clickText": "Wi-Fi",
+  "assertBeforeTexts": ["Wi-Fi", "✓", "Network on"],
+  "assertAfterTexts": ["Wi-Fi", "Network off"],
+  "assertGoneAfter": ["✓", "Network on"],
+  "before": {
+    "version": 1,
+    "small": {
+      "type": "vstack",
+      "padding": 12,
+      "spacing": 10,
+      "cornerRadius": 14,
+      "background": "#1C1C1E",
+      "children": [
+        {
+          "type": "toggle",
+          "isOn": true,
+          "label": "Wi-Fi",
+          "tint": "#22c55e",
+          "color": "#e2e8f0",
+          "action": "toggle_wifi"
+        },
+        {
+          "type": "text",
+          "content": "Network on",
+          "fontSize": 12,
+          "color": "#94a3b8"
+        }
+      ]
+    }
+  },
+  "after": {
+    "version": 1,
+    "small": {
+      "type": "vstack",
+      "padding": 12,
+      "spacing": 10,
+      "cornerRadius": 14,
+      "background": "#1C1C1E",
+      "children": [
+        {
+          "type": "toggle",
+          "isOn": false,
+          "label": "Wi-Fi",
+          "tint": "#22c55e",
+          "color": "#e2e8f0",
+          "action": "toggle_wifi"
+        },
+        {
+          "type": "text",
+          "content": "Network off",
+          "fontSize": 12,
+          "color": "#94a3b8"
+        }
+      ]
+    }
+  }
+}

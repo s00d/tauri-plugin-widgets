@@ -17,8 +17,27 @@ A Tauri v2 plugin for building **native widgets** on Android, iOS and macOS, wit
 
 ## Preview
 
+Same JSON config rendered natively on each platform (`nested-dashboard` fixture):
+
+<table>
+  <tr>
+    <td align="center" width="33%">
+      <img src="./docs/screenshots/desktop-nested-dashboard.png" alt="Desktop nested dashboard widget" width="280" /><br />
+      <sub><b>Desktop</b> — HTML / webview</sub>
+    </td>
+    <td align="center" width="33%">
+      <img src="./docs/screenshots/android-nested-dashboard.png" alt="Android nested dashboard widget" width="280" /><br />
+      <sub><b>Android</b> — Jetpack Glance</sub>
+    </td>
+    <td align="center" width="33%">
+      <img src="./docs/screenshots/ios-nested-dashboard.png" alt="iOS nested dashboard widget" width="280" /><br />
+      <sub><b>iOS / macOS</b> — SwiftUI</sub>
+    </td>
+  </tr>
+</table>
+
 <div align="center">
-  <img src="./preview.png" alt="Widgets preview on Android and iOS" width="85%" />
+  <img src="./preview.png" alt="Widgets preview on Android and iOS home screens" width="85%" />
 </div>
 
 ---
@@ -35,13 +54,71 @@ The plugin acts as a **library**, not a builder:
 | **Desktop** (`widget.html`) | HTML/CSS renderer for transparent webview widget windows |
 | **Templates** (`templates/`) | Starter files for iOS and macOS widget extensions |
 
-**Data flow:** Your Tauri app calls `setWidgetConfig(json, group)` → plugin writes JSON to the App Group shared container → calls `WidgetCenter.reloadAllTimelines()` → native widget extension reads JSON and renders SwiftUI views.
+**Data flow:** Your Tauri app calls `setWidgetConfig(json, group, widgetId)` → plugin writes JSON to platform storage (with freshness `nonce`) → reload / Glance update → native widget reads config for that `widgetId` and renders.
+
+On Apple the host **fan-outs** writes across App Group file, UserDefaults suite, and (macOS) widget sandbox file so data still reaches the extension under ad-hoc signing. The extension **picks the freshest** map by `nonce` / `updatedAt`.
+
+Storage keys (0.4+): `config:{widgetId}`, `pending_actions`, `__meta_nonce__`, `__meta_updated_at__`.
 
 The developer owns the widget extension target — the plugin provides reusable SwiftUI components via the `TauriWidgets` Swift Package.
 
 ---
 
-## Features
+## Breaking changes in 0.4
+
+- `setWidgetConfig(config, group, widgetId, skipReload?)` — **`widgetId` required**
+- `getWidgetConfig(group, widgetId)` — **`widgetId` required**
+- `startWidgetUpdater(builder, group, widgetId, options?)` — **`widgetId` required**
+- `createWidgetWindow` built-in renderer requires `widgetId`
+- Storage keys renamed: `config:{widgetId}`, `pending_actions` (no `__widget_config__` / `__widget_pending_actions__` migration)
+- Action payload: `{ action, payload?, ts, widgetId, group }`
+- iOS `group` must start with `group.` (no silent rewrite)
+
+## Capability matrix (element × platform)
+
+See the generated matrix: [`docs/capability-matrix.md`](docs/capability-matrix.md)
+(source of truth: Rust `src/capabilities.rs`).
+
+Highlights:
+
+| Concern | iOS/macOS | Android Glance | Desktop HTML |
+|---------|-----------|----------------|--------------|
+| Layout stacks / container | full | full (prefer flatter trees) | full |
+| `image.url` | unsupported | preprocess to localPath | full |
+| Gradients | linear primary | **first color only** | full |
+| `timer` live | Text.timer | static snapshot | setInterval |
+| `canvas.path` | M/L/H/V/Z subset | limited | SVG path |
+
+## Authoring widgets
+
+**IR source of truth is Rust** (`src/models.rs`). TypeScript types are generated; native Swift/Kotlin renderers map the same JSON.
+
+### JavaScript / TypeScript (primary DX)
+
+```ts
+import { setWidgetConfig, type WidgetConfig } from "tauri-plugin-widgets-api";
+
+const config: WidgetConfig = {
+  small: {
+    type: "vstack",
+    padding: 12,
+    background: "#1a1a2e",
+    children: [
+      { type: "text", content: "72°", fontSize: 36, fontWeight: "bold", color: "#fff" },
+      { type: "progress", value: 0.7, tint: "#4CAF50", label: "Humidity" },
+    ],
+  },
+};
+await setWidgetConfig(config, "group.com.example.myapp", "weather");
+```
+
+Regenerate types after model changes: `pnpm codegen` (or `cargo run --bin gen-ts --features codegen`).
+
+On Android, each home-screen instance maps to a logical `widgetId` (meta `widgetId:{appWidgetId}`). Call `setWidgetConfig` per id after pinning so two widgets can show different configs.
+
+Capability warnings (degraded / unsupported) are logged when a config **changes**, for the current platform only.
+
+---
 
 - **Universal Widget UI** — describe widgets as JSON, render natively on all platforms.
 - **Three size families** — `small`, `medium`, `large` layouts in a single config.
@@ -86,7 +163,7 @@ The developer owns the widget extension target — the plugin provides reusable 
 ```toml
 # src-tauri/Cargo.toml
 [dependencies]
-tauri-plugin-widgets = "0.3"
+tauri-plugin-widgets = "0.4"
 ```
 
 ```bash
@@ -145,7 +222,7 @@ await setWidgetConfig({
       { type: "progress", value: 0.65, tint: "#4CAF50", label: "Humidity" },
     ],
   },
-}, "group.com.example.myapp");
+}, "group.com.example.myapp", "weather");
 ```
 
 ### Android Glance Layout Guidelines
@@ -455,15 +532,23 @@ security find-identity -v -p codesigning
 - Widgets appear in the gallery and render correctly
 - **App Groups / UserDefaults sharing won't work** — macOS requires a real Team ID for inter-process data sharing via `UserDefaults(suiteName:)` or `containerURL(forSecurityApplicationGroupIdentifier:)`
 
-**Apple Development certificate** (free Apple Developer account) resolves this. The plugin uses a file-based fallback: the non-sandboxed main app writes `widget_data.json` directly into the widget extension's sandbox container (`~/Library/Containers/<widget-bundle-id>/Data/`). The widget reads it from `NSHomeDirectory()`. This works without provisioning profiles.
+The plugin keeps **three Apple transports** on purpose (fan-out write / freshest read):
+
+| Transport | Path | When it works |
+|-----------|------|----------------|
+| AppGroupFile | `containerURL(group)/widget_data.json` | Real Team ID + App Groups entitlements |
+| AppGroupUserDefaults | `UserDefaults(suiteName:)` | Same + suite actually shared |
+| WidgetSandboxFile | `~/Library/Containers/<appex>/Data/widget_data.json` ↔ `NSHomeDirectory()` | macOS host **not** sandboxed; required for ad-hoc |
+
+**Apple Development certificate** (free Apple Developer account) enables App Group sharing. WidgetSandboxFile still works as a fallback.
 
 **Important:** The main app's `App.entitlements` should **not** include `com.apple.security.app-sandbox`. The Tauri app must remain non-sandboxed so it can write into the widget's container. The widget extension is always sandboxed (required by macOS for WidgetKit).
 
 | Signing | Widget visible | Data sharing | Distribution |
 |---------|---------------|-------------|-------------|
-| Ad-hoc (`-`) | Yes | File-based only | Local only |
-| Apple Development | Yes | File-based + UserDefaults | Local + TestFlight |
-| Developer ID | Yes | File-based + UserDefaults | Direct distribution |
+| Ad-hoc (`-`) | Yes | WidgetSandboxFile only | Local only |
+| Apple Development | Yes | All three transports | Local + TestFlight |
+| Developer ID | Yes | All three transports | Direct distribution |
 
 #### Debugging the widget separately
 
@@ -1149,9 +1234,17 @@ fn update_widget(app: &tauri::AppHandle) {
 │   ├── lib.rs                  Plugin init + commands
 │   ├── desktop.rs              Desktop: file storage + widget windows
 │   ├── mobile.rs               Mobile: native bridge + throttled reload
-│   └── models.rs               WidgetConfig / WidgetElement models
+│   ├── models.rs               WidgetConfig / WidgetElement (IR SoT)
+│   ├── capabilities.rs         Platform × element support matrix
+│   ├── snapshot.rs             Core layout dump / snapshot contract
+│   ├── codegen.rs              Real TS emitter (IR_SPEC)
+│   ├── store.rs                Shared storage keys / action envelope
 ├── guest-js/                   TypeScript API
-│   └── index.ts                All exports + startWidgetUpdater
+│   ├── index.ts                Runtime APIs (re-exports generated IR types)
+│   └── generated/widget-types.ts  Generated from Rust SoT (`pnpm codegen`)
+├── schemas/widget-config.v1.json  JSON Schema (schemars)
+├── docs/capability-matrix.md   Generated capability table
+├── tests/fixtures/             Golden WidgetConfig JSON
 ├── templates/                  Starter files for widget extensions
 │   ├── ios-widget/MyWidget.swift
 │   └── macos-widget/

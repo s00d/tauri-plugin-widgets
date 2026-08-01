@@ -1,0 +1,3461 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "WidgetConfig",
+  "description": "Top-level widget config with layouts per size family.",
+  "type": "object",
+  "properties": {
+    "large": {
+      "anyOf": [
+        {
+          "$ref": "#/definitions/WidgetElement"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "medium": {
+      "anyOf": [
+        {
+          "$ref": "#/definitions/WidgetElement"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "small": {
+      "anyOf": [
+        {
+          "$ref": "#/definitions/WidgetElement"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "version": {
+      "default": 1,
+      "type": "integer",
+      "format": "uint32",
+      "minimum": 0.0
+    }
+  },
+  "definitions": {
+    "BackgroundValue": {
+      "description": "Background: solid color string, adaptive pair, gradient, or material blur.",
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "$ref": "#/definitions/GradientConfig"
+        },
+        {
+          "type": "object",
+          "required": [
+            "dark",
+            "light"
+          ],
+          "properties": {
+            "dark": {
+              "type": "string"
+            },
+            "light": {
+              "type": "string"
+            }
+          }
+        }
+      ]
+    },
+    "BorderConfig": {
+      "type": "object",
+      "required": [
+        "color"
+      ],
+      "properties": {
+        "color": {
+          "type": "string"
+        },
+        "width": {
+          "default": 1.0,
+          "type": "number",
+          "format": "double"
+        }
+      }
+    },
+    "CanvasDrawCommand": {
+      "oneOf": [
+        {
+          "type": "object",
+          "required": [
+            "cx",
+            "cy",
+            "draw",
+            "r"
+          ],
+          "properties": {
+            "cx": {
+              "type": "number",
+              "format": "double"
+            },
+            "cy": {
+              "type": "number",
+              "format": "double"
+            },
+            "draw": {
+              "type": "string",
+              "enum": [
+                "circle"
+              ]
+            },
+            "fill": {
+              "anyOf": [
+                {
+                  "$ref": "#/definitions/ColorValue"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "r": {
+              "type": "number",
+              "format": "double"
+            },
+            "stroke": {
+              "anyOf": [
+                {
+                  "$ref": "#/definitions/ColorValue"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "strokeWidth": {
+              "type": [
+                "number",
+                "null"
+              ],
+              "format": "double"
+            }
+          }
+        },
+        {
+          "type": "object",
+          "required": [
+            "draw",
+            "x1",
+            "x2",
+            "y1",
+            "y2"
+          ],
+          "properties": {
+            "draw": {
+              "type": "string",
+              "enum": [
+                "line"
+              ]
+            },
+            "lineCap": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "stroke": {
+              "anyOf": [
+                {
+                  "$ref": "#/definitions/ColorValue"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "strokeWidth": {
+              "type": [
+                "number",
+                "null"
+              ],
+              "format": "double"
+            },
+            "x1": {
+              "type": "number",
+              "format": "double"
+            },
+            "x2": {
+              "type": "number",
+              "format": "double"
+            },
+            "y1": {
+              "type": "number",
+              "format": "double"
+            },
+            "y2": {
+              "type": "number",
+              "format": "double"
+            }
+          }
+        },
+        {
+          "type": "object",
+          "required": [
+            "draw",
+            "height",
+            "width",
+            "x",
+            "y"
+          ],
+          "properties": {
+            "cornerRadius": {
+              "type": [
+                "number",
+                "null"
+              ],
+              "format": "double"
+            },
+            "draw": {
+              "type": "string",
+              "enum": [
+                "rect"
+              ]
+            },
+            "fill": {
+              "anyOf": [
+                {
+                  "$ref": "#/definitions/ColorValue"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "height": {
+              "type": "number",
+              "format": "double"
+            },
+            "stroke": {
+              "anyOf": [
+                {
+                  "$ref": "#/definitions/ColorValue"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "strokeWidth": {
+              "type": [
+                "number",
+                "null"
+              ],
+              "format": "double"
+            },
+            "width": {
+              "type": "number",
+              "format": "double"
+            },
+            "x": {
+              "type": "number",
+              "format": "double"
+            },
+            "y": {
+              "type": "number",
+              "format": "double"
+            }
+          }
+        },
+        {
+          "type": "object",
+          "required": [
+            "cx",
+            "cy",
+            "draw",
+            "endAngle",
+            "r",
+            "startAngle"
+          ],
+          "properties": {
+            "cx": {
+              "type": "number",
+              "format": "double"
+            },
+            "cy": {
+              "type": "number",
+              "format": "double"
+            },
+            "draw": {
+              "type": "string",
+              "enum": [
+                "arc"
+              ]
+            },
+            "endAngle": {
+              "type": "number",
+              "format": "double"
+            },
+            "fill": {
+              "anyOf": [
+                {
+                  "$ref": "#/definitions/ColorValue"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "r": {
+              "type": "number",
+              "format": "double"
+            },
+            "startAngle": {
+              "type": "number",
+              "format": "double"
+            },
+            "stroke": {
+              "anyOf": [
+                {
+                  "$ref": "#/definitions/ColorValue"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "strokeWidth": {
+              "type": [
+                "number",
+                "null"
+              ],
+              "format": "double"
+            }
+          }
+        },
+        {
+          "type": "object",
+          "required": [
+            "content",
+            "draw",
+            "x",
+            "y"
+          ],
+          "properties": {
+            "anchor": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "color": {
+              "anyOf": [
+                {
+                  "$ref": "#/definitions/ColorValue"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "content": {
+              "type": "string"
+            },
+            "draw": {
+              "type": "string",
+              "enum": [
+                "text"
+              ]
+            },
+            "fontSize": {
+              "type": [
+                "number",
+                "null"
+              ],
+              "format": "double"
+            },
+            "x": {
+              "type": "number",
+              "format": "double"
+            },
+            "y": {
+              "type": "number",
+              "format": "double"
+            }
+          }
+        },
+        {
+          "type": "object",
+          "required": [
+            "d",
+            "draw"
+          ],
+          "properties": {
+            "d": {
+              "description": "SVG path data (e.g. `\"M10 10 L90 90\"`)",
+              "type": "string"
+            },
+            "draw": {
+              "type": "string",
+              "enum": [
+                "path"
+              ]
+            },
+            "fill": {
+              "anyOf": [
+                {
+                  "$ref": "#/definitions/ColorValue"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "stroke": {
+              "anyOf": [
+                {
+                  "$ref": "#/definitions/ColorValue"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "strokeWidth": {
+              "type": [
+                "number",
+                "null"
+              ],
+              "format": "double"
+            }
+          }
+        }
+      ]
+    },
+    "ChartDataPoint": {
+      "type": "object",
+      "required": [
+        "label",
+        "value"
+      ],
+      "properties": {
+        "color": {
+          "anyOf": [
+            {
+              "$ref": "#/definitions/ColorValue"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "label": {
+          "type": "string"
+        },
+        "value": {
+          "type": "number",
+          "format": "double"
+        }
+      }
+    },
+    "ChartType": {
+      "type": "string",
+      "enum": [
+        "bar",
+        "line",
+        "area",
+        "pie"
+      ]
+    },
+    "ClipShape": {
+      "description": "Clip shape for content masking.",
+      "type": "string",
+      "enum": [
+        "circle",
+        "capsule",
+        "rectangle"
+      ]
+    },
+    "ColorValue": {
+      "description": "Color value — hex string, semantic name, or adaptive `{ light, dark }` pair.\n\nSemantic names: `\"label\"`, `\"secondaryLabel\"`, `\"systemBackground\"`, `\"secondarySystemBackground\"`, `\"accent\"`, `\"separator\"`.",
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "object",
+          "required": [
+            "dark",
+            "light"
+          ],
+          "properties": {
+            "dark": {
+              "type": "string"
+            },
+            "light": {
+              "type": "string"
+            }
+          }
+        }
+      ]
+    },
+    "ContentMode": {
+      "type": "string",
+      "enum": [
+        "fit",
+        "fill"
+      ]
+    },
+    "DateStyle": {
+      "type": "string",
+      "enum": [
+        "time",
+        "date",
+        "relative",
+        "offset",
+        "timer"
+      ]
+    },
+    "FontDesign": {
+      "type": "string",
+      "enum": [
+        "default",
+        "monospaced",
+        "rounded",
+        "serif"
+      ]
+    },
+    "FontWeight": {
+      "type": "string",
+      "enum": [
+        "ultralight",
+        "thin",
+        "light",
+        "regular",
+        "medium",
+        "semibold",
+        "bold",
+        "heavy",
+        "black"
+      ]
+    },
+    "FrameConfig": {
+      "type": "object",
+      "properties": {
+        "height": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "format": "double"
+        },
+        "maxHeight": {
+          "anyOf": [
+            {
+              "$ref": "#/definitions/FrameDimension"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "maxWidth": {
+          "anyOf": [
+            {
+              "$ref": "#/definitions/FrameDimension"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "width": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "format": "double"
+        }
+      }
+    },
+    "FrameDimension": {
+      "anyOf": [
+        {
+          "type": "number",
+          "format": "double"
+        },
+        {
+          "type": "string"
+        }
+      ]
+    },
+    "GaugeStyle": {
+      "type": "string",
+      "enum": [
+        "circular",
+        "linear"
+      ]
+    },
+    "GradientConfig": {
+      "type": "object",
+      "required": [
+        "colors",
+        "gradientType"
+      ],
+      "properties": {
+        "colors": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "direction": {
+          "description": "Direction for linear gradients",
+          "anyOf": [
+            {
+              "$ref": "#/definitions/GradientDirection"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "gradientType": {
+          "description": "`\"linear\"`, `\"radial\"`, or `\"angular\"`",
+          "allOf": [
+            {
+              "$ref": "#/definitions/GradientType"
+            }
+          ]
+        }
+      }
+    },
+    "GradientDirection": {
+      "type": "string",
+      "enum": [
+        "topToBottom",
+        "bottomToTop",
+        "leadingToTrailing",
+        "trailingToLeading",
+        "topLeadingToBottomTrailing",
+        "topTrailingToBottomLeading"
+      ]
+    },
+    "GradientType": {
+      "type": "string",
+      "enum": [
+        "linear",
+        "radial",
+        "angular"
+      ]
+    },
+    "HorizontalAlignment": {
+      "type": "string",
+      "enum": [
+        "leading",
+        "center",
+        "trailing"
+      ]
+    },
+    "ListItem": {
+      "type": "object",
+      "required": [
+        "text"
+      ],
+      "properties": {
+        "action": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "checked": {
+          "type": [
+            "boolean",
+            "null"
+          ]
+        },
+        "payload": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "text": {
+          "type": "string"
+        }
+      }
+    },
+    "PaddingValue": {
+      "anyOf": [
+        {
+          "type": "number",
+          "format": "double"
+        },
+        {
+          "type": "object",
+          "properties": {
+            "bottom": {
+              "type": [
+                "number",
+                "null"
+              ],
+              "format": "double"
+            },
+            "leading": {
+              "type": [
+                "number",
+                "null"
+              ],
+              "format": "double"
+            },
+            "top": {
+              "type": [
+                "number",
+                "null"
+              ],
+              "format": "double"
+            },
+            "trailing": {
+              "type": [
+                "number",
+                "null"
+              ],
+              "format": "double"
+            }
+          }
+        }
+      ]
+    },
+    "ProgressStyle": {
+      "type": "string",
+      "enum": [
+        "linear",
+        "circular"
+      ]
+    },
+    "ShadowConfig": {
+      "type": "object",
+      "properties": {
+        "color": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "radius": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "format": "double"
+        },
+        "x": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "format": "double"
+        },
+        "y": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "format": "double"
+        }
+      }
+    },
+    "ShapeType": {
+      "type": "string",
+      "enum": [
+        "circle",
+        "capsule",
+        "rectangle"
+      ]
+    },
+    "TextAlignment": {
+      "type": "string",
+      "enum": [
+        "leading",
+        "center",
+        "trailing"
+      ]
+    },
+    "TextStyle": {
+      "description": "Semantic text style — respects Dynamic Type / accessibility settings.",
+      "type": "string",
+      "enum": [
+        "largeTitle",
+        "title",
+        "title2",
+        "title3",
+        "headline",
+        "subheadline",
+        "body",
+        "callout",
+        "footnote",
+        "caption",
+        "caption2"
+      ]
+    },
+    "TimerCounting": {
+      "type": "string",
+      "enum": [
+        "up",
+        "down"
+      ]
+    },
+    "VerticalAlignment": {
+      "type": "string",
+      "enum": [
+        "top",
+        "center",
+        "bottom"
+      ]
+    },
+    "WidgetElement": {
+      "description": "A UI element that can be a layout container or a leaf widget.",
+      "oneOf": [
+        {
+          "type": "object",
+          "required": [
+            "type"
+          ],
+          "properties": {
+            "alignment": {
+              "anyOf": [
+                {
+                  "$ref": "#/definitions/HorizontalAlignment"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "background": {
+              "anyOf": [
+                {
+                  "$ref": "#/definitions/BackgroundValue"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "border": {
+              "anyOf": [
+                {
+                  "$ref": "#/definitions/BorderConfig"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "children": {
+              "type": "array",
+              "items": {
+                "$ref": "#/definitions/WidgetElement"
+              }
+            },
+            "clipShape": {
+              "description": "Clip content to a shape (e.g. circle avatar from square image).",
+              "anyOf": [
+                {
+                  "$ref": "#/definitions/ClipShape"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "cornerRadius": {
+              "type": [
+                "number",
+                "null"
+              ],
+              "format": "double"
+            },
+            "flex": {
+              "description": "Layout weight for flexible sizing inside stacks (like Android `layout_weight`).",
+              "type": [
+                "number",
+                "null"
+              ],
+              "format": "double"
+            },
+            "frame": {
+              "anyOf": [
+                {
+                  "$ref": "#/definitions/FrameConfig"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "opacity": {
+              "type": [
+                "number",
+                "null"
+              ],
+              "format": "double"
+            },
+            "padding": {
+              "anyOf": [
+                {
+                  "$ref": "#/definitions/PaddingValue"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "shadow": {
+              "anyOf": [
+                {
+                  "$ref": "#/definitions/ShadowConfig"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "spacing": {
+              "type": [
+                "number",
+                "null"
+              ],
+              "format": "double"
+            },
+            "type": {
+              "type": "string",
+              "enum": [
+                "vstack"
+              ]
+            }
+          }
+        },
+        {
+          "type": "object",
+          "required": [
+            "type"
+          ],
+          "properties": {
+            "alignment": {
+              "anyOf": [
+                {
+                  "$ref": "#/definitions/VerticalAlignment"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "background": {
+              "anyOf": [
+                {
+                  "$ref": "#/definitions/BackgroundValue"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "border": {
+              "anyOf": [
+                {
+                  "$ref": "#/definitions/BorderConfig"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "children": {
+              "type": "array",
+              "items": {
+                "$ref": "#/definitions/WidgetElement"
+              }
+            },
+            "clipShape": {
+              "description": "Clip content to a shape (e.g. circle avatar from square image).",
+              "anyOf": [
+                {
+                  "$ref": "#/definitions/ClipShape"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "cornerRadius": {
+              "type": [
+                "number",
+                "null"
+              ],
+              "format": "double"
+            },
+            "flex": {
+              "description": "Layout weight for flexible sizing inside stacks (like Android `layout_weight`).",
+              "type": [
+                "number",
+                "null"
+              ],
+              "format": "double"
+            },
+            "frame": {
+              "anyOf": [
+                {
+                  "$ref": "#/definitions/FrameConfig"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "opacity": {
+              "type": [
+                "number",
+                "null"
+              ],
+              "format": "double"
+            },
+            "padding": {
+              "anyOf": [
+                {
+                  "$ref": "#/definitions/PaddingValue"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "shadow": {
+              "anyOf": [
+                {
+                  "$ref": "#/definitions/ShadowConfig"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "spacing": {
+              "type": [
+                "number",
+                "null"
+              ],
+              "format": "double"
+            },
+            "type": {
+              "type": "string",
+              "enum": [
+                "hstack"
+              ]
+            }
+          }
+        },
+        {
+          "type": "object",
+          "required": [
+            "type"
+          ],
+          "properties": {
+            "alignment": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "background": {
+              "anyOf": [
+                {
+                  "$ref": "#/definitions/BackgroundValue"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "border": {
+              "anyOf": [
+                {
+                  "$ref": "#/definitions/BorderConfig"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "children": {
+              "type": "array",
+              "items": {
+                "$ref": "#/definitions/WidgetElement"
+              }
+            },
+            "clipShape": {
+              "description": "Clip content to a shape (e.g. circle avatar from square image).",
+              "anyOf": [
+                {
+                  "$ref": "#/definitions/ClipShape"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "cornerRadius": {
+              "type": [
+                "number",
+                "null"
+              ],
+              "format": "double"
+            },
+            "flex": {
+              "description": "Layout weight for flexible sizing inside stacks (like Android `layout_weight`).",
+              "type": [
+                "number",
+                "null"
+              ],
+              "format": "double"
+            },
+            "frame": {
+              "anyOf": [
+                {
+                  "$ref": "#/definitions/FrameConfig"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "opacity": {
+              "type": [
+                "number",
+                "null"
+              ],
+              "format": "double"
+            },
+            "padding": {
+              "anyOf": [
+                {
+                  "$ref": "#/definitions/PaddingValue"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "shadow": {
+              "anyOf": [
+                {
+                  "$ref": "#/definitions/ShadowConfig"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "type": {
+              "type": "string",
+              "enum": [
+                "zstack"
+              ]
+            }
+          }
+        },
+        {
+          "type": "object",
+          "required": [
+            "type"
+          ],
+          "properties": {
+            "background": {
+              "anyOf": [
+                {
+                  "$ref": "#/definitions/BackgroundValue"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "border": {
+              "anyOf": [
+                {
+                  "$ref": "#/definitions/BorderConfig"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "children": {
+              "type": "array",
+              "items": {
+                "$ref": "#/definitions/WidgetElement"
+              }
+            },
+            "clipShape": {
+              "description": "Clip content to a shape (e.g. circle avatar from square image).",
+              "anyOf": [
+                {
+                  "$ref": "#/definitions/ClipShape"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "columns": {
+              "default": 2,
+              "type": "integer",
+              "format": "uint32",
+              "minimum": 0.0
+            },
+            "cornerRadius": {
+              "type": [
+                "number",
+                "null"
+              ],
+              "format": "double"
+            },
+            "flex": {
+              "description": "Layout weight for flexible sizing inside stacks (like Android `layout_weight`).",
+              "type": [
+                "number",
+                "null"
+              ],
+              "format": "double"
+            },
+            "frame": {
+              "anyOf": [
+                {
+                  "$ref": "#/definitions/FrameConfig"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "opacity": {
+              "type": [
+                "number",
+                "null"
+              ],
+              "format": "double"
+            },
+            "padding": {
+              "anyOf": [
+                {
+                  "$ref": "#/definitions/PaddingValue"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "rowSpacing": {
+              "type": [
+                "number",
+                "null"
+              ],
+              "format": "double"
+            },
+            "shadow": {
+              "anyOf": [
+                {
+                  "$ref": "#/definitions/ShadowConfig"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "spacing": {
+              "type": [
+                "number",
+                "null"
+              ],
+              "format": "double"
+            },
+            "type": {
+              "type": "string",
+              "enum": [
+                "grid"
+              ]
+            }
+          }
+        },
+        {
+          "description": "Container with alignment — for cards, badges, overlays.",
+          "type": "object",
+          "required": [
+            "type"
+          ],
+          "properties": {
+            "background": {
+              "anyOf": [
+                {
+                  "$ref": "#/definitions/BackgroundValue"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "border": {
+              "anyOf": [
+                {
+                  "$ref": "#/definitions/BorderConfig"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "children": {
+              "type": "array",
+              "items": {
+                "$ref": "#/definitions/WidgetElement"
+              }
+            },
+            "clipShape": {
+              "description": "Clip content to a shape (e.g. circle avatar from square image).",
+              "anyOf": [
+                {
+                  "$ref": "#/definitions/ClipShape"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "contentAlignment": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "cornerRadius": {
+              "type": [
+                "number",
+                "null"
+              ],
+              "format": "double"
+            },
+            "flex": {
+              "description": "Layout weight for flexible sizing inside stacks (like Android `layout_weight`).",
+              "type": [
+                "number",
+                "null"
+              ],
+              "format": "double"
+            },
+            "frame": {
+              "anyOf": [
+                {
+                  "$ref": "#/definitions/FrameConfig"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "opacity": {
+              "type": [
+                "number",
+                "null"
+              ],
+              "format": "double"
+            },
+            "padding": {
+              "anyOf": [
+                {
+                  "$ref": "#/definitions/PaddingValue"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "shadow": {
+              "anyOf": [
+                {
+                  "$ref": "#/definitions/ShadowConfig"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "type": {
+              "type": "string",
+              "enum": [
+                "container"
+              ]
+            }
+          }
+        },
+        {
+          "type": "object",
+          "required": [
+            "content",
+            "type"
+          ],
+          "properties": {
+            "alignment": {
+              "anyOf": [
+                {
+                  "$ref": "#/definitions/TextAlignment"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "background": {
+              "anyOf": [
+                {
+                  "$ref": "#/definitions/BackgroundValue"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "border": {
+              "anyOf": [
+                {
+                  "$ref": "#/definitions/BorderConfig"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "clipShape": {
+              "description": "Clip content to a shape (e.g. circle avatar from square image).",
+              "anyOf": [
+                {
+                  "$ref": "#/definitions/ClipShape"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "color": {
+              "anyOf": [
+                {
+                  "$ref": "#/definitions/ColorValue"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "content": {
+              "type": "string"
+            },
+            "cornerRadius": {
+              "type": [
+                "number",
+                "null"
+              ],
+              "format": "double"
+            },
+            "flex": {
+              "description": "Layout weight for flexible sizing inside stacks (like Android `layout_weight`).",
+              "type": [
+                "number",
+                "null"
+              ],
+              "format": "double"
+            },
+            "fontDesign": {
+              "anyOf": [
+                {
+                  "$ref": "#/definitions/FontDesign"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "fontSize": {
+              "type": [
+                "number",
+                "null"
+              ],
+              "format": "double"
+            },
+            "fontWeight": {
+              "anyOf": [
+                {
+                  "$ref": "#/definitions/FontWeight"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "frame": {
+              "anyOf": [
+                {
+                  "$ref": "#/definitions/FrameConfig"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "lineLimit": {
+              "type": [
+                "integer",
+                "null"
+              ],
+              "format": "uint32",
+              "minimum": 0.0
+            },
+            "opacity": {
+              "type": [
+                "number",
+                "null"
+              ],
+              "format": "double"
+            },
+            "padding": {
+              "anyOf": [
+                {
+                  "$ref": "#/definitions/PaddingValue"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "shadow": {
+              "anyOf": [
+                {
+                  "$ref": "#/definitions/ShadowConfig"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "textStyle": {
+              "description": "Semantic text style (uses Dynamic Type on Apple, sp on Android). Overrides `fontSize` when set.",
+              "anyOf": [
+                {
+                  "$ref": "#/definitions/TextStyle"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "type": {
+              "type": "string",
+              "enum": [
+                "text"
+              ]
+            }
+          }
+        },
+        {
+          "type": "object",
+          "required": [
+            "type"
+          ],
+          "properties": {
+            "background": {
+              "anyOf": [
+                {
+                  "$ref": "#/definitions/BackgroundValue"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "border": {
+              "anyOf": [
+                {
+                  "$ref": "#/definitions/BorderConfig"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "clipShape": {
+              "description": "Clip content to a shape (e.g. circle avatar from square image).",
+              "anyOf": [
+                {
+                  "$ref": "#/definitions/ClipShape"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "color": {
+              "anyOf": [
+                {
+                  "$ref": "#/definitions/ColorValue"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "contentMode": {
+              "anyOf": [
+                {
+                  "$ref": "#/definitions/ContentMode"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "cornerRadius": {
+              "type": [
+                "number",
+                "null"
+              ],
+              "format": "double"
+            },
+            "data": {
+              "description": "Base64-encoded image data",
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "flex": {
+              "description": "Layout weight for flexible sizing inside stacks (like Android `layout_weight`).",
+              "type": [
+                "number",
+                "null"
+              ],
+              "format": "double"
+            },
+            "frame": {
+              "anyOf": [
+                {
+                  "$ref": "#/definitions/FrameConfig"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "opacity": {
+              "type": [
+                "number",
+                "null"
+              ],
+              "format": "double"
+            },
+            "padding": {
+              "anyOf": [
+                {
+                  "$ref": "#/definitions/PaddingValue"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "shadow": {
+              "anyOf": [
+                {
+                  "$ref": "#/definitions/ShadowConfig"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "size": {
+              "type": [
+                "number",
+                "null"
+              ],
+              "format": "double"
+            },
+            "systemName": {
+              "description": "SF Symbol name (Apple) or Material icon name (Android)",
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "type": {
+              "type": "string",
+              "enum": [
+                "image"
+              ]
+            },
+            "url": {
+              "type": [
+                "string",
+                "null"
+              ]
+            }
+          }
+        },
+        {
+          "type": "object",
+          "required": [
+            "type",
+            "value"
+          ],
+          "properties": {
+            "background": {
+              "anyOf": [
+                {
+                  "$ref": "#/definitions/BackgroundValue"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "bar_style": {
+              "anyOf": [
+                {
+                  "$ref": "#/definitions/ProgressStyle"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "border": {
+              "anyOf": [
+                {
+                  "$ref": "#/definitions/BorderConfig"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "clipShape": {
+              "description": "Clip content to a shape (e.g. circle avatar from square image).",
+              "anyOf": [
+                {
+                  "$ref": "#/definitions/ClipShape"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "color": {
+              "anyOf": [
+                {
+                  "$ref": "#/definitions/ColorValue"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "cornerRadius": {
+              "type": [
+                "number",
+                "null"
+              ],
+              "format": "double"
+            },
+            "flex": {
+              "description": "Layout weight for flexible sizing inside stacks (like Android `layout_weight`).",
+              "type": [
+                "number",
+                "null"
+              ],
+              "format": "double"
+            },
+            "frame": {
+              "anyOf": [
+                {
+                  "$ref": "#/definitions/FrameConfig"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "label": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "opacity": {
+              "type": [
+                "number",
+                "null"
+              ],
+              "format": "double"
+            },
+            "padding": {
+              "anyOf": [
+                {
+                  "$ref": "#/definitions/PaddingValue"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "shadow": {
+              "anyOf": [
+                {
+                  "$ref": "#/definitions/ShadowConfig"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "tint": {
+              "anyOf": [
+                {
+                  "$ref": "#/definitions/ColorValue"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "total": {
+              "default": 1.0,
+              "type": "number",
+              "format": "double"
+            },
+            "type": {
+              "type": "string",
+              "enum": [
+                "progress"
+              ]
+            },
+            "value": {
+              "type": "number",
+              "format": "double"
+            }
+          }
+        },
+        {
+          "type": "object",
+          "required": [
+            "type",
+            "value"
+          ],
+          "properties": {
+            "background": {
+              "anyOf": [
+                {
+                  "$ref": "#/definitions/BackgroundValue"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "border": {
+              "anyOf": [
+                {
+                  "$ref": "#/definitions/BorderConfig"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "clipShape": {
+              "description": "Clip content to a shape (e.g. circle avatar from square image).",
+              "anyOf": [
+                {
+                  "$ref": "#/definitions/ClipShape"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "color": {
+              "anyOf": [
+                {
+                  "$ref": "#/definitions/ColorValue"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "cornerRadius": {
+              "type": [
+                "number",
+                "null"
+              ],
+              "format": "double"
+            },
+            "currentValueLabel": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "flex": {
+              "description": "Layout weight for flexible sizing inside stacks (like Android `layout_weight`).",
+              "type": [
+                "number",
+                "null"
+              ],
+              "format": "double"
+            },
+            "frame": {
+              "anyOf": [
+                {
+                  "$ref": "#/definitions/FrameConfig"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "gaugeStyle": {
+              "anyOf": [
+                {
+                  "$ref": "#/definitions/GaugeStyle"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "label": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "max": {
+              "type": [
+                "number",
+                "null"
+              ],
+              "format": "double"
+            },
+            "min": {
+              "type": [
+                "number",
+                "null"
+              ],
+              "format": "double"
+            },
+            "opacity": {
+              "type": [
+                "number",
+                "null"
+              ],
+              "format": "double"
+            },
+            "padding": {
+              "anyOf": [
+                {
+                  "$ref": "#/definitions/PaddingValue"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "shadow": {
+              "anyOf": [
+                {
+                  "$ref": "#/definitions/ShadowConfig"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "tint": {
+              "anyOf": [
+                {
+                  "$ref": "#/definitions/ColorValue"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "type": {
+              "type": "string",
+              "enum": [
+                "gauge"
+              ]
+            },
+            "value": {
+              "type": "number",
+              "format": "double"
+            }
+          }
+        },
+        {
+          "type": "object",
+          "required": [
+            "label",
+            "type"
+          ],
+          "properties": {
+            "action": {
+              "description": "Action identifier — emits a `widget-action` Tauri event when tapped",
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "background": {
+              "anyOf": [
+                {
+                  "$ref": "#/definitions/BackgroundValue"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "backgroundColor": {
+              "anyOf": [
+                {
+                  "$ref": "#/definitions/ColorValue"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "border": {
+              "anyOf": [
+                {
+                  "$ref": "#/definitions/BorderConfig"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "clipShape": {
+              "description": "Clip content to a shape (e.g. circle avatar from square image).",
+              "anyOf": [
+                {
+                  "$ref": "#/definitions/ClipShape"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "color": {
+              "anyOf": [
+                {
+                  "$ref": "#/definitions/ColorValue"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "cornerRadius": {
+              "type": [
+                "number",
+                "null"
+              ],
+              "format": "double"
+            },
+            "flex": {
+              "description": "Layout weight for flexible sizing inside stacks (like Android `layout_weight`).",
+              "type": [
+                "number",
+                "null"
+              ],
+              "format": "double"
+            },
+            "fontSize": {
+              "type": [
+                "number",
+                "null"
+              ],
+              "format": "double"
+            },
+            "frame": {
+              "anyOf": [
+                {
+                  "$ref": "#/definitions/FrameConfig"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "label": {
+              "type": "string"
+            },
+            "opacity": {
+              "type": [
+                "number",
+                "null"
+              ],
+              "format": "double"
+            },
+            "padding": {
+              "anyOf": [
+                {
+                  "$ref": "#/definitions/PaddingValue"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "shadow": {
+              "anyOf": [
+                {
+                  "$ref": "#/definitions/ShadowConfig"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "textAlignment": {
+              "anyOf": [
+                {
+                  "$ref": "#/definitions/TextAlignment"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "type": {
+              "type": "string",
+              "enum": [
+                "button"
+              ]
+            },
+            "url": {
+              "description": "Deep link URL to open the app (used when no action is set)",
+              "type": [
+                "string",
+                "null"
+              ]
+            }
+          }
+        },
+        {
+          "type": "object",
+          "required": [
+            "isOn",
+            "type"
+          ],
+          "properties": {
+            "action": {
+              "description": "Action identifier sent back to the app",
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "background": {
+              "anyOf": [
+                {
+                  "$ref": "#/definitions/BackgroundValue"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "border": {
+              "anyOf": [
+                {
+                  "$ref": "#/definitions/BorderConfig"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "clipShape": {
+              "description": "Clip content to a shape (e.g. circle avatar from square image).",
+              "anyOf": [
+                {
+                  "$ref": "#/definitions/ClipShape"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "cornerRadius": {
+              "type": [
+                "number",
+                "null"
+              ],
+              "format": "double"
+            },
+            "flex": {
+              "description": "Layout weight for flexible sizing inside stacks (like Android `layout_weight`).",
+              "type": [
+                "number",
+                "null"
+              ],
+              "format": "double"
+            },
+            "frame": {
+              "anyOf": [
+                {
+                  "$ref": "#/definitions/FrameConfig"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "isOn": {
+              "type": "boolean"
+            },
+            "label": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "opacity": {
+              "type": [
+                "number",
+                "null"
+              ],
+              "format": "double"
+            },
+            "padding": {
+              "anyOf": [
+                {
+                  "$ref": "#/definitions/PaddingValue"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "shadow": {
+              "anyOf": [
+                {
+                  "$ref": "#/definitions/ShadowConfig"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "tint": {
+              "anyOf": [
+                {
+                  "$ref": "#/definitions/ColorValue"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "type": {
+              "type": "string",
+              "enum": [
+                "toggle"
+              ]
+            }
+          }
+        },
+        {
+          "type": "object",
+          "required": [
+            "type"
+          ],
+          "properties": {
+            "background": {
+              "anyOf": [
+                {
+                  "$ref": "#/definitions/BackgroundValue"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "border": {
+              "anyOf": [
+                {
+                  "$ref": "#/definitions/BorderConfig"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "clipShape": {
+              "description": "Clip content to a shape (e.g. circle avatar from square image).",
+              "anyOf": [
+                {
+                  "$ref": "#/definitions/ClipShape"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "color": {
+              "anyOf": [
+                {
+                  "$ref": "#/definitions/ColorValue"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "cornerRadius": {
+              "type": [
+                "number",
+                "null"
+              ],
+              "format": "double"
+            },
+            "flex": {
+              "description": "Layout weight for flexible sizing inside stacks (like Android `layout_weight`).",
+              "type": [
+                "number",
+                "null"
+              ],
+              "format": "double"
+            },
+            "frame": {
+              "anyOf": [
+                {
+                  "$ref": "#/definitions/FrameConfig"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "opacity": {
+              "type": [
+                "number",
+                "null"
+              ],
+              "format": "double"
+            },
+            "padding": {
+              "anyOf": [
+                {
+                  "$ref": "#/definitions/PaddingValue"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "shadow": {
+              "anyOf": [
+                {
+                  "$ref": "#/definitions/ShadowConfig"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "thickness": {
+              "type": [
+                "number",
+                "null"
+              ],
+              "format": "double"
+            },
+            "type": {
+              "type": "string",
+              "enum": [
+                "divider"
+              ]
+            }
+          }
+        },
+        {
+          "type": "object",
+          "required": [
+            "type"
+          ],
+          "properties": {
+            "minLength": {
+              "type": [
+                "number",
+                "null"
+              ],
+              "format": "double"
+            },
+            "type": {
+              "type": "string",
+              "enum": [
+                "spacer"
+              ]
+            }
+          }
+        },
+        {
+          "type": "object",
+          "required": [
+            "date",
+            "type"
+          ],
+          "properties": {
+            "background": {
+              "anyOf": [
+                {
+                  "$ref": "#/definitions/BackgroundValue"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "border": {
+              "anyOf": [
+                {
+                  "$ref": "#/definitions/BorderConfig"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "clipShape": {
+              "description": "Clip content to a shape (e.g. circle avatar from square image).",
+              "anyOf": [
+                {
+                  "$ref": "#/definitions/ClipShape"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "color": {
+              "anyOf": [
+                {
+                  "$ref": "#/definitions/ColorValue"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "cornerRadius": {
+              "type": [
+                "number",
+                "null"
+              ],
+              "format": "double"
+            },
+            "date": {
+              "description": "ISO 8601 date string",
+              "type": "string"
+            },
+            "dateStyle": {
+              "anyOf": [
+                {
+                  "$ref": "#/definitions/DateStyle"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "flex": {
+              "description": "Layout weight for flexible sizing inside stacks (like Android `layout_weight`).",
+              "type": [
+                "number",
+                "null"
+              ],
+              "format": "double"
+            },
+            "fontSize": {
+              "type": [
+                "number",
+                "null"
+              ],
+              "format": "double"
+            },
+            "frame": {
+              "anyOf": [
+                {
+                  "$ref": "#/definitions/FrameConfig"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "opacity": {
+              "type": [
+                "number",
+                "null"
+              ],
+              "format": "double"
+            },
+            "padding": {
+              "anyOf": [
+                {
+                  "$ref": "#/definitions/PaddingValue"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "shadow": {
+              "anyOf": [
+                {
+                  "$ref": "#/definitions/ShadowConfig"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "type": {
+              "type": "string",
+              "enum": [
+                "date"
+              ]
+            }
+          }
+        },
+        {
+          "type": "object",
+          "required": [
+            "chartType",
+            "type"
+          ],
+          "properties": {
+            "background": {
+              "anyOf": [
+                {
+                  "$ref": "#/definitions/BackgroundValue"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "border": {
+              "anyOf": [
+                {
+                  "$ref": "#/definitions/BorderConfig"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "chartData": {
+              "type": "array",
+              "items": {
+                "$ref": "#/definitions/ChartDataPoint"
+              }
+            },
+            "chartType": {
+              "$ref": "#/definitions/ChartType"
+            },
+            "clipShape": {
+              "description": "Clip content to a shape (e.g. circle avatar from square image).",
+              "anyOf": [
+                {
+                  "$ref": "#/definitions/ClipShape"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "cornerRadius": {
+              "type": [
+                "number",
+                "null"
+              ],
+              "format": "double"
+            },
+            "flex": {
+              "description": "Layout weight for flexible sizing inside stacks (like Android `layout_weight`).",
+              "type": [
+                "number",
+                "null"
+              ],
+              "format": "double"
+            },
+            "frame": {
+              "anyOf": [
+                {
+                  "$ref": "#/definitions/FrameConfig"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "opacity": {
+              "type": [
+                "number",
+                "null"
+              ],
+              "format": "double"
+            },
+            "padding": {
+              "anyOf": [
+                {
+                  "$ref": "#/definitions/PaddingValue"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "shadow": {
+              "anyOf": [
+                {
+                  "$ref": "#/definitions/ShadowConfig"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "tint": {
+              "anyOf": [
+                {
+                  "$ref": "#/definitions/ColorValue"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "type": {
+              "type": "string",
+              "enum": [
+                "chart"
+              ]
+            }
+          }
+        },
+        {
+          "description": "Android-only collection list rendered via RemoteViewsService/ListView.",
+          "type": "object",
+          "required": [
+            "type"
+          ],
+          "properties": {
+            "background": {
+              "anyOf": [
+                {
+                  "$ref": "#/definitions/BackgroundValue"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "border": {
+              "anyOf": [
+                {
+                  "$ref": "#/definitions/BorderConfig"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "clipShape": {
+              "description": "Clip content to a shape (e.g. circle avatar from square image).",
+              "anyOf": [
+                {
+                  "$ref": "#/definitions/ClipShape"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "color": {
+              "anyOf": [
+                {
+                  "$ref": "#/definitions/ColorValue"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "cornerRadius": {
+              "type": [
+                "number",
+                "null"
+              ],
+              "format": "double"
+            },
+            "flex": {
+              "description": "Layout weight for flexible sizing inside stacks (like Android `layout_weight`).",
+              "type": [
+                "number",
+                "null"
+              ],
+              "format": "double"
+            },
+            "fontSize": {
+              "type": [
+                "number",
+                "null"
+              ],
+              "format": "double"
+            },
+            "frame": {
+              "anyOf": [
+                {
+                  "$ref": "#/definitions/FrameConfig"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "items": {
+              "type": "array",
+              "items": {
+                "$ref": "#/definitions/ListItem"
+              }
+            },
+            "opacity": {
+              "type": [
+                "number",
+                "null"
+              ],
+              "format": "double"
+            },
+            "padding": {
+              "anyOf": [
+                {
+                  "$ref": "#/definitions/PaddingValue"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "shadow": {
+              "anyOf": [
+                {
+                  "$ref": "#/definitions/ShadowConfig"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "spacing": {
+              "type": [
+                "number",
+                "null"
+              ],
+              "format": "double"
+            },
+            "type": {
+              "type": "string",
+              "enum": [
+                "list"
+              ]
+            }
+          }
+        },
+        {
+          "description": "Tappable wrapper — makes nested content clickable.",
+          "type": "object",
+          "required": [
+            "type"
+          ],
+          "properties": {
+            "action": {
+              "description": "Action identifier — emits `widget-action` event",
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "background": {
+              "anyOf": [
+                {
+                  "$ref": "#/definitions/BackgroundValue"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "border": {
+              "anyOf": [
+                {
+                  "$ref": "#/definitions/BorderConfig"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "children": {
+              "type": "array",
+              "items": {
+                "$ref": "#/definitions/WidgetElement"
+              }
+            },
+            "clipShape": {
+              "description": "Clip content to a shape (e.g. circle avatar from square image).",
+              "anyOf": [
+                {
+                  "$ref": "#/definitions/ClipShape"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "cornerRadius": {
+              "type": [
+                "number",
+                "null"
+              ],
+              "format": "double"
+            },
+            "flex": {
+              "description": "Layout weight for flexible sizing inside stacks (like Android `layout_weight`).",
+              "type": [
+                "number",
+                "null"
+              ],
+              "format": "double"
+            },
+            "frame": {
+              "anyOf": [
+                {
+                  "$ref": "#/definitions/FrameConfig"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "opacity": {
+              "type": [
+                "number",
+                "null"
+              ],
+              "format": "double"
+            },
+            "padding": {
+              "anyOf": [
+                {
+                  "$ref": "#/definitions/PaddingValue"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "shadow": {
+              "anyOf": [
+                {
+                  "$ref": "#/definitions/ShadowConfig"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "type": {
+              "type": "string",
+              "enum": [
+                "link"
+              ]
+            },
+            "url": {
+              "description": "Deep-link URL to open",
+              "type": [
+                "string",
+                "null"
+              ]
+            }
+          }
+        },
+        {
+          "description": "Colored shape — circle, capsule, or rectangle.",
+          "type": "object",
+          "required": [
+            "shapeType",
+            "type"
+          ],
+          "properties": {
+            "background": {
+              "anyOf": [
+                {
+                  "$ref": "#/definitions/BackgroundValue"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "border": {
+              "anyOf": [
+                {
+                  "$ref": "#/definitions/BorderConfig"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "clipShape": {
+              "description": "Clip content to a shape (e.g. circle avatar from square image).",
+              "anyOf": [
+                {
+                  "$ref": "#/definitions/ClipShape"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "cornerRadius": {
+              "type": [
+                "number",
+                "null"
+              ],
+              "format": "double"
+            },
+            "fill": {
+              "anyOf": [
+                {
+                  "$ref": "#/definitions/ColorValue"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "flex": {
+              "description": "Layout weight for flexible sizing inside stacks (like Android `layout_weight`).",
+              "type": [
+                "number",
+                "null"
+              ],
+              "format": "double"
+            },
+            "frame": {
+              "anyOf": [
+                {
+                  "$ref": "#/definitions/FrameConfig"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "opacity": {
+              "type": [
+                "number",
+                "null"
+              ],
+              "format": "double"
+            },
+            "padding": {
+              "anyOf": [
+                {
+                  "$ref": "#/definitions/PaddingValue"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "shadow": {
+              "anyOf": [
+                {
+                  "$ref": "#/definitions/ShadowConfig"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "shapeType": {
+              "$ref": "#/definitions/ShapeType"
+            },
+            "size": {
+              "type": [
+                "number",
+                "null"
+              ],
+              "format": "double"
+            },
+            "stroke": {
+              "anyOf": [
+                {
+                  "$ref": "#/definitions/ColorValue"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "strokeWidth": {
+              "type": [
+                "number",
+                "null"
+              ],
+              "format": "double"
+            },
+            "type": {
+              "type": "string",
+              "enum": [
+                "shape"
+              ]
+            }
+          }
+        },
+        {
+          "description": "Live countdown/countup timer that updates without timeline refresh.",
+          "type": "object",
+          "required": [
+            "targetDate",
+            "type"
+          ],
+          "properties": {
+            "background": {
+              "anyOf": [
+                {
+                  "$ref": "#/definitions/BackgroundValue"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "border": {
+              "anyOf": [
+                {
+                  "$ref": "#/definitions/BorderConfig"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "clipShape": {
+              "description": "Clip content to a shape (e.g. circle avatar from square image).",
+              "anyOf": [
+                {
+                  "$ref": "#/definitions/ClipShape"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "color": {
+              "anyOf": [
+                {
+                  "$ref": "#/definitions/ColorValue"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "cornerRadius": {
+              "type": [
+                "number",
+                "null"
+              ],
+              "format": "double"
+            },
+            "counting": {
+              "description": "Count direction. Default: `down`.",
+              "anyOf": [
+                {
+                  "$ref": "#/definitions/TimerCounting"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "flex": {
+              "description": "Layout weight for flexible sizing inside stacks (like Android `layout_weight`).",
+              "type": [
+                "number",
+                "null"
+              ],
+              "format": "double"
+            },
+            "fontSize": {
+              "type": [
+                "number",
+                "null"
+              ],
+              "format": "double"
+            },
+            "fontWeight": {
+              "anyOf": [
+                {
+                  "$ref": "#/definitions/FontWeight"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "frame": {
+              "anyOf": [
+                {
+                  "$ref": "#/definitions/FrameConfig"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "opacity": {
+              "type": [
+                "number",
+                "null"
+              ],
+              "format": "double"
+            },
+            "padding": {
+              "anyOf": [
+                {
+                  "$ref": "#/definitions/PaddingValue"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "shadow": {
+              "anyOf": [
+                {
+                  "$ref": "#/definitions/ShadowConfig"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "targetDate": {
+              "description": "ISO 8601 target date",
+              "type": "string"
+            },
+            "type": {
+              "type": "string",
+              "enum": [
+                "timer"
+              ]
+            }
+          }
+        },
+        {
+          "description": "Declarative canvas — draw arbitrary shapes via JSON commands.",
+          "type": "object",
+          "required": [
+            "height",
+            "type",
+            "width"
+          ],
+          "properties": {
+            "background": {
+              "anyOf": [
+                {
+                  "$ref": "#/definitions/BackgroundValue"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "border": {
+              "anyOf": [
+                {
+                  "$ref": "#/definitions/BorderConfig"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "clipShape": {
+              "description": "Clip content to a shape (e.g. circle avatar from square image).",
+              "anyOf": [
+                {
+                  "$ref": "#/definitions/ClipShape"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "cornerRadius": {
+              "type": [
+                "number",
+                "null"
+              ],
+              "format": "double"
+            },
+            "elements": {
+              "type": "array",
+              "items": {
+                "$ref": "#/definitions/CanvasDrawCommand"
+              }
+            },
+            "flex": {
+              "description": "Layout weight for flexible sizing inside stacks (like Android `layout_weight`).",
+              "type": [
+                "number",
+                "null"
+              ],
+              "format": "double"
+            },
+            "frame": {
+              "anyOf": [
+                {
+                  "$ref": "#/definitions/FrameConfig"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "height": {
+              "type": "number",
+              "format": "double"
+            },
+            "opacity": {
+              "type": [
+                "number",
+                "null"
+              ],
+              "format": "double"
+            },
+            "padding": {
+              "anyOf": [
+                {
+                  "$ref": "#/definitions/PaddingValue"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "shadow": {
+              "anyOf": [
+                {
+                  "$ref": "#/definitions/ShadowConfig"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "type": {
+              "type": "string",
+              "enum": [
+                "canvas"
+              ]
+            },
+            "width": {
+              "type": "number",
+              "format": "double"
+            }
+          }
+        },
+        {
+          "description": "Convenience element combining an SF Symbol icon with text.",
+          "type": "object",
+          "required": [
+            "systemName",
+            "text",
+            "type"
+          ],
+          "properties": {
+            "background": {
+              "anyOf": [
+                {
+                  "$ref": "#/definitions/BackgroundValue"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "border": {
+              "anyOf": [
+                {
+                  "$ref": "#/definitions/BorderConfig"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "clipShape": {
+              "description": "Clip content to a shape (e.g. circle avatar from square image).",
+              "anyOf": [
+                {
+                  "$ref": "#/definitions/ClipShape"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "color": {
+              "anyOf": [
+                {
+                  "$ref": "#/definitions/ColorValue"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "cornerRadius": {
+              "type": [
+                "number",
+                "null"
+              ],
+              "format": "double"
+            },
+            "flex": {
+              "description": "Layout weight for flexible sizing inside stacks (like Android `layout_weight`).",
+              "type": [
+                "number",
+                "null"
+              ],
+              "format": "double"
+            },
+            "fontSize": {
+              "type": [
+                "number",
+                "null"
+              ],
+              "format": "double"
+            },
+            "fontWeight": {
+              "anyOf": [
+                {
+                  "$ref": "#/definitions/FontWeight"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "frame": {
+              "anyOf": [
+                {
+                  "$ref": "#/definitions/FrameConfig"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "iconColor": {
+              "anyOf": [
+                {
+                  "$ref": "#/definitions/ColorValue"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "opacity": {
+              "type": [
+                "number",
+                "null"
+              ],
+              "format": "double"
+            },
+            "padding": {
+              "anyOf": [
+                {
+                  "$ref": "#/definitions/PaddingValue"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "shadow": {
+              "anyOf": [
+                {
+                  "$ref": "#/definitions/ShadowConfig"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "spacing": {
+              "type": [
+                "number",
+                "null"
+              ],
+              "format": "double"
+            },
+            "systemName": {
+              "type": "string"
+            },
+            "text": {
+              "type": "string"
+            },
+            "type": {
+              "type": "string",
+              "enum": [
+                "label"
+              ]
+            }
+          }
+        }
+      ]
+    }
+  }
+}

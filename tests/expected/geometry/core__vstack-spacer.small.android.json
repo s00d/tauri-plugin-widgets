@@ -1,0 +1,95 @@
+{
+  "kind": "FrameLayout",
+  "rect": [
+    0,
+    0,
+    510,
+    510
+  ],
+  "children": [
+    {
+      "kind": "FrameLayout",
+      "rect": [
+        0,
+        0,
+        510,
+        510
+      ],
+      "children": [
+        {
+          "kind": "FrameLayout",
+          "rect": [
+            0,
+            0,
+            510,
+            510
+          ],
+          "children": [
+            {
+              "kind": "LinearLayout",
+              "rect": [
+                0,
+                0,
+                510,
+                510
+              ],
+              "children": [
+                {
+                  "kind": "TextView",
+                  "rect": [
+                    24,
+                    24,
+                    462,
+                    57
+                  ],
+                  "text": "Top",
+                  "px": 42,
+                  "color": "#FFFFFFFF"
+                },
+                {
+                  "kind": "FrameLayout",
+                  "rect": [
+                    24,
+                    81,
+                    462,
+                    12
+                  ]
+                },
+                {
+                  "kind": "FrameLayout",
+                  "rect": [
+                    24,
+                    93,
+                    462,
+                    324
+                  ]
+                },
+                {
+                  "kind": "FrameLayout",
+                  "rect": [
+                    24,
+                    417,
+                    462,
+                    12
+                  ]
+                },
+                {
+                  "kind": "TextView",
+                  "rect": [
+                    24,
+                    429,
+                    462,
+                    57
+                  ],
+                  "text": "Bottom",
+                  "px": 42,
+                  "color": "#FFFFFFFF"
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

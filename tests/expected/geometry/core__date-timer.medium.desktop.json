@@ -1,0 +1,150 @@
+{
+  "kind": "div",
+  "rect": [
+    0,
+    0,
+    360,
+    170
+  ],
+  "children": [
+    {
+      "kind": "div",
+      "rect": [
+        0,
+        0,
+        360,
+        170
+      ],
+      "children": [
+        {
+          "kind": "span",
+          "rect": [
+            12,
+            12,
+            336,
+            18
+          ],
+          "text": "Schedule",
+          "px": 15,
+          "color": "#F8FAFC"
+        },
+        {
+          "kind": "div",
+          "rect": [
+            12,
+            38,
+            336,
+            34
+          ],
+          "children": [
+            {
+              "kind": "div",
+              "rect": [
+                12,
+                38,
+                61,
+                34
+              ],
+              "children": [
+                {
+                  "kind": "span",
+                  "rect": [
+                    12,
+                    38,
+                    61,
+                    13
+                  ],
+                  "text": "Time",
+                  "px": 11,
+                  "color": "#94A3B8"
+                },
+                {
+                  "kind": "span",
+                  "rect": [
+                    12,
+                    55,
+                    61,
+                    17
+                  ],
+                  "text": "07:30 PM",
+                  "px": 14,
+                  "color": "#E2E8F0"
+                }
+              ]
+            },
+            {
+              "kind": "div",
+              "rect": [
+                89,
+                38,
+                69,
+                34
+              ],
+              "children": [
+                {
+                  "kind": "span",
+                  "rect": [
+                    89,
+                    38,
+                    69,
+                    13
+                  ],
+                  "text": "Relative",
+                  "px": 11,
+                  "color": "#94A3B8"
+                },
+                {
+                  "kind": "span",
+                  "rect": [
+                    89,
+                    55,
+                    69,
+                    17
+                  ],
+                  "text": "in 73 years",
+                  "px": 14,
+                  "color": "#E2E8F0"
+                }
+              ]
+            },
+            {
+              "kind": "div",
+              "rect": [
+                175,
+                38,
+                99,
+                34
+              ],
+              "children": [
+                {
+                  "kind": "span",
+                  "rect": [
+                    175,
+                    38,
+                    99,
+                    13
+                  ],
+                  "text": "Countdown",
+                  "px": 11,
+                  "color": "#94A3B8"
+                },
+                {
+                  "kind": "span",
+                  "rect": [
+                    175,
+                    55,
+                    99,
+                    17
+                  ],
+                  "text": "634812:00:00",
+                  "px": 14,
+                  "color": "#38BDF8"
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

@@ -9,15 +9,22 @@ import TauriWidgets
 // 3. Add TauriWidgets Swift Package as a dependency
 // 4. Replace the generated Swift code with this file
 // 5. Enable App Groups in BOTH targets (App and Widget Extension)
+//
+// Placeholders replaced by CLI init:
+//   {{APP_GROUP}}  e.g. group.com.example.myapp
+//   {{WIDGET_KIND}} e.g. MyTauriWidget
+//   {{WIDGET_ID}}  e.g. default
 
 @main
 struct MyWidget: Widget {
-    let kind = "MyTauriWidget"
+    let kind = "{{WIDGET_KIND}}"
+    let appGroup = "{{APP_GROUP}}"
+    let widgetId = "{{WIDGET_ID}}"
 
     var body: some WidgetConfiguration {
         StaticConfiguration(
             kind: kind,
-            provider: TauriWidgetProvider(appGroup: "group.com.example.myapp")
+            provider: TauriWidgetProvider(appGroup: appGroup, widgetId: widgetId, refreshMinutes: 15)
         ) { entry in
             TauriWidgetView(entry: entry)
         }

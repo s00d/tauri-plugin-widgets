@@ -1,0 +1,174 @@
+{
+  "kind": "FrameLayout",
+  "rect": [
+    0,
+    0,
+    1080,
+    510
+  ],
+  "children": [
+    {
+      "kind": "FrameLayout",
+      "rect": [
+        0,
+        0,
+        1080,
+        510
+      ],
+      "children": [
+        {
+          "kind": "FrameLayout",
+          "rect": [
+            0,
+            0,
+            1080,
+            510
+          ],
+          "children": [
+            {
+              "kind": "LinearLayout",
+              "rect": [
+                0,
+                0,
+                1080,
+                510
+              ],
+              "children": [
+                {
+                  "kind": "LinearLayout",
+                  "rect": [
+                    36,
+                    36,
+                    1008,
+                    57
+                  ],
+                  "children": [
+                    {
+                      "kind": "TextView",
+                      "rect": [
+                        0,
+                        0,
+                        22,
+                        57
+                      ],
+                      "text": "c",
+                      "px": 42,
+                      "color": "#FF3878FA"
+                    },
+                    {
+                      "kind": "TextView",
+                      "rect": [
+                        22,
+                        10,
+                        160,
+                        44
+                      ],
+                      "text": "Upcoming",
+                      "px": 33,
+                      "color": "#FF111111"
+                    }
+                  ]
+                },
+                {
+                  "kind": "FrameLayout",
+                  "rect": [
+                    36,
+                    93,
+                    1008,
+                    24
+                  ]
+                },
+                {
+                  "kind": "FrameLayout",
+                  "rect": [
+                    36,
+                    117,
+                    1008,
+                    58
+                  ]
+                },
+                {
+                  "kind": "FrameLayout",
+                  "rect": [
+                    36,
+                    175,
+                    1008,
+                    24
+                  ]
+                },
+                {
+                  "kind": "FrameLayout",
+                  "rect": [
+                    36,
+                    199,
+                    1008,
+                    120
+                  ],
+                  "children": [
+                    {
+                      "kind": "ImageView",
+                      "rect": [
+                        444,
+                        0,
+                        120,
+                        120
+                      ]
+                    },
+                    {
+                      "kind": "ImageView",
+                      "rect": [
+                        471,
+                        27,
+                        66,
+                        66
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "kind": "FrameLayout",
+                  "rect": [
+                    36,
+                    319,
+                    1008,
+                    24
+                  ]
+                },
+                {
+                  "kind": "TextView",
+                  "rect": [
+                    36,
+                    343,
+                    1008,
+                    49
+                  ],
+                  "text": "No upcoming payments",
+                  "px": 36,
+                  "color": "#FF555555"
+                },
+                {
+                  "kind": "FrameLayout",
+                  "rect": [
+                    36,
+                    392,
+                    1008,
+                    24
+                  ]
+                },
+                {
+                  "kind": "FrameLayout",
+                  "rect": [
+                    36,
+                    416,
+                    1008,
+                    58
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

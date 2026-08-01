@@ -1,0 +1,115 @@
+{
+  "kind": "div",
+  "rect": [
+    0,
+    0,
+    170,
+    170
+  ],
+  "children": [
+    {
+      "kind": "div",
+      "rect": [
+        0,
+        0,
+        170,
+        170
+      ],
+      "children": [
+        {
+          "kind": "span",
+          "rect": [
+            10,
+            10,
+            150,
+            21
+          ],
+          "text": "Tasks",
+          "px": 18,
+          "color": "#000000"
+        },
+        {
+          "kind": "div",
+          "rect": [
+            10,
+            37,
+            150,
+            36
+          ],
+          "children": [
+            {
+              "kind": "div",
+              "rect": [
+                10,
+                37,
+                150,
+                16
+              ],
+              "children": [
+                {
+                  "kind": "span",
+                  "rect": [
+                    10,
+                    37,
+                    14,
+                    15
+                  ],
+                  "text": "○",
+                  "px": 12,
+                  "color": "#9CA3AF"
+                },
+                {
+                  "kind": "span",
+                  "rect": [
+                    30,
+                    37,
+                    130,
+                    16
+                  ],
+                  "text": "Buy milk",
+                  "px": 13,
+                  "color": "#000000"
+                }
+              ]
+            },
+            {
+              "kind": "div",
+              "rect": [
+                10,
+                57,
+                150,
+                16
+              ],
+              "children": [
+                {
+                  "kind": "span",
+                  "rect": [
+                    10,
+                    57,
+                    14,
+                    15
+                  ],
+                  "text": "✓",
+                  "px": 12,
+                  "color": "#22C55E"
+                },
+                {
+                  "kind": "span",
+                  "rect": [
+                    30,
+                    57,
+                    130,
+                    16
+                  ],
+                  "text": "Ship 0.4",
+                  "px": 13,
+                  "color": "#000000"
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

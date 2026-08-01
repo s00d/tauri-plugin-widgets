@@ -3273,9 +3273,10 @@ dependencies = [
 
 [[package]]
 name = "tauri-plugin-widgets"
-version = "0.3.0"
+version = "0.4.0"
 dependencies = [
  "log",
+ "schemars 0.8.22",
  "serde",
  "serde_json",
  "tauri",

@@ -1,0 +1,259 @@
+{
+  "kind": "FrameLayout",
+  "rect": [
+    0,
+    0,
+    1080,
+    510
+  ],
+  "children": [
+    {
+      "kind": "FrameLayout",
+      "rect": [
+        0,
+        0,
+        1080,
+        510
+      ],
+      "children": [
+        {
+          "kind": "FrameLayout",
+          "rect": [
+            0,
+            0,
+            1080,
+            510
+          ],
+          "children": [
+            {
+              "kind": "LinearLayout",
+              "rect": [
+                0,
+                0,
+                1080,
+                510
+              ],
+              "children": [
+                {
+                  "kind": "TextView",
+                  "rect": [
+                    36,
+                    36,
+                    1008,
+                    61
+                  ],
+                  "text": "Schedule",
+                  "px": 45,
+                  "color": "#FFF8FAFC"
+                },
+                {
+                  "kind": "FrameLayout",
+                  "rect": [
+                    36,
+                    97,
+                    1008,
+                    24
+                  ]
+                },
+                {
+                  "kind": "LinearLayout",
+                  "rect": [
+                    36,
+                    121,
+                    1008,
+                    113
+                  ],
+                  "children": [
+                    {
+                      "kind": "FrameLayout",
+                      "rect": [
+                        0,
+                        0,
+                        106,
+                        113
+                      ],
+                      "children": [
+                        {
+                          "kind": "LinearLayout",
+                          "rect": [
+                            0,
+                            0,
+                            106,
+                            113
+                          ],
+                          "children": [
+                            {
+                              "kind": "TextView",
+                              "rect": [
+                                0,
+                                0,
+                                75,
+                                44
+                              ],
+                              "text": "Time",
+                              "px": 33,
+                              "color": "#FF94A3B8"
+                            },
+                            {
+                              "kind": "FrameLayout",
+                              "rect": [
+                                0,
+                                44,
+                                106,
+                                12
+                              ]
+                            },
+                            {
+                              "kind": "TextView",
+                              "rect": [
+                                0,
+                                56,
+                                106,
+                                57
+                              ],
+                              "text": "19:30",
+                              "px": 42,
+                              "color": "#FFE2E8F0"
+                            }
+                          ]
+                        }
+                      ]
+                    },
+                    {
+                      "kind": "FrameLayout",
+                      "rect": [
+                        106,
+                        0,
+                        48,
+                        113
+                      ]
+                    },
+                    {
+                      "kind": "FrameLayout",
+                      "rect": [
+                        154,
+                        0,
+                        157,
+                        113
+                      ],
+                      "children": [
+                        {
+                          "kind": "LinearLayout",
+                          "rect": [
+                            0,
+                            0,
+                            157,
+                            113
+                          ],
+                          "children": [
+                            {
+                              "kind": "TextView",
+                              "rect": [
+                                0,
+                                0,
+                                117,
+                                44
+                              ],
+                              "text": "Relative",
+                              "px": 33,
+                              "color": "#FF94A3B8"
+                            },
+                            {
+                              "kind": "FrameLayout",
+                              "rect": [
+                                0,
+                                44,
+                                157,
+                                12
+                              ]
+                            },
+                            {
+                              "kind": "TextView",
+                              "rect": [
+                                0,
+                                56,
+                                157,
+                                57
+                              ],
+                              "text": "in 73 yrs",
+                              "px": 42,
+                              "color": "#FFE2E8F0"
+                            }
+                          ]
+                        }
+                      ]
+                    },
+                    {
+                      "kind": "FrameLayout",
+                      "rect": [
+                        311,
+                        0,
+                        48,
+                        113
+                      ]
+                    },
+                    {
+                      "kind": "FrameLayout",
+                      "rect": [
+                        359,
+                        0,
+                        264,
+                        113
+                      ],
+                      "children": [
+                        {
+                          "kind": "LinearLayout",
+                          "rect": [
+                            0,
+                            0,
+                            264,
+                            113
+                          ],
+                          "children": [
+                            {
+                              "kind": "TextView",
+                              "rect": [
+                                0,
+                                0,
+                                168,
+                                44
+                              ],
+                              "text": "Countdown",
+                              "px": 33,
+                              "color": "#FF94A3B8"
+                            },
+                            {
+                              "kind": "FrameLayout",
+                              "rect": [
+                                0,
+                                44,
+                                264,
+                                12
+                              ]
+                            },
+                            {
+                              "kind": "TextView",
+                              "rect": [
+                                0,
+                                56,
+                                264,
+                                57
+                              ],
+                              "text": "634815:55:20",
+                              "px": 42,
+                              "color": "#FF38BDF8"
+                            }
+                          ]
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

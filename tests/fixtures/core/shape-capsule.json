@@ -1,0 +1,13 @@
+{
+  "version": 1,
+  "small": {
+    "type": "vstack",
+    "padding": 12,
+    "background": "#0a0a0a",
+    "alignment": "center",
+    "children": [
+      { "type": "shape", "shapeType": "capsule", "size": 12, "fill": "#22c55e" },
+      { "type": "shape", "shapeType": "circle", "size": 24, "fill": "#3b82f6" }
+    ]
+  }
+}

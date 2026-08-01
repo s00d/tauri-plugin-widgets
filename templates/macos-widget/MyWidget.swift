@@ -3,17 +3,19 @@ import SwiftUI
 import TauriWidgets
 
 // ─── Entry Point ─────────────────────────────────────────────────────────────
-// This is the only file you need in your Widget Extension target.
-// Adjust `appGroup` and `kind` to match your app's configuration.
+// Adjust `appGroup`, `kind`, and `widgetId` to match your app.
+// Placeholders: {{APP_GROUP}}, {{WIDGET_KIND}}, {{WIDGET_ID}}
 
 @main
 struct MyWidget: Widget {
-    let kind = "MyTauriWidget"
+    let kind = "{{WIDGET_KIND}}"
+    let appGroup = "{{APP_GROUP}}"
+    let widgetId = "{{WIDGET_ID}}"
 
     var body: some WidgetConfiguration {
         StaticConfiguration(
             kind: kind,
-            provider: TauriWidgetProvider(appGroup: "group.com.example.myapp")
+            provider: TauriWidgetProvider(appGroup: appGroup, widgetId: widgetId, refreshMinutes: 15)
         ) { entry in
             TauriWidgetView(entry: entry)
         }

@@ -1,0 +1,100 @@
+{
+  "kind": "div",
+  "rect": [
+    0,
+    0,
+    170,
+    170
+  ],
+  "children": [
+    {
+      "kind": "div",
+      "rect": [
+        0,
+        0,
+        170,
+        170
+      ],
+      "children": [
+        {
+          "kind": "div",
+          "rect": [
+            12,
+            12,
+            146,
+            18
+          ],
+          "children": [
+            {
+              "kind": "div",
+              "rect": [
+                12,
+                12,
+                18,
+                18
+              ],
+              "children": [
+                {
+                  "kind": "span",
+                  "rect": [
+                    15,
+                    13,
+                    10,
+                    15
+                  ],
+                  "text": "✓",
+                  "px": 12,
+                  "color": "#FFFFFF"
+                }
+              ]
+            },
+            {
+              "kind": "span",
+              "rect": [
+                36,
+                12,
+                34,
+                17
+              ],
+              "text": "Wi-Fi",
+              "px": 14,
+              "color": "#E2E8F0"
+            }
+          ]
+        },
+        {
+          "kind": "div",
+          "rect": [
+            12,
+            40,
+            146,
+            18
+          ],
+          "children": [
+            {
+              "kind": "div",
+              "rect": [
+                12,
+                40,
+                18,
+                18
+              ]
+            },
+            {
+              "kind": "span",
+              "rect": [
+                36,
+                40,
+                62,
+                17
+              ],
+              "text": "Bluetooth",
+              "px": 14,
+              "color": "#E2E8F0"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

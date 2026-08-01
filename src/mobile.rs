@@ -2,13 +2,15 @@ use serde::de::DeserializeOwned;
 use serde::Serialize;
 use serde_json::Value;
 use std::collections::hash_map::DefaultHasher;
+use std::collections::{HashMap, HashSet};
 use std::env;
 use std::hash::{Hash, Hasher};
 use std::sync::Mutex;
 use std::time::Instant;
-use tauri::{plugin::PluginApi, AppHandle, Runtime};
+use tauri::{plugin::PluginApi, AppHandle, Emitter, Runtime};
 
 use crate::models::{WidgetConfig, WidgetWindowConfig};
+use crate::store::config_key;
 
 /// Default minimum interval between WidgetKit reload calls.
 /// Can be overridden with `TAURI_WIDGET_MIN_RELOAD_SECS`.
@@ -34,7 +36,7 @@ const PLUGIN_IDENTIFIER: &str = "git.s00d.widgets";
 tauri::ios_plugin_binding!(init_plugin_widgets);
 
 pub fn init<R: Runtime, C: DeserializeOwned>(
-    _app: &AppHandle<R>,
+    app: &AppHandle<R>,
     api: PluginApi<R, C>,
 ) -> crate::Result<Widget<R>> {
     #[cfg(target_os = "android")]
@@ -42,9 +44,11 @@ pub fn init<R: Runtime, C: DeserializeOwned>(
     #[cfg(target_os = "ios")]
     let handle = api.register_ios_plugin(init_plugin_widgets)?;
     Ok(Widget {
+        app: app.clone(),
         handle,
-        last_config_hash: Mutex::new(0),
+        last_config_hash: Mutex::new(HashMap::new()),
         last_reload: Mutex::new(None),
+        known_groups: Mutex::new(HashSet::new()),
     })
 }
 
@@ -83,16 +87,51 @@ struct GroupPayload<'a> {
     group: &'a str,
 }
 
+#[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
+struct SetWidgetConfigPayload<'a> {
+    config: &'a str,
+    group: &'a str,
+    widget_id: &'a str,
+}
+
 // ── Widget ──────────────────────────────────────────────────────────────────
 
 pub struct Widget<R: Runtime> {
+    app: AppHandle<R>,
     handle: tauri::plugin::PluginHandle<R>,
-    last_config_hash: Mutex<u64>,
+    last_config_hash: Mutex<HashMap<(String, String), u64>>,
     last_reload: Mutex<Option<Instant>>,
+    known_groups: Mutex<HashSet<String>>,
 }
 
 impl<R: Runtime> Widget<R> {
+    fn remember_group(&self, group: &str) {
+        if group.is_empty() {
+            return;
+        }
+        self.known_groups.lock().unwrap().insert(group.to_string());
+    }
+
+    /// Drain pending actions for all known groups and emit `widget-action`.
+    pub fn drain_pending_actions_to_events(&self) {
+        let groups: Vec<String> = self.known_groups.lock().unwrap().iter().cloned().collect();
+        for group in groups {
+            match self.poll_pending_actions(&group) {
+                Ok(actions) => {
+                    for action in actions {
+                        let _ = self.app.emit("widget-action", action);
+                    }
+                }
+                Err(e) => {
+                    log::debug!("poll_pending_actions({group}) failed: {e}");
+                }
+            }
+        }
+    }
+
     pub fn set_items(&self, key: &str, value: &str, group: &str) -> crate::Result<bool> {
+        self.remember_group(group);
         self.handle
             .run_mobile_plugin("setItems", SetItemPayload { key, value, group })
             .map(|_: Value| true)
@@ -110,6 +149,11 @@ impl<R: Runtime> Widget<R> {
     }
 
     pub fn set_register_widget(&self, widgets: Vec<String>) -> crate::Result<bool> {
+        if widgets.is_empty() {
+            return Err(crate::Error::new(
+                "set_register_widget: widgets must be a non-empty array",
+            ));
+        }
         self.handle
             .run_mobile_plugin("setRegisterWidget", RegisterPayload { widgets })
             .map(|_: Value| true)
@@ -125,7 +169,6 @@ impl<R: Runtime> Widget<R> {
 
     /// Rate-limited reload: skips the actual WidgetKit call if the last
     /// reload happened less than `reload_min_interval_secs()` ago.
-    /// Returns `true` if the reload was actually dispatched.
     fn throttled_reload(&self) -> crate::Result<bool> {
         let min_interval = reload_min_interval_secs();
         if min_interval == 0 {
@@ -170,35 +213,100 @@ impl<R: Runtime> Widget<R> {
         ))
     }
 
-    pub fn set_widget_config(&self, config: &WidgetConfig, group: &str, skip_reload: bool) -> crate::Result<bool> {
+    pub fn set_widget_config(
+        &self,
+        config: &WidgetConfig,
+        group: &str,
+        widget_id: &str,
+        skip_reload: bool,
+    ) -> crate::Result<bool> {
+        if widget_id.is_empty() {
+            return Err(crate::Error::new("widget_id must not be empty"));
+        }
+        self.remember_group(group);
+
         let json = serde_json::to_string(config)
             .map_err(|e| crate::Error::new(format!("serialize config: {e}")))?;
 
         let mut hasher = DefaultHasher::new();
         json.hash(&mut hasher);
         let new_hash = hasher.finish();
+        let hash_key = (group.to_string(), widget_id.to_string());
 
         let changed = {
             let mut prev = self.last_config_hash.lock().unwrap();
-            if *prev == new_hash {
+            if prev.get(&hash_key) == Some(&new_hash) {
                 false
             } else {
-                *prev = new_hash;
+                prev.insert(hash_key, new_hash);
                 true
             }
         };
 
-        if changed {
-            self.set_items("__widget_config__", &json, group)?;
-            if !skip_reload {
-                self.throttled_reload()?;
+        if !changed {
+            return Ok(true);
+        }
+
+        crate::capabilities::log_capabilities(config);
+
+        // Prefer native setWidgetConfig (Android image preprocess + Glance sync).
+        // Falls back to set_items with config:{widgetId} key.
+        let native_ok: Result<Value, _> = self.handle.run_mobile_plugin(
+            "setWidgetConfig",
+            SetWidgetConfigPayload {
+                config: &json,
+                group,
+                widget_id,
+            },
+        );
+
+        match native_ok {
+            Ok(_) => {
+                if !skip_reload {
+                    self.throttled_reload()?;
+                }
+                Ok(true)
+            }
+            Err(_) => {
+                self.set_items(&config_key(widget_id), &json, group)?;
+                if !skip_reload {
+                    self.throttled_reload()?;
+                }
+                Ok(true)
             }
         }
-        Ok(true)
     }
 
-    pub fn get_widget_config(&self, group: &str) -> crate::Result<Option<WidgetConfig>> {
-        match self.get_items("__widget_config__", group)? {
+    pub fn get_widget_config(
+        &self,
+        group: &str,
+        widget_id: &str,
+    ) -> crate::Result<Option<WidgetConfig>> {
+        if widget_id.is_empty() {
+            return Err(crate::Error::new("widget_id must not be empty"));
+        }
+        // Try native getWidgetConfig first (Android), then key lookup.
+        #[derive(Serialize)]
+        #[serde(rename_all = "camelCase")]
+        struct GetCfg<'a> {
+            group: &'a str,
+            widget_id: &'a str,
+        }
+        if let Ok(res) = self
+            .handle
+            .run_mobile_plugin::<Value>("getWidgetConfig", GetCfg { group, widget_id })
+        {
+            if let Some(s) = res.get("results").and_then(|v| v.as_str()) {
+                let config: WidgetConfig = serde_json::from_str(s)
+                    .map_err(|e| crate::Error::new(format!("parse config: {e}")))?;
+                return Ok(Some(config));
+            }
+            if res.get("results").map(|v| v.is_null()).unwrap_or(false) {
+                return Ok(None);
+            }
+        }
+
+        match self.get_items(&config_key(widget_id), group)? {
             Some(json) => {
                 let config: WidgetConfig = serde_json::from_str(&json)
                     .map_err(|e| crate::Error::new(format!("parse config: {e}")))?;
@@ -209,6 +317,7 @@ impl<R: Runtime> Widget<R> {
     }
 
     pub fn poll_pending_actions(&self, group: &str) -> crate::Result<Vec<Value>> {
+        self.remember_group(group);
         let res: Value = self
             .handle
             .run_mobile_plugin("pollPendingActions", GroupPayload { group })?;

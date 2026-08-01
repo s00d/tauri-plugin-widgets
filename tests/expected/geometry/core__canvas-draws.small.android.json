@@ -1,0 +1,42 @@
+{
+  "kind": "FrameLayout",
+  "rect": [
+    0,
+    0,
+    510,
+    510
+  ],
+  "children": [
+    {
+      "kind": "FrameLayout",
+      "rect": [
+        0,
+        0,
+        510,
+        510
+      ],
+      "children": [
+        {
+          "kind": "FrameLayout",
+          "rect": [
+            0,
+            0,
+            510,
+            510
+          ],
+          "children": [
+            {
+              "kind": "ImageView",
+              "rect": [
+                0,
+                0,
+                438,
+                438
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

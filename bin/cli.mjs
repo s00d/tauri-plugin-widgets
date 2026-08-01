@@ -47,9 +47,23 @@ function copyTemplate(src, dest, replacements) {
   writeFileSync(dest, content, "utf-8");
 }
 
+function widgetTemplateReplacements(appGroup, opts = {}) {
+  const widgetKind = opts.widgetKind || "MyTauriWidget";
+  const widgetId = opts.widgetId || "default";
+  return {
+    "{{APP_GROUP}}": appGroup,
+    "{{WIDGET_KIND}}": widgetKind,
+    "{{WIDGET_ID}}": widgetId,
+    "group.com.example.myapp": appGroup,
+  };
+}
+
 function renderIosWidgetSwift(templatePath, destPath, appGroup) {
   let content = readFileSync(templatePath, "utf-8");
-  content = replaceAll(content, "group.com.example.myapp", appGroup);
+  const replacements = widgetTemplateReplacements(appGroup);
+  for (const [search, replacement] of Object.entries(replacements)) {
+    content = replaceAll(content, search, replacement);
+  }
 
   // Xcode-generated widget targets usually include `<Name>Bundle.swift` with @main.
   // In that case this file should declare `struct <Name>: Widget` (without @main)
@@ -211,7 +225,7 @@ const initMacos = defineCommand({
     copyTemplate(
       join(templateDir, "MyWidget.swift"),
       join(widgetDir, "Sources", "MyWidget.swift"),
-      { "group.com.example.myapp": appGroup },
+      widgetTemplateReplacements(appGroup),
     );
     console.log("  Created Sources/MyWidget.swift");
 
@@ -361,7 +375,7 @@ const initIos = defineCommand({
     const localTemplatePath = join(targetDir, "MyWidget.swift");
 
     if (!existsSync(localTemplatePath) || args.force) {
-      copyTemplate(templatePath, localTemplatePath, { "group.com.example.myapp": appGroup });
+      copyTemplate(templatePath, localTemplatePath, widgetTemplateReplacements(appGroup));
       console.log("  Wrote ios-widget/MyWidget.swift");
     } else {
       console.log("  Kept existing ios-widget/MyWidget.swift (use --force to overwrite)");

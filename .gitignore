@@ -7,6 +7,15 @@ dist
 .r2x
 output.md
 swift/.build
+swift/.swiftpm
+
 *.xcarchive
 DerivedData
 GUIDE.md
+android/local.properties
+android/.gradle/
+android/.idea/
+android/build/
+android/.cxx/
+
+test-results/
