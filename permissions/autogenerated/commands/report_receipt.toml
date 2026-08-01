@@ -1,0 +1,13 @@
+# Automatically generated - DO NOT EDIT!
+
+"$schema" = "../../schemas/schema.json"
+
+[[permission]]
+identifier = "allow-report-receipt"
+description = "Enables the report_receipt command without any pre-configured scope."
+commands.allow = ["report_receipt"]
+
+[[permission]]
+identifier = "deny-report-receipt"
+description = "Denies the report_receipt command without any pre-configured scope."
+commands.deny = ["report_receipt"]

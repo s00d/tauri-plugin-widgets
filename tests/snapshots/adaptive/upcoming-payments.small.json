@@ -1,0 +1,101 @@
+{
+  "$schema": "http://adaptivecards.io/schemas/adaptive-card.json",
+  "body": [
+    {
+      "id": "card:#1c1c1e;gap:10",
+      "items": [
+        {
+          "id": "rule:#3878fa",
+          "items": [],
+          "separator": true,
+          "spacing": "Medium",
+          "type": "Container"
+        },
+        {
+          "columns": [
+            {
+              "items": [
+                {
+                  "horizontalAlignment": "Center",
+                  "id": "badge:overlay",
+                  "items": [
+                    {
+                      "horizontalAlignment": "Center",
+                      "size": "Medium",
+                      "type": "Image",
+                      "url": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACwAAAAsCAYAAAAehFoBAAABi0lEQVR4Ae3AA6AkWZbG8f937o3IzKdyS2Oubdu2bdu2bdu2bWmMnpZKr54yMyLu+Xa3anqmhztr1U8Pepdbzf8e6EHvcqv53wM96F1uNf97oAe9y63mfw/0oHe51fzvgR70Lrea/z3Qg97lVvO/B3rQu9xq/vdAD3qXW83/HuhB73Kr+d8DPehdbjX/e6AHvcut5n8P9KB3udX874Ee9C63mv890IPe5Vbzvwd60Lvcav73QA96l1vN/x7oQe9yq/nfAz3oXW41/3ugB73LreZ/D/Sgd7nV/O+BHvQut5r/PdCD3uVW878HetC73Gr+90APepdbzf8e6EHvcqv53wM96F1uNf97oAe9y63mfw/0oHe51fzvgR70Lrea/z3Qg97lVvO/B3rQu9xq/vdAD3qXW83/HuhB73Kr+d8DPehdbjX/e6AHvcut5n8P9KB3udX874Ee9C63mv890IPe5Vbzvwd60Lvcav73QA96l1vN/x7oQe9yq/nfAz3oXW41/3ugB73LreZ/D/4RfO1nIZTpJoQAAAAASUVORK5CYII="
+                    },
+                    {
+                      "color": "Light",
+                      "id": "fg:#ffffff",
+                      "size": "Medium",
+                      "text": "S",
+                      "type": "TextBlock",
+                      "weight": "Bolder",
+                      "wrap": true
+                    }
+                  ],
+                  "spacing": "None",
+                  "type": "Container"
+                }
+              ],
+              "type": "Column",
+              "width": "auto"
+            },
+            {
+              "items": [
+                {
+                  "id": "gap:2",
+                  "items": [
+                    {
+                      "color": "Default",
+                      "size": "Default",
+                      "text": "Streaming",
+                      "type": "TextBlock",
+                      "weight": "Bolder",
+                      "wrap": false
+                    },
+                    {
+                      "color": "Light",
+                      "size": "Small",
+                      "text": "Jun 1",
+                      "type": "TextBlock",
+                      "weight": "Bolder",
+                      "wrap": false
+                    }
+                  ],
+                  "spacing": "None",
+                  "type": "Container"
+                }
+              ],
+              "type": "Column",
+              "width": 100
+            }
+          ],
+          "id": "gap:10",
+          "type": "ColumnSet"
+        },
+        {
+          "spacing": "Medium",
+          "text": " ",
+          "type": "TextBlock"
+        },
+        {
+          "color": "Accent",
+          "horizontalAlignment": "Left",
+          "id": "fg:#3878fa",
+          "size": "Medium",
+          "text": "$12.50",
+          "type": "TextBlock",
+          "weight": "Bolder",
+          "wrap": false
+        }
+      ],
+      "spacing": "None",
+      "style": "emphasis",
+      "type": "Container"
+    }
+  ],
+  "type": "AdaptiveCard",
+  "version": "1.5"
+}

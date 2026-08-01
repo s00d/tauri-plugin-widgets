@@ -1,0 +1,32 @@
+{
+  "$schema": "http://adaptivecards.io/schemas/adaptive-card.json",
+  "body": [
+    {
+      "horizontalAlignment": "Center",
+      "id": "badge:overlay",
+      "items": [
+        {
+          "horizontalAlignment": "Center",
+          "size": "Medium",
+          "type": "Image",
+          "url": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACgAAAAoCAYAAACM/rhtAAADsUlEQVR4Ae3AA6AkWZbG8f937o3IzKdyS2Oubdu2bdu2bdu2bWmMnpZKr54yMyLu+Xa3anqmhztr1U/8G73yG7/zg9vY3iqt15Z9HDhueGmeSfDXlm4V/LWKf+bPfu3H/pp/PcS/wmu/9XsfP9g7+iib9wY/mH8V3Srx07WPr/njX/7hW3nRIF4Er/3W7338YO/oo2x/NHCcfy/x3ds7mx/z2z/93bu8cIh/wcu93ju+NenvAo7zH2uX0Pv8xW/86E/zgiFeiJd/3Xf8KtsfzX8m8d1/8Zs/9j48f4gX4OVf5x1+y/Da/FeQfnp7Z+N9fvunv3uX54R4Pl7udd/huzDvzX8l6af/4jd/9G14Tojn8nKv+w7fhXlv/juIr/mL3/yxj+bZEA/wcq/3jm9N+qf47xR6m7/4jR/9aa5APNNrv/V7H9+/dPh04Dj/vXa3j20+5Ld/+rt3AcQzvdzrvsNXYz6K/xH0PX/xWz/63gACeOU3fucHj+v2dP4H6WblIX/8yz98qwBe/nXf8bNtfxb/k4iv+Yvf/LGPFsDLvc47XASO8z+Kbv2L3/rRh+jlX/+dX9ut/Rb/A0XlZfTyr/uOn237s/gfSIqP0cu/zjv8tuG1+B9I8DN6udd5h4vAcf4HEvy1Xu513sH8z4Ve7nXewfzPhV7udd7B/M+FXu513sH8z4Ve7nXe8a/BL8X/SPobvfzrvMNPG96K/4EEP6OXf913/Gzbn8X/QFJ8jF7hDd7hpXPir/gfKCovI4CXe513uBV4EP+zPOMvfuvHHiyAl3vdd/hqzEfxP4n4mr/4zR/7aAG88hu/84PHdXs6/4N0s/KQP/7lH75VPNPLvc47fjf4vfifQHzNX/zmj300gHim137r9z6+f+nwVuAY/70ubR/bfPBv//R37wKIB3i513vHtyb9U/x3Cr3NX/zGj/40VyCey8u9zjt+N/i9+O8gvuYvfvPHPppnQzwfL/867/DThrfiv5DgZ/78t37srXlOiOfjtd/6vY8fXDr8bsNb8V9A8DNbxzbf+7d/+rt3eU6IF+LlXucdvxv8XvxnEl/zF7/5Yx/N84f4F7zc673jW5P+buAY/7EuEXrvv/iNH/1pXjDEi+C13/q9j+9fOvpq8HvxH0F8zfbO5mf/9k9/9y4vHOJf4ZXf+J0fPA7tozFvDTyIf51nIH6668tX//Ev//CtvGgQ/0av8Abv8NJu8do4X9voweCX4jnob4RvRfHbKvnbf/ZrP/bX/Ovxj/1OEvd/NWCYAAAAAElFTkSuQmCC"
+        },
+        {
+          "color": "Light",
+          "horizontalAlignment": "Center",
+          "id": "fg:#fff",
+          "size": "Medium",
+          "text": "Z",
+          "type": "TextBlock",
+          "weight": "Default",
+          "wrap": true
+        }
+      ],
+      "spacing": "None",
+      "style": "emphasis",
+      "type": "Container"
+    }
+  ],
+  "type": "AdaptiveCard",
+  "version": "1.5"
+}

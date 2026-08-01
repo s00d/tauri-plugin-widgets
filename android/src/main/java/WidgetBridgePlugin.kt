@@ -72,6 +72,16 @@ class GetWidgetConfigRequest {
     var widgetId: String = "default"
 }
 
+@InvokeArg
+class ReportReceiptRequest {
+    var receiptJson: String = ""
+}
+
+@InvokeArg
+class GroupOnlyRequest {
+    var group: String = ""
+}
+
 @TauriPlugin
 class WidgetBridgePlugin(private val activity: Activity) : Plugin(activity) {
 
@@ -389,8 +399,19 @@ class WidgetBridgePlugin(private val activity: Activity) : Plugin(activity) {
         val context = activity.applicationContext
         val appWidgetManager = AppWidgetManager.getInstance(context)
         val receiverComponent = ComponentName(context, TauriGlanceWidgetReceiver::class.java)
-        val ids = appWidgetManager.getAppWidgetIds(receiverComponent)
-        Log.d(TAG, "syncConfigToGlanceState widgetId=$widgetId appWidgetIds=${ids.size} cfgHash=${cfgHash(config)}")
+        val ids = appWidgetManager.getAppWidgetIds(receiverComponent).toMutableList()
+        // Prefer recently-confirmed live instances from receipts.
+        val live = WidgetReceipts.liveInstances(context, group, widgetId)
+        if (live.isNotEmpty()) {
+            ids.retainAll(live.toSet())
+            // Always include currently mapped ids for this widgetId even if receipt aged out.
+            for (id in appWidgetManager.getAppWidgetIds(receiverComponent)) {
+                if (WidgetStoreKeys.mappedWidgetId(context, id) == widgetId && id !in ids) {
+                    ids.add(id)
+                }
+            }
+        }
+        Log.d(TAG, "syncConfigToGlanceState widgetId=$widgetId appWidgetIds=${ids.size} live=${live.size} cfgHash=${cfgHash(config)}")
 
         runBlocking {
             val manager = GlanceAppWidgetManager(context)
@@ -398,11 +419,19 @@ class WidgetBridgePlugin(private val activity: Activity) : Plugin(activity) {
             var matched = 0
             var boundUnmapped = 0
             val hasMappedTarget = ids.any { WidgetStoreKeys.mappedWidgetId(context, it) == widgetId }
+                || appWidgetManager.getAppWidgetIds(receiverComponent)
+                    .any { WidgetStoreKeys.mappedWidgetId(context, it) == widgetId }
             var claimedUnmapped = false
-            for (appWidgetId in ids) {
+            val allIds = if (ids.isEmpty()) {
+                appWidgetManager.getAppWidgetIds(receiverComponent).toList()
+            } else {
+                ids
+            }
+            for (appWidgetId in allIds) {
                 val mapped = WidgetStoreKeys.mappedWidgetId(context, appWidgetId)
                 val shouldUpdate = when {
                     mapped == widgetId -> true
+                    live.contains(appWidgetId) -> true
                     // No instance yet for this logical id: claim exactly one unmapped slot.
                     mapped.isNullOrBlank() && !hasMappedTarget && !claimedUnmapped -> {
                         WidgetStoreKeys.bindInstance(context, appWidgetId, widgetId, group)
@@ -539,6 +568,30 @@ class WidgetBridgePlugin(private val activity: Activity) : Plugin(activity) {
             invoke.resolve(JSObject().put("results", out))
         } catch (e: Exception) {
             invoke.reject("Failed to poll actions: ${e.message}")
+        }
+    }
+
+    @Command
+    fun reportReceipt(invoke: Invoke) {
+        try {
+            val args = invoke.parseArgs(ReportReceiptRequest::class.java)
+            val receipt = JSONObject(args.receiptJson.ifBlank { "{}" })
+            WidgetReceipts.write(activity.applicationContext, receipt)
+            invoke.resolve(JSObject().put("results", true))
+        } catch (e: Exception) {
+            Log.e(TAG, "reportReceipt failed ${e.message}", e)
+            invoke.reject("Failed to report receipt: ${e.message}")
+        }
+    }
+
+    @Command
+    fun getWidgetDiagnostics(invoke: Invoke) {
+        try {
+            val args = invoke.parseArgs(GroupOnlyRequest::class.java)
+            val arr = WidgetReceipts.list(activity.applicationContext, args.group)
+            invoke.resolve(JSObject().put("results", arr))
+        } catch (e: Exception) {
+            invoke.reject("Failed to get diagnostics: ${e.message}")
         }
     }
 

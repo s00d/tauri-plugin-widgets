@@ -1,0 +1,114 @@
+{
+  "$schema": "http://adaptivecards.io/schemas/adaptive-card.json",
+  "body": [
+    {
+      "id": "card:#0f172a;gap:8",
+      "items": [
+        {
+          "color": "Light",
+          "id": "fg:#f8fafc",
+          "size": "Default",
+          "text": "Schedule",
+          "type": "TextBlock",
+          "weight": "Bolder",
+          "wrap": true
+        },
+        {
+          "columns": [
+            {
+              "items": [
+                {
+                  "id": "gap:4",
+                  "items": [
+                    {
+                      "color": "Light",
+                      "id": "fg:#94a3b8",
+                      "size": "Small",
+                      "text": "Time",
+                      "type": "TextBlock",
+                      "weight": "Default",
+                      "wrap": true
+                    },
+                    {
+                      "size": "Default",
+                      "text": "2099-06-15T14:30:00Z",
+                      "type": "TextBlock",
+                      "wrap": true
+                    }
+                  ],
+                  "spacing": "None",
+                  "type": "Container"
+                }
+              ],
+              "type": "Column",
+              "width": "auto"
+            },
+            {
+              "items": [
+                {
+                  "id": "gap:4",
+                  "items": [
+                    {
+                      "color": "Light",
+                      "id": "fg:#94a3b8",
+                      "size": "Small",
+                      "text": "Relative",
+                      "type": "TextBlock",
+                      "weight": "Default",
+                      "wrap": true
+                    },
+                    {
+                      "size": "Default",
+                      "text": "2099-12-25T00:00:00Z",
+                      "type": "TextBlock",
+                      "wrap": true
+                    }
+                  ],
+                  "spacing": "None",
+                  "type": "Container"
+                }
+              ],
+              "type": "Column",
+              "width": "auto"
+            },
+            {
+              "items": [
+                {
+                  "id": "gap:4",
+                  "items": [
+                    {
+                      "color": "Light",
+                      "id": "fg:#94a3b8",
+                      "size": "Small",
+                      "text": "Countdown",
+                      "type": "TextBlock",
+                      "weight": "Default",
+                      "wrap": true
+                    },
+                    {
+                      "size": "Default",
+                      "text": "2099-01-01T00:00:00Z",
+                      "type": "TextBlock",
+                      "wrap": true
+                    }
+                  ],
+                  "spacing": "None",
+                  "type": "Container"
+                }
+              ],
+              "type": "Column",
+              "width": "auto"
+            }
+          ],
+          "id": "gap:16",
+          "type": "ColumnSet"
+        }
+      ],
+      "spacing": "None",
+      "style": "emphasis",
+      "type": "Container"
+    }
+  ],
+  "type": "AdaptiveCard",
+  "version": "1.5"
+}

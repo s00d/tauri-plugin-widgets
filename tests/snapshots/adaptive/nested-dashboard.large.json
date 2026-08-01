@@ -1,0 +1,495 @@
+{
+  "$schema": "http://adaptivecards.io/schemas/adaptive-card.json",
+  "body": [
+    {
+      "id": "card:#0f172a;gap:8",
+      "items": [
+        {
+          "columns": [
+            {
+              "items": [
+                {
+                  "horizontalAlignment": "Center",
+                  "id": "badge:overlay",
+                  "items": [
+                    {
+                      "horizontalAlignment": "Center",
+                      "size": "Medium",
+                      "type": "Image",
+                      "url": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACwAAAAsCAYAAAAehFoBAAAD8UlEQVR4Ae3AA6AkWZbG8f937o3IzKdyS2Oubdu2bdu2bdu2bWmMnpZKr54yMyLu+Xa3anqmhztr1U/8O73CG7zDS7vprbBfmyuOG16aZxL8NbCL9NuE/vrPf/1HfoZ/O8S/wcu//ju/trO9F+atgeP8a4nvVpTv+fNf/+Hf5l8H8a/w8q//zq9Na59leG3+Q+hWgo/5i9/40Z/mRYN4EbzyG7/zg6d1+y7Da/OfQPDbdVbe549/+Ydv5YVD/Ate/vXf+bXd2k8Bx/nPtRviY/7sN3/su3nBEC/Ey7/uO36W7c/mv5Ckr/7z3/zRj+H5Q7wAL/e67/BdmPfmv4P47r/4zR97H54X4vl4hdd9h/dO8138dxJf8xe/+WMfzXNCPJdXeN13eO8038X/ACHe589+88e+m2dDPMArv/E7P3hct78CjvM/w243Ky/zx7/8w7dyBeIBXu513/GnsN+a/0EEv/3nv/Vjr8MViGd6udd7x7cm/VP8TxR6m7/4jR/9aQDxTC/3Ou/4dPCD+R9Jt/7Fb/3oQwAE8PKv/86v7dZ+i//BVMrr/Pmv//BvC+DlXucdvxv8XvyPpu/5i9/60ffWK7/xOz94XLen87/AX/zWj0kv93rv+Nakf4r/BVTK6+jlX/cdP9v2Z/G/gKTP0cu/zjv8tuG1+F9A8Dt6udd5h4vAcf4XEPy1Xu513sH874Fe7nXewfzvgV7udd7B/O+BXu513sH874Fe7nXe8a/BL8X/CvobvfzrvMNvG16L/wUEv6OXf913/Gzbn8X/ApI+Ry/3eu/41qR/iv8FVMrrCODlXucdzP8Cf/FbPyYBvNzrvON3g9+L/9H0PX/xWz/63gJ4udd7x7cm/VP8D6ZSXufPf/2Hf1s808u9zjvcCjyI/5me8Re/9WMPBhDP9HKv945vTfqn+J8o9DZ/8Rs/+tMA4gFe/nXe4bcNr8X/IILf+fPf+rHX5grEA7zyG7/zg8d1+2vgGP8zXOpm5aX/+Jd/+FauQDyXV3jdd3jvNN/F/wSht/mL3/jRn+bZEM/Hy73uO3w15qP4byTpc/78N3/0s3lOiBfg5V7nHb8b/F78t9D3/MVv/eh787wQL8TLve47fDXmo/gvJOlz/vw3f/Szef4Q/4JXeN13eO80Xw0c4z/XJULv/Re/8aM/zQuGeBG88hu/84Ondftuw2vxn0DwO3VW3vuPf/mHb+WFQ/wrvNzrveNbk/5q4EH8x3gGoY/+i9/40Z/mRYP4N3j513/n13bL9wa/F/8m+h6V+O4///Uf/m3+dRD/Ti//+u/82mS+NvZrGx0HvxTPQX8jvIv020T89p//+g//Nv92/CO/YyBbKYH/kgAAAABJRU5ErkJggg=="
+                    },
+                    {
+                      "color": "Light",
+                      "id": "fg:#fff",
+                      "size": "Default",
+                      "text": "42",
+                      "type": "TextBlock",
+                      "weight": "Bolder",
+                      "wrap": true
+                    }
+                  ],
+                  "spacing": "None",
+                  "type": "Container"
+                }
+              ],
+              "type": "Column",
+              "width": "auto"
+            },
+            {
+              "items": [
+                {
+                  "id": "gap:2",
+                  "items": [
+                    {
+                      "color": "Light",
+                      "id": "fg:#f8fafc",
+                      "size": "Default",
+                      "text": "Nested Dashboard",
+                      "type": "TextBlock",
+                      "weight": "Bolder",
+                      "wrap": false
+                    },
+                    {
+                      "color": "Light",
+                      "id": "fg:#94a3b8",
+                      "size": "Small",
+                      "text": "hstack → zstack + grid + list",
+                      "type": "TextBlock",
+                      "weight": "Default",
+                      "wrap": false
+                    }
+                  ],
+                  "spacing": "None",
+                  "type": "Container"
+                }
+              ],
+              "type": "Column",
+              "width": "stretch"
+            },
+            {
+              "items": [],
+              "type": "Column",
+              "width": "stretch"
+            },
+            {
+              "items": [
+                {
+                  "actions": [
+                    {
+                      "id": "bg:#2563eb;fg:#fff",
+                      "title": "Sync",
+                      "type": "Action.Execute",
+                      "verb": "dash_sync"
+                    }
+                  ],
+                  "type": "ActionSet"
+                }
+              ],
+              "type": "Column",
+              "width": "auto"
+            }
+          ],
+          "id": "gap:10",
+          "type": "ColumnSet"
+        },
+        {
+          "id": "rule:#334155",
+          "items": [],
+          "separator": true,
+          "spacing": "Medium",
+          "type": "Container"
+        },
+        {
+          "id": "gap:8",
+          "items": [
+            {
+              "columns": [
+                {
+                  "items": [
+                    {
+                      "id": "card:#1e293b;gap:4",
+                      "items": [
+                        {
+                          "color": "Light",
+                          "id": "fg:#94a3b8",
+                          "size": "Small",
+                          "text": "CPU",
+                          "type": "TextBlock",
+                          "weight": "Default",
+                          "wrap": true
+                        },
+                        {
+                          "color": "Good",
+                          "id": "fg:#22c55e",
+                          "size": "Medium",
+                          "text": "38%",
+                          "type": "TextBlock",
+                          "weight": "Bolder",
+                          "wrap": true
+                        },
+                        {
+                          "items": [
+                            {
+                              "columns": [
+                                {
+                                  "id": "fill:#22c55e",
+                                  "items": [],
+                                  "style": "good",
+                                  "type": "Column",
+                                  "width": 38
+                                },
+                                {
+                                  "items": [],
+                                  "type": "Column",
+                                  "width": 62
+                                }
+                              ],
+                              "type": "ColumnSet"
+                            }
+                          ],
+                          "type": "Container"
+                        }
+                      ],
+                      "spacing": "None",
+                      "style": "emphasis",
+                      "type": "Container"
+                    }
+                  ],
+                  "type": "Column",
+                  "width": "stretch"
+                },
+                {
+                  "items": [
+                    {
+                      "id": "card:#1e293b;gap:4",
+                      "items": [
+                        {
+                          "color": "Light",
+                          "id": "fg:#94a3b8",
+                          "size": "Small",
+                          "text": "RAM",
+                          "type": "TextBlock",
+                          "weight": "Default",
+                          "wrap": true
+                        },
+                        {
+                          "color": "Attention",
+                          "id": "fg:#f59e0b",
+                          "size": "Medium",
+                          "text": "62%",
+                          "type": "TextBlock",
+                          "weight": "Bolder",
+                          "wrap": true
+                        },
+                        {
+                          "items": [
+                            {
+                              "columns": [
+                                {
+                                  "id": "fill:#f59e0b",
+                                  "items": [],
+                                  "style": "attention",
+                                  "type": "Column",
+                                  "width": 62
+                                },
+                                {
+                                  "items": [],
+                                  "type": "Column",
+                                  "width": 38
+                                }
+                              ],
+                              "type": "ColumnSet"
+                            }
+                          ],
+                          "type": "Container"
+                        }
+                      ],
+                      "spacing": "None",
+                      "style": "emphasis",
+                      "type": "Container"
+                    }
+                  ],
+                  "type": "Column",
+                  "width": "stretch"
+                }
+              ],
+              "id": "gap:8",
+              "type": "ColumnSet"
+            },
+            {
+              "columns": [
+                {
+                  "items": [
+                    {
+                      "id": "card:#1e293b;gap:4",
+                      "items": [
+                        {
+                          "color": "Light",
+                          "id": "fg:#94a3b8",
+                          "size": "Small",
+                          "text": "Disk",
+                          "type": "TextBlock",
+                          "weight": "Default",
+                          "wrap": true
+                        },
+                        {
+                          "color": "Attention",
+                          "id": "fg:#ef4444",
+                          "size": "Medium",
+                          "text": "81%",
+                          "type": "TextBlock",
+                          "weight": "Bolder",
+                          "wrap": true
+                        },
+                        {
+                          "items": [
+                            {
+                              "columns": [
+                                {
+                                  "id": "fill:#ef4444",
+                                  "items": [],
+                                  "style": "attention",
+                                  "type": "Column",
+                                  "width": 81
+                                },
+                                {
+                                  "items": [],
+                                  "type": "Column",
+                                  "width": 19
+                                }
+                              ],
+                              "type": "ColumnSet"
+                            }
+                          ],
+                          "type": "Container"
+                        }
+                      ],
+                      "spacing": "None",
+                      "style": "emphasis",
+                      "type": "Container"
+                    }
+                  ],
+                  "type": "Column",
+                  "width": "stretch"
+                },
+                {
+                  "items": [
+                    {
+                      "id": "card:#1e293b;gap:4",
+                      "items": [
+                        {
+                          "color": "Light",
+                          "id": "fg:#94a3b8",
+                          "size": "Small",
+                          "text": "Net",
+                          "type": "TextBlock",
+                          "weight": "Default",
+                          "wrap": true
+                        },
+                        {
+                          "color": "Accent",
+                          "id": "fg:#38bdf8",
+                          "size": "Medium",
+                          "text": "12MB/s",
+                          "type": "TextBlock",
+                          "weight": "Bolder",
+                          "wrap": true
+                        },
+                        {
+                          "items": [
+                            {
+                              "columns": [
+                                {
+                                  "id": "fill:#38bdf8",
+                                  "items": [],
+                                  "style": "accent",
+                                  "type": "Column",
+                                  "width": 24
+                                },
+                                {
+                                  "items": [],
+                                  "type": "Column",
+                                  "width": 76
+                                }
+                              ],
+                              "type": "ColumnSet"
+                            }
+                          ],
+                          "type": "Container"
+                        }
+                      ],
+                      "spacing": "None",
+                      "style": "emphasis",
+                      "type": "Container"
+                    }
+                  ],
+                  "type": "Column",
+                  "width": "stretch"
+                }
+              ],
+              "id": "gap:8",
+              "type": "ColumnSet"
+            }
+          ],
+          "spacing": "None",
+          "type": "Container"
+        },
+        {
+          "id": "rule:#334155",
+          "items": [],
+          "separator": true,
+          "spacing": "Medium",
+          "type": "Container"
+        },
+        {
+          "horizontalAlignment": "Left",
+          "id": "gap:3",
+          "items": [
+            {
+              "columns": [
+                {
+                  "id": "mark:col",
+                  "items": [
+                    {
+                      "color": "Good",
+                      "horizontalAlignment": "Center",
+                      "size": "Small",
+                      "text": "✓",
+                      "type": "TextBlock",
+                      "wrap": false
+                    }
+                  ],
+                  "type": "Column",
+                  "width": "auto"
+                },
+                {
+                  "items": [
+                    {
+                      "color": "Light",
+                      "horizontalAlignment": "Left",
+                      "size": "Small",
+                      "text": "api-gateway",
+                      "type": "TextBlock",
+                      "wrap": true
+                    }
+                  ],
+                  "type": "Column",
+                  "width": "stretch"
+                }
+              ],
+              "type": "ColumnSet"
+            },
+            {
+              "columns": [
+                {
+                  "id": "mark:col",
+                  "items": [
+                    {
+                      "color": "Good",
+                      "horizontalAlignment": "Center",
+                      "size": "Small",
+                      "text": "✓",
+                      "type": "TextBlock",
+                      "wrap": false
+                    }
+                  ],
+                  "type": "Column",
+                  "width": "auto"
+                },
+                {
+                  "items": [
+                    {
+                      "color": "Light",
+                      "horizontalAlignment": "Left",
+                      "size": "Small",
+                      "text": "worker-pool",
+                      "type": "TextBlock",
+                      "wrap": true
+                    }
+                  ],
+                  "type": "Column",
+                  "width": "stretch"
+                }
+              ],
+              "type": "ColumnSet"
+            },
+            {
+              "columns": [
+                {
+                  "id": "mark:col",
+                  "items": [
+                    {
+                      "color": "Light",
+                      "horizontalAlignment": "Center",
+                      "size": "Small",
+                      "text": "○",
+                      "type": "TextBlock",
+                      "wrap": false
+                    }
+                  ],
+                  "type": "Column",
+                  "width": "auto"
+                },
+                {
+                  "items": [
+                    {
+                      "color": "Light",
+                      "horizontalAlignment": "Left",
+                      "size": "Small",
+                      "text": "cache-redis",
+                      "type": "TextBlock",
+                      "wrap": true
+                    }
+                  ],
+                  "type": "Column",
+                  "width": "stretch"
+                }
+              ],
+              "type": "ColumnSet"
+            },
+            {
+              "columns": [
+                {
+                  "id": "mark:col",
+                  "items": [
+                    {
+                      "color": "Light",
+                      "horizontalAlignment": "Center",
+                      "size": "Small",
+                      "text": " ",
+                      "type": "TextBlock",
+                      "wrap": false
+                    }
+                  ],
+                  "type": "Column",
+                  "width": "auto"
+                },
+                {
+                  "items": [
+                    {
+                      "color": "Light",
+                      "horizontalAlignment": "Left",
+                      "size": "Small",
+                      "text": "queue-amqp",
+                      "type": "TextBlock",
+                      "wrap": true
+                    }
+                  ],
+                  "type": "Column",
+                  "width": "stretch"
+                }
+              ],
+              "type": "ColumnSet"
+            }
+          ],
+          "type": "Container"
+        }
+      ],
+      "spacing": "None",
+      "style": "emphasis",
+      "type": "Container"
+    }
+  ],
+  "type": "AdaptiveCard",
+  "version": "1.5"
+}

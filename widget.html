@@ -589,7 +589,49 @@ function renderCanvas(d){
   applyStyle(s,d);return s;
 }
 
-function render(cfg){
+function collectTrace(node, rendered, skipped){
+  if(!node||typeof node!=='object')return;
+  var t=node.type;
+  if(typeof t==='string'&&t){
+    rendered.push(t);
+    if(t==='canvas'&&!(window.Path2D)){
+      skipped.push({type:t,reason:'unsupported'});
+    }
+  }
+  var kids=node.children;
+  if(Array.isArray(kids))kids.forEach(function(c){collectTrace(c,rendered,skipped)});
+  if(Array.isArray(node.items))node.items.forEach(function(it){
+    if(it&&it.children)collectTrace(it,rendered,skipped);
+  });
+}
+
+function reportReceipt(cfg, source){
+  try{
+    var label=(window.__TAURI_INTERNALS__&&window.__TAURI_INTERNALS__.metadata&&
+      window.__TAURI_INTERNALS__.metadata.currentWindow&&
+      window.__TAURI_INTERNALS__.metadata.currentWindow.label)||'desktop';
+    var rendered=[], skipped=[];
+    var branch=SIZE?(cfg&&(cfg[SIZE]||cfg.small||cfg.medium||cfg.large)):(cfg&&(cfg.small||cfg.medium||cfg.large));
+    collectTrace(branch,rendered,skipped);
+    var nonce=0;
+    if(cfg&&cfg.__nonce!=null)nonce=Number(cfg.__nonce)||0;
+    invoke('plugin:widgets|report_receipt',{receipt:{
+      widgetId:WIDGET_ID,
+      group:GROUP,
+      instance:label,
+      nonce:nonce,
+      size:SIZE||'small',
+      theme:document.documentElement.getAttribute('data-theme')||undefined,
+      schema:1,
+      source:source||'pull',
+      rendered:rendered,
+      skipped:skipped,
+      ts:Date.now()
+    }}).catch(function(){});
+  }catch(_){}
+}
+
+function render(cfg, source){
   clearTimers();
   if(!cfg){root.innerHTML='<div class="w-empty"><div><div style="font-size:28px;margin-bottom:4px">&#x1F4CC;</div><div style="font-size:14px;opacity:.7">No widget config</div></div></div>';return}
   var data;
@@ -618,29 +660,31 @@ function render(cfg){
   };
   wrapper.appendChild(cls);
   root.appendChild(wrapper);
+  reportReceipt(cfg, source||'pull');
 }
 
 function loadConfig(){
   invoke('plugin:widgets|get_widget_config',{group:GROUP,widgetId:WIDGET_ID})
-    .then(function(cfg){render(cfg)})
+    .then(function(cfg){render(cfg,'pull')})
     .catch(function(e){clearTimers();root.innerHTML='<div class="w-err">'+String(e)+'</div>'});
 }
 
 function init(){
   if(!window.__TAURI_INTERNALS__){setTimeout(init,50);return}
-  loadConfig();
+  // Listeners BEFORE loadConfig — otherwise a push between the two is dropped.
   listen('widget-config-push',function(ev){
     var p=ev.payload;
     if(p&&p.config){
       if(p.widgetId&&p.widgetId!==WIDGET_ID)return;
       if(p.group&&p.group!==GROUP)return;
-      render(p.config);
+      render(p.config,'push');
     }else{
-      render(p);
+      render(p,'push');
     }
   });
-  listen('widget-update',loadConfig);
-  listen('widget-reload',loadConfig);
+  listen('widget-update',function(){loadConfig()});
+  listen('widget-reload',function(){loadConfig()});
+  loadConfig();
 }
 
 if(document.readyState==='complete'||document.readyState==='interactive')init();

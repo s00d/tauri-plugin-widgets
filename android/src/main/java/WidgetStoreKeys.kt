@@ -9,6 +9,7 @@ object WidgetStoreKeys {
     const val META_NONCE = "__meta_nonce__"
     const val META_UPDATED_AT = "__meta_updated_at__"
     const val META_PREFS = "__tauri_widget_meta__"
+    const val RECEIPTS_PREFS = "__tauri_widget_receipts__"
     const val KEY_ACTIVE_GROUP = "active_group"
     const val KEY_ACTIVE_WIDGET_ID = "active_widget_id"
     const val KEY_REGISTERED = "registered_kinds"

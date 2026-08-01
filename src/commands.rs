@@ -136,3 +136,21 @@ pub fn poll_pending_actions<R: Runtime>(
 ) -> Result<Vec<serde_json::Value>, Error> {
     widget.poll_pending_actions(&group)
 }
+
+#[tauri::command]
+pub fn report_receipt<R: Runtime>(
+    _app: AppHandle<R>,
+    widget: State<'_, Widget<R>>,
+    receipt: crate::receipt::WidgetRenderReceipt,
+) -> Result<bool, Error> {
+    widget.report_receipt(receipt)
+}
+
+#[tauri::command]
+pub fn get_widget_diagnostics<R: Runtime>(
+    _app: AppHandle<R>,
+    widget: State<'_, Widget<R>>,
+    group: String,
+) -> Result<Vec<crate::receipt::WidgetRenderReceipt>, Error> {
+    widget.get_widget_diagnostics(&group)
+}

@@ -48,15 +48,56 @@ public struct WidgetActionEnvelope: Codable {
     }
 }
 
-/// Async delivery receipt from the widget extension (outside config nonce space).
+/// Async delivery / render receipt (outside config nonce space).
 public struct WidgetTransportReceipt: Codable {
+    /// Transport / channel that supplied the config (`appgroup`|`defaults`|`container`|…).
+    public let source: String
+    /// Legacy alias written alongside `source` for older host readers.
     public let readFrom: String
+    public let widgetId: String
+    public let group: String
+    public let instance: String
     public let nonce: UInt64
+    public let size: String?
+    public let theme: String?
+    public let schema: UInt32
+    public let rendered: [String]
+    public let skipped: [SkippedElement]
     public let ts: UInt64
 
-    public init(readFrom: String, nonce: UInt64, ts: UInt64) {
-        self.readFrom = readFrom
+    public struct SkippedElement: Codable {
+        public let type: String
+        public let reason: String
+        public init(type: String, reason: String) {
+            self.type = type
+            self.reason = reason
+        }
+    }
+
+    public init(
+        source: String,
+        widgetId: String,
+        group: String,
+        instance: String,
+        nonce: UInt64,
+        size: String? = nil,
+        theme: String? = nil,
+        schema: UInt32 = 1,
+        rendered: [String] = [],
+        skipped: [SkippedElement] = [],
+        ts: UInt64 = UInt64(Date().timeIntervalSince1970 * 1000)
+    ) {
+        self.source = source
+        self.readFrom = source
+        self.widgetId = widgetId
+        self.group = group
+        self.instance = instance
         self.nonce = nonce
+        self.size = size
+        self.theme = theme
+        self.schema = schema
+        self.rendered = rendered
+        self.skipped = skipped
         self.ts = ts
     }
 }
@@ -69,13 +110,22 @@ public struct TauriWidgetDataStore {
     }
 
     public static func loadConfigAcknowledging(appGroup: String, widgetId: String = "default") -> WidgetUIConfig? {
+        #if os(iOS)
+        assertAppGroupAvailable(appGroup)
+        #endif
         let (map, source) = loadFreshestMapWithSource(appGroup: appGroup)
         defer {
             let nonce = UInt64(map[TauriWidgetStoreKeys.metaNonce] ?? "0") ?? 0
             let receipt = WidgetTransportReceipt(
-                readFrom: source,
+                source: source,
+                widgetId: widgetId,
+                group: appGroup,
+                instance: "default",
                 nonce: nonce,
-                ts: UInt64(Date().timeIntervalSince1970 * 1000)
+                size: nil,
+                schema: 1,
+                rendered: [],
+                skipped: []
             )
             writeReceiptEverywhere(receipt, appGroup: appGroup)
         }
@@ -89,6 +139,36 @@ public struct TauriWidgetDataStore {
             logger.error("loadConfig decode error: \(error.localizedDescription)")
             return nil
         }
+    }
+
+    /// Load config + which transport won (for providers that set instance/size themselves).
+    public static func loadConfigWithSource(
+        appGroup: String,
+        widgetId: String = "default"
+    ) -> (WidgetUIConfig?, String, UInt64) {
+        #if os(iOS)
+        assertAppGroupAvailable(appGroup)
+        #endif
+        let (map, source) = loadFreshestMapWithSource(appGroup: appGroup)
+        let nonce = UInt64(map[TauriWidgetStoreKeys.metaNonce] ?? "0") ?? 0
+        guard let raw = map[TauriWidgetStoreKeys.configKey(widgetId)],
+              let data = raw.data(using: .utf8),
+              let cfg = try? JSONDecoder().decode(WidgetUIConfig.self, from: data) else {
+            return (nil, source, nonce)
+        }
+        return (cfg, source, nonce)
+    }
+
+    /// iOS: App Group must work — silent fallback looks like an empty widget.
+    public static func assertAppGroupAvailable(_ appGroup: String) {
+        #if os(iOS)
+        if ProcessInfo.processInfo.environment["WIDGET_APP_GROUP_DATA_FILE"] != nil { return }
+        if FileManager.default.containerURL(forSecurityApplicationGroupIdentifier: appGroup) == nil {
+            logger.error(
+                "App Group '\(appGroup)' unavailable: enable App Groups on BOTH the app and widget extension targets. Silent fallback disabled on iOS."
+            )
+        }
+        #endif
     }
 
     /// Read a single key from the freshest available transport.

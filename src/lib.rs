@@ -99,14 +99,22 @@ pub mod capabilities;
 pub mod codegen;
 pub mod error;
 pub mod models;
+pub mod adaptive_card;
+pub mod rasterize;
 pub mod snapshot;
 pub mod store;
 pub mod transport;
+pub mod receipt;
+
+#[cfg(target_os = "windows")]
+pub mod windows;
 
 #[cfg(target_os = "macos")]
 pub mod macos_transport;
 
+pub use adaptive_card::{to_adaptive_card, to_adaptive_card_for_size, TranspileResult};
 pub use error::{Error, Result};
+pub use receipt::{SkippedElement, WidgetRenderReceipt};
 pub use store::WidgetActionEnvelope;
 pub use transport::{Health, Receipt, Transport, TransportSet};
 
@@ -142,6 +150,8 @@ pub fn init<R: Runtime>() -> TauriPlugin<R> {
             commands::get_widget_config,
             commands::widget_action,
             commands::poll_pending_actions,
+            commands::report_receipt,
+            commands::get_widget_diagnostics,
         ])
         .setup(|app, api| {
             #[cfg(mobile)]

@@ -34,6 +34,21 @@ jobs:
       - name: iOS target check
         run: cargo check --target aarch64-apple-ios --lib
 
+  rust-windows:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: x86_64-pc-windows-msvc
+      - name: Install cargo-xwin
+        run: cargo install cargo-xwin --locked
+      - name: Plugin xwin check
+        run: cargo xwin check --target x86_64-pc-windows-msvc --lib
+      - name: Demo example xwin build
+        working-directory: examples/tauri-plugin-widgets-example/src-tauri
+        run: cargo xwin build --target x86_64-pc-windows-msvc
+
   js:
     runs-on: ubuntu-latest
     steps:

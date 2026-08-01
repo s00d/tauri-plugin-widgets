@@ -4,13 +4,16 @@ use std::collections::HashMap;
 use std::fs;
 use std::hash::{Hash, Hasher};
 use std::path::PathBuf;
-use std::sync::{Arc, Mutex};
+use std::sync::Mutex;
+#[cfg(target_os = "macos")]
+use std::sync::Arc;
 use tauri::{
     plugin::PluginApi, AppHandle, Emitter, Manager, Runtime, WebviewUrl, WebviewWindowBuilder,
 };
 
 use crate::error::Error;
 use crate::models::{WidgetConfig, WidgetWindowConfig};
+use crate::receipt::{receipts_path, ReceiptStore, WidgetRenderReceipt};
 use crate::store::{
     self, config_key, parse_pending_actions, touch_meta, DataMap, PENDING_ACTIONS_KEY,
 };
@@ -41,11 +44,16 @@ pub fn init<R: Runtime, C: DeserializeOwned>(
     app: &AppHandle<R>,
     _api: PluginApi<R, C>,
 ) -> crate::Result<Widget<R>> {
+    let receipts = ReceiptStore::new();
+    if let Ok(dir) = app.path().app_data_dir() {
+        receipts.load_from_path(&receipts_path(&dir));
+    }
     Ok(Widget {
         app: app.clone(),
         last_config_hash: Mutex::new(HashMap::new()),
         store: Mutex::new(HashMap::new()),
         known_groups: Mutex::new(Vec::new()),
+        receipts,
         #[cfg(target_os = "macos")]
         poller_started: Mutex::new(false),
         #[cfg(target_os = "macos")]
@@ -60,6 +68,8 @@ pub struct Widget<R: Runtime> {
     /// In-memory data store keyed by group.
     store: Mutex<HashMap<String, DataMap>>,
     known_groups: Mutex<Vec<String>>,
+    /// Cross-platform render receipts (outside config nonce space).
+    receipts: ReceiptStore,
     #[cfg(target_os = "macos")]
     poller_started: Mutex<bool>,
     /// Per-group Apple transport health (fan-out → receipt → narrow).
@@ -315,6 +325,29 @@ impl<R: Runtime> Widget<R> {
             crate::capabilities::log_capabilities(config);
             let key = config_key(widget_id);
             self.set_items(&key, &json, group)?;
+
+            #[cfg(target_os = "windows")]
+            {
+                // Widgets Board provider reads Adaptive Card blobs from the same store.
+                // Desktop webview (widget.html) remains the fallback outside Widget Board.
+                if let Some(result) =
+                    crate::adaptive_card::to_adaptive_card_for_size(config, "medium")
+                {
+                    let template = serde_json::to_string(&result.card).map_err(|e| {
+                        Error::new(format!("serialize adaptive card: {e}"))
+                    })?;
+                    self.set_items(
+                        &crate::adaptive_card::ac_template_key(widget_id),
+                        &template,
+                        group,
+                    )?;
+                    self.set_items(
+                        &crate::adaptive_card::ac_data_key(widget_id),
+                        "{}",
+                        group,
+                    )?;
+                }
+            }
         }
 
         let _ = self.app.emit(
@@ -423,6 +456,27 @@ impl<R: Runtime> Widget<R> {
             .into_iter()
             .filter_map(|a| serde_json::to_value(a).ok())
             .collect())
+    }
+
+    pub fn report_receipt(&self, receipt: WidgetRenderReceipt) -> crate::Result<bool> {
+        self.remember_group(&receipt.group);
+        self.receipts.upsert(receipt);
+        if let Ok(dir) = self.app.path().app_data_dir() {
+            let _ = self.receipts.save_to_path(&receipts_path(&dir));
+        }
+        // Feed macOS transport reconcile from render receipts that name a transport.
+        #[cfg(target_os = "macos")]
+        {
+            // Extension still writes transport files; host-side push receipts use source=push/pull.
+        }
+        Ok(true)
+    }
+
+    pub fn get_widget_diagnostics(
+        &self,
+        group: &str,
+    ) -> crate::Result<Vec<WidgetRenderReceipt>> {
+        Ok(self.receipts.list(group))
     }
 
     #[cfg(target_os = "macos")]

@@ -1,0 +1,39 @@
+{
+  "$schema": "http://adaptivecards.io/schemas/adaptive-card.json",
+  "body": [
+    {
+      "horizontalAlignment": "Center",
+      "id": "card:#1c1c1e",
+      "items": [
+        {
+          "horizontalAlignment": "Center",
+          "id": "gap:8",
+          "items": [
+            {
+              "horizontalAlignment": "Center",
+              "size": "Medium",
+              "type": "Image",
+              "url": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACQAAAAkCAYAAADhAJiYAAADLElEQVR4Ae3AA6AkWZbG8f937o3IzKdyS2Oubdu2bdu2bdu2bWmMnpZKr54yMyLu+Xa3anqmhztr1U/8K732V/n4eLh6KzJfW+jBlo9jvTQA8l/L2gV2HfrpbnP+M7/9MdrlRYd4Eb365y1fG/uzDK/Nv4LgtyV/ze99xuZP8y9D/Ate/fOWr439WYbX5t9B8NtIn/P7n7H4bV4wxAvxap979FXAR/Mf66v/4DM3PobnD/F8vPZX+fh4cPRbWC/NfwLBb9ftxdv89sdol+eEeC6v/VU+Ph4c/RbWS/OfSf7rbmvjdX77Y7TLsyEe4LW/ysfHg6Pfwnpp/gsIfvv3P3PjdXg2xAO8+ucdfbXNR/FfSOJrfv8zNj6aKxDP9Oqft3xt27/FfwNJr/P7n7H4bQDxTK/2uUdPBx7MfwPBb//+Z268DoAAXuNzl++d+Lv4bxTy2/zeZ2z+tABe/XOPfsvw2vz3+pk/+MyNt9Zrf8Hw0mOb/or/AbrtxQm9+uccfralz+J/gEDvo1f73KOfBt6K/xl+Rq/2uUdPBx7M/wCC39Grfe6R+Z9C/mu92ucemf850Kt97pH5nwO92uce/jXopfgfwX+jV//co982vBb/Awh+R6/2uUc/DbwV/zP8jF7jc5fvnfi7+B8g0Pvotb/Kx8f95UX+B+i2FycE8Oqfe/Tbhtfiv9fP/MFnbry1AF7j8w7fOq2f4r9RyG/ze5+x+dPimV79c49+2/Ba/DcQ/M7vf+bGawOIZ3r1z1u+tu3f4r+BpNf5/c9Y/DaAeIBX/7yjr7b5KP4LSXzN73/GxkdzBeK5vPrnHv224bX4LyD4nd//zI3X5tkQz+W1v8rHx/2j3wa9FP+p/Dfd9sZr//bHaJdnQzwfr/1VPj7tL3/a8Fr8JxD8Tt1evPVvf4x2eU6IF+LVP+/oq20+iv9AEl/z+5+x8dE8f4h/wat/3vK1sT/b8Fr8Owh+B+mzf/8zFr/NC4Z4Eb3G5x2+dVrvDbwV/zo/E/J3/95nbP40/zLEv9Jrf5WPt/3VWyd+a8Fx4+OglwIA/43QrmE30E+X7flP//bHaJcXHf8IzWEGMiD5eAIAAAAASUVORK5CYII="
+            },
+            {
+              "color": "Light",
+              "id": "fg:#ffffff",
+              "size": "Default",
+              "text": "Card",
+              "type": "TextBlock",
+              "weight": "Bolder",
+              "wrap": true
+            }
+          ],
+          "spacing": "None",
+          "type": "Container"
+        }
+      ],
+      "spacing": "None",
+      "style": "emphasis",
+      "type": "Container"
+    }
+  ],
+  "type": "AdaptiveCard",
+  "version": "1.5"
+}

@@ -83,6 +83,35 @@ private val NONCE_STATE_KEY = stringPreferencesKey(NONCE_STATE_KEY_NAME)
 @Volatile private var WIDGET_SURFACE_DARK: Boolean? = null
 private const val GLANCE_LIST_CHUNK = 9
 
+/** Collect rendered / skipped element types for receipts (thread-local per compose pass). */
+internal object RenderTrace {
+    private val rendered = ThreadLocal.withInitial { mutableListOf<String>() }
+    private val skipped = ThreadLocal.withInitial { mutableListOf<Pair<String, String>>() }
+
+    fun begin() {
+        rendered.get().clear()
+        skipped.get().clear()
+    }
+
+    fun type(t: String) {
+        if (t.isNotBlank()) rendered.get().add(t)
+    }
+
+    fun skip(t: String, reason: String) {
+        skipped.get().add(t to reason)
+    }
+
+    fun renderedTypes(): List<String> = rendered.get().toList()
+
+    fun skippedJson(): org.json.JSONArray {
+        val arr = org.json.JSONArray()
+        for ((t, reason) in skipped.get()) {
+            arr.put(org.json.JSONObject().put("type", t).put("reason", reason))
+        }
+        return arr
+    }
+}
+
 class TauriGlanceWidgetReceiver : GlanceAppWidgetReceiver() {
     override val glanceAppWidget: GlanceAppWidget = TauriGlanceWidget()
 }
@@ -94,12 +123,24 @@ class TauriGlanceWidget : GlanceAppWidget() {
         val appWidgetId = (id as? AppWidgetId)?.appWidgetId ?: -1
         val group = WidgetStoreKeys.resolveGroup(context, appWidgetId)
         val logicalWidgetId = WidgetStoreKeys.resolveWidgetId(context, appWidgetId)
-        val configRaw = context.getSharedPreferences(group, Context.MODE_PRIVATE)
-            .getString(WidgetStoreKeys.configKey(logicalWidgetId), null)
+        val prefs = context.getSharedPreferences(group, Context.MODE_PRIVATE)
+        val configRaw = prefs.getString(WidgetStoreKeys.configKey(logicalWidgetId), null)
         val size = resolveSize(context, id)
+        val nonce = prefs.getString(WidgetStoreKeys.META_NONCE, "0")?.toLongOrNull() ?: 0L
         Log.d(TAG, "provideGlance appWidgetId=$appWidgetId size=$size group=$group widgetId=$logicalWidgetId prefCfgHash=${cfgHash(configRaw)}")
+        if (appWidgetId >= 0) {
+            WidgetStoreKeys.bindInstance(context, appWidgetId, logicalWidgetId, group)
+        }
         provideContent {
-            WidgetRoot(context, configRaw, size)
+            WidgetRoot(
+                context = context,
+                configRaw = configRaw,
+                size = size,
+                appWidgetId = appWidgetId,
+                group = group,
+                widgetId = logicalWidgetId,
+                nonce = nonce,
+            )
         }
     }
 
@@ -234,18 +275,42 @@ class WidgetActionCallback : ActionCallback {
 }
 
 @Composable
-internal fun WidgetRoot(context: Context, configRaw: String?, size: String) {
+internal fun WidgetRoot(
+    context: Context,
+    configRaw: String?,
+    size: String,
+    appWidgetId: Int = -1,
+    group: String = "",
+    widgetId: String = "default",
+    nonce: Long = 0L,
+) {
     val stateConfig = currentState<Preferences>()[CONFIG_STATE_KEY]
     val stateNonce = currentState<Preferences>()[NONCE_STATE_KEY]
     val effectiveConfig = stateConfig ?: configRaw
     val source = if (stateConfig != null) "state" else "prefs"
-    WidgetRootBody(context, effectiveConfig, size, source, stateNonce)
+    WidgetRootBody(
+        context,
+        effectiveConfig,
+        size,
+        source,
+        stateNonce,
+        appWidgetId = appWidgetId,
+        group = group,
+        widgetId = widgetId,
+        nonce = nonce,
+    )
 }
 
 /** Headless / unit-test entry: no Glance Preferences state (avoids currentState). */
 @Composable
 internal fun WidgetRootDirect(context: Context, configRaw: String?, size: String) {
-    WidgetRootBody(context, configRaw, size, source = "harness", stateNonce = null)
+    WidgetRootBody(
+        context,
+        configRaw,
+        size,
+        source = "harness",
+        stateNonce = null,
+    )
 }
 
 @Composable
@@ -255,7 +320,12 @@ private fun WidgetRootBody(
     size: String,
     source: String,
     stateNonce: String?,
+    appWidgetId: Int = -1,
+    group: String = "",
+    widgetId: String = "default",
+    nonce: Long = 0L,
 ) {
+    RenderTrace.begin()
     val combinedHash = cfgHash(effectiveConfig) + ":" + (stateNonce ?: "no_nonce")
     if (combinedHash != LAST_ROOT_HASH || source != LAST_ROOT_SOURCE) {
         LAST_ROOT_HASH = combinedHash
@@ -301,6 +371,22 @@ private fun WidgetRootBody(
         RenderElement(context, element, GlanceModifier.fillMaxWidth().fillMaxHeight(), size)
     }
     WIDGET_SURFACE_DARK = null
+
+    if (appWidgetId >= 0 && group.isNotBlank()) {
+        val mapNonce = nonce
+        val receipt = JSONObject()
+            .put("widgetId", widgetId)
+            .put("group", group)
+            .put("instance", appWidgetId.toString())
+            .put("nonce", mapNonce)
+            .put("size", size)
+            .put("schema", 1)
+            .put("source", source)
+            .put("rendered", JSONArray(RenderTrace.renderedTypes()))
+            .put("skipped", RenderTrace.skippedJson())
+            .put("ts", System.currentTimeMillis())
+        WidgetReceipts.write(context, receipt)
+    }
 }
 
 @Composable
@@ -312,6 +398,7 @@ internal fun RenderElement(
     inHorizontal: Boolean = false,
 ) {
     val type = el.widgetString("type")
+    RenderTrace.type(type)
     val spacing = el.optDouble("spacing", 0.0).toInt().coerceAtLeast(0)
     val baseModifier = applyCommonStyle(context, modifier, el)
     when (type) {
@@ -782,7 +869,10 @@ internal fun RenderElement(
                 }
             }
         }
-        else -> renderElementText(context, el, type, baseModifier)
+        else -> {
+            if (type.isNotBlank()) RenderTrace.skip(type, "unsupported")
+            renderElementText(context, el, type, baseModifier)
+        }
     }
 }
 

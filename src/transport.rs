@@ -25,6 +25,8 @@ pub const STALE_AFTER_MS: u64 = 5 * 60_000;
 #[serde(rename_all = "camelCase")]
 pub struct Receipt {
     /// Transport that won freshest pick on the widget.
+    /// Also accepts `source` from the richer render-receipt schema.
+    #[serde(alias = "source")]
     pub read_from: String,
     /// Config-map nonce the widget observed.
     pub nonce: u64,

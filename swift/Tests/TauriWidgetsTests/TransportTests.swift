@@ -58,6 +58,7 @@ final class TransportTests: XCTestCase {
         let receiptURL = URL(fileURLWithPath: TauriWidgetDataStore.ownContainerReceiptPath())
         let receiptData = try Data(contentsOf: receiptURL)
         let receipt = try JSONDecoder().decode(WidgetTransportReceipt.self, from: receiptData)
+        XCTAssertEqual(receipt.source, TauriWidgetTransportName.container)
         XCTAssertEqual(receipt.readFrom, TauriWidgetTransportName.container)
         XCTAssertEqual(receipt.nonce, 42)
 

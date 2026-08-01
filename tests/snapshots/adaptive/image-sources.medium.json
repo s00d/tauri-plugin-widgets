@@ -1,0 +1,100 @@
+{
+  "$schema": "http://adaptivecards.io/schemas/adaptive-card.json",
+  "body": [
+    {
+      "columns": [
+        {
+          "items": [
+            {
+              "horizontalAlignment": "Center",
+              "id": "gap:4",
+              "items": [
+                {
+                  "color": "Light",
+                  "id": "fg:#94a3b8",
+                  "size": "Small",
+                  "text": "SF",
+                  "type": "TextBlock",
+                  "weight": "Default",
+                  "wrap": true
+                },
+                {
+                  "color": "Attention",
+                  "size": "Large",
+                  "text": "*",
+                  "type": "TextBlock",
+                  "weight": "Bolder",
+                  "wrap": true
+                }
+              ],
+              "spacing": "None",
+              "type": "Container"
+            }
+          ],
+          "type": "Column",
+          "width": "auto"
+        },
+        {
+          "items": [
+            {
+              "horizontalAlignment": "Center",
+              "id": "gap:4",
+              "items": [
+                {
+                  "color": "Light",
+                  "id": "fg:#94a3b8",
+                  "size": "Small",
+                  "text": "Data",
+                  "type": "TextBlock",
+                  "weight": "Default",
+                  "wrap": true
+                },
+                {
+                  "size": "Medium",
+                  "type": "Image",
+                  "url": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR4nGO4o6b2HwAFMgIozFXxQQAAAABJRU5ErkJggg=="
+                }
+              ],
+              "spacing": "None",
+              "type": "Container"
+            }
+          ],
+          "type": "Column",
+          "width": "auto"
+        },
+        {
+          "items": [
+            {
+              "horizontalAlignment": "Center",
+              "id": "gap:4",
+              "items": [
+                {
+                  "color": "Light",
+                  "id": "fg:#94a3b8",
+                  "size": "Small",
+                  "text": "URL",
+                  "type": "TextBlock",
+                  "weight": "Default",
+                  "wrap": true
+                },
+                {
+                  "size": "Medium",
+                  "type": "Image",
+                  "url": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR4nGOw2PvjPwAGCwLtgxz7OwAAAABJRU5ErkJggg=="
+                }
+              ],
+              "spacing": "None",
+              "type": "Container"
+            }
+          ],
+          "type": "Column",
+          "width": "auto"
+        }
+      ],
+      "id": "gap:16",
+      "type": "ColumnSet"
+    }
+  ],
+  "type": "AdaptiveCard",
+  "version": "1.5"
+}

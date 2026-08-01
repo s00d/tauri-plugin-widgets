@@ -12,15 +12,18 @@ pub enum WidgetPlatform {
     Macos,
     Android,
     Desktop,
+    /// Windows Widgets Board via Adaptive Cards (WinAppSDK).
+    Windows,
 }
 
 impl WidgetPlatform {
-    pub fn all() -> [WidgetPlatform; 4] {
+    pub fn all() -> [WidgetPlatform; 5] {
         [
             WidgetPlatform::Ios,
             WidgetPlatform::Macos,
             WidgetPlatform::Android,
             WidgetPlatform::Desktop,
+            WidgetPlatform::Windows,
         ]
     }
 
@@ -30,6 +33,7 @@ impl WidgetPlatform {
             WidgetPlatform::Macos => "macos",
             WidgetPlatform::Android => "android",
             WidgetPlatform::Desktop => "desktop",
+            WidgetPlatform::Windows => "windows",
         }
     }
 
@@ -47,10 +51,18 @@ impl WidgetPlatform {
         {
             WidgetPlatform::Android
         }
+        #[cfg(target_os = "windows")]
+        {
+            // Prefer Widgets Board Adaptive Cards when building the Windows target.
+            // Desktop webview fallback still uses Desktop for log_capabilities if needed;
+            // host apps can call validate_config(..., Desktop) explicitly.
+            WidgetPlatform::Windows
+        }
         #[cfg(not(any(
             target_os = "ios",
             target_os = "macos",
-            target_os = "android"
+            target_os = "android",
+            target_os = "windows"
         )))]
         {
             WidgetPlatform::Desktop
@@ -156,64 +168,91 @@ pub fn capability_table() -> Vec<CapabilityEntry> {
     use Support::*;
     use WidgetPlatform::*;
 
-    let mut out = Vec::with_capacity(ELEMENT_TYPES.len() * 4 + FEATURE_KEYS.len() * 4);
+    let mut out = Vec::with_capacity(ELEMENT_TYPES.len() * 5 + FEATURE_KEYS.len() * 5);
 
     let layout = [
-        "vstack", "hstack", "zstack", "grid", "container", "text", "spacer", "divider", "label",
-        "progress", "gauge", "button", "toggle", "date", "link", "shape",
+        "vstack", "hstack", "grid", "container", "text", "spacer", "divider", "label",
+        "progress", "button", "toggle", "date", "link",
     ];
     for el in layout {
         out.extend_from_slice(&apple_full(el));
         out.push(cell(el, Android, Full, ""));
         out.push(cell(el, Desktop, Full, ""));
+        out.push(cell(el, Windows, Full, "Adaptive Cards 1.5"));
     }
+
+    // zstack — degraded flatten; shape — rasterized PNG
+    out.extend_from_slice(&apple_full("zstack"));
+    out.push(cell("zstack", Android, Full, ""));
+    out.push(cell("zstack", Desktop, Full, ""));
+    out.push(cell("zstack", Windows, Degraded, "flattened Container, no overlay"));
+
+    out.extend_from_slice(&apple_full("shape"));
+    out.push(cell("shape", Android, Full, ""));
+    out.push(cell("shape", Desktop, Full, ""));
+    out.push(cell("shape", Windows, Degraded, "rasterized PNG"));
+
+    out.extend_from_slice(&apple_full("gauge"));
+    out.push(cell("gauge", Android, Full, ""));
+    out.push(cell("gauge", Desktop, Full, ""));
+    out.push(cell("gauge", Windows, Degraded, "rasterized PNG"));
 
     // image: systemName / url differ
     out.extend_from_slice(&apple_full("image"));
     out.push(cell("image", Android, Degraded, "systemName via glyph map; url via localPath preprocess"));
     out.push(cell("image", Desktop, Full, ""));
+    out.push(cell("image", Windows, Degraded, "url/data URI; systemName unsupported"));
 
     out.extend_from_slice(&apple_full("chart"));
     out.push(cell("chart", Android, Degraded, "simplified bar/line rendering"));
     out.push(cell("chart", Desktop, Full, "SVG"));
+    out.push(cell("chart", Windows, Degraded, "rasterized PNG"));
 
     out.extend_from_slice(&apple_full("list"));
     out.push(cell("list", Android, Full, "Glance LazyColumn; depth/children limited"));
     out.push(cell("list", Desktop, Full, ""));
+    out.push(cell("list", Windows, Degraded, "flattened TextBlocks"));
 
     out.extend_from_slice(&apple_full("timer"));
     out.push(cell("timer", Android, Degraded, "static snapshot, not live Chronometer in all hosts"));
     out.push(cell("timer", Desktop, Full, "setInterval"));
+    out.push(cell("timer", Windows, Degraded, "static TextBlock of targetDate"));
 
     out.extend_from_slice(&apple_full("canvas"));
     out.push(cell("canvas", Android, Degraded, "bitmap canvas; path support limited"));
     out.push(cell("canvas", Desktop, Full, "SVG"));
+    out.push(cell("canvas", Windows, Degraded, "rasterized PNG"));
 
     // Feature rows
     out.push(cell("image.url", Ios, Unsupported, "prefetch into shared container not wired"));
     out.push(cell("image.url", Macos, Unsupported, "prefetch into shared container not wired"));
     out.push(cell("image.url", Android, Full, "preprocess to localPath on setWidgetConfig"));
     out.push(cell("image.url", Desktop, Full, ""));
+    out.push(cell("image.url", Windows, Full, "Adaptive Cards Image.url"));
 
     out.push(cell("image.systemName", Ios, Full, "SF Symbols"));
     out.push(cell("image.systemName", Macos, Full, "SF Symbols"));
     out.push(cell("image.systemName", Android, Degraded, "glyph / drawable name map"));
     out.push(cell("image.systemName", Desktop, Degraded, "placeholder glyph"));
+    out.push(cell("image.systemName", Windows, Unsupported, "no SF Symbols on Adaptive Cards"));
 
     out.push(cell("background.gradient", Ios, Degraded, "linear primary; radial/angular limited"));
     out.push(cell("background.gradient", Macos, Degraded, "linear primary; radial/angular limited"));
     out.push(cell("background.gradient", Android, Degraded, "first color stop only (Glance)"));
     out.push(cell("background.gradient", Desktop, Full, "linear/radial/angular CSS/SVG"));
+    out.push(cell("background.gradient", Windows, Unsupported, "Container style=emphasis only"));
 
     out.push(cell("canvas.path", Ios, Degraded, "M/L/H/V/Z subset"));
     out.push(cell("canvas.path", Macos, Degraded, "M/L/H/V/Z subset"));
     out.push(cell("canvas.path", Android, Degraded, "limited path commands"));
     out.push(cell("canvas.path", Desktop, Full, "SVG path"));
+    out.push(cell("canvas.path", Windows, Degraded, "rasterized via SVG"));
 
     out.push(cell("timer.live", Ios, Full, "Text(..., .timer)"));
     out.push(cell("timer.live", Macos, Full, "Text(..., .timer)"));
     out.push(cell("timer.live", Android, Unsupported, "no live timer in Glance snapshot"));
     out.push(cell("timer.live", Desktop, Full, "JS interval"));
+    out.push(cell("timer.live", Windows, Unsupported, "static only"));
 
     out
 }
@@ -392,8 +431,8 @@ pub fn render_capability_matrix_md() -> String {
         "# Capability matrix (element × platform)\n\n\
          Generated from `tauri_plugin_widgets::capabilities`. Do not edit by hand.\n\n\
          ## Core (strict snapshot contract)\n\n\
-         | Element | iOS | macOS | Android | Desktop |\n\
-         |---------|-----|-------|---------|----------|\n",
+         | Element | iOS | macOS | Android | Desktop | Windows |\n\
+         |---------|-----|-------|---------|---------|----------|\n",
     );
 
     for el in CORE_ELEMENTS {
@@ -401,48 +440,54 @@ pub fn render_capability_matrix_md() -> String {
         let mac = support_for(el, WidgetPlatform::Macos);
         let and = support_for(el, WidgetPlatform::Android);
         let desk = support_for(el, WidgetPlatform::Desktop);
+        let win = support_for(el, WidgetPlatform::Windows);
         md.push_str(&format!(
-            "| `{el}` | {} | {} | {} | {} |\n",
+            "| `{el}` | {} | {} | {} | {} | {} |\n",
             cell_md(&ios),
             cell_md(&mac),
             cell_md(&and),
             cell_md(&desk),
+            cell_md(&win),
         ));
     }
 
     md.push_str(
         "\n## Extended (best-effort, platform-dependent)\n\n\
-         | Element | iOS | macOS | Android | Desktop |\n\
-         |---------|-----|-------|---------|----------|\n",
+         | Element | iOS | macOS | Android | Desktop | Windows |\n\
+         |---------|-----|-------|---------|---------|----------|\n",
     );
     for el in EXTENDED_ELEMENTS {
         let ios = support_for(el, WidgetPlatform::Ios);
         let mac = support_for(el, WidgetPlatform::Macos);
         let and = support_for(el, WidgetPlatform::Android);
         let desk = support_for(el, WidgetPlatform::Desktop);
+        let win = support_for(el, WidgetPlatform::Windows);
         md.push_str(&format!(
-            "| `{el}` | {} | {} | {} | {} |\n",
+            "| `{el}` | {} | {} | {} | {} | {} |\n",
             cell_md(&ios),
             cell_md(&mac),
             cell_md(&and),
             cell_md(&desk),
+            cell_md(&win),
         ));
     }
 
     md.push_str("\n## Feature notes\n\n");
-    md.push_str("| Feature | iOS | macOS | Android | Desktop |\n");
-    md.push_str("|---------|-----|-------|---------|----------|\n");
+    md.push_str("| Feature | iOS | macOS | Android | Desktop | Windows |\n");
+    md.push_str("|---------|-----|-------|---------|---------|----------|\n");
     for feat in FEATURE_KEYS {
         let ios = support_for(feat, WidgetPlatform::Ios);
         let mac = support_for(feat, WidgetPlatform::Macos);
         let and = support_for(feat, WidgetPlatform::Android);
         let desk = support_for(feat, WidgetPlatform::Desktop);
+        let win = support_for(feat, WidgetPlatform::Windows);
         md.push_str(&format!(
-            "| `{feat}` | {} | {} | {} | {} |\n",
+            "| `{feat}` | {} | {} | {} | {} | {} |\n",
             cell_md(&ios),
             cell_md(&mac),
             cell_md(&and),
             cell_md(&desk),
+            cell_md(&win),
         ));
     }
     md
@@ -462,7 +507,7 @@ mod tests {
     use crate::models::{ChartDataPoint, ChartType, WidgetConfig, WidgetElement};
 
     #[test]
-    fn all_element_types_have_four_platforms() {
+    fn all_element_types_have_five_platforms() {
         for el in ELEMENT_TYPES {
             for p in WidgetPlatform::all() {
                 let e = support_for(el, p);

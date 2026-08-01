@@ -2361,10 +2361,10 @@
           "markdownDescription": "Denies the reveal_item_in_dir command without any pre-configured scope."
         },
         {
-          "description": "Default permissions for the widgets plugin — enables all commands.\n#### This default permission set includes:\n\n- `allow-set-items`\n- `allow-get-items`\n- `allow-set-register-widget`\n- `allow-reload-all-timelines`\n- `allow-reload-timelines`\n- `allow-request-widget`\n- `allow-create-widget-window`\n- `allow-close-widget-window`\n- `allow-set-widget-config`\n- `allow-get-widget-config`\n- `allow-widget-action`\n- `allow-poll-pending-actions`",
+          "description": "Default permissions for the widgets plugin — enables all commands.\n#### This default permission set includes:\n\n- `allow-set-items`\n- `allow-get-items`\n- `allow-set-register-widget`\n- `allow-reload-all-timelines`\n- `allow-reload-timelines`\n- `allow-request-widget`\n- `allow-create-widget-window`\n- `allow-close-widget-window`\n- `allow-set-widget-config`\n- `allow-get-widget-config`\n- `allow-widget-action`\n- `allow-poll-pending-actions`\n- `allow-report-receipt`\n- `allow-get-widget-diagnostics`",
           "type": "string",
           "const": "widgets:default",
-          "markdownDescription": "Default permissions for the widgets plugin — enables all commands.\n#### This default permission set includes:\n\n- `allow-set-items`\n- `allow-get-items`\n- `allow-set-register-widget`\n- `allow-reload-all-timelines`\n- `allow-reload-timelines`\n- `allow-request-widget`\n- `allow-create-widget-window`\n- `allow-close-widget-window`\n- `allow-set-widget-config`\n- `allow-get-widget-config`\n- `allow-widget-action`\n- `allow-poll-pending-actions`"
+          "markdownDescription": "Default permissions for the widgets plugin — enables all commands.\n#### This default permission set includes:\n\n- `allow-set-items`\n- `allow-get-items`\n- `allow-set-register-widget`\n- `allow-reload-all-timelines`\n- `allow-reload-timelines`\n- `allow-request-widget`\n- `allow-create-widget-window`\n- `allow-close-widget-window`\n- `allow-set-widget-config`\n- `allow-get-widget-config`\n- `allow-widget-action`\n- `allow-poll-pending-actions`\n- `allow-report-receipt`\n- `allow-get-widget-diagnostics`"
         },
         {
           "description": "Enables the close_widget_window command without any pre-configured scope.",
@@ -2391,6 +2391,12 @@
           "markdownDescription": "Enables the get_widget_config command without any pre-configured scope."
         },
         {
+          "description": "Enables the get_widget_diagnostics command without any pre-configured scope.",
+          "type": "string",
+          "const": "widgets:allow-get-widget-diagnostics",
+          "markdownDescription": "Enables the get_widget_diagnostics command without any pre-configured scope."
+        },
+        {
           "description": "Enables the poll_pending_actions command without any pre-configured scope.",
           "type": "string",
           "const": "widgets:allow-poll-pending-actions",
@@ -2407,6 +2413,12 @@
           "type": "string",
           "const": "widgets:allow-reload-timelines",
           "markdownDescription": "Enables the reload_timelines command without any pre-configured scope."
+        },
+        {
+          "description": "Enables the report_receipt command without any pre-configured scope.",
+          "type": "string",
+          "const": "widgets:allow-report-receipt",
+          "markdownDescription": "Enables the report_receipt command without any pre-configured scope."
         },
         {
           "description": "Enables the request_widget command without any pre-configured scope.",
@@ -2463,6 +2475,12 @@
           "markdownDescription": "Denies the get_widget_config command without any pre-configured scope."
         },
         {
+          "description": "Denies the get_widget_diagnostics command without any pre-configured scope.",
+          "type": "string",
+          "const": "widgets:deny-get-widget-diagnostics",
+          "markdownDescription": "Denies the get_widget_diagnostics command without any pre-configured scope."
+        },
+        {
           "description": "Denies the poll_pending_actions command without any pre-configured scope.",
           "type": "string",
           "const": "widgets:deny-poll-pending-actions",
@@ -2479,6 +2497,12 @@
           "type": "string",
           "const": "widgets:deny-reload-timelines",
           "markdownDescription": "Denies the reload_timelines command without any pre-configured scope."
+        },
+        {
+          "description": "Denies the report_receipt command without any pre-configured scope.",
+          "type": "string",
+          "const": "widgets:deny-report-receipt",
+          "markdownDescription": "Denies the report_receipt command without any pre-configured scope."
         },
         {
           "description": "Denies the request_widget command without any pre-configured scope.",

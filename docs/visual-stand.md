@@ -96,6 +96,20 @@ On a Mac there are **three** different surfaces — do not mix them:
 | Native WidgetKit | Notification Center / desktop widget | same `DynamicElementView` as iOS + **AppKit** branches |
 | Transport / packaging | App Group / sandbox / UserDefaults, ad-hoc sign, `build-widget.sh` | **Level C** (below) |
 
+## Cross-platform render receipts
+
+Config writes are fire-and-forget on every platform (`updateAll`, `reloadAllTimelines`, `emit`). Renderers write a **receipt** after paint into a sibling store (`widget_receipts.json` / `__tauri_widget_receipts__`) — never the config map (would bump nonce).
+
+```ts
+const live = await getWidgetDiagnostics("group.com.example.app");
+// [{ widgetId, instance, size, nonce, source, rendered, skipped, ts }]
+```
+
+- **macOS only:** `source` + `nonce` drive transport narrowing (fan-out → confirm → narrow → stale reopen).
+- **iOS:** no narrowing — loud log if App Group `containerURL` is nil.
+- **Android:** receipts list live `appWidgetId`s so `syncConfigToGlanceState` targets confirmed instances.
+- **Desktop:** register listeners **before** `loadConfig()`; `widget.html` reports `source: push|pull` after render.
+
 ## Level C — macOS transports + packaging (no pixels)
 
 Real host bugs live here: freshest pick, **async receipts → write narrowing**, action queue, App Group entitlements, `.appex` embed.
@@ -140,7 +154,23 @@ pnpm test:visual:desktop
 just record-desktop weather.small
 ```
 
-`#root` screenshot after `awaitStable`. Platform folder: `desktop` (darwin), `linux`, `windows`.
+`#root` screenshot after `awaitStable`. Platform folder: `desktop` (darwin), `linux`, `windows` (Playwright desktop webview — not Widgets Board).
+
+## Windows Widgets Board (Adaptive Cards PreviewHost)
+
+Native AC pixels (not `widget.html`):
+
+```bash
+# Mac: regenerate PNG + AC JSON for the core trio
+bash tools/gen-windows-goldens.sh
+
+# UTM: capture via PreviewHost
+just record-windows weather.small
+just test-windows-visual
+node tests/windows/compare.mjs
+```
+
+Goldens live in `tests/golden/windows/`. See [windows-surfaces.md](windows-surfaces.md).
 
 Geometry Level-1 still lives in `tests/expected/geometry` and updates with `UPDATE_SNAPSHOTS=1` (bulk OK for trees). Pixel goldens never bulk-overwrite.
 
@@ -149,7 +179,7 @@ Geometry Level-1 still lives in `tests/expected/geometry` and updates with `UPDA
 ```bash
 pnpm audit:sheets
 # → out/audit/<case>.png + out/audit/index.html
-# panels: Desktop | iOS | macOS | Android
+# panels: Desktop | iOS | macOS | Android | Windows
 open out/audit/index.html
 ```
 
@@ -163,6 +193,10 @@ Findings from the last full pass live in `out/audit/CATALOG.md` (gitignored unde
 |--------|---------|
 | Desktop visual | `pnpm test:visual:desktop` |
 | Record desktop case | `CASE=x.y GOLDEN_RECORD=1 pnpm test:visual:desktop` |
+| Windows AC goldens (Mac) | `bash tools/gen-windows-goldens.sh` |
+| Windows visual (UTM) | `just test-windows-visual` / `just record-windows weather.small` |
+| Windows xwin check | `just check-windows-xwin` |
+| Windows example xwin | `just build-windows-example-xwin` |
 | Android visual | `just test-android-visual` |
 | Record android case | `just record-android x.y` then `adb pull …` |
 | iOS visual | `just test-ios-visual` |

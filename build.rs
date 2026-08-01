@@ -14,6 +14,8 @@ const COMMANDS: &[&str] = &[
     "get_widget_config",
     "widget_action",
     "poll_pending_actions",
+    "report_receipt",
+    "get_widget_diagnostics",
 ];
 
 fn main() {

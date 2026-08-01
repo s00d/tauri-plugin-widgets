@@ -35,15 +35,64 @@ public struct TauriWidgetProvider: TimelineProvider {
     }
 
     public func getSnapshot(in context: Context, completion: @escaping (TauriWidgetEntry) -> Void) {
-        let cfg = context.isPreview ? nil : TauriWidgetDataStore.loadConfig(appGroup: appGroup, widgetId: widgetId)
+        let cfg: WidgetUIConfig?
+        if context.isPreview {
+            cfg = nil
+        } else {
+            let (loaded, source, nonce) = TauriWidgetDataStore.loadConfigWithSource(
+                appGroup: appGroup, widgetId: widgetId
+            )
+            cfg = loaded
+            writeProviderReceipt(context: context, source: source, nonce: nonce, config: loaded)
+        }
         completion(TauriWidgetEntry(date: Date(), config: cfg, family: context.family))
     }
 
     public func getTimeline(in context: Context, completion: @escaping (Timeline<TauriWidgetEntry>) -> Void) {
-        let cfg = TauriWidgetDataStore.loadConfig(appGroup: appGroup, widgetId: widgetId)
+        let (cfg, source, nonce) = TauriWidgetDataStore.loadConfigWithSource(
+            appGroup: appGroup, widgetId: widgetId
+        )
+        writeProviderReceipt(context: context, source: source, nonce: nonce, config: cfg)
         let entry = TauriWidgetEntry(date: Date(), config: cfg, family: context.family)
         let nextUpdate = Calendar.current.date(byAdding: .minute, value: refreshMinutes, to: Date()) ?? Date()
         completion(Timeline(entries: [entry], policy: .after(nextUpdate)))
+    }
+
+    private func writeProviderReceipt(
+        context: Context,
+        source: String,
+        nonce: UInt64,
+        config: WidgetUIConfig?
+    ) {
+        let size: String = {
+            switch context.family {
+            case .systemSmall: return "small"
+            case .systemMedium: return "medium"
+            case .systemLarge: return "large"
+            default: return "medium"
+            }
+        }()
+        var rendered: [String] = []
+        if let el = config?.small ?? config?.medium ?? config?.large {
+            collectTypes(el, into: &rendered)
+        }
+        let receipt = WidgetTransportReceipt(
+            source: source,
+            widgetId: widgetId,
+            group: appGroup,
+            instance: "\(context.family)",
+            nonce: nonce,
+            size: size,
+            schema: 1,
+            rendered: rendered,
+            skipped: []
+        )
+        TauriWidgetDataStore.writeReceiptEverywhere(receipt, appGroup: appGroup)
+    }
+
+    private func collectTypes(_ el: WidgetElement, into out: inout [String]) {
+        out.append(el.type)
+        el.children?.forEach { collectTypes($0, into: &out) }
     }
 }
 

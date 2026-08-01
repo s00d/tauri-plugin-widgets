@@ -1,0 +1,107 @@
+{
+  "$schema": "http://adaptivecards.io/schemas/adaptive-card.json",
+  "body": [
+    {
+      "id": "card:#1a1a2e;gap:8",
+      "items": [
+        {
+          "color": "Light",
+          "horizontalAlignment": "Center",
+          "id": "fg:#fff",
+          "size": "Medium",
+          "text": "Hello",
+          "type": "TextBlock",
+          "weight": "Bolder",
+          "wrap": true
+        },
+        {
+          "columns": [
+            {
+              "items": [
+                {
+                  "horizontalAlignment": "Center",
+                  "size": "Small",
+                  "type": "Image",
+                  "url": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAICAYAAADwdn+XAAAAy0lEQVR4Ae3AA6AkWZbG8f937o3IzKdyS2Oubdu2bdu2bdu2bWmMnpZKr54yMyLu+Xa3anqmhztr1U8Ab/1Tb/3gCb5K8NKGB/NCCG41/HWFj/npt/npW/XWP/XWD57gr4Dj/OvsVngZvcVPvfVPG96KfwPBz+jNf+qtLwLH+TcQ3Kq3+Km33jUc49/mGXqLn3rrnza8Ff8Ggp/RW//UWz+4wV8bjvGvILhU4KUF8NY/9dYPbvDVhpcGHsQL9wzBXxf46J9+m5++9R8BQWEsNV5kv50AAAAASUVORK5CYII="
+                }
+              ],
+              "type": "Column",
+              "width": "auto"
+            },
+            {
+              "items": [
+                {
+                  "id": "rule:#334155",
+                  "items": [],
+                  "separator": true,
+                  "spacing": "Medium",
+                  "type": "Container"
+                }
+              ],
+              "type": "Column",
+              "width": "stretch"
+            },
+            {
+              "items": [],
+              "type": "Column",
+              "width": "stretch"
+            },
+            {
+              "items": [
+                {
+                  "items": [
+                    {
+                      "color": "Good",
+                      "size": "Small",
+                      "text": "OK",
+                      "type": "TextBlock",
+                      "wrap": true
+                    },
+                    {
+                      "columns": [
+                        {
+                          "id": "fill:#4caf50",
+                          "items": [],
+                          "style": "good",
+                          "type": "Column",
+                          "width": 50
+                        },
+                        {
+                          "items": [],
+                          "type": "Column",
+                          "width": 50
+                        }
+                      ],
+                      "type": "ColumnSet"
+                    }
+                  ],
+                  "type": "Container"
+                }
+              ],
+              "type": "Column",
+              "width": "auto"
+            }
+          ],
+          "id": "gap:4",
+          "type": "ColumnSet"
+        },
+        {
+          "actions": [
+            {
+              "id": "bg:#2196f3;fg:#fff",
+              "title": "Go",
+              "type": "Action.Execute",
+              "verb": "go"
+            }
+          ],
+          "type": "ActionSet"
+        }
+      ],
+      "spacing": "None",
+      "style": "emphasis",
+      "type": "Container"
+    }
+  ],
+  "type": "AdaptiveCard",
+  "version": "1.5"
+}

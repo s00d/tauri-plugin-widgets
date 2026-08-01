@@ -1,0 +1,391 @@
+{
+  "$schema": "http://adaptivecards.io/schemas/adaptive-card.json",
+  "body": [
+    {
+      "id": "card:#1c1c1e;gap:4",
+      "items": [
+        {
+          "color": "Default",
+          "size": "Small",
+          "text": "◷ Upcoming",
+          "type": "TextBlock",
+          "weight": "Bolder",
+          "wrap": true
+        },
+        {
+          "id": "gap:6",
+          "items": [
+            {
+              "columns": [
+                {
+                  "items": [
+                    {
+                      "columns": [
+                        {
+                          "items": [
+                            {
+                              "horizontalAlignment": "Center",
+                              "id": "badge:overlay",
+                              "items": [
+                                {
+                                  "horizontalAlignment": "Center",
+                                  "size": "Small",
+                                  "type": "Image",
+                                  "url": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABQAAAAUCAYAAACNiR0NAAAA0klEQVR4Ae3AA6AkWZbG8f937o3IzKdyS2Oubdu2bdu2bdu2bWmMnpZKr54yMyLu+Xa3anqmhztr1U8PepdbzX8c9KB3udX8x0EPepdbzX8c9KB3udX8x0EPepdbzX8c9KB3udX8x0EPepdbzX8c9KB3udX8x0EPepdbzX8c9KB3udX8x0EPepdbzX8c9KB3udX8x0EPepdbzX8c9KB3udX8x0EPepdbzX8c9KB3udX8x0EPepdbzX8c9KB3udX8x0EPepdbzX8c9KB3udX8x+EfATYVLuHIwEhhAAAAAElFTkSuQmCC"
+                                },
+                                {
+                                  "color": "Light",
+                                  "id": "fg:#ffffff",
+                                  "size": "Small",
+                                  "text": "S",
+                                  "type": "TextBlock",
+                                  "weight": "Bolder",
+                                  "wrap": true
+                                }
+                              ],
+                              "spacing": "None",
+                              "type": "Container"
+                            }
+                          ],
+                          "type": "Column",
+                          "width": "auto"
+                        },
+                        {
+                          "items": [
+                            {
+                              "items": [
+                                {
+                                  "color": "Default",
+                                  "size": "Small",
+                                  "text": "Streaming",
+                                  "type": "TextBlock",
+                                  "weight": "Bolder",
+                                  "wrap": false
+                                },
+                                {
+                                  "color": "Light",
+                                  "size": "Small",
+                                  "text": "Jun 1",
+                                  "type": "TextBlock",
+                                  "weight": "Default",
+                                  "wrap": false
+                                }
+                              ],
+                              "spacing": "None",
+                              "type": "Container"
+                            }
+                          ],
+                          "type": "Column",
+                          "width": 100
+                        },
+                        {
+                          "items": [
+                            {
+                              "color": "Accent",
+                              "id": "fg:#3878fa",
+                              "size": "Small",
+                              "text": "$12.50",
+                              "type": "TextBlock",
+                              "weight": "Bolder",
+                              "wrap": false
+                            }
+                          ],
+                          "type": "Column",
+                          "width": "auto"
+                        }
+                      ],
+                      "id": "gap:6",
+                      "type": "ColumnSet"
+                    }
+                  ],
+                  "type": "Column",
+                  "width": "stretch"
+                },
+                {
+                  "items": [
+                    {
+                      "columns": [
+                        {
+                          "items": [
+                            {
+                              "horizontalAlignment": "Center",
+                              "id": "badge:overlay",
+                              "items": [
+                                {
+                                  "horizontalAlignment": "Center",
+                                  "size": "Small",
+                                  "type": "Image",
+                                  "url": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABQAAAAUCAYAAACNiR0NAAAA0klEQVR4Ae3AA6AkWZbG8f937o3IzKdyS2Oubdu2bdu2bdu2bWmMnpZKr54yMyLu+Xa3anqmhztr1U8PepdbzX8c9KB3udX8x0EPepdbzX8c9KB3udX8x0EPepdbzX8c9KB3udX8x0EPepdbzX8c9KB3udX8x0EPepdbzX8c9KB3udX8x0EPepdbzX8c9KB3udX8x0EPepdbzX8c9KB3udX8x0EPepdbzX8c9KB3udX8x0EPepdbzX8c9KB3udX8x0EPepdbzX8c9KB3udX8x+EfATYVLuHIwEhhAAAAAElFTkSuQmCC"
+                                },
+                                {
+                                  "color": "Light",
+                                  "id": "fg:#ffffff",
+                                  "size": "Small",
+                                  "text": "C",
+                                  "type": "TextBlock",
+                                  "weight": "Bolder",
+                                  "wrap": true
+                                }
+                              ],
+                              "spacing": "None",
+                              "type": "Container"
+                            }
+                          ],
+                          "type": "Column",
+                          "width": "auto"
+                        },
+                        {
+                          "items": [
+                            {
+                              "items": [
+                                {
+                                  "color": "Default",
+                                  "size": "Small",
+                                  "text": "Cloud Pro",
+                                  "type": "TextBlock",
+                                  "weight": "Bolder",
+                                  "wrap": false
+                                },
+                                {
+                                  "color": "Light",
+                                  "size": "Small",
+                                  "text": "Today",
+                                  "type": "TextBlock",
+                                  "weight": "Default",
+                                  "wrap": false
+                                }
+                              ],
+                              "spacing": "None",
+                              "type": "Container"
+                            }
+                          ],
+                          "type": "Column",
+                          "width": 100
+                        },
+                        {
+                          "items": [
+                            {
+                              "color": "Accent",
+                              "id": "fg:#3878fa",
+                              "size": "Small",
+                              "text": "$9.99",
+                              "type": "TextBlock",
+                              "weight": "Bolder",
+                              "wrap": false
+                            }
+                          ],
+                          "type": "Column",
+                          "width": "auto"
+                        }
+                      ],
+                      "id": "gap:6",
+                      "type": "ColumnSet"
+                    }
+                  ],
+                  "type": "Column",
+                  "width": "stretch"
+                }
+              ],
+              "id": "gap:8",
+              "type": "ColumnSet"
+            },
+            {
+              "columns": [
+                {
+                  "items": [
+                    {
+                      "columns": [
+                        {
+                          "items": [
+                            {
+                              "horizontalAlignment": "Center",
+                              "id": "badge:overlay",
+                              "items": [
+                                {
+                                  "horizontalAlignment": "Center",
+                                  "size": "Small",
+                                  "type": "Image",
+                                  "url": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABQAAAAUCAYAAACNiR0NAAAA0klEQVR4Ae3AA6AkWZbG8f937o3IzKdyS2Oubdu2bdu2bdu2bWmMnpZKr54yMyLu+Xa3anqmhztr1U8PepdbzX8c9KB3udX8x0EPepdbzX8c9KB3udX8x0EPepdbzX8c9KB3udX8x0EPepdbzX8c9KB3udX8x0EPepdbzX8c9KB3udX8x0EPepdbzX8c9KB3udX8x0EPepdbzX8c9KB3udX8x0EPepdbzX8c9KB3udX8x0EPepdbzX8c9KB3udX8x0EPepdbzX8c9KB3udX8x+EfATYVLuHIwEhhAAAAAElFTkSuQmCC"
+                                },
+                                {
+                                  "color": "Light",
+                                  "id": "fg:#ffffff",
+                                  "size": "Small",
+                                  "text": "M",
+                                  "type": "TextBlock",
+                                  "weight": "Bolder",
+                                  "wrap": true
+                                }
+                              ],
+                              "spacing": "None",
+                              "type": "Container"
+                            }
+                          ],
+                          "type": "Column",
+                          "width": "auto"
+                        },
+                        {
+                          "items": [
+                            {
+                              "items": [
+                                {
+                                  "color": "Default",
+                                  "size": "Small",
+                                  "text": "Music Plus",
+                                  "type": "TextBlock",
+                                  "weight": "Bolder",
+                                  "wrap": false
+                                },
+                                {
+                                  "color": "Light",
+                                  "size": "Small",
+                                  "text": "Tomorrow",
+                                  "type": "TextBlock",
+                                  "weight": "Default",
+                                  "wrap": false
+                                }
+                              ],
+                              "spacing": "None",
+                              "type": "Container"
+                            }
+                          ],
+                          "type": "Column",
+                          "width": 100
+                        },
+                        {
+                          "items": [
+                            {
+                              "color": "Accent",
+                              "id": "fg:#3878fa",
+                              "size": "Small",
+                              "text": "$4.99",
+                              "type": "TextBlock",
+                              "weight": "Bolder",
+                              "wrap": false
+                            }
+                          ],
+                          "type": "Column",
+                          "width": "auto"
+                        }
+                      ],
+                      "id": "gap:6",
+                      "type": "ColumnSet"
+                    }
+                  ],
+                  "type": "Column",
+                  "width": "stretch"
+                },
+                {
+                  "items": [
+                    {
+                      "columns": [
+                        {
+                          "items": [
+                            {
+                              "horizontalAlignment": "Center",
+                              "id": "badge:overlay",
+                              "items": [
+                                {
+                                  "horizontalAlignment": "Center",
+                                  "size": "Small",
+                                  "type": "Image",
+                                  "url": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABQAAAAUCAYAAACNiR0NAAAA0klEQVR4Ae3AA6AkWZbG8f937o3IzKdyS2Oubdu2bdu2bdu2bWmMnpZKr54yMyLu+Xa3anqmhztr1U8PepdbzX8c9KB3udX8x0EPepdbzX8c9KB3udX8x0EPepdbzX8c9KB3udX8x0EPepdbzX8c9KB3udX8x0EPepdbzX8c9KB3udX8x0EPepdbzX8c9KB3udX8x0EPepdbzX8c9KB3udX8x0EPepdbzX8c9KB3udX8x0EPepdbzX8c9KB3udX8x0EPepdbzX8c9KB3udX8x+EfATYVLuHIwEhhAAAAAElFTkSuQmCC"
+                                },
+                                {
+                                  "color": "Light",
+                                  "id": "fg:#ffffff",
+                                  "size": "Small",
+                                  "text": "N",
+                                  "type": "TextBlock",
+                                  "weight": "Bolder",
+                                  "wrap": true
+                                }
+                              ],
+                              "spacing": "None",
+                              "type": "Container"
+                            }
+                          ],
+                          "type": "Column",
+                          "width": "auto"
+                        },
+                        {
+                          "items": [
+                            {
+                              "items": [
+                                {
+                                  "color": "Default",
+                                  "size": "Small",
+                                  "text": "News Daily",
+                                  "type": "TextBlock",
+                                  "weight": "Bolder",
+                                  "wrap": false
+                                },
+                                {
+                                  "color": "Light",
+                                  "size": "Small",
+                                  "text": "Jun 5",
+                                  "type": "TextBlock",
+                                  "weight": "Default",
+                                  "wrap": false
+                                }
+                              ],
+                              "spacing": "None",
+                              "type": "Container"
+                            }
+                          ],
+                          "type": "Column",
+                          "width": 100
+                        },
+                        {
+                          "items": [
+                            {
+                              "color": "Accent",
+                              "id": "fg:#3878fa",
+                              "size": "Small",
+                              "text": "$2.99",
+                              "type": "TextBlock",
+                              "weight": "Bolder",
+                              "wrap": false
+                            }
+                          ],
+                          "type": "Column",
+                          "width": "auto"
+                        }
+                      ],
+                      "id": "gap:6",
+                      "type": "ColumnSet"
+                    }
+                  ],
+                  "type": "Column",
+                  "width": "stretch"
+                }
+              ],
+              "id": "gap:8",
+              "type": "ColumnSet"
+            }
+          ],
+          "spacing": "None",
+          "type": "Container"
+        },
+        {
+          "spacing": "Medium",
+          "text": " ",
+          "type": "TextBlock"
+        },
+        {
+          "color": "Light",
+          "size": "Small",
+          "text": "+2 more",
+          "type": "TextBlock",
+          "weight": "Bolder",
+          "wrap": false
+        }
+      ],
+      "spacing": "None",
+      "style": "emphasis",
+      "type": "Container"
+    }
+  ],
+  "type": "AdaptiveCard",
+  "version": "1.5"
+}

@@ -421,6 +421,174 @@ Done! Next steps:
   },
 });
 
+// ─── init-windows ──────────────────────────────────────────────────────────
+
+const initWindows = defineCommand({
+  meta: {
+    name: "init-windows",
+    description: "Initialize Windows Widgets Board provider (C# Adaptive Cards) in src-tauri/windows-widget/",
+  },
+  args: {
+    "display-name": {
+      type: "string",
+      description: "Widget display name shown on Widgets Board",
+    },
+    "package-name": {
+      type: "string",
+      description: "Assembly / package name stem (e.g. MyApp). Auto-detected from tauri.conf.json if omitted.",
+    },
+    "clsid": {
+      type: "string",
+      description: "COM CLSID for IWidgetProvider (GUID). Generated if omitted.",
+    },
+    dir: {
+      type: "string",
+      description: "Target directory (default: src-tauri/windows-widget)",
+      default: "src-tauri/windows-widget",
+    },
+    force: {
+      type: "boolean",
+      description: "Overwrite existing files",
+      default: false,
+    },
+  },
+  run({ args }) {
+    const cwd = process.cwd();
+    const conf = readTauriConf(cwd);
+
+    let packageName = args["package-name"];
+    let displayName = args["display-name"];
+    let clsid = args.clsid;
+
+    if (!packageName) {
+      const identifier = conf ? detectTauriIdentifier(conf) : null;
+      if (identifier) {
+        const parts = identifier.split(".");
+        packageName = parts[parts.length - 1] || "TauriApp";
+        console.log(`  Auto-detected package-name: ${packageName}`);
+      } else {
+        packageName = "TauriApp";
+        console.log(`  Using default package-name: ${packageName}`);
+      }
+    }
+
+    if (!displayName) {
+      displayName = conf?.data?.productName || packageName;
+      console.log(`  Using display-name: ${displayName}`);
+    }
+
+    if (!clsid) {
+      clsid = cryptoRandomGuid();
+      console.log(`  Generated CLSID: ${clsid}`);
+    } else {
+      clsid = String(clsid).replace(/[{}]/g, "").toLowerCase();
+    }
+
+    const widgetDir = resolve(cwd, args.dir);
+    const templateDir = join(PLUGIN_ROOT, "templates", "windows-widget");
+
+    if (existsSync(widgetDir) && !args.force) {
+      console.error(`ERROR: ${args.dir} already exists. Use --force to overwrite.`);
+      process.exit(1);
+    }
+
+    const extensionId = `${packageName}.Widgets`;
+    const definitionId = `${packageName}.Widget`;
+
+    const replacements = {
+      "{{WIDGET_PROVIDER_CLSID}}": clsid,
+      "{{WIDGET_DISPLAY_NAME}}": displayName,
+      "{{PACKAGE_NAME}}": packageName,
+      "{{WIDGET_EXTENSION_ID}}": extensionId,
+      "{{WIDGET_DEFINITION_ID}}": definitionId,
+    };
+
+    console.log(`\nCreating Windows widget provider in ${args.dir}...\n`);
+
+    mkdirSync(join(widgetDir, "WidgetProvider"), { recursive: true });
+
+    for (const name of ["Provider.cs", "Store.cs", "Program.cs", "WidgetProvider.csproj"]) {
+      copyTemplate(
+        join(templateDir, "WidgetProvider", name),
+        join(widgetDir, "WidgetProvider", name),
+        replacements,
+      );
+      console.log(`  Created WidgetProvider/${name}`);
+    }
+
+    mkdirSync(join(widgetDir, "PreviewHost"), { recursive: true });
+    for (const name of ["Program.cs", "PreviewHost.csproj"]) {
+      copyTemplate(
+        join(templateDir, "PreviewHost", name),
+        join(widgetDir, "PreviewHost", name),
+        replacements,
+      );
+      console.log(`  Created PreviewHost/${name}`);
+    }
+
+    mkdirSync(join(widgetDir, "Assets"), { recursive: true });
+    const logoSrc = join(templateDir, "Assets", "StoreLogo.png");
+    if (existsSync(logoSrc)) {
+      copyFileSync(logoSrc, join(widgetDir, "Assets", "StoreLogo.png"));
+      console.log("  Created Assets/StoreLogo.png");
+    }
+
+    copyTemplate(
+      join(templateDir, "Package.appxmanifest.fragment.xml"),
+      join(widgetDir, "Package.appxmanifest.fragment.xml"),
+      replacements,
+    );
+    console.log("  Created Package.appxmanifest.fragment.xml");
+
+    copyTemplate(
+      join(templateDir, "README.md"),
+      join(widgetDir, "README.md"),
+      replacements,
+    );
+    console.log("  Created README.md");
+
+    writeFileSync(
+      join(widgetDir, ".gitignore"),
+      "bin/\nobj/\n*.user\n.vs/\nAppPackages/\nBundleArtifacts/\n",
+      "utf-8",
+    );
+    console.log("  Created .gitignore");
+
+    console.log(`
+Done! Next steps:
+
+  1. Merge Package.appxmanifest.fragment.xml into your MSIX Package.appxmanifest
+     (add xmlns:com and xmlns:uap3 if missing). Copy Assets/StoreLogo.png into the package.
+
+  2. Point the provider at the Rust host store:
+     set TAURI_WIDGETS_DATA to the directory that contains widget_data.json
+
+  3. Build smoke (no VS Appx tools):
+     dotnet build ${args.dir}/WidgetProvider/WidgetProvider.csproj -c Release -p:Smoke=true
+
+  4. Full provider (after VS Build Tools / WinAppSDK):
+     dotnet build ${args.dir}/WidgetProvider/WidgetProvider.csproj -c Release -p:Smoke=false
+
+  5. Pack / sideload helpers (from plugin repo / UTM):
+     just win-pack && just win-sideload
+
+  Display name: ${displayName}
+  Package name: ${packageName}
+  CLSID:        ${clsid}
+`);
+  },
+});
+
+function cryptoRandomGuid() {
+  // RFC4122 v4-ish GUID for COM CLSID placeholders.
+  const bytes = new Uint8Array(16);
+  for (let i = 0; i < 16; i++) bytes[i] = Math.floor(Math.random() * 256);
+  bytes[6] = (bytes[6] & 0x0f) | 0x40;
+  bytes[8] = (bytes[8] & 0x3f) | 0x80;
+  const hex = [...bytes].map((b) => b.toString(16).padStart(2, "0")).join("");
+  return `${hex.slice(0, 8)}-${hex.slice(8, 12)}-${hex.slice(12, 16)}-${hex.slice(16, 20)}-${hex.slice(20)}`;
+}
+
 // ─── Main ──────────────────────────────────────────────────────────────────
 
 const main = defineCommand({
@@ -432,6 +600,7 @@ const main = defineCommand({
   subCommands: {
     "init-macos": initMacos,
     "init-ios": initIos,
+    "init-windows": initWindows,
   },
 });
 

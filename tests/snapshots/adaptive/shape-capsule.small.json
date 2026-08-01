@@ -1,0 +1,28 @@
+{
+  "$schema": "http://adaptivecards.io/schemas/adaptive-card.json",
+  "body": [
+    {
+      "horizontalAlignment": "Center",
+      "id": "card:#0a0a0a",
+      "items": [
+        {
+          "horizontalAlignment": "Center",
+          "size": "Small",
+          "type": "Image",
+          "url": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABgAAAAMCAYAAAB4MH11AAABF0lEQVR4Ae3AA6AkWZbG8f937o3IzKdyS2Oubdu2bdu2bdu2bWmMnpZKr54yMyLu+Xa3anqmhztr1U88wMP+6D3fi6b3Nn5pxHH+1fTXCn/1U1/le7+HKxDAS//Vex/fO/JvgV+a/xD6650Nvc5fv8x37+ql/+q9j+8d+bfAL81/KP31017te15GD/3D9/5onF/FfwIR76OH/sF7Ph14MP8p9Nd66B+8p/nPgx76B+9p/vOgh/7Be/418FL85/gbPfQP3/ujcX4V/wlEvI8AHvoH7/nXwEvxH+tvnvZq3/vSAnjpv3rv43tH+dvAS/Ef4292NuK1//plvntXPMDD/uC939vkRwMvxb/N34j46qe+2nd/N1fwjzSKRw9dxInyAAAAAElFTkSuQmCC"
+        },
+        {
+          "horizontalAlignment": "Center",
+          "size": "Small",
+          "type": "Image",
+          "url": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABgAAAAYCAYAAADgdz34AAACE0lEQVR4Ae3AA6AkWZbG8f937o3IzKdyS2Oubdu2bdu2bdu2bWmMnpZKr54yMyLu+Xa3anqmhztr1U+8EK/9RcsHT5PfCvPahpcGHgyA/NeybkX8dq36md/+lMWtPH+I5+O1v2j54HHMzwK9Ny8Sf3fXxef89qcsbuU5IZ7La3zu8r1NfpXRcf4VhHcl3uf3PmPzp3k2xAO8xucu3zvxd/HvEOh9fu8zF9/NFYhneo3PXb534u/iP0DIb/N7n7H50wACeO0vGF56bNNf8R9EeLd28TK//SmLWwXw6p979FuG1+Y/kvw9f/AZm++tV/+85Wvb/i3+E3SdHqJX+7zD78Z6L/5zfIxe/XMPLxod5z/Hz+jVPvfI/GeR/1qv9rlH5j8PerXPPTL/edCrfe7hX4Neiv8U/hu92uce/TTwVvzn+Bm92ucefTTwVfzn+Bi99hctHzyOfjr/CbpODxHAq33e4XdjvRf/keTv+YPP2HxvAbz2Fy0fPI3510bH+A8gfKl28dK//SmLW8UzvcbnHb51Wj/Ff4CQ3+b3PmPzpwHEA7zG5y7fO/F38e8Q6H1+7zMX380ViOfyGp93+NY23210jH8F4UsS7/17n7H50zwb4vl47S9aPnic8rOx3osXhfw9XY3P/u1PWdzKc0K8EK/9RcsHj6PfGnht8INBLwUA/hvQrcBvd51++rc/ZXErzx//CEDmr0lT/6z9AAAAAElFTkSuQmCC"
+        }
+      ],
+      "spacing": "None",
+      "style": "emphasis",
+      "type": "Container"
+    }
+  ],
+  "type": "AdaptiveCard",
+  "version": "1.5"
+}

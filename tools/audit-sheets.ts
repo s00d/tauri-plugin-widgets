@@ -2,7 +2,7 @@
 /**
  * Batch visual audit contact sheets for all declarative cases.
  *
- * Panels: Desktop | iOS | macOS | Android
+ * Panels: Desktop | iOS | macOS | Android | Windows
  * Output: out/audit/<case>.png + out/audit/index.html
  *
  *   pnpm audit:sheets
@@ -24,6 +24,7 @@ const PLATFORMS = [
   { id: "ios", label: "iOS" },
   { id: "macos", label: "macOS" },
   { id: "android", label: "Android" },
+  { id: "windows", label: "Windows" },
 ];
 
 function arg(name, fallback) {

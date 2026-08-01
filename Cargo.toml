@@ -18,7 +18,7 @@ rustdoc-args = ["--cfg", "docsrs"]
 android = { level = "full", notes = "Full AppWidgetManager + SharedPreferences support" }
 ios = { level = "full", notes = "WidgetKit (iOS 17+) + App Groups shared container" }
 macos = { level = "full", notes = "WidgetKit (macOS 14+) + App Groups shared container" }
-windows = { level = "partial", notes = "JSON file storage + Tauri event-based desktop widget windows" }
+windows = { level = "partial", notes = "Widgets Board Adaptive Cards + desktop webview fallback; optional workerw wallpaper" }
 linux = { level = "partial", notes = "JSON file storage + Tauri event-based desktop widget windows" }
 
 [dependencies]
@@ -27,16 +27,22 @@ serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 log = "0.4"
 schemars = { version = "0.8", optional = true }
+resvg = { version = "0.45", optional = true }
+base64 = { version = "0.22", optional = true }
 
 [dev-dependencies]
 tempfile = "3"
 
 [features]
-default = []
+default = ["rasterize"]
 schema = ["dep:schemars"]
 codegen = ["schema"]
+# SVG → PNG for Adaptive Cards (chart/canvas/gauge).
+rasterize = ["dep:resvg", "dep:base64"]
 # Enables transparent desktop widget windows on macOS (requires host `tauri.conf` macosPrivateApi).
 macos-private-api = ["tauri/macos-private-api"]
+# Windows wallpaper WorkerW parenting (not Widgets Board).
+workerw = []
 
 [[bin]]
 name = "gen-schema"
@@ -47,6 +53,11 @@ required-features = ["codegen"]
 name = "gen-ts"
 path = "src/bin/gen_ts.rs"
 required-features = ["codegen"]
+
+[[bin]]
+name = "gen-windows-goldens"
+path = "src/bin/gen_windows_goldens.rs"
+required-features = ["rasterize"]
 
 [build-dependencies]
 tauri-plugin = { version = "2", features = ["build"] }

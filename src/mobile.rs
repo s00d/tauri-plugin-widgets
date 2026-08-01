@@ -10,6 +10,7 @@ use std::time::Instant;
 use tauri::{plugin::PluginApi, AppHandle, Emitter, Runtime};
 
 use crate::models::{WidgetConfig, WidgetWindowConfig};
+use crate::receipt::{ReceiptStore, WidgetRenderReceipt};
 use crate::store::config_key;
 
 /// Default minimum interval between WidgetKit reload calls.
@@ -49,6 +50,7 @@ pub fn init<R: Runtime, C: DeserializeOwned>(
         last_config_hash: Mutex::new(HashMap::new()),
         last_reload: Mutex::new(None),
         known_groups: Mutex::new(HashSet::new()),
+        receipts: ReceiptStore::new(),
     })
 }
 
@@ -103,6 +105,7 @@ pub struct Widget<R: Runtime> {
     last_config_hash: Mutex<HashMap<(String, String), u64>>,
     last_reload: Mutex<Option<Instant>>,
     known_groups: Mutex<HashSet<String>>,
+    receipts: ReceiptStore,
 }
 
 impl<R: Runtime> Widget<R> {
@@ -326,5 +329,50 @@ impl<R: Runtime> Widget<R> {
             .and_then(|v| v.as_array())
             .cloned()
             .unwrap_or_default())
+    }
+
+    pub fn report_receipt(&self, receipt: WidgetRenderReceipt) -> crate::Result<bool> {
+        self.remember_group(&receipt.group);
+        self.receipts.upsert(receipt.clone());
+        #[derive(Serialize)]
+        #[serde(rename_all = "camelCase")]
+        struct Payload {
+            receipt_json: String,
+        }
+        let receipt_json = serde_json::to_string(&receipt)
+            .map_err(|e| crate::Error::new(e.to_string()))?;
+        let _: Result<Value, _> = self
+            .handle
+            .run_mobile_plugin("reportReceipt", Payload { receipt_json });
+        Ok(true)
+    }
+
+    pub fn get_widget_diagnostics(
+        &self,
+        group: &str,
+    ) -> crate::Result<Vec<WidgetRenderReceipt>> {
+        self.remember_group(group);
+        #[derive(Serialize)]
+        struct Group<'a> {
+            group: &'a str,
+        }
+        if let Ok(res) = self
+            .handle
+            .run_mobile_plugin::<Value>("getWidgetDiagnostics", Group { group })
+        {
+            if let Some(arr) = res.get("results").and_then(|v| v.as_array()) {
+                let mut out = Vec::new();
+                for item in arr {
+                    if let Ok(r) = serde_json::from_value::<WidgetRenderReceipt>(item.clone()) {
+                        self.receipts.upsert(r.clone());
+                        out.push(r);
+                    }
+                }
+                if !out.is_empty() {
+                    return Ok(out);
+                }
+            }
+        }
+        Ok(self.receipts.list(group))
     }
 }

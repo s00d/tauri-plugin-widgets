@@ -15,4 +15,6 @@ permissions = [
     "allow-get-widget-config",
     "allow-widget-action",
     "allow-poll-pending-actions",
+    "allow-report-receipt",
+    "allow-get-widget-diagnostics",
 ]

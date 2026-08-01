@@ -1,0 +1,335 @@
+{
+  "$schema": "http://adaptivecards.io/schemas/adaptive-card.json",
+  "body": [
+    {
+      "id": "card:#1c1c1e;gap:3",
+      "items": [
+        {
+          "color": "Light",
+          "horizontalAlignment": "Right",
+          "id": "fg:#ffffff",
+          "size": "Medium",
+          "text": "0",
+          "type": "TextBlock",
+          "weight": "Bolder",
+          "wrap": false
+        },
+        {
+          "id": "rule:#3a3a3c",
+          "items": [],
+          "separator": true,
+          "spacing": "Medium",
+          "type": "Container"
+        },
+        {
+          "id": "gap:2",
+          "items": [
+            {
+              "columns": [
+                {
+                  "items": [
+                    {
+                      "actions": [
+                        {
+                          "id": "bg:#636366;fg:#fff",
+                          "title": "C",
+                          "type": "Action.Execute",
+                          "verb": "calc:C"
+                        }
+                      ],
+                      "type": "ActionSet"
+                    }
+                  ],
+                  "type": "Column",
+                  "width": "stretch"
+                },
+                {
+                  "items": [
+                    {
+                      "actions": [
+                        {
+                          "id": "bg:#636366;fg:#fff",
+                          "title": "+/-",
+                          "type": "Action.Execute",
+                          "verb": "calc:+-"
+                        }
+                      ],
+                      "type": "ActionSet"
+                    }
+                  ],
+                  "type": "Column",
+                  "width": "stretch"
+                },
+                {
+                  "items": [
+                    {
+                      "actions": [
+                        {
+                          "id": "bg:#636366;fg:#fff",
+                          "title": "BS",
+                          "type": "Action.Execute",
+                          "verb": "calc:BS"
+                        }
+                      ],
+                      "type": "ActionSet"
+                    }
+                  ],
+                  "type": "Column",
+                  "width": "stretch"
+                },
+                {
+                  "items": [
+                    {
+                      "actions": [
+                        {
+                          "id": "bg:#f09a36;fg:#fff",
+                          "title": "/",
+                          "type": "Action.Execute",
+                          "verb": "calc:/"
+                        }
+                      ],
+                      "type": "ActionSet"
+                    }
+                  ],
+                  "type": "Column",
+                  "width": "stretch"
+                }
+              ],
+              "id": "gap:2",
+              "type": "ColumnSet"
+            },
+            {
+              "columns": [
+                {
+                  "items": [
+                    {
+                      "actions": [
+                        {
+                          "id": "bg:#3a3a3c;fg:#fff",
+                          "title": "7",
+                          "type": "Action.Execute",
+                          "verb": "calc:7"
+                        }
+                      ],
+                      "type": "ActionSet"
+                    }
+                  ],
+                  "type": "Column",
+                  "width": "stretch"
+                },
+                {
+                  "items": [
+                    {
+                      "actions": [
+                        {
+                          "id": "bg:#3a3a3c;fg:#fff",
+                          "title": "8",
+                          "type": "Action.Execute",
+                          "verb": "calc:8"
+                        }
+                      ],
+                      "type": "ActionSet"
+                    }
+                  ],
+                  "type": "Column",
+                  "width": "stretch"
+                },
+                {
+                  "items": [
+                    {
+                      "actions": [
+                        {
+                          "id": "bg:#3a3a3c;fg:#fff",
+                          "title": "9",
+                          "type": "Action.Execute",
+                          "verb": "calc:9"
+                        }
+                      ],
+                      "type": "ActionSet"
+                    }
+                  ],
+                  "type": "Column",
+                  "width": "stretch"
+                },
+                {
+                  "items": [
+                    {
+                      "actions": [
+                        {
+                          "id": "bg:#f09a36;fg:#fff",
+                          "title": "x",
+                          "type": "Action.Execute",
+                          "verb": "calc:*"
+                        }
+                      ],
+                      "type": "ActionSet"
+                    }
+                  ],
+                  "type": "Column",
+                  "width": "stretch"
+                }
+              ],
+              "id": "gap:2",
+              "type": "ColumnSet"
+            },
+            {
+              "columns": [
+                {
+                  "items": [
+                    {
+                      "actions": [
+                        {
+                          "id": "bg:#3a3a3c;fg:#fff",
+                          "title": "4",
+                          "type": "Action.Execute",
+                          "verb": "calc:4"
+                        }
+                      ],
+                      "type": "ActionSet"
+                    }
+                  ],
+                  "type": "Column",
+                  "width": "stretch"
+                },
+                {
+                  "items": [
+                    {
+                      "actions": [
+                        {
+                          "id": "bg:#3a3a3c;fg:#fff",
+                          "title": "5",
+                          "type": "Action.Execute",
+                          "verb": "calc:5"
+                        }
+                      ],
+                      "type": "ActionSet"
+                    }
+                  ],
+                  "type": "Column",
+                  "width": "stretch"
+                },
+                {
+                  "items": [
+                    {
+                      "actions": [
+                        {
+                          "id": "bg:#3a3a3c;fg:#fff",
+                          "title": "6",
+                          "type": "Action.Execute",
+                          "verb": "calc:6"
+                        }
+                      ],
+                      "type": "ActionSet"
+                    }
+                  ],
+                  "type": "Column",
+                  "width": "stretch"
+                },
+                {
+                  "items": [
+                    {
+                      "actions": [
+                        {
+                          "id": "bg:#f09a36;fg:#fff",
+                          "title": "-",
+                          "type": "Action.Execute",
+                          "verb": "calc:-"
+                        }
+                      ],
+                      "type": "ActionSet"
+                    }
+                  ],
+                  "type": "Column",
+                  "width": "stretch"
+                }
+              ],
+              "id": "gap:2",
+              "type": "ColumnSet"
+            },
+            {
+              "columns": [
+                {
+                  "items": [
+                    {
+                      "actions": [
+                        {
+                          "id": "bg:#3a3a3c;fg:#fff",
+                          "title": "1",
+                          "type": "Action.Execute",
+                          "verb": "calc:1"
+                        }
+                      ],
+                      "type": "ActionSet"
+                    }
+                  ],
+                  "type": "Column",
+                  "width": "stretch"
+                },
+                {
+                  "items": [
+                    {
+                      "actions": [
+                        {
+                          "id": "bg:#3a3a3c;fg:#fff",
+                          "title": "2",
+                          "type": "Action.Execute",
+                          "verb": "calc:2"
+                        }
+                      ],
+                      "type": "ActionSet"
+                    }
+                  ],
+                  "type": "Column",
+                  "width": "stretch"
+                },
+                {
+                  "items": [
+                    {
+                      "actions": [
+                        {
+                          "id": "bg:#3a3a3c;fg:#fff",
+                          "title": "3",
+                          "type": "Action.Execute",
+                          "verb": "calc:3"
+                        }
+                      ],
+                      "type": "ActionSet"
+                    }
+                  ],
+                  "type": "Column",
+                  "width": "stretch"
+                },
+                {
+                  "items": [
+                    {
+                      "actions": [
+                        {
+                          "id": "bg:#f09a36;fg:#fff",
+                          "title": "+",
+                          "type": "Action.Execute",
+                          "verb": "calc:+"
+                        }
+                      ],
+                      "type": "ActionSet"
+                    }
+                  ],
+                  "type": "Column",
+                  "width": "stretch"
+                }
+              ],
+              "id": "gap:2",
+              "type": "ColumnSet"
+            }
+          ],
+          "spacing": "None",
+          "type": "Container"
+        }
+      ],
+      "spacing": "None",
+      "style": "emphasis",
+      "type": "Container"
+    }
+  ],
+  "type": "AdaptiveCard",
+  "version": "1.5"
+}

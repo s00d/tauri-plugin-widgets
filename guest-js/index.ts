@@ -302,6 +302,48 @@ export async function getWidgetConfig(
   });
 }
 
+/** Element the renderer skipped, with reason. */
+export interface SkippedElement {
+  type: string;
+  reason: string;
+}
+
+/** Cross-platform render receipt (diagnostics — not a critical path). */
+export interface WidgetRenderReceipt {
+  widgetId: string;
+  group: string;
+  instance: string;
+  nonce: number;
+  size?: string;
+  theme?: string;
+  schema?: number;
+  /** prefs | state | appgroup | defaults | container | push | pull */
+  source: string;
+  rendered?: string[];
+  skipped?: SkippedElement[];
+  ts: number;
+}
+
+/**
+ * Report that a renderer painted a config (desktop widget.html / tests).
+ * Native widgets write receipts themselves; this is for the host webview path.
+ */
+export async function reportReceipt(receipt: WidgetRenderReceipt): Promise<boolean> {
+  return await invoke<boolean>(`${PLUGIN_ID}|report_receipt`, { receipt });
+}
+
+/**
+ * Live widget instances that recently rendered for `group`.
+ */
+export async function getWidgetDiagnostics(
+  group: string,
+): Promise<WidgetRenderReceipt[]> {
+  if (!group) throw new Error("getWidgetDiagnostics: 'group' must not be empty");
+  return await invoke<WidgetRenderReceipt[]>(`${PLUGIN_ID}|get_widget_diagnostics`, {
+    group,
+  });
+}
+
 // ─── Widget Action API ──────────────────────────────────────────────────────
 
 /** Payload delivered by the `widget-action` event. */

@@ -61,3 +61,61 @@ record-ios case:
 
 record-macos case:
     cd {{repo}}/swift && CASE={{case}} GOLDEN_RECORD=1 swift test --filter MacRenderTests
+
+# ─── Windows / UTM (optional remote node) ───────────────────────────────────
+
+win-up:
+    bash {{repo}}/tools/win-up.sh
+
+win-sync:
+    bash {{repo}}/tools/win/sync.sh
+
+win-bootstrap:
+    bash {{repo}}/tools/win-up.sh
+    scp {{repo}}/tools/win/bootstrap.ps1 utm-win:C:/work/bootstrap.ps1
+    ssh utm-win 'powershell -NoProfile -ExecutionPolicy Bypass -File C:\work\bootstrap.ps1'
+
+# Adaptive Card transpile tests on the Mac host (no VM required).
+test-windows-adaptive:
+    cargo test --lib adaptive_card -- --nocapture
+
+# Remote smoke via ssh utm-win (after win-up + win-sync).
+test-windows-remote:
+    bash {{repo}}/tools/win-up.sh
+    bash {{repo}}/tools/win/sync.sh
+    ssh utm-win 'powershell -NoProfile -ExecutionPolicy Bypass -File C:\work\shot.ps1'
+
+check-windows-xwin:
+    rustup target add x86_64-pc-windows-msvc
+    cargo xwin check --target x86_64-pc-windows-msvc --lib
+
+build-windows-example-xwin:
+    rustup target add x86_64-pc-windows-msvc
+    cd {{repo}}/examples/tauri-plugin-widgets-example/src-tauri && cargo xwin build --target x86_64-pc-windows-msvc
+
+record-windows case:
+    bash {{repo}}/tools/win-up.sh
+    bash {{repo}}/tools/win/sync.sh
+    ssh utm-win "powershell -NoProfile -ExecutionPolicy Bypass -File C:\\work\\shot.ps1 -Mode visual -Case {{case}} -Record"
+    mkdir -p {{repo}}/tests/golden/windows
+    scp "utm-win:C:/work/tauri-plugin-widgets/out/windows/{{case}}.png" "{{repo}}/tests/golden/windows/{{case}}.png" || \
+      scp "utm-win:C:/work/tauri-plugin-widgets/tests/golden/windows/{{case}}.png" "{{repo}}/tests/golden/windows/{{case}}.png"
+
+# Mac-side: regenerate all 36 Windows Adaptive Card goldens (no UTM).
+record-windows-all:
+    bash {{repo}}/tools/gen-windows-goldens.sh
+
+test-windows-visual:
+    bash {{repo}}/tools/win-up.sh
+    bash {{repo}}/tools/win/sync.sh
+    ssh utm-win 'powershell -NoProfile -ExecutionPolicy Bypass -File C:\work\shot.ps1 -Mode visual'
+
+win-pack:
+    bash {{repo}}/tools/win-up.sh
+    bash {{repo}}/tools/win/sync.sh
+    scp {{repo}}/tools/win/pack.ps1 utm-win:C:/work/pack.ps1
+    ssh utm-win 'powershell -NoProfile -ExecutionPolicy Bypass -File C:\work\pack.ps1'
+
+win-sideload:
+    scp {{repo}}/tools/win/sideload.ps1 utm-win:C:/work/sideload.ps1
+    ssh utm-win 'powershell -NoProfile -ExecutionPolicy Bypass -File C:\work\sideload.ps1'
