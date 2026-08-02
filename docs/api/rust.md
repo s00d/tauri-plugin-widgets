@@ -26,7 +26,7 @@ You do **not** need Rust for ordinary JS/TS apps — `setWidgetConfig` from
 
 ## Installation and init
 
-```no_run
+```rust
 fn main() {
     tauri::Builder::default()
         .plugin(tauri_plugin_widgets::init())
@@ -100,7 +100,7 @@ let cfg = WidgetConfig::small(vstack(vec![
 
 Typical host path:
 
-```no_run
+```rust
 use tauri::Manager;
 use tauri_plugin_widgets::{
     models::{text, vstack, WidgetConfig},
