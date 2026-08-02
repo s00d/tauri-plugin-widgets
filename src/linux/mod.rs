@@ -12,12 +12,13 @@ use x11rb::wrapper::ConnectionExt as WrapperConnectionExt;
 /// - Failures are logged; the ordinary frameless window remains usable (fallback).
 pub fn pin_widget_window<R: Runtime>(win: &WebviewWindow<R>, skip_taskbar: bool) {
     // Prefer the actual native backend over env vars: X11 apps can still run
-    // when WAYLAND_DISPLAY is set (XWayland), and vice versa.
+    // when WAYLAND_DISPLAY is set (XWayland). Layer-shell only when the handle
+    // is not X11 (covers compositors that omit WAYLAND_DISPLAY for wayland-0).
     let is_x11 = x11_xid(win).is_some();
 
     #[cfg(feature = "layer-shell")]
     {
-        if !is_x11 && std::env::var_os("WAYLAND_DISPLAY").is_some() {
+        if !is_x11 {
             match apply_layer_shell(win) {
                 Ok(()) => {
                     log::debug!("linux: gtk-layer-shell Background applied");
@@ -60,38 +61,22 @@ fn apply_x11_desktop_hints<R: Runtime>(
     if skip_taskbar {
         let state_atom = intern(&conn, b"_NET_WM_STATE")?;
         let skip_atom = intern(&conn, b"_NET_WM_STATE_SKIP_TASKBAR")?;
-        // Merge with existing state so ABOVE / sticky bits survive (REPLACE would wipe them).
-        // get_property → Cookie (ConnectionError); reply() → ReplyError — different Err types.
-        let mut atoms: Vec<u32> = match XprotoConnectionExt::get_property(
-            &conn,
+        // EWMH ADD via ClientMessage — do not REPLACE _NET_WM_STATE (wipes ABOVE / sticky).
+        let root = conn.setup().roots.first().map(|s| s.root).unwrap_or(0);
+        let event = x11rb::protocol::xproto::ClientMessageEvent::new(
+            32,
+            xid,
+            state_atom,
+            [1u32, skip_atom, 0, 0, 0], // 1 = _NET_WM_STATE_ADD
+        );
+        conn.send_event(
             false,
-            xid,
-            state_atom,
-            AtomEnum::ATOM,
-            0,
-            64,
+            root,
+            x11rb::protocol::xproto::EventMask::SUBSTRUCTURE_REDIRECT
+                | x11rb::protocol::xproto::EventMask::SUBSTRUCTURE_NOTIFY,
+            event,
         )
-        .ok()
-        .and_then(|c| c.reply().ok())
-        {
-            Some(reply) if reply.format == 32 => reply
-                .value32()
-                .map(|it| it.collect())
-                .unwrap_or_default(),
-            _ => Vec::new(),
-        };
-        if !atoms.contains(&skip_atom) {
-            atoms.push(skip_atom);
-        }
-        WrapperConnectionExt::change_property32(
-            &conn,
-            PropMode::REPLACE,
-            xid,
-            state_atom,
-            AtomEnum::ATOM,
-            &atoms,
-        )
-        .map_err(|e| format!("change_property STATE: {e}"))?;
+        .map_err(|e| format!("send_event STATE ADD: {e}"))?;
     }
 
     conn.flush().map_err(|e| format!("x11 flush: {e}"))?;

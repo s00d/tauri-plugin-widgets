@@ -27,7 +27,7 @@
                   "wrap": true
                 }
               ],
-              "spacing": "None",
+              "spacing": "Default",
               "type": "Container"
             }
           ],
@@ -55,7 +55,7 @@
                   "url": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR4nGO4o6b2HwAFMgIozFXxQQAAAABJRU5ErkJggg=="
                 }
               ],
-              "spacing": "None",
+              "spacing": "Default",
               "type": "Container"
             }
           ],
@@ -83,7 +83,7 @@
                   "url": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR4nGOw2PvjPwAGCwLtgxz7OwAAAABJRU5ErkJggg=="
                 }
               ],
-              "spacing": "None",
+              "spacing": "Default",
               "type": "Container"
             }
           ],
@@ -92,6 +92,7 @@
         }
       ],
       "id": "gap:16",
+      "spacing": "Large",
       "type": "ColumnSet"
     }
   ],

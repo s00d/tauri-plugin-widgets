@@ -28,9 +28,9 @@ scp "$TMP" "${HOST}:C:/work/tpw-sync.tgz"
 
 # Wipe remote tree before extract so deleted local files don't linger.
 # Pass -Command as its own argv (no nested bash single-quotes) so PowerShell
-# keeps the path string intact.
+# keeps the path string intact. Fail hard if Remove-Item cannot clear the tree.
 ssh "$HOST" powershell -NoProfile -Command \
-  "\$dest = 'C:\work\tauri-plugin-widgets'; if (Test-Path \$dest) { Remove-Item -Recurse -Force \$dest }; New-Item -ItemType Directory -Force -Path \$dest | Out-Null; tar -xzf C:\work\tpw-sync.tgz -C \$dest"
+  "\$ErrorActionPreference = 'Stop'; \$dest = 'C:\work\tauri-plugin-widgets'; if (Test-Path \$dest) { Remove-Item -Recurse -Force \$dest }; New-Item -ItemType Directory -Force -Path \$dest | Out-Null; tar -xzf C:\work\tpw-sync.tgz -C \$dest"
 
 echo "==> install C:\\work\\shot.ps1"
 scp "$(cd "$(dirname "$0")" && pwd)/shot.ps1" "${HOST}:C:/work/shot.ps1"

@@ -133,20 +133,22 @@ impl<R: Runtime> Widget<R> {
         #[cfg(target_os = "windows")]
         {
             // Align with WidgetProvider Store.DefaultPath so Widgets Board sees host writes.
-            if let Ok(env_path) = std::env::var("TAURI_WIDGETS_DATA") {
-                let p = env_path.trim();
-                if !p.is_empty() {
-                    let path = if p.ends_with(".json") {
-                        PathBuf::from(p)
-                    } else {
-                        PathBuf::from(p).join("widget_data.json")
-                    };
-                    if let Some(parent) = path.parent() {
-                        if !parent.exists() {
-                            fs::create_dir_all(parent)?;
+            for key in ["TAURI_WIDGETS_DATA", "WIDGET_DATA_DIR"] {
+                if let Ok(env_path) = std::env::var(key) {
+                    let p = env_path.trim();
+                    if !p.is_empty() {
+                        let path = if p.to_ascii_lowercase().ends_with(".json") {
+                            PathBuf::from(p)
+                        } else {
+                            PathBuf::from(p).join("widget_data.json")
+                        };
+                        if let Some(parent) = path.parent() {
+                            if !parent.exists() {
+                                fs::create_dir_all(parent)?;
+                            }
                         }
+                        return Ok(path);
                     }
-                    return Ok(path);
                 }
             }
             let local = std::env::var("LOCALAPPDATA")

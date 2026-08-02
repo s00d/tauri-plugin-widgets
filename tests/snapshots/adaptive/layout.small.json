@@ -19,10 +19,9 @@
             {
               "items": [
                 {
-                  "horizontalAlignment": "Center",
-                  "size": "Small",
-                  "type": "Image",
-                  "url": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAICAYAAADwdn+XAAAAy0lEQVR4Ae3AA6AkWZbG8f937o3IzKdyS2Oubdu2bdu2bdu2bWmMnpZKr54yMyLu+Xa3anqmhztr1U8Ab/1Tb/3gCb5K8NKGB/NCCG41/HWFj/npt/npW/XWP/XWD57gr4Dj/OvsVngZvcVPvfVPG96KfwPBz+jNf+qtLwLH+TcQ3Kq3+Km33jUc49/mGXqLn3rrnza8Ff8Ggp/RW//UWz+4wV8bjvGvILhU4KUF8NY/9dYPbvDVhpcGHsQL9wzBXxf46J9+m5++9R8BQWEsNV5kv50AAAAASUVORK5CYII="
+                  "spacing": "None",
+                  "text": "",
+                  "type": "TextBlock"
                 }
               ],
               "type": "Column",
@@ -83,6 +82,7 @@
             }
           ],
           "id": "gap:4",
+          "spacing": "Default",
           "type": "ColumnSet"
         },
         {
@@ -97,7 +97,7 @@
           "type": "ActionSet"
         }
       ],
-      "spacing": "None",
+      "spacing": "Default",
       "style": "emphasis",
       "type": "Container"
     }

@@ -270,11 +270,31 @@ internal static class Program
                         var title = act.TryGetProperty("title", out var ti) ? ti.GetString() ?? "action" : "action";
                         var size = g.MeasureString(title, font);
                         var rect = new RectangleF(ax, y, size.Width + 16, size.Height + 8);
-                        using (var brush = new SolidBrush(Color.FromArgb(255, 59, 130, 246)))
+                        var bg = Color.FromArgb(255, 59, 130, 246);
+                        var fg = Color.White;
+                        if (act.TryGetProperty("id", out var idEl))
+                        {
+                            var id = idEl.GetString() ?? "";
+                            foreach (var part in id.Split(';'))
+                            {
+                                if (part.StartsWith("bg:#", StringComparison.OrdinalIgnoreCase))
+                                {
+                                    bg = ParseHexColor(part[3..], bg);
+                                }
+                                else if (part.StartsWith("fg:#", StringComparison.OrdinalIgnoreCase))
+                                {
+                                    fg = ParseHexColor(part[3..], fg);
+                                }
+                            }
+                        }
+                        using (var brush = new SolidBrush(bg))
                         {
                             g.FillRectangle(brush, rect);
                         }
-                        g.DrawString(title, font, Brushes.White, ax + 8, y + 4);
+                        using (var brush = new SolidBrush(fg))
+                        {
+                            g.DrawString(title, font, brush, ax + 8, y + 4);
+                        }
                         ax += rect.Width + 8;
                         if (ax > x + maxW) break;
                     }
@@ -289,5 +309,34 @@ internal static class Program
             default:
                 return y;
         }
+    }
+
+    private static Color ParseHexColor(string hex, Color fallback)
+    {
+        var h = hex.TrimStart('#');
+        try
+        {
+            if (h.Length == 6)
+            {
+                return Color.FromArgb(
+                    255,
+                    Convert.ToInt32(h[..2], 16),
+                    Convert.ToInt32(h[2..4], 16),
+                    Convert.ToInt32(h[4..6], 16));
+            }
+            if (h.Length == 8)
+            {
+                return Color.FromArgb(
+                    Convert.ToInt32(h[..2], 16),
+                    Convert.ToInt32(h[2..4], 16),
+                    Convert.ToInt32(h[4..6], 16),
+                    Convert.ToInt32(h[6..8], 16));
+            }
+        }
+        catch
+        {
+            // keep fallback
+        }
+        return fallback;
     }
 }

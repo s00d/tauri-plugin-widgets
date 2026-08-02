@@ -303,11 +303,23 @@ public struct TauriWidgetDataStore {
             defaultsCandidates.append((TauriWidgetTransportName.defaults, map))
         }
 
-        let filesBest = pickFreshestWithSource(fileCandidates)
+        let filesBest = pickFreshestWithSource(filterByWidgetId(fileCandidates, widgetId))
         if mapHasConfig(filesBest.0, widgetId: widgetId) {
             return filesBest
         }
-        return pickFreshestWithSource(fileCandidates + defaultsCandidates)
+        return pickFreshestWithSource(
+            filterByWidgetId(fileCandidates + defaultsCandidates, widgetId)
+        )
+    }
+
+    private static func filterByWidgetId(
+        _ maps: [(String, [String: String])],
+        _ widgetId: String?
+    ) -> [(String, [String: String])] {
+        guard let widgetId else { return maps }
+        let filtered = maps.filter { mapHasConfig($0.1, widgetId: widgetId) }
+        // Never fall back to a fresher map that lacks this widget's config.
+        return filtered
     }
 
     private static func mapHasConfig(_ map: [String: String], widgetId: String? = nil) -> Bool {

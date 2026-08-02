@@ -330,15 +330,16 @@ fn el(e: &WidgetElement, skipped: &mut Vec<SkippedElement>) -> Value {
                 "wrap": true,
                 "size": "Default",
             });
-            if let Some(a) = action {
+                    if let Some(a) = action {
                 // Keep toggle tappable on Widgets Board.
+                // Payload is the scalar next-state string (matches iOS/Android/desktop).
                 return json!({
                     "type": "Container",
                     "items": [block],
                     "selectAction": {
                         "type": "Action.Execute",
                         "verb": a,
-                        "data": { "isOn": !is_on },
+                        "data": { "payload": (!is_on).to_string() },
                     },
                 });
             }
@@ -492,9 +493,11 @@ fn el(e: &WidgetElement, skipped: &mut Vec<SkippedElement>) -> Value {
 
         WidgetElement::List(ListElement { items, spacing, .. }) => {
             // ColumnSet mark | text keeps a shared left edge regardless of glyph width.
+            let row_gap = spacing.or(Some(4.0));
             let lines: Vec<Value> = items
                 .iter()
-                .map(|it| {
+                .enumerate()
+                .map(|(idx, it)| {
                     let (mark, mark_color) = match it.checked {
                         Some(true) => ("✓", "Good"),
                         Some(false) => ("○", "Light"),
@@ -532,7 +535,7 @@ fn el(e: &WidgetElement, skipped: &mut Vec<SkippedElement>) -> Value {
                         ]
                     });
                     // ColumnSet has no selectAction in AC 1.5 — wrap in Container.
-                    if let Some(ref a) = it.action {
+                    let mut item = if let Some(ref a) = it.action {
                         json!({
                             "type": "Container",
                             "items": [row],
@@ -544,16 +547,20 @@ fn el(e: &WidgetElement, skipped: &mut Vec<SkippedElement>) -> Value {
                         })
                     } else {
                         row
+                    };
+                    // Spacing between rows (not only outer wrapper).
+                    if idx > 0 {
+                        apply_gap_id(&mut item, row_gap);
                     }
+                    item
                 })
                 .collect();
-            let mut obj = json!({
+            json!({
                 "type": "Container",
                 "horizontalAlignment": "Left",
+                "spacing": "None",
                 "items": lines,
-            });
-            apply_gap_id(&mut obj, spacing.or(Some(4.0)));
-            obj
+            })
         }
 
         WidgetElement::Shape(_) => rasterized_or_skip(e, skipped),

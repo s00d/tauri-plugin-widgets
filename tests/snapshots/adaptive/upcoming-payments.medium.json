@@ -28,10 +28,9 @@
                               "id": "badge:overlay",
                               "items": [
                                 {
-                                  "horizontalAlignment": "Center",
-                                  "size": "Small",
-                                  "type": "Image",
-                                  "url": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABQAAAAUCAYAAACNiR0NAAAA0klEQVR4Ae3AA6AkWZbG8f937o3IzKdyS2Oubdu2bdu2bdu2bWmMnpZKr54yMyLu+Xa3anqmhztr1U8PepdbzX8c9KB3udX8x0EPepdbzX8c9KB3udX8x0EPepdbzX8c9KB3udX8x0EPepdbzX8c9KB3udX8x0EPepdbzX8c9KB3udX8x0EPepdbzX8c9KB3udX8x0EPepdbzX8c9KB3udX8x0EPepdbzX8c9KB3udX8x0EPepdbzX8c9KB3udX8x0EPepdbzX8c9KB3udX8x+EfATYVLuHIwEhhAAAAAElFTkSuQmCC"
+                                  "spacing": "None",
+                                  "text": "",
+                                  "type": "TextBlock"
                                 },
                                 {
                                   "color": "Light",
@@ -95,6 +94,7 @@
                         }
                       ],
                       "id": "gap:6",
+                      "spacing": "Default",
                       "type": "ColumnSet"
                     }
                   ],
@@ -112,10 +112,9 @@
                               "id": "badge:overlay",
                               "items": [
                                 {
-                                  "horizontalAlignment": "Center",
-                                  "size": "Small",
-                                  "type": "Image",
-                                  "url": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABQAAAAUCAYAAACNiR0NAAAA0klEQVR4Ae3AA6AkWZbG8f937o3IzKdyS2Oubdu2bdu2bdu2bWmMnpZKr54yMyLu+Xa3anqmhztr1U8PepdbzX8c9KB3udX8x0EPepdbzX8c9KB3udX8x0EPepdbzX8c9KB3udX8x0EPepdbzX8c9KB3udX8x0EPepdbzX8c9KB3udX8x0EPepdbzX8c9KB3udX8x0EPepdbzX8c9KB3udX8x0EPepdbzX8c9KB3udX8x0EPepdbzX8c9KB3udX8x0EPepdbzX8c9KB3udX8x+EfATYVLuHIwEhhAAAAAElFTkSuQmCC"
+                                  "spacing": "None",
+                                  "text": "",
+                                  "type": "TextBlock"
                                 },
                                 {
                                   "color": "Light",
@@ -179,6 +178,7 @@
                         }
                       ],
                       "id": "gap:6",
+                      "spacing": "Default",
                       "type": "ColumnSet"
                     }
                   ],
@@ -187,6 +187,7 @@
                 }
               ],
               "id": "gap:8",
+              "spacing": "Default",
               "type": "ColumnSet"
             },
             {
@@ -202,10 +203,9 @@
                               "id": "badge:overlay",
                               "items": [
                                 {
-                                  "horizontalAlignment": "Center",
-                                  "size": "Small",
-                                  "type": "Image",
-                                  "url": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABQAAAAUCAYAAACNiR0NAAAA0klEQVR4Ae3AA6AkWZbG8f937o3IzKdyS2Oubdu2bdu2bdu2bWmMnpZKr54yMyLu+Xa3anqmhztr1U8PepdbzX8c9KB3udX8x0EPepdbzX8c9KB3udX8x0EPepdbzX8c9KB3udX8x0EPepdbzX8c9KB3udX8x0EPepdbzX8c9KB3udX8x0EPepdbzX8c9KB3udX8x0EPepdbzX8c9KB3udX8x0EPepdbzX8c9KB3udX8x0EPepdbzX8c9KB3udX8x0EPepdbzX8c9KB3udX8x+EfATYVLuHIwEhhAAAAAElFTkSuQmCC"
+                                  "spacing": "None",
+                                  "text": "",
+                                  "type": "TextBlock"
                                 },
                                 {
                                   "color": "Light",
@@ -269,6 +269,7 @@
                         }
                       ],
                       "id": "gap:6",
+                      "spacing": "Default",
                       "type": "ColumnSet"
                     }
                   ],
@@ -286,10 +287,9 @@
                               "id": "badge:overlay",
                               "items": [
                                 {
-                                  "horizontalAlignment": "Center",
-                                  "size": "Small",
-                                  "type": "Image",
-                                  "url": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABQAAAAUCAYAAACNiR0NAAAA0klEQVR4Ae3AA6AkWZbG8f937o3IzKdyS2Oubdu2bdu2bdu2bWmMnpZKr54yMyLu+Xa3anqmhztr1U8PepdbzX8c9KB3udX8x0EPepdbzX8c9KB3udX8x0EPepdbzX8c9KB3udX8x0EPepdbzX8c9KB3udX8x0EPepdbzX8c9KB3udX8x0EPepdbzX8c9KB3udX8x0EPepdbzX8c9KB3udX8x0EPepdbzX8c9KB3udX8x0EPepdbzX8c9KB3udX8x0EPepdbzX8c9KB3udX8x+EfATYVLuHIwEhhAAAAAElFTkSuQmCC"
+                                  "spacing": "None",
+                                  "text": "",
+                                  "type": "TextBlock"
                                 },
                                 {
                                   "color": "Light",
@@ -353,6 +353,7 @@
                         }
                       ],
                       "id": "gap:6",
+                      "spacing": "Default",
                       "type": "ColumnSet"
                     }
                   ],
@@ -361,10 +362,11 @@
                 }
               ],
               "id": "gap:8",
+              "spacing": "Default",
               "type": "ColumnSet"
             }
           ],
-          "spacing": "None",
+          "spacing": "Default",
           "type": "Container"
         },
         {
@@ -381,7 +383,7 @@
           "wrap": false
         }
       ],
-      "spacing": "None",
+      "spacing": "Default",
       "style": "emphasis",
       "type": "Container"
     }

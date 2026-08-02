@@ -5,19 +5,43 @@
       "id": "card:#1c1c1e;gap:10",
       "items": [
         {
-          "size": "Default",
-          "text": "✓ Wi-Fi",
-          "type": "TextBlock",
-          "wrap": true
+          "items": [
+            {
+              "size": "Default",
+              "text": "✓ Wi-Fi",
+              "type": "TextBlock",
+              "wrap": true
+            }
+          ],
+          "selectAction": {
+            "data": {
+              "payload": "false"
+            },
+            "type": "Action.Execute",
+            "verb": "toggle_wifi"
+          },
+          "type": "Container"
         },
         {
-          "size": "Default",
-          "text": "○ Bluetooth",
-          "type": "TextBlock",
-          "wrap": true
+          "items": [
+            {
+              "size": "Default",
+              "text": "○ Bluetooth",
+              "type": "TextBlock",
+              "wrap": true
+            }
+          ],
+          "selectAction": {
+            "data": {
+              "payload": "true"
+            },
+            "type": "Action.Execute",
+            "verb": "toggle_bt"
+          },
+          "type": "Container"
         }
       ],
-      "spacing": "None",
+      "spacing": "Medium",
       "style": "emphasis",
       "type": "Container"
     }

@@ -6,10 +6,9 @@
         {
           "items": [
             {
-              "horizontalAlignment": "Center",
-              "size": "Large",
-              "type": "Image",
-              "url": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAADgAAAA4CAYAAACohjseAAAFJklEQVR4Ae3AA6AkWZbG8f937o3IzKdyS2Oubdu2bdu2bdu2bWmMnpZKr54yMyLu+Xa3anqmhztr1U/8J7jvDd77pYHXMry04cGIB8s8mAewuBVzq+BWwV8Dv3PNr333X/MfC/Ef5J43ep+3kv3emNcGjvNvs4v4bUvffd2vfNfP8O+H+He4+NbvfXw44qMwHw0c5z/WLuKr+w2+5sRPf/cu/zaIf4OLb/3ex4cjPgrz0cBx/nPtIr663+BrTvz0d+/yr4P4V7r3Dd/7rQ1fJfNg/gtZ3Cr4mGt/9bt/mhcd4l/hvjd876+y+Wj+G0l89TW/+t0fw4sG8SK4+NbvfXw45LeAl+Z/hr/uN3mdEz/93bu8cIh/wX1v8N4vneKnZB7M/yAWt4Z5m2t+7bv/mhcM8ULc9wbv/dKG3wKO8z/TruB1rvm17/5rnj/EC3Dxrd/7+PqIv5J5MP+DWdw62+BlTvz0d+/yvBAvwL1v8N5/Bbw0/zv89bW/9t0vw/NCPB/3vcF7f7Xho/hfRPA11/zad380zwnxXO59w/d+a8xP8b+ReJtrf/W7f5pnQzzAxbd+7+PrI/5K5sH8L2Rx62yDlznx09+9yxWIB7j3Dd/7szGfxf9m4nOu/dXv/myuQDzTxbd+7+PDIU8HjvO/226/yUNO/PR37wKIZ7r3Dd/7szGfxf8F4nOu/dXv/mwA8Uz3vsF7XwSO83/D7rW/9t0nAARw7xu+91tjfor/S8TbXPur3/3TArj3Dd/7pzFvxf8l4meu/dXvfmsB3PsG730ROM7/LbvX/tp3n9B9b/DeL234K/4PEryM7n3D9/5szGfxf5CDj9G9b/je3415L/4PEnyN7nmD9/5twWvxf5Dhd3TPG77302UezP9BFrfq3jd4b/N/F7r3Dd7b/N+F7n2D9zb/d6F73+C9zf9d6J43eO9bBQ/i/yDDM3TPG7z3bwtei/+DDL+je9/wvb8b8178HyT4Gt3zRu/90Uq+iv+DHHyM7nuD935pw1/xf5DgZQRw7xu89y5wjP9bLl37a999XAD3vuF7/zTmrfi/RPzMtb/63W8tgHvf8L3fGvNT/F8i3ubaX/3unxbPdO8bvPcucIz/Gy5d+2vffRxAPNO9b/jen435LP4vEJ9z7a9+92cDiGe6+NbvfXw45FbgGP+7Xeo3efCJn/7uXQDxAPe+4Xt/Nuaz+N9MfM61v/rdn80ViAe4+NbvfXx9yF8LHsT/QoZnzDZ56RM//d27XIF4Lve+4Xu/Nean+N9IvM21v/rdP82zIZ6P+97gvb/a8FH8LyL4mmt+7bs/mueEeAHufcP3/mvMS/G/gfiba3/1u1+a54V4AS6+9XsfXx/y14IH8T+Y4RmzTV76xE9/9y7PC/FC3PcG7/3Sht8GjvE/0yXBa1/za9/91zx/iH/BfW/w3i+d8NOCB/E/iOEZAW99za9991/zgiFeBBff+r2PD0f8Nual+J9A/E2/wWuf+Onv3uWFQ/wr3PcG7/3Vho/iv5Hga675te/+aF40iH+le9/wvd/a5qsFD+K/kOEZEh997a9+90/zokP8G1x86/c+Phzx0ZiPBo7xn+sS4qv7Db76xE9/9y7/Ooh/h4tv/d7HhyM+GvPRwDH+Y11CfHW/wVef+Onv3uXfBvEf5N43fO+3Bt4b89rAMf5tLiF+G/jua3/1u3+afz/Ef4L73uC9XzqD147kwQkvDTxY8CAewPAM4NaAv87g1kh++5pf++6/5j8W/whaKXuqvuO6QwAAAABJRU5ErkJggg=="
+              "spacing": "None",
+              "text": "",
+              "type": "TextBlock"
             }
           ],
           "type": "Column",
@@ -122,10 +121,11 @@
                     }
                   ],
                   "id": "gap:20",
+                  "spacing": "Large",
                   "type": "ColumnSet"
                 }
               ],
-              "spacing": "None",
+              "spacing": "Default",
               "type": "Container"
             }
           ],
@@ -134,6 +134,7 @@
         }
       ],
       "id": "gap:14",
+      "spacing": "Medium",
       "type": "ColumnSet"
     }
   ],

@@ -384,7 +384,11 @@ function renderButton(d){
     if(d.action)emitAction(d.action);
     else if(d.url)window.open(d.url,'_blank');
   };
-  applyStyle(e,d);return e;
+  // applyStyle would clobber the padding we just set — skip padding there for buttons.
+  var padSave=d.padding; d.padding=undefined;
+  applyStyle(e,d);
+  d.padding=padSave;
+  return e;
 }
 
 function renderToggle(d){
@@ -621,7 +625,7 @@ function collectTrace(node, rendered, skipped){
   });
 }
 
-function reportReceipt(cfg, source, trigger){
+function reportReceipt(cfg, source, trigger, nonceHint){
   try{
     var label=(window.__TAURI_INTERNALS__&&window.__TAURI_INTERNALS__.metadata&&
       window.__TAURI_INTERNALS__.metadata.currentWindow&&
@@ -630,32 +634,27 @@ function reportReceipt(cfg, source, trigger){
     var branch=SIZE?(cfg&&(cfg[SIZE]||cfg.small||cfg.medium||cfg.large)):(cfg&&(cfg.small||cfg.medium||cfg.large));
     collectTrace(branch,rendered,skipped);
     var nonce=0;
-    if(cfg&&cfg.__nonce!=null)nonce=Number(cfg.__nonce)||0;
+    if(nonceHint!=null)nonce=Number(nonceHint)||0;
+    else if(cfg&&cfg.__nonce!=null)nonce=Number(cfg.__nonce)||0;
     var trig=trigger||(source==='push'?'reload':'timeline');
-    function send(n){
-      invoke('plugin:widgets|report_receipt',{receipt:{
-        widgetId:WIDGET_ID,
-        group:GROUP,
-        instance:label,
-        nonce:n,
-        size:SIZE||'small',
-        theme:document.documentElement.getAttribute('data-theme')||undefined,
-        schema:1,
-        source:source||'pull',
-        trigger:trig,
-        rendered:rendered,
-        skipped:skipped,
-        ts:Date.now()
-      }}).catch(function(){});
-    }
-    if(nonce){send(nonce);return}
-    invoke('plugin:widgets|get_items',{key:'__meta_nonce__',group:GROUP})
-      .then(function(v){send(Number(v)||0)})
-      .catch(function(){send(0)});
+    invoke('plugin:widgets|report_receipt',{receipt:{
+      widgetId:WIDGET_ID,
+      group:GROUP,
+      instance:label,
+      nonce:nonce,
+      size:SIZE||'small',
+      theme:document.documentElement.getAttribute('data-theme')||undefined,
+      schema:1,
+      source:source||'pull',
+      trigger:trig,
+      rendered:rendered,
+      skipped:skipped,
+      ts:Date.now()
+    }}).catch(function(){});
   }catch(_){}
 }
 
-function render(cfg, source){
+function render(cfg, source, nonceHint){
   clearTimers();
   if(!cfg){root.innerHTML='<div class="w-empty"><div><div style="font-size:28px;margin-bottom:4px">&#x1F4CC;</div><div style="font-size:14px;opacity:.7">No widget config</div></div></div>';return}
   var data;
@@ -691,13 +690,19 @@ function render(cfg, source){
   };
   wrapper.appendChild(cls);
   root.appendChild(wrapper);
-  reportReceipt(cfg, source||'pull', source==='push'?'reload':'timeline');
+  reportReceipt(cfg, source||'pull', source==='push'?'reload':'timeline', nonceHint);
 }
 
 function loadConfig(){
-  invoke('plugin:widgets|get_widget_config',{group:GROUP,widgetId:WIDGET_ID})
-    .then(function(cfg){render(cfg,'pull')})
-    .catch(function(e){clearTimers();root.innerHTML='<div class="w-err">'+String(e)+'</div>'});
+  Promise.all([
+    invoke('plugin:widgets|get_widget_config',{group:GROUP,widgetId:WIDGET_ID}),
+    invoke('plugin:widgets|get_items',{key:'__meta_nonce__',group:GROUP}).catch(function(){return null})
+  ]).then(function(res){
+    var cfg=res[0];
+    var nonce=res[1];
+    if(cfg&&nonce!=null)cfg.__nonce=Number(nonce)||0;
+    render(cfg,'pull',nonce);
+  }).catch(function(e){clearTimers();root.innerHTML='<div class="w-err">'+String(e)+'</div>'});
 }
 
 function init(){

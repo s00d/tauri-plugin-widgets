@@ -75,18 +75,42 @@ fn unique_tmp_path(path: &Path) -> PathBuf {
     path.with_extension(format!("tmp.{}.{}", std::process::id(), nanos))
 }
 
-pub fn write_map_file(path: &Path, map: &DataMap) -> crate::Result<()> {
+fn write_bytes_atomic(path: &Path, bytes: &[u8]) -> crate::Result<()> {
+    use std::io::Write;
     if let Some(parent) = path.parent() {
         fs::create_dir_all(parent).map_err(|e| Error::Io(e.to_string()))?;
     }
-    let json = serde_json::to_string_pretty(map).map_err(|e| Error::new(e.to_string()))?;
-    let tmp = unique_tmp_path(path);
-    fs::write(&tmp, json.as_bytes()).map_err(|e| Error::Io(e.to_string()))?;
+    // Exclusive create_new — pid+nanos alone can collide under concurrent writers.
+    let mut tmp = unique_tmp_path(path);
+    let mut file = loop {
+        match fs::OpenOptions::new()
+            .write(true)
+            .create_new(true)
+            .open(&tmp)
+        {
+            Ok(f) => break f,
+            Err(e) if e.kind() == std::io::ErrorKind::AlreadyExists => {
+                tmp = unique_tmp_path(path);
+                continue;
+            }
+            Err(e) => return Err(Error::Io(e.to_string())),
+        }
+    };
+    if let Err(e) = file.write_all(bytes).and_then(|_| file.sync_all()) {
+        let _ = fs::remove_file(&tmp);
+        return Err(Error::Io(e.to_string()));
+    }
+    drop(file);
     fs::rename(&tmp, path).map_err(|e| {
         let _ = fs::remove_file(&tmp);
         Error::Io(e.to_string())
     })?;
     Ok(())
+}
+
+pub fn write_map_file(path: &Path, map: &DataMap) -> crate::Result<()> {
+    let json = serde_json::to_string_pretty(map).map_err(|e| Error::new(e.to_string()))?;
+    write_bytes_atomic(path, json.as_bytes())
 }
 
 fn read_receipt_file(path: &Path) -> Option<Receipt> {
@@ -96,17 +120,8 @@ fn read_receipt_file(path: &Path) -> Option<Receipt> {
 }
 
 fn write_receipt_file(path: &Path, receipt: &Receipt) -> crate::Result<()> {
-    if let Some(parent) = path.parent() {
-        fs::create_dir_all(parent).map_err(|e| Error::Io(e.to_string()))?;
-    }
     let json = serde_json::to_string(receipt).map_err(|e| Error::new(e.to_string()))?;
-    let tmp = unique_tmp_path(path);
-    fs::write(&tmp, json.as_bytes()).map_err(|e| Error::Io(e.to_string()))?;
-    fs::rename(&tmp, path).map_err(|e| {
-        let _ = fs::remove_file(&tmp);
-        Error::Io(e.to_string())
-    })?;
-    Ok(())
+    write_bytes_atomic(path, json.as_bytes())
 }
 
 pub fn write_sandbox_map(group: &str, map: &DataMap) -> crate::Result<()> {
@@ -341,6 +356,9 @@ pub fn mirror_to_siblings(primary: &dyn Transport, group: &str, map: &DataMap) {
                     .unwrap_or(true);
                 if outgoing_empty && !pa.trim().is_empty() && pa.trim() != "[]" {
                     out.insert(store::PENDING_ACTIONS_KEY.into(), pa.clone());
+                    // Sibling queue must outrank the empty primary snapshot.
+                    let floor = store::map_nonce(&existing).max(store::map_nonce(map));
+                    store::touch_meta_above(&mut out, floor);
                 }
             }
         }

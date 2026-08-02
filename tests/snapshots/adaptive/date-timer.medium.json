@@ -36,7 +36,7 @@
                       "wrap": true
                     }
                   ],
-                  "spacing": "None",
+                  "spacing": "Default",
                   "type": "Container"
                 }
               ],
@@ -64,7 +64,7 @@
                       "wrap": true
                     }
                   ],
-                  "spacing": "None",
+                  "spacing": "Default",
                   "type": "Container"
                 }
               ],
@@ -92,7 +92,7 @@
                       "wrap": true
                     }
                   ],
-                  "spacing": "None",
+                  "spacing": "Default",
                   "type": "Container"
                 }
               ],
@@ -101,10 +101,11 @@
             }
           ],
           "id": "gap:16",
+          "spacing": "Large",
           "type": "ColumnSet"
         }
       ],
-      "spacing": "None",
+      "spacing": "Default",
       "style": "emphasis",
       "type": "Container"
     }

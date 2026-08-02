@@ -20,10 +20,9 @@
                   "id": "badge:overlay",
                   "items": [
                     {
-                      "horizontalAlignment": "Center",
-                      "size": "Medium",
-                      "type": "Image",
-                      "url": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACwAAAAsCAYAAAAehFoBAAABi0lEQVR4Ae3AA6AkWZbG8f937o3IzKdyS2Oubdu2bdu2bdu2bWmMnpZKr54yMyLu+Xa3anqmhztr1U8Pepdbzf8e6EHvcqv53wM96F1uNf97oAe9y63mfw/0oHe51fzvgR70Lrea/z3Qg97lVvO/B3rQu9xq/vdAD3qXW83/HuhB73Kr+d8DPehdbjX/e6AHvcut5n8P9KB3udX874Ee9C63mv890IPe5Vbzvwd60Lvcav73QA96l1vN/x7oQe9yq/nfAz3oXW41/3ugB73LreZ/D/Sgd7nV/O+BHvQut5r/PdCD3uVW878HetC73Gr+90APepdbzf8e6EHvcqv53wM96F1uNf97oAe9y63mfw/0oHe51fzvgR70Lrea/z3Qg97lVvO/B3rQu9xq/vdAD3qXW83/HuhB73Kr+d8DPehdbjX/e6AHvcut5n8P9KB3udX874Ee9C63mv890IPe5Vbzvwd60Lvcav73QA96l1vN/x7oQe9yq/nfAz3oXW41/3ugB73LreZ/D/4RfO1nIZTpJoQAAAAASUVORK5CYII="
+                      "spacing": "None",
+                      "text": "",
+                      "type": "TextBlock"
                     },
                     {
                       "color": "Light",
@@ -64,7 +63,7 @@
                       "wrap": false
                     }
                   ],
-                  "spacing": "None",
+                  "spacing": "Small",
                   "type": "Container"
                 }
               ],
@@ -73,6 +72,7 @@
             }
           ],
           "id": "gap:10",
+          "spacing": "Medium",
           "type": "ColumnSet"
         },
         {
@@ -91,7 +91,7 @@
           "wrap": false
         }
       ],
-      "spacing": "None",
+      "spacing": "Medium",
       "style": "emphasis",
       "type": "Container"
     }

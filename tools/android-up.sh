@@ -13,6 +13,8 @@ if [[ -z "$ARCH" ]]; then
 fi
 SYS_IMAGE="system-images;android-34;google_apis;${ARCH}"
 PACKAGE="${TEST_PACKAGE:-git.s00d.widgets}"
+# Instrumentation host may be either the app package or the .test package.
+PACKAGES_TO_BIND=("$PACKAGE" "git.s00d.widgets" "git.s00d.widgets.test")
 # Frozen wall clock (UTC): 2026-08-01 12:00:00
 FIXED_DATE="${FIXED_DATE:-080112002026.00}"
 
@@ -73,7 +75,9 @@ adb shell "su 0 date ${FIXED_DATE}" >/dev/null 2>&1 || \
   adb shell "date ${FIXED_DATE}" >/dev/null 2>&1 || \
   echo "warn: could not set date to ${FIXED_DATE} (relative date cases may drift)" >&2
 
-adb shell appwidget grantbind --package "$PACKAGE" >/dev/null 2>&1 || \
-  echo "warn: grantbind failed for $PACKAGE (bind may still work after install)" >&2
+for pkg in "${PACKAGES_TO_BIND[@]}"; do
+  adb shell appwidget grantbind --package "$pkg" >/dev/null 2>&1 || \
+    echo "warn: grantbind failed for $pkg (bind may still work after install)" >&2
+done
 
 echo "android-up ok: avd=$AVD_NAME arch=$ARCH package=$PACKAGE"

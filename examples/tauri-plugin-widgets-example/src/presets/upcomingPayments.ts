@@ -183,7 +183,7 @@ function emptyBody(size: "small" | "medium" | "large"): WidgetElement {
       type: "zstack",
       alignment: "center",
       children: [
-        { type: "shape", shapeType: "circle", fill: "#3878FA", size: icon },
+        { type: "shape", shapeType: "circle", fill: "#1B3A7A", size: icon },
         { type: "image", systemName: "checkmark.circle.fill", size: Math.round(icon * 0.58), color: ACCENT },
       ],
     },

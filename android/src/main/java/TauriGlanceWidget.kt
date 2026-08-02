@@ -730,21 +730,13 @@ internal fun RenderElement(
             var boxMod = actionModifier
             if (bg != null) boxMod = boxMod.background(bg)
             if (radius >= 0) boxMod = boxMod.cornerRadius(radius.toInt().coerceAtLeast(0).dp)
-            // Honor DSL padding as content insets; default only when absent.
+            // Honor DSL padding as content insets via applyCommonStyle; default only when absent.
             val pad = el.opt("padding")
-            boxMod = when {
-                pad == null || pad === JSONObject.NULL ->
-                    boxMod.padding(horizontal = 10.dp, vertical = 6.dp)
-                pad is Number ->
-                    boxMod.padding(pad.toInt().dp)
-                pad is JSONObject -> {
-                    val t = pad.optInt("top", pad.optInt("vertical", 6))
-                    val b = pad.optInt("bottom", pad.optInt("vertical", 6))
-                    val l = pad.optInt("leading", pad.optInt("left", pad.optInt("horizontal", 10)))
-                    val r = pad.optInt("trailing", pad.optInt("right", pad.optInt("horizontal", 10)))
-                    boxMod.padding(start = l.dp, top = t.dp, end = r.dp, bottom = b.dp)
-                }
-                else -> boxMod.padding(horizontal = 10.dp, vertical = 6.dp)
+            boxMod = if (pad == null || pad === JSONObject.NULL) {
+                boxMod.padding(horizontal = 10.dp, vertical = 6.dp)
+            } else {
+                // Explicit padding already applied on baseModifier by applyCommonStyle.
+                boxMod
             }
             if (bg != null) {
                 Box(modifier = boxMod) {

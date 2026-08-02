@@ -78,8 +78,6 @@ internal static class Program
 [ClassInterface(ClassInterfaceType.None)]
 internal sealed class WidgetProviderFactory : IClassFactory
 {
-    private static readonly Guid IidIUnknown = Guid.Parse("00000000-0000-0000-C000-000000000046");
-
     public int CreateInstance(nint pUnkOuter, ref Guid riid, out nint ppvObject)
     {
         ppvObject = 0;
@@ -89,13 +87,17 @@ internal sealed class WidgetProviderFactory : IClassFactory
         }
 
 #if !WIDGET_SMOKE
-        // Widgets Board expects the WinRT IWidgetProvider projection, not a classic COM IUnknown.
-        if (riid == typeof(WidgetProvider).GUID || riid == IidIUnknown)
+        // Widgets Board asks for IWidgetProvider (or IUnknown) — typeof(WidgetProvider).GUID is the CLSID, not an IID.
+        var provider = new WidgetProvider();
+        nint inspectable = MarshalInspectable<WidgetProvider>.FromManaged(provider);
+        try
         {
-            ppvObject = MarshalInspectable<WidgetProvider>.FromManaged(new WidgetProvider());
-            return 0; // S_OK
+            return Marshal.QueryInterface(inspectable, ref riid, out ppvObject);
         }
-        return unchecked((int)0x80004002); // E_NOINTERFACE
+        finally
+        {
+            Marshal.Release(inspectable);
+        }
 #else
         var unk = Marshal.GetIUnknownForObject(new WidgetProvider());
         try

@@ -2,17 +2,51 @@
   "$schema": "http://adaptivecards.io/schemas/adaptive-card.json",
   "body": [
     {
-      "id": "card:#1c1c1e;gap:3",
+      "id": "card:#1c1c1e;gap:2",
       "items": [
         {
-          "color": "Light",
-          "horizontalAlignment": "Right",
-          "id": "fg:#ffffff",
-          "size": "Medium",
-          "text": "0",
-          "type": "TextBlock",
-          "weight": "Bolder",
-          "wrap": false
+          "columns": [
+            {
+              "items": [
+                {
+                  "color": "Attention",
+                  "horizontalAlignment": "Left",
+                  "id": "fg:#f09a36",
+                  "size": "Small",
+                  "text": " ",
+                  "type": "TextBlock",
+                  "weight": "Default",
+                  "wrap": false
+                }
+              ],
+              "type": "Column",
+              "width": "stretch"
+            },
+            {
+              "items": [],
+              "type": "Column",
+              "width": "stretch"
+            },
+            {
+              "items": [
+                {
+                  "color": "Light",
+                  "horizontalAlignment": "Right",
+                  "id": "fg:#ffffff",
+                  "size": "Medium",
+                  "text": "0",
+                  "type": "TextBlock",
+                  "weight": "Bolder",
+                  "wrap": false
+                }
+              ],
+              "type": "Column",
+              "width": "auto"
+            }
+          ],
+          "id": "gap:4",
+          "spacing": "Default",
+          "type": "ColumnSet"
         },
         {
           "id": "rule:#3a3a3c",
@@ -96,6 +130,7 @@
                 }
               ],
               "id": "gap:2",
+              "spacing": "Small",
               "type": "ColumnSet"
             },
             {
@@ -170,6 +205,7 @@
                 }
               ],
               "id": "gap:2",
+              "spacing": "Small",
               "type": "ColumnSet"
             },
             {
@@ -244,6 +280,7 @@
                 }
               ],
               "id": "gap:2",
+              "spacing": "Small",
               "type": "ColumnSet"
             },
             {
@@ -318,14 +355,90 @@
                 }
               ],
               "id": "gap:2",
+              "spacing": "Small",
+              "type": "ColumnSet"
+            },
+            {
+              "columns": [
+                {
+                  "items": [
+                    {
+                      "actions": [
+                        {
+                          "id": "bg:#636366;fg:#fff",
+                          "title": "%",
+                          "type": "Action.Execute",
+                          "verb": "calc:%"
+                        }
+                      ],
+                      "type": "ActionSet"
+                    }
+                  ],
+                  "type": "Column",
+                  "width": "stretch"
+                },
+                {
+                  "items": [
+                    {
+                      "actions": [
+                        {
+                          "id": "bg:#3a3a3c;fg:#fff",
+                          "title": "0",
+                          "type": "Action.Execute",
+                          "verb": "calc:0"
+                        }
+                      ],
+                      "type": "ActionSet"
+                    }
+                  ],
+                  "type": "Column",
+                  "width": "stretch"
+                },
+                {
+                  "items": [
+                    {
+                      "actions": [
+                        {
+                          "id": "bg:#3a3a3c;fg:#fff",
+                          "title": ".",
+                          "type": "Action.Execute",
+                          "verb": "calc:."
+                        }
+                      ],
+                      "type": "ActionSet"
+                    }
+                  ],
+                  "type": "Column",
+                  "width": "stretch"
+                },
+                {
+                  "items": [
+                    {
+                      "actions": [
+                        {
+                          "id": "bg:#f09a36;fg:#fff",
+                          "title": "=",
+                          "type": "Action.Execute",
+                          "verb": "calc:="
+                        }
+                      ],
+                      "type": "ActionSet"
+                    }
+                  ],
+                  "type": "Column",
+                  "width": "stretch"
+                }
+              ],
+              "id": "gap:2",
+              "spacing": "Small",
               "type": "ColumnSet"
             }
           ],
-          "spacing": "None",
+          "spacing": "Small",
           "type": "Container"
         }
       ],
-      "spacing": "None",
+      "spacing": "Small",
       "style": "emphasis",
       "type": "Container"
     }

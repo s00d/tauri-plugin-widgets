@@ -42,7 +42,8 @@ Real Glance → RemoteViews → `AppWidgetHostView`. No launcher, no manual plac
 
 ```bash
 just android-up
-# grantbind is applied by the script for git.s00d.widgets (host package)
+# grantbind is applied for git.s00d.widgets and git.s00d.widgets.test
+# Goldens are written under the instrumentation (.test) package path.
 
 just test-android-visual
 just record-android weather.small

@@ -14,10 +14,9 @@
           "id": "badge:overlay",
           "items": [
             {
-              "horizontalAlignment": "Center",
-              "size": "Medium",
-              "type": "Image",
-              "url": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAADAAAAAwCAYAAABXAvmHAAAEe0lEQVR4Ae3AA6AkWZbG8f937o3IzKdyS2Oubdu2bdu2bdu2bWmMnpZKr54yMyLu+Xa3anqmhztr1U/8B3j0K3/yg41e0vg1kV5K9oMMD+YBBLdaeobw71q6daOf/dxf//Zn7/Lvg/g3eunX/uzjq9XwHim/J/ZL8W8h/U1Y3zuf99/317/92bv86yH+lV76tT/7+NF6/eXAW2If5z+CtIv9vQFf/4Q//uJbedEh/hUe9Sqf/BlGH4F9nP8M0q7w1z3xj77483jRIF4Ej3z1z3gp2vTt2C/FfwXpb8J+hyf88RffyguH+Bc86lU/6a3s+Dbs4/xXknZBH/+kP/rC7+UFQ7wQj3yVT31PnN/OfyfF+z/pj77we3n+EC/AI1/lU98T57fzP4Hi/Z/0R1/4vTwvxPPxyFf51PfE+e38D6LwOzzxD7/kZ3hOiOfyyFf/jJeiTb+GfZz/SaTdsF/xCX/8xbfybIgHeOnX/uzjR+v1r2G/FP8TSX/zpD/6olfg2RAP8KhX+eTPsPkM/geT+Lwn/tEXfx5XIJ7p0a/8yQ9OeBL/00m7Yb/iE/74i28FEM/0qFf55O+weQ/+F5D4vCf+0Rd/HoAAHv3Kn/zghCfxv4W0uzGbPfKvf/uzdwXwyFf+lK8AfwT/myje/0l/9IXfK4BHvfInP8nwYP43kf7mSX/0Ra+gR776Z7wU0/hn/C+0MZ9fo0e96qd8pNNfzv9CCr+DHvXKn/rjJt+S/4UkPk+PfJVP+TPsl+J/I+l39chX/uSB/6UEt+qRr/zJA/97oUe+8icP/O+FHvnKnzzwvxd65Ct/8sD/XuiRr/IpT8Z+EP8bSc/QI1/lU34d+zX530j6XT3ylT/lK8Afwf9CEp+nR77Kp74nzm/nfyGF30Ev/dqfffxotbqP/4U25vNrBPCoV/7kPze8JP+LCP72iX/8xS8vgEe96qd8pNNfzv8mivd/0h994fcK4KVf+7OPH61WTwaO8b/DpY35/BF//dufvSue6ZGv/ClfAf4I/heQ+Lwn/tEXfx6AeKZHv/InPzjhz4Bj/M92KeAVnvDHX3wrgHiAR73KJ3+GzWfwP5jE5z3xj77487gC8Vwe9cqf/OeGl+R/IMHfPvGPv/jleTbEc3nkq3/GSzGNvw4c43+WSwGv8IQ//uJbeTbE8/HIV/nU98T57fwPovA7PPEPv+RneE6IF+CRr/Kp74nz2/mfQPH+T/qjL/xenhfihXjkq3zqe+L8dv47Kd7/SX/0hd/L84f4FzzqVT/prZz6duAY/7UuKfz+T/zDL/kZXjDEi+DRr/zJDzb8uOEl+S8g+FvB2z/hj7/4Vl44xL/Co17lkz/D5iOBY/znuCTxtU/8oy/+PF40iH+lR7/yJz840UeA3xM4xn+MSxJfK/N9T/jjL76VFx3i3+ilX/uzjy+H9XuSfk/DS/JvIPhbK752Y9b/7F//9mfv8q+H+A/w0q/92ceXw/K1sF7S6LWAB2E/iAeSngE8Q/h3kP920S9+569/+7N3+ffhHwEj+msEG7awaQAAAABJRU5ErkJggg=="
+              "spacing": "None",
+              "text": "",
+              "type": "TextBlock"
             },
             {
               "color": "Accent",
@@ -46,7 +45,7 @@
           "type": "TextBlock"
         }
       ],
-      "spacing": "None",
+      "spacing": "Medium",
       "style": "emphasis",
       "type": "Container"
     }

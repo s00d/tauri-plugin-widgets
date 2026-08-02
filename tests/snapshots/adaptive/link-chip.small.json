@@ -41,6 +41,7 @@
                 }
               ],
               "id": "gap:6",
+              "spacing": "Default",
               "type": "ColumnSet"
             }
           ],
@@ -52,7 +53,7 @@
           "type": "Container"
         }
       ],
-      "spacing": "None",
+      "spacing": "Default",
       "style": "emphasis",
       "type": "Container"
     }

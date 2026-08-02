@@ -635,20 +635,20 @@ public struct DynamicElementView: View {
             return f.date(from: ds) ?? Date()
         }()
         let countingUp = (element.counting ?? "down").lowercased() == "up"
-        // Periodic refresh so the label ticks live (not a one-shot at timeline entry).
-        TimelineView(.periodic(from: .now, by: 1)) { context in
-            let diffMs = countingUp
-                ? context.date.timeIntervalSince(target) * 1000
-                : target.timeIntervalSince(context.date) * 1000
-            let sign = diffMs < 0 ? "-" : ""
-            let absSec = Int(abs(diffMs) / 1000)
-            let h = absSec / 3600
-            let m = (absSec % 3600) / 60
-            let s = absSec % 60
-            let label = String(format: "%@%d:%02d:%02d", sign, h, m, s)
-            Text(label)
-                .font(.system(size: element.fontSize ?? 14, weight: fontWeight(element.fontWeight)).monospacedDigit())
-                .foregroundColor(resolveColor(element.color) ?? .primary)
+        // WidgetKit keeps Text(timerInterval:) live without a process-resident TimelineView.
+        let style = Font.system(size: element.fontSize ?? 14, weight: fontWeight(element.fontWeight)).monospacedDigit()
+        let color = resolveColor(element.color) ?? Color.primary
+        if countingUp {
+            Text(timerInterval: target...Date.distantFuture, countsDown: false)
+                .font(style)
+                .foregroundColor(color)
+                .lineLimit(1)
+                .minimumScaleFactor(0.55)
+                .allowsTightening(true)
+        } else {
+            Text(timerInterval: Date.now...target, countsDown: true)
+                .font(style)
+                .foregroundColor(color)
                 .lineLimit(1)
                 .minimumScaleFactor(0.55)
                 .allowsTightening(true)

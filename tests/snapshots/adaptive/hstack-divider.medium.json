@@ -48,6 +48,7 @@
         }
       ],
       "id": "gap:8",
+      "spacing": "Default",
       "type": "ColumnSet"
     }
   ],

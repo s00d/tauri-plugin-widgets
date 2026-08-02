@@ -28,7 +28,7 @@
           "wrap": true
         }
       ],
-      "spacing": "None",
+      "spacing": "Default",
       "style": "emphasis",
       "type": "Container"
     }

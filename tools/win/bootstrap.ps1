@@ -64,9 +64,18 @@ function Add-MsvcToPath {
   }
   if (-not (Test-Path $bin)) { return $false }
   $env:Path = $bin + ";" + $env:Path
-  # Persist for subsequent remote/shell sessions.
+  # Persist for subsequent remote/shell sessions (literal entry compare — wildcards break -like).
   $userPath = [Environment]::GetEnvironmentVariable("Path", "User")
-  if ($userPath -notlike "*$bin*") {
+  $already = $false
+  if ($userPath) {
+    foreach ($entry in $userPath.Split(';', [System.StringSplitOptions]::RemoveEmptyEntries)) {
+      if ([string]::Equals($entry.TrimEnd('\'), $bin.TrimEnd('\'), [System.StringComparison]::OrdinalIgnoreCase)) {
+        $already = $true
+        break
+      }
+    }
+  }
+  if (-not $already) {
     [Environment]::SetEnvironmentVariable("Path", ($bin + ";" + $userPath), "User")
   }
   Write-Host ("  PATH append: " + $bin)

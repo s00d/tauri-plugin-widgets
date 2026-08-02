@@ -37,10 +37,11 @@
             }
           ],
           "id": "gap:10",
+          "spacing": "Medium",
           "type": "ColumnSet"
         }
       ],
-      "spacing": "None",
+      "spacing": "Medium",
       "style": "emphasis",
       "type": "Container"
     }

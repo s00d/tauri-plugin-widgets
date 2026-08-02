@@ -22,10 +22,9 @@
           "id": "badge:overlay",
           "items": [
             {
-              "horizontalAlignment": "Center",
-              "size": "Large",
-              "type": "Image",
-              "url": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAADQAAAA0CAYAAADFeBvrAAAEyUlEQVR4Ae3AA6AkWZbG8f937o3IzKdyS2Oubdu2bdu2bdu2bWmMnpZKr54yMyLu+Xa3anqmhztr1U/8B3rkq3/GS5HTS5J+KaSXkv0gw4N5AMGtlp6B/TeE/ibSv/eEP/7iW/mPgfh3euSrf8ZLMY3vIXhLw4P5NxDcavhZavd9T/r9z/sb/u0Q/0aPfNVPeQ/Me2K/Fv+RpN8J+Pwn/NEX/Q7/eoh/pUe/yqe8VsKnY78W/5mk36HUj3/S73/e3/CiQ7yIXvq1P/v40Wr16cBH8l/ra5/0x1/88bxoEC+CR776Z7wUbfp27Jfiv4P0N2G/wxP++Itv5YVD/Ase/Sqf8loJP4Z9nP9O0i6lvsGTfv/z/oYXDPFCPPJVPvU9cX47/1NIuwHv8IQ/+qLf4flDvACPfpVPea20f43/aaRdSn2DJ/3+5/0NzwvxfDzy1T/jpWjTr2Ef538iaTfsV3zCH3/xrTwnxHN56df+7OPL1epPDQ/mfzLpb570R1/0CjwnxHN55Ct/yleAP4L/FfR1T/rjL/o4ng3xAI9+lU95rbR/jf9NavcKT/r9z/sbrkA8wCNf5VP+DPul+N9E+p0n/dEXvQFXIJ7pka/yqe+J89v5XyikN3jCH33R7wCIZ3rUK3/ykwwP5n8j6Xee9Edf9AYAAnj0q3zKa6X9a/xvVrtXeNLvf97fCOBRr/LJ32HzHvyvpq970h9/0ccJ4JGv8in3YR/nfzHBrU/84y9+pB79Kp/yWmn/Gv8HBDxSj3qVT/4Mm8/g/wLF++uRr/Ipv479mvyfoK/To175k59keDD/F0i/q0e+8icP/B8huFWPfOVPHvi/Az3ylT954P8O9MhX/uSB/zvQI1/5kwf+70CPfJVPeTL2g/i/QHqGHvkqn/Lr2K/J/wXS7+qRr/wpXwH+CP5P0NfpUa/6KR/p9Jfzf4Hi/fXoV/7kByc8if8DAh4pgEe+yqc8GftB/G8mPeNJf/RFjxDAI1/5U74C/BH8r6ave9Iff9HHCeCRr/4ZL8U0/hn/m9XuFZ70+5/3N+KZHvkqn/Lr2K/J/0bS7z7pj77o9QHEMz36VT7ltdL+Nf4XCukNnvBHX/Q7AOIBHvkqn/Lr2K/J/ybS7z7pj77o9bkC8QCPfPXPeCmm8c/436R2r/Ck3/+8v+EKxHN55Ct/yleAP4L/FfR1T/rjL/o4ng3xfDzqlT/5zw0vyf9ggr994h9/8cvznBDPx6Nf+ZMfnPBnwDH+Z7oU8ApP+OMvvpXnhHgBHvnqn/FSTOOvA8f4n+UStXv9J/3+5/0NzwvxQjz6VT7ltdL+ceAY/zNcCuntn/BHX/Q7PH+If8EjX/0zXopp/HXgGP+9LlG713/S73/e3/CCIV4Ej3z1z3gpTeN3GF6S/waCvxW8/RP++Itv5YVD/Cs88pU/5SvAH8F/KX3dk/74iz6OFw3iX+mRr/4ZL0WbvgL7NfnPJP0upX7ck37/8/6GFx3i3+jRr/Ipr5XwGdivyX8k6XcDPu8Jf/RFv8O/HuLf6ZGv/hkvxTS9J+ItsR/Ev4X0DMzPUuv3Pun3P+9v+LdD/Ad69Ct/8oNT8ZrYL4V4KeBB2A/igaRnAM/A/A3S34Tzd5/wx198K/8x+EdQIXk2DdZVRQAAAABJRU5ErkJggg=="
+              "spacing": "None",
+              "text": "",
+              "type": "TextBlock"
             },
             {
               "color": "Accent",
@@ -54,7 +53,7 @@
           "type": "TextBlock"
         }
       ],
-      "spacing": "None",
+      "spacing": "Medium",
       "style": "emphasis",
       "type": "Container"
     }

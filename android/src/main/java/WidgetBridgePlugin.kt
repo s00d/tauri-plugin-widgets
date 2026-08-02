@@ -195,8 +195,12 @@ class WidgetBridgePlugin(private val activity: Activity) : Plugin(activity) {
                     val url = node.optString("url", "")
                     if (url.isNotBlank()) {
                         val ttlMs = when {
-                            node.has("cacheTtlMs") -> node.optLong("cacheTtlMs", DEFAULT_IMAGE_CACHE_TTL_MS)
-                            node.has("cacheTtlSec") -> node.optLong("cacheTtlSec", DEFAULT_IMAGE_CACHE_TTL_MS / 1000L) * 1000L
+                            node.has("cacheTtlMs") -> node.optLong("cacheTtlMs", DEFAULT_IMAGE_CACHE_TTL_MS).coerceAtLeast(0L)
+                            node.has("cacheTtlSec") -> {
+                                val sec = node.optLong("cacheTtlSec", DEFAULT_IMAGE_CACHE_TTL_MS / 1000L)
+                                    .coerceIn(0L, Long.MAX_VALUE / 1000L)
+                                sec * 1000L
+                            }
                             else -> DEFAULT_IMAGE_CACHE_TTL_MS
                         }
                         val localPath = cacheImageFromUrl(url, ttlMs)
