@@ -66,7 +66,15 @@ object WidgetStoreKeys {
 
         val packageName = context.packageName
         val packageNameHyphen = packageName.replace('_', '-')
-        val candidates = listOf(
+        val metaGroup = runCatching {
+            val ai = context.packageManager.getReceiverInfo(
+                android.content.ComponentName(context, "git.s00d.widgets.TauriGlanceWidgetReceiver"),
+                android.content.pm.PackageManager.GET_META_DATA,
+            )
+            ai.metaData?.getString("tauri_widget_group")
+        }.getOrNull()
+        val candidates = listOfNotNull(
+            metaGroup?.takeIf { it.isNotBlank() },
             packageName,
             "group.$packageName",
             packageNameHyphen,

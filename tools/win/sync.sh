@@ -7,8 +7,7 @@ ROOT="$(cd "$(dirname "$0")/../.." && pwd)"
 HOST="${UTM_WIN_HOST:-utm-win}"
 
 echo "==> ensuring remote dir on $HOST"
-ssh "$HOST" powershell -NoProfile -Command \
-  "New-Item -ItemType Directory -Force -Path 'C:\\work\\tauri-plugin-widgets' | Out-Null"
+ssh "$HOST" 'powershell -NoProfile -Command "New-Item -ItemType Directory -Force -Path ''C:\work\tauri-plugin-widgets'' | Out-Null"'
 
 echo "==> tar+scp → ${HOST}:C:\\work\\tauri-plugin-widgets"
 TMP="$(mktemp -t tpw-sync.XXXXXX.tgz)"
@@ -26,8 +25,7 @@ tar -C "$ROOT" \
 scp "$TMP" "${HOST}:C:/work/tpw-sync.tgz"
 rm -f "$TMP"
 
-ssh "$HOST" powershell -NoProfile -Command \
-  "New-Item -ItemType Directory -Force -Path 'C:\\work\\tauri-plugin-widgets' | Out-Null; tar -xzf C:\\work\\tpw-sync.tgz -C C:\\work\\tauri-plugin-widgets"
+ssh "$HOST" 'powershell -NoProfile -Command "New-Item -ItemType Directory -Force -Path ''C:\work\tauri-plugin-widgets'' | Out-Null; tar -xzf C:\work\tpw-sync.tgz -C C:\work\tauri-plugin-widgets"'
 
 echo "==> install C:\\work\\shot.ps1"
 scp "$(cd "$(dirname "$0")" && pwd)/shot.ps1" "${HOST}:C:/work/shot.ps1"

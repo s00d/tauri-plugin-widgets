@@ -115,8 +115,9 @@ internal static class Program
                     using var ms = new MemoryStream(bytes);
                     using var img = Image.FromStream(ms);
                     var drawH = Math.Min(img.Height, 120f);
-                    var scale = drawH / img.Height;
-                    var drawW = Math.Min(img.Width * scale, maxW);
+                    var scale = Math.Min(drawH / img.Height, maxW / Math.Max(img.Width, 1f));
+                    var drawW = img.Width * scale;
+                    drawH = img.Height * scale;
                     g.DrawImage(img, x, y, drawW, drawH);
                     return y + drawH + 6;
                 }

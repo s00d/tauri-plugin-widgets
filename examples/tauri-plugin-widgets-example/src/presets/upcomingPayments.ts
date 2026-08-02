@@ -16,7 +16,6 @@ export type UpcomingItem = {
 const ACCENT = "#3878FA";
 const ACCENT_DEEP = "#1F59E0";
 const BG = { light: "#F2F2F7", dark: "#1C1C1E" } as const;
-const CELL_CAP = 12;
 
 const DEMO_ITEMS: UpcomingItem[] = [
   { id: "1", name: "Streaming", nextPayment: "2099-06-01", price: "12.50", currencyCode: "USD" },
@@ -269,7 +268,8 @@ function smallHero(item: UpcomingItem): WidgetElement {
 
 function listFamily(items: UpcomingItem[], size: "medium" | "large"): WidgetElement {
   const dense = size === "medium";
-  const visible = items.slice(0, CELL_CAP);
+  const cap = size === "medium" ? 4 : 6;
+  const visible = items.slice(0, cap);
   const rest = Math.max(0, items.length - visible.length);
   const children: WidgetElement[] = [
     {

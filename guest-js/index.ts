@@ -215,8 +215,13 @@ export async function createWidgetWindow(
   config: WidgetWindowConfig,
 ): Promise<boolean> {
   if (!config.label) throw new Error("createWidgetWindow: 'label' is required");
-  if (!config.url && !config.widgetId) {
-    throw new Error("createWidgetWindow: 'widgetId' is required for the built-in renderer");
+  if (!config.url) {
+    if (!config.group) {
+      throw new Error("createWidgetWindow: 'group' is required for the built-in renderer");
+    }
+    if (!config.widgetId) {
+      throw new Error("createWidgetWindow: 'widgetId' is required for the built-in renderer");
+    }
   }
   return await invoke<boolean>(`${PLUGIN_ID}|create_widget_window`, { config });
 }
@@ -553,6 +558,44 @@ export async function pollPendingWidgetActions(
 // ─── Widget Updater ─────────────────────────────────────────────────────────
 
 /**
+ * Handlers registered by `startWidgetUpdater` instances, keyed by group then
+ * widgetId. Polling a group's pending-action queue drains it entirely, so a
+ * single shared dispatcher is used to route every envelope to the matching
+ * sibling widget instead of losing actions to whichever updater happened to
+ * poll first.
+ */
+const pendingActionHandlers = new Map<string, Map<string, (data: WidgetActionPayload) => void>>();
+/** In-flight poll per group, so concurrent ticks share a single drain. */
+const pendingActionPolls = new Map<string, Promise<void>>();
+
+function pollAndDispatchPendingActions(group: string): Promise<void> {
+  const inFlight = pendingActionPolls.get(group);
+  if (inFlight) return inFlight;
+  const promise = (async () => {
+    let pending: WidgetActionPayload[];
+    try {
+      pending = await pollPendingWidgetActions(group);
+    } catch (e) {
+      console.debug("[widget-updater] pollPendingWidgetActions failed:", e);
+      return;
+    }
+    const handlers = pendingActionHandlers.get(group);
+    if (!handlers || handlers.size === 0) return;
+    for (const item of pending) {
+      for (const [widgetId, handler] of handlers) {
+        if (item.widgetId && item.widgetId !== widgetId) continue;
+        if (item.group && item.group !== group) continue;
+        handler(item);
+      }
+    }
+  })();
+  pendingActionPolls.set(group, promise);
+  return promise.finally(() => {
+    if (pendingActionPolls.get(group) === promise) pendingActionPolls.delete(group);
+  });
+}
+
+/**
  * Start a periodic widget updater that calls `builder` on a fixed interval,
  * sends the returned config to the native widget, and optionally reloads
  * widget timelines.
@@ -637,29 +680,34 @@ export async function startWidgetUpdater(
   let running = false;
   let cancelled = false;
 
+  if (options?.onAction) {
+    const handler = options.onAction;
+    let handlers = pendingActionHandlers.get(group);
+    if (!handlers) {
+      handlers = new Map();
+      pendingActionHandlers.set(group, handlers);
+    }
+    handlers.set(widgetId, (item) => handler(item.action, item.payload));
+  }
+
   async function tick() {
     if (cancelled || running) return;
     running = true;
     try {
       // Drain native pending_actions (iOS WidgetKit / Android fallback) into handlers.
-      try {
-        const pending = await pollPendingWidgetActions(group);
+      // Only poll when an action handler is registered — otherwise draining
+      // would silently discard actions nobody is listening for.
+      if (options?.onAction) {
+        await pollAndDispatchPendingActions(group);
         if (cancelled) return;
-        if (options?.onAction) {
-          for (const item of pending) {
-            if (item.widgetId && item.widgetId !== widgetId) continue;
-            if (item.group && item.group !== group) continue;
-            options.onAction(item.action, item.payload);
-          }
-        }
-      } catch (e) {
-        console.debug("[widget-updater] pollPendingWidgetActions failed:", e);
       }
 
-      if (cancelled) return;
       const config = await builder();
       if (cancelled) return;
-      await setWidgetConfig(config, group, widgetId);
+      // skipReload: true — the native reload-on-write is suppressed here so
+      // the explicit reloadAllTimelines() call below stays the single source
+      // of truth for `options.reload`, matching the documented behavior.
+      await setWidgetConfig(config, group, widgetId, true);
       if (cancelled) return;
       if (reload) {
         await reloadAllTimelines();
@@ -692,5 +740,10 @@ export async function startWidgetUpdater(
     cancelled = true;
     if (id !== null) clearInterval(id);
     if (actionUnsub) { actionUnsub(); actionUnsub = null; }
+    const handlers = pendingActionHandlers.get(group);
+    if (handlers) {
+      handlers.delete(widgetId);
+      if (handlers.size === 0) pendingActionHandlers.delete(group);
+    }
   };
 }

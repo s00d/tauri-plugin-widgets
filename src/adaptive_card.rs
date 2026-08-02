@@ -324,13 +324,26 @@ fn el(e: &WidgetElement, skipped: &mut Vec<SkippedElement>) -> Value {
                     .clone()
                     .unwrap_or_else(|| if *is_on { "On".into() } else { "Off".into() });
             let mark = if *is_on { "✓" } else { "○" };
-            let _ = action;
-            json!({
+            let mut block = json!({
                 "type": "TextBlock",
                 "text": format!("{mark} {title}"),
                 "wrap": true,
                 "size": "Default",
-            })
+            });
+            if let Some(a) = action {
+                // Keep toggle tappable on Widgets Board.
+                return json!({
+                    "type": "Container",
+                    "items": [block],
+                    "selectAction": {
+                        "type": "Action.Execute",
+                        "verb": a,
+                        "data": { "isOn": !is_on },
+                    },
+                });
+            }
+            let _ = &mut block;
+            block
         }
 
         WidgetElement::Progress(ProgressElement {
@@ -488,7 +501,7 @@ fn el(e: &WidgetElement, skipped: &mut Vec<SkippedElement>) -> Value {
                         // Keep a blank mark slot so labels share a left edge.
                         None => (" ", "Light"),
                     };
-                    json!({
+                    let mut row = json!({
                         "type": "ColumnSet",
                         "columns": [
                             {
@@ -517,7 +530,15 @@ fn el(e: &WidgetElement, skipped: &mut Vec<SkippedElement>) -> Value {
                                 }]
                             }
                         ]
-                    })
+                    });
+                    if let Some(ref a) = it.action {
+                        row["selectAction"] = json!({
+                            "type": "Action.Execute",
+                            "verb": a,
+                            "data": { "payload": it.payload },
+                        });
+                    }
+                    row
                 })
                 .collect();
             let mut obj = json!({
@@ -662,6 +683,17 @@ fn apply_gap_id(obj: &mut Value, spacing: Option<f64>) {
     if s <= 0.0 {
         return;
     }
+    // Adaptive Cards layout spacing (pt buckets) — keep gap id for debug tooling.
+    let ac = if s < 4.0 {
+        "Small"
+    } else if s < 10.0 {
+        "Default"
+    } else if s < 16.0 {
+        "Medium"
+    } else {
+        "Large"
+    };
+    obj["spacing"] = json!(ac);
     push_id_token(obj, &format!("gap:{}", s.round() as i64));
 }
 

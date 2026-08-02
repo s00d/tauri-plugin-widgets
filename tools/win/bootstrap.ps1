@@ -46,7 +46,38 @@ if ($CheckOnly) {
   exit 1
 }
 
+function Add-MsvcToPath {
+  $vswhere = "${env:ProgramFiles(x86)}\Microsoft Visual Studio\Installer\vswhere.exe"
+  if (-not (Test-Path $vswhere)) { return $false }
+  $install = & $vswhere -latest -products * -requires Microsoft.VisualStudio.Component.VC.Tools.x86.x64 -property installationPath 2>$null
+  if (-not $install) {
+    $install = & $vswhere -latest -products * -requires Microsoft.VisualStudio.Component.VC.Tools.ARM64 -property installationPath 2>$null
+  }
+  if (-not $install) { return $false }
+  $msvc = Get-ChildItem (Join-Path $install "VC\Tools\MSVC") -Directory -ErrorAction SilentlyContinue |
+    Sort-Object Name -Descending | Select-Object -First 1
+  if (-not $msvc) { return $false }
+  $hostArch = if ($env:PROCESSOR_ARCHITECTURE -eq "ARM64") { "arm64" } else { "x64" }
+  $bin = Join-Path $msvc.FullName ("bin\Host" + $hostArch + "\" + $hostArch)
+  if (-not (Test-Path $bin)) {
+    $bin = Join-Path $msvc.FullName "bin\Hostx64\x64"
+  }
+  if (-not (Test-Path $bin)) { return $false }
+  $env:Path = $bin + ";" + $env:Path
+  # Persist for subsequent remote/shell sessions.
+  $userPath = [Environment]::GetEnvironmentVariable("Path", "User")
+  if ($userPath -notlike "*$bin*") {
+    [Environment]::SetEnvironmentVariable("Path", ($bin + ";" + $userPath), "User")
+  }
+  Write-Host ("  PATH append: " + $bin)
+  return $true
+}
+
 if (Test-LinkExe) {
+  # Ensure PATH is refreshed even when link.exe was found via vswhere recurse.
+  if (-not (Get-Command link.exe -ErrorAction SilentlyContinue)) {
+    [void](Add-MsvcToPath)
+  }
   Write-Host "bootstrap: already have link.exe - skip install"
   Write-Status
   Write-Host "bootstrap: OK"
@@ -96,6 +127,10 @@ if (Test-Path $vswhere) {
       }
       if (Test-Path $bin) {
         $env:Path = $bin + ";" + $env:Path
+        $userPath = [Environment]::GetEnvironmentVariable("Path", "User")
+        if ($userPath -notlike "*$bin*") {
+          [Environment]::SetEnvironmentVariable("Path", ($bin + ";" + $userPath), "User")
+        }
         Write-Host ("  PATH append: " + $bin)
       }
     }

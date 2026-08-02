@@ -262,7 +262,7 @@ class WidgetBridgePlugin(private val activity: Activity) : Plugin(activity) {
                     .putString(WidgetStoreKeys.KEY_ACTIVE_WIDGET_ID, widgetId)
                     .apply()
                 syncConfigToGlanceState(safeGroup, widgetId, value)
-                reloadGenericWidgets()
+                // Reload is owned by the Rust mobile layer (`skipReload`); do not force here.
             }
             invoke.resolve(JSObject().put("results", true))
         } catch (e: Exception) {
@@ -430,8 +430,12 @@ class WidgetBridgePlugin(private val activity: Activity) : Plugin(activity) {
             for (appWidgetId in allIds) {
                 val mapped = WidgetStoreKeys.mappedWidgetId(context, appWidgetId)
                 val shouldUpdate = when {
-                    mapped == widgetId -> true
-                    live.contains(appWidgetId) -> true
+                    mapped == widgetId && WidgetStoreKeys.mappedGroup(context, appWidgetId).let { g ->
+                        g.isNullOrBlank() || g == group
+                    } -> true
+                    live.contains(appWidgetId) && WidgetStoreKeys.mappedGroup(context, appWidgetId).let { g ->
+                        g.isNullOrBlank() || g == group
+                    } -> true
                     // No instance yet for this logical id: claim exactly one unmapped slot.
                     mapped.isNullOrBlank() && !hasMappedTarget && !claimedUnmapped -> {
                         WidgetStoreKeys.bindInstance(context, appWidgetId, widgetId, group)

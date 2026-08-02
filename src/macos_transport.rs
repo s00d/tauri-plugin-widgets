@@ -309,12 +309,28 @@ pub fn max_nonce_across(group: &str) -> u64 {
 ///
 /// The widget still multi-reads and picks by nonce. Mirroring keeps inactive
 /// channels from serving a stale higher-nonce snapshot.
+///
+/// Concurrent enqueues: merge `pending_actions` from the sibling's current map
+/// into the outgoing mirror so a host config write cannot wipe a just-appended action.
 pub fn mirror_to_siblings(primary: &dyn Transport, group: &str, map: &DataMap) {
     for t in all_transports(group) {
         if t.name() == primary.name() || !t.available() {
             continue;
         }
-        if let Err(e) = t.write(map) {
+        let mut out = map.clone();
+        if let Some(existing) = t.read() {
+            if let Some(pa) = existing.get(store::PENDING_ACTIONS_KEY) {
+                // Prefer the longer / non-empty queue when the outgoing map cleared it.
+                let outgoing_empty = out
+                    .get(store::PENDING_ACTIONS_KEY)
+                    .map(|s| s.trim().is_empty() || s.trim() == "[]")
+                    .unwrap_or(true);
+                if outgoing_empty && !pa.trim().is_empty() && pa.trim() != "[]" {
+                    out.insert(store::PENDING_ACTIONS_KEY.into(), pa.clone());
+                }
+            }
+        }
+        if let Err(e) = t.write(&out) {
             log::debug!("mirror_to_siblings({}): {e}", t.name());
         }
     }

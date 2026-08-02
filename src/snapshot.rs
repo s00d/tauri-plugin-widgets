@@ -389,6 +389,24 @@ fn dump_style(obj: &mut serde_json::Map<String, Value>, style: &crate::models::E
             serde_json::to_value(f).unwrap_or(Value::Null),
         );
     }
+    if let Some(b) = &style.border {
+        obj.insert(
+            "border".into(),
+            serde_json::to_value(b).unwrap_or(Value::Null),
+        );
+    }
+    if let Some(s) = &style.shadow {
+        obj.insert(
+            "shadow".into(),
+            serde_json::to_value(s).unwrap_or(Value::Null),
+        );
+    }
+    if let Some(c) = &style.clip_shape {
+        obj.insert(
+            "clipShape".into(),
+            serde_json::to_value(c).unwrap_or(Value::Null),
+        );
+    }
 }
 
 #[cfg(test)]

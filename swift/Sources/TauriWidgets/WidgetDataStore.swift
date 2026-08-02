@@ -115,7 +115,7 @@ public struct TauriWidgetDataStore {
 
     public static func loadConfigAcknowledging(appGroup: String, widgetId: String = "default") -> WidgetUIConfig? {
         #if os(iOS)
-        assertAppGroupAvailable(appGroup)
+        guard assertAppGroupAvailable(appGroup) else { return nil }
         #endif
         let (map, source) = loadFreshestMapWithSource(appGroup: appGroup)
         defer {
@@ -151,7 +151,9 @@ public struct TauriWidgetDataStore {
         widgetId: String = "default"
     ) -> (WidgetUIConfig?, String, UInt64) {
         #if os(iOS)
-        assertAppGroupAvailable(appGroup)
+        guard assertAppGroupAvailable(appGroup) else {
+            return (nil, "unavailable", 0)
+        }
         #endif
         let (map, source) = loadFreshestMapWithSource(appGroup: appGroup)
         let nonce = UInt64(map[TauriWidgetStoreKeys.metaNonce] ?? "0") ?? 0
@@ -164,15 +166,19 @@ public struct TauriWidgetDataStore {
     }
 
     /// iOS: App Group must work — silent fallback looks like an empty widget.
-    public static func assertAppGroupAvailable(_ appGroup: String) {
+    /// Returns false when the group container is unavailable (callers should stop the load path).
+    @discardableResult
+    public static func assertAppGroupAvailable(_ appGroup: String) -> Bool {
         #if os(iOS)
-        if ProcessInfo.processInfo.environment["WIDGET_APP_GROUP_DATA_FILE"] != nil { return }
+        if ProcessInfo.processInfo.environment["WIDGET_APP_GROUP_DATA_FILE"] != nil { return true }
         if FileManager.default.containerURL(forSecurityApplicationGroupIdentifier: appGroup) == nil {
             logger.error(
                 "App Group '\(appGroup)' unavailable: enable App Groups on BOTH the app and widget extension targets. Silent fallback disabled on iOS."
             )
+            return false
         }
         #endif
+        return true
     }
 
     /// Read a single key from the freshest available transport.

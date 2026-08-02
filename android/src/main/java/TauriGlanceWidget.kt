@@ -365,6 +365,13 @@ private fun WidgetRootBody(
         return
     }
     WIDGET_SURFACE_DARK = inferSurfaceDark(context, element.opt("background"))
+    // Adaptive {light,dark} backgrounds must keep null override so isDarkMode wins.
+    if (element.opt("background") is JSONObject) {
+        val bg = element.optJSONObject("background")
+        if (bg != null && bg.has("light") && bg.has("dark")) {
+            WIDGET_SURFACE_DARK = null
+        }
+    }
     // fillMaxSize on Column often collapses later siblings in Glance RemoteViews —
     // host Box fills the frame; content column only stretches width.
     Box(modifier = GlanceModifier.fillMaxSize()) {
@@ -713,7 +720,22 @@ internal fun RenderElement(
             var boxMod = actionModifier
             if (bg != null) boxMod = boxMod.background(bg)
             if (radius >= 0) boxMod = boxMod.cornerRadius(radius.toInt().coerceAtLeast(0).dp)
-            boxMod = boxMod.padding(horizontal = 10.dp, vertical = 6.dp)
+            // Honor DSL padding as content insets; default only when absent.
+            val pad = el.opt("padding")
+            boxMod = when {
+                pad == null || pad === JSONObject.NULL ->
+                    boxMod.padding(horizontal = 10.dp, vertical = 6.dp)
+                pad is Number ->
+                    boxMod.padding(pad.toInt().dp)
+                pad is JSONObject -> {
+                    val t = pad.optInt("top", pad.optInt("vertical", 6))
+                    val b = pad.optInt("bottom", pad.optInt("vertical", 6))
+                    val l = pad.optInt("leading", pad.optInt("left", pad.optInt("horizontal", 10)))
+                    val r = pad.optInt("trailing", pad.optInt("right", pad.optInt("horizontal", 10)))
+                    boxMod.padding(start = l.dp, top = t.dp, end = r.dp, bottom = b.dp)
+                }
+                else -> boxMod.padding(horizontal = 10.dp, vertical = 6.dp)
+            }
             if (bg != null) {
                 Box(modifier = boxMod) {
                     if (el.has("textAlignment")) {

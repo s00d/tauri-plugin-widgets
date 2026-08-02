@@ -635,21 +635,24 @@ public struct DynamicElementView: View {
             return f.date(from: ds) ?? Date()
         }()
         let countingUp = (element.counting ?? "down").lowercased() == "up"
-        let diffMs = countingUp
-            ? Date().timeIntervalSince(target) * 1000
-            : target.timeIntervalSinceNow * 1000
-        let sign = diffMs < 0 ? "-" : ""
-        let absSec = Int(abs(diffMs) / 1000)
-        let h = absSec / 3600
-        let m = (absSec % 3600) / 60
-        let s = absSec % 60
-        let label = String(format: "%@%d:%02d:%02d", sign, h, m, s)
-        Text(label)
-            .font(.system(size: element.fontSize ?? 14, weight: fontWeight(element.fontWeight)).monospacedDigit())
-            .foregroundColor(resolveColor(element.color) ?? .primary)
-            .lineLimit(1)
-            .minimumScaleFactor(0.55)
-            .allowsTightening(true)
+        // Periodic refresh so the label ticks live (not a one-shot at timeline entry).
+        TimelineView(.periodic(from: .now, by: 1)) { context in
+            let diffMs = countingUp
+                ? context.date.timeIntervalSince(target) * 1000
+                : target.timeIntervalSince(context.date) * 1000
+            let sign = diffMs < 0 ? "-" : ""
+            let absSec = Int(abs(diffMs) / 1000)
+            let h = absSec / 3600
+            let m = (absSec % 3600) / 60
+            let s = absSec % 60
+            let label = String(format: "%@%d:%02d:%02d", sign, h, m, s)
+            Text(label)
+                .font(.system(size: element.fontSize ?? 14, weight: fontWeight(element.fontWeight)).monospacedDigit())
+                .foregroundColor(resolveColor(element.color) ?? .primary)
+                .lineLimit(1)
+                .minimumScaleFactor(0.55)
+                .allowsTightening(true)
+        }
     }
 
     // MARK: Label
@@ -932,11 +935,31 @@ private struct OpacityMod: ViewModifier {
 }
 
 /// Minimal SVG path parser (M/m L/l H/h V/v Z/z). Enough for simple canvas paths.
+/// Accepts compact syntax like `M10 10L20 20` (command letter glued to first number).
 private func parseSVGPath(_ data: String) -> Path {
     var path = Path()
-    let tokens = data.replacingOccurrences(of: ",", with: " ")
-        .split(whereSeparator: { $0.isWhitespace })
-        .map(String.init)
+    var tokens: [String] = []
+    var num = ""
+    func flushNum() {
+        if !num.isEmpty { tokens.append(num); num = "" }
+    }
+    for ch in data.replacingOccurrences(of: ",", with: " ") {
+        if ch.isLetter {
+            flushNum()
+            tokens.append(String(ch))
+        } else if ch.isWhitespace {
+            flushNum()
+        } else if ch == "-" || ch == "+" || ch == "." || ch.isNumber {
+            // Start a new number when sign follows a digit/dot (e.g. 10-5 → 10, -5).
+            if (ch == "-" || ch == "+"), !num.isEmpty {
+                flushNum()
+            }
+            num.append(ch)
+        } else {
+            flushNum()
+        }
+    }
+    flushNum()
     var i = 0
     var cx: CGFloat = 0
     var cy: CGFloat = 0
@@ -947,7 +970,6 @@ private func parseSVGPath(_ data: String) -> Path {
     }
     while i < tokens.count {
         let cmd = tokens[i]
-        // Command letters may be glued to numbers; handle single-letter cmds
         if cmd.count == 1, let c = cmd.first, c.isLetter {
             i += 1
             switch c {

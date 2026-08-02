@@ -35,6 +35,12 @@ unsafe extern "system" {
     ) -> BOOL;
 }
 
+#[link(name = "kernel32")]
+unsafe extern "system" {
+    fn GetLastError() -> u32;
+    fn SetLastError(dwErrCode: u32);
+}
+
 const SMTO_NORMAL: u32 = 0;
 const WM_SPAWN_WORKER: u32 = 0x052C;
 
@@ -103,7 +109,14 @@ pub fn attach_to_workerw(child_hwnd: isize) -> bool {
         return false;
     };
     unsafe {
-        SetParent(child_hwnd as HWND, worker as HWND);
+        SetLastError(0);
+        let prev = SetParent(child_hwnd as HWND, worker as HWND);
+        if prev.is_null() {
+            let err = GetLastError();
+            if err != 0 {
+                return false;
+            }
+        }
         true
     }
 }

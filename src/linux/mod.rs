@@ -56,13 +56,34 @@ fn apply_x11_desktop_hints<R: Runtime>(
     if skip_taskbar {
         let state_atom = intern(&conn, b"_NET_WM_STATE")?;
         let skip_atom = intern(&conn, b"_NET_WM_STATE_SKIP_TASKBAR")?;
+        // Merge with existing state so ABOVE / sticky bits survive (REPLACE would wipe them).
+        let mut atoms: Vec<u32> = match XprotoConnectionExt::get_property(
+            &conn,
+            false,
+            xid,
+            state_atom,
+            AtomEnum::ATOM,
+            0,
+            64,
+        )
+        .and_then(|c| c.reply())
+        {
+            Ok(reply) if reply.format == 32 => reply
+                .value32()
+                .map(|it| it.collect())
+                .unwrap_or_default(),
+            _ => Vec::new(),
+        };
+        if !atoms.contains(&skip_atom) {
+            atoms.push(skip_atom);
+        }
         WrapperConnectionExt::change_property32(
             &conn,
             PropMode::REPLACE,
             xid,
             state_atom,
             AtomEnum::ATOM,
-            &[skip_atom],
+            &atoms,
         )
         .map_err(|e| format!("change_property STATE: {e}"))?;
     }

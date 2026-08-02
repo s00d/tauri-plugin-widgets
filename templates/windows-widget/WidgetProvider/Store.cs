@@ -34,16 +34,39 @@ public sealed class WidgetStore : IDisposable
         };
         _watcher.Changed += (_, _) => OnDiskChanged();
         _watcher.Created += (_, _) => OnDiskChanged();
-    }
+        _watcher.Renamed += (_, e) =>
+        {
+            if (string.Equals(e.FullPath, _path, StringComparison.OrdinalIgnoreCase)
+                || string.Equals(e.OldFullPath, _path, StringComparison.OrdinalIgnoreCase)
+                || string.Equals(Path.GetFileName(e.FullPath), Path.GetFileName(_path), StringComparison.OrdinalIgnoreCase))
+            {
+                OnDiskChanged();
+            }
+        };
+        // Atomic host writes replace via rename — watch the directory for .tmp → final.
+        _watcher.NotifyFilter |= NotifyFilters.FileName;
 
     public static string DefaultPath()
     {
         var local = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData);
-        // Prefer the Tauri app local data dir if set by the host; else fall back.
-        var env = Environment.GetEnvironmentVariable("TAURI_WIDGETS_DATA");
-        if (!string.IsNullOrWhiteSpace(env))
+        // Prefer host-provided paths so provider and Rust share the same map.
+        foreach (var key in new[] { "TAURI_WIDGETS_DATA", "TAURI_WIDGET_GROUP", "WIDGET_DATA_DIR" })
         {
-            return Path.Combine(env, "widget_data.json");
+            var env = Environment.GetEnvironmentVariable(key);
+            if (!string.IsNullOrWhiteSpace(env))
+            {
+                // TAURI_WIDGETS_DATA is a directory; TAURI_WIDGET_GROUP may be a group id used as folder name.
+                if (key == "TAURI_WIDGET_GROUP")
+                {
+                    return Path.Combine(local, env.Trim(), "widget_data.json");
+                }
+                var p = env.Trim();
+                if (p.EndsWith(".json", StringComparison.OrdinalIgnoreCase))
+                {
+                    return p;
+                }
+                return Path.Combine(p, "widget_data.json");
+            }
         }
         return Path.Combine(local, "tauri-plugin-widgets", "widget_data.json");
     }
@@ -178,6 +201,45 @@ public sealed class WidgetStore : IDisposable
     {
         var json = JsonSerializer.Serialize(_map);
         var tmp = _path + ".tmp";
+        // Cross-process coordination: exclusive lock file around read-modify-write.
+        var lockPath = _path + ".lock";
+        using var lockStream = new FileStream(
+            lockPath,
+            FileMode.OpenOrCreate,
+            FileAccess.ReadWrite,
+            FileShare.None);
+        // Re-read under lock so concurrent host writes are not clobbered blindly.
+        if (File.Exists(_path))
+        {
+            try
+            {
+                var disk = JsonSerializer.Deserialize<Dictionary<string, string>>(File.ReadAllText(_path))
+                    ?? new Dictionary<string, string>(StringComparer.Ordinal);
+                foreach (var kv in disk)
+                {
+                    if (!_map.ContainsKey(kv.Key))
+                    {
+                        _map[kv.Key] = kv.Value;
+                    }
+                }
+                // Prefer non-empty pending_actions from either side.
+                if (disk.TryGetValue(PendingActionsKey, out var diskPa)
+                    && _map.TryGetValue(PendingActionsKey, out var memPa))
+                {
+                    var diskEmpty = string.IsNullOrWhiteSpace(diskPa) || diskPa.Trim() == "[]";
+                    var memEmpty = string.IsNullOrWhiteSpace(memPa) || memPa.Trim() == "[]";
+                    if (memEmpty && !diskEmpty)
+                    {
+                        _map[PendingActionsKey] = diskPa;
+                    }
+                }
+                json = JsonSerializer.Serialize(_map);
+            }
+            catch
+            {
+                // keep in-memory map
+            }
+        }
         File.WriteAllText(tmp, json);
         File.Copy(tmp, _path, overwrite: true);
         File.Delete(tmp);

@@ -185,16 +185,32 @@ class WidgetPlugin: Plugin {
 
     @objc func pollPendingActions(_ invoke: Invoke) throws {
         let args = try invoke.parseArgs(GroupArgs.self)
-        var map = try readDataMap(group: args.group)
-        let raw = map[pendingActionsKey] ?? "[]"
+        // Read → take → write with retry so a concurrent Intent append is not wiped.
         var out: [[String: Any]] = []
-        if let data = raw.data(using: .utf8),
-           let arr = try? JSONSerialization.jsonObject(with: data) as? [[String: Any]] {
-            out = arr
+        for _ in 0..<5 {
+            var map = try readDataMap(group: args.group)
+            let raw = map[pendingActionsKey] ?? "[]"
+            var claimed: [[String: Any]] = []
+            if let data = raw.data(using: .utf8),
+               let arr = try? JSONSerialization.jsonObject(with: data) as? [[String: Any]] {
+                claimed = arr
+            }
+            map[pendingActionsKey] = "[]"
+            touchMeta(&map)
+            try writeDataMap(map, group: args.group)
+            // Re-read: if producer appended after our read, merge leftovers back.
+            var again = try readDataMap(group: args.group)
+            let againRaw = again[pendingActionsKey] ?? "[]"
+            if let data = againRaw.data(using: .utf8),
+               let arr = try? JSONSerialization.jsonObject(with: data) as? [[String: Any]],
+               !arr.isEmpty {
+                // We cleared; producer wrote after us — keep their queue, return what we claimed.
+                out = claimed
+                break
+            }
+            out = claimed
+            break
         }
-        map[pendingActionsKey] = "[]"
-        touchMeta(&map)
-        try writeDataMap(map, group: args.group)
         invoke.resolve(["results": out])
     }
 

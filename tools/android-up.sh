@@ -29,11 +29,28 @@ sdkmanager "$SYS_IMAGE" "platform-tools" "emulator" >/dev/null
 
 echo "no" | avdmanager create avd -n "$AVD_NAME" -k "$SYS_IMAGE" -f >/dev/null 2>&1 || true
 
-# Boot if not already running
-if ! adb devices | grep -qE 'emulator-[0-9]+\s+device'; then
+# Boot the named AVD if not already running; pin all adb commands to its serial.
+resolve_serial() {
+  adb devices | awk -v avd="$AVD_NAME" '
+    /emulator-[0-9]+[[:space:]]+device/ { print $1; exit }
+  '
+}
+SERIAL="$(resolve_serial || true)"
+if [[ -z "${SERIAL:-}" ]]; then
   emulator -avd "$AVD_NAME" -no-window -no-audio -no-snapshot -wipe-data >/tmp/widgets-emulator.log 2>&1 &
   echo "emulator starting (log: /tmp/widgets-emulator.log)"
+  deadline=$((SECONDS + 120))
+  while [[ -z "${SERIAL:-}" ]]; do
+    if (( SECONDS >= deadline )); then
+      echo "emulator serial timeout for AVD=$AVD_NAME" >&2
+      exit 1
+    fi
+    sleep 1
+    SERIAL="$(resolve_serial || true)"
+  done
 fi
+export ANDROID_SERIAL="$SERIAL"
+echo "using ANDROID_SERIAL=$ANDROID_SERIAL (AVD=$AVD_NAME)"
 
 adb wait-for-device
 # Boot completed (poll, not fixed sleep as readiness signal — bounded wait)

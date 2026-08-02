@@ -95,16 +95,30 @@ pub fn build_driver(
 }
 
 /// iOS: only `appGroup` (or `auto` → appGroup). Other kinds fail at init.
+/// Android: Apple-only transports are ignored (treated as AppGroup / SharedPreferences).
 pub fn validate_mobile_transport(cfg: &WidgetsPluginConfig) -> crate::Result<TransportKind> {
     let kind = effective_transport(cfg);
-    match kind {
-        TransportKind::AppGroup | TransportKind::Auto => Ok(TransportKind::AppGroup),
-        TransportKind::UserDefaults | TransportKind::WidgetContainer => Err(Error::new(format!(
-            "iOS supports transport=appGroup only (got transport={}).\n\
-             UserDefaults suite and widget-container writes from the host are not supported on iOS.\n\
-             Set plugins.widgets.transport to \"appGroup\" in tauri.conf.json.",
-            kind.as_str()
-        ))),
+    #[cfg(target_os = "android")]
+    {
+        let _ = kind;
+        // SharedPreferences path — Apple transport enums are not meaningful here.
+        return Ok(TransportKind::AppGroup);
+    }
+    #[cfg(not(target_os = "android"))]
+    {
+        match kind {
+            TransportKind::AppGroup | TransportKind::Auto => {
+                // Fail closed: App Group id is required on iOS for a shared container.
+                let _ = require_app_group(cfg)?;
+                Ok(TransportKind::AppGroup)
+            }
+            TransportKind::UserDefaults | TransportKind::WidgetContainer => Err(Error::new(format!(
+                "iOS supports transport=appGroup only (got transport={}).\n\
+                 UserDefaults suite and widget-container writes from the host are not supported on iOS.\n\
+                 Set plugins.widgets.transport to \"appGroup\" in tauri.conf.json.",
+                kind.as_str()
+            ))),
+        }
     }
 }
 
@@ -145,9 +159,21 @@ fn probe_once(cfg: &WidgetsPluginConfig) -> crate::Result<Arc<dyn Transport>> {
     apply_extension_bundle_env(cfg);
 
     let candidates = probe_candidates(group)?;
-    let mut probe = DataMap::new();
+    // Preserve the freshest existing map so probing does not wipe live configs/actions.
+    let mut probe = candidates
+        .iter()
+        .filter_map(|t| t.read())
+        .max_by_key(|m| map_nonce(m))
+        .unwrap_or_default();
+    let floor = candidates
+        .iter()
+        .filter_map(|t| t.read_receipt().map(|r| r.nonce))
+        .max()
+        .unwrap_or(0)
+        .max(map_nonce(&probe));
     probe.insert("__probe__".into(), "1".into());
-    touch_meta(&mut probe);
+    // Unique nonce above any existing map/receipt — avoid latching on stale receipts.
+    store::touch_meta_above(&mut probe, floor);
     let nonce = map_nonce(&probe);
 
     for t in &candidates {
@@ -156,10 +182,10 @@ fn probe_once(cfg: &WidgetsPluginConfig) -> crate::Result<Arc<dyn Transport>> {
         }
     }
 
-    // Prefer an existing / just-written receipt that matches this probe nonce.
+    // Prefer an exact post-write receipt match for this probe nonce + transport name.
     for t in &candidates {
         if let Some(r) = t.read_receipt() {
-            if r.read_from == t.name() && r.nonce >= nonce {
+            if r.read_from == t.name() && r.nonce == nonce {
                 log::warn!(
                     "transport=auto latched {:?} — set plugins.widgets.transport = \"{}\"",
                     t.name(),

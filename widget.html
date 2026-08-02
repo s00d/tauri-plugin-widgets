@@ -362,7 +362,18 @@ function renderButton(d){
   if(align==='end'||align==='trailing')align='right';
   if(align==='start'||align==='leading')align='left';
   // Intrinsic height + centered label — avoid stretch in default hstack (tall empty pill, label stuck to top).
-  e.style.cssText='display:inline-flex;align-items:center;justify-content:'+(align==='left'?'flex-start':align==='right'?'flex-end':'center')+';align-self:center;flex-shrink:0;padding:6px 12px;text-align:'+align+';cursor:pointer;font-weight:500;transition:filter .1s;box-sizing:border-box';
+  var padCss='6px 12px';
+  if(d.padding!=null){
+    if(typeof d.padding==='number') padCss=d.padding+'px';
+    else if(typeof d.padding==='object'){
+      var pt=d.padding.top!=null?d.padding.top:(d.padding.vertical!=null?d.padding.vertical:6);
+      var pb=d.padding.bottom!=null?d.padding.bottom:(d.padding.vertical!=null?d.padding.vertical:6);
+      var pl=d.padding.leading!=null?d.padding.leading:(d.padding.left!=null?d.padding.left:(d.padding.horizontal!=null?d.padding.horizontal:12));
+      var pr=d.padding.trailing!=null?d.padding.trailing:(d.padding.right!=null?d.padding.right:(d.padding.horizontal!=null?d.padding.horizontal:12));
+      padCss=pt+'px '+pr+'px '+pb+'px '+pl+'px';
+    }
+  }
+  e.style.cssText='display:inline-flex;align-items:center;justify-content:'+(align==='left'?'flex-start':align==='right'?'flex-end':'center')+';align-self:center;flex-shrink:0;padding:'+padCss+';text-align:'+align+';cursor:pointer;font-weight:500;transition:filter .1s;box-sizing:border-box';
   e.style.fontSize=(d.fontSize||14)+'px';
   e.style.background=d.backgroundColor?resolveColor(d.backgroundColor):'#2196F3';
   e.style.color=d.color?resolveColor(d.color):'#fff';

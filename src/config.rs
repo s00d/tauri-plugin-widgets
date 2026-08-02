@@ -5,7 +5,7 @@ use serde::Deserialize;
 /// Which Apple host→widget channel to use.
 ///
 /// Pick this at build time (you know your signing). Do not rely on runtime fan-out.
-#[derive(Debug, Clone, Copy, Deserialize, Default, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, Deserialize, PartialEq, Eq)]
 #[serde(rename_all = "camelCase")]
 pub enum TransportKind {
     /// App Group shared container file (`widget_data.json`). Needs a real Team ID.
@@ -14,9 +14,15 @@ pub enum TransportKind {
     UserDefaults,
     /// Widget extension container file. Works with ad-hoc signing; macOS host must not be sandboxed.
     WidgetContainer,
-    /// One-shot probe at startup (dev only). Latch the winner and pin it in conf before release.
-    #[default]
+    /// One-shot probe at startup (dev only). Prefer pinning an explicit driver in conf.
     Auto,
+}
+
+impl Default for TransportKind {
+    fn default() -> Self {
+        // Production-safe default: shared App Group file. Use `auto` explicitly for ad-hoc probing.
+        Self::AppGroup
+    }
 }
 
 impl TransportKind {

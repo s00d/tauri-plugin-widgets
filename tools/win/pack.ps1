@@ -23,6 +23,11 @@ $replacements = @{
   "{{WIDGET_DEFINITION_ID}}" = "TauriWidgets.Widget"
 }
 Get-ChildItem -Path $work -Recurse -File | ForEach-Object {
+  $ext = $_.Extension.ToLowerInvariant()
+  # Textual templates only — rewriting PNGs/binaries as text corrupts StoreLogo.png.
+  if ($ext -notin @(".xml", ".cs", ".csproj", ".json", ".props", ".targets", ".config", ".txt", ".md", ".appxmanifest")) {
+    return
+  }
   $text = Get-Content $_.FullName -Raw -ErrorAction SilentlyContinue
   if ($null -eq $text) { return }
   foreach ($k in $replacements.Keys) {

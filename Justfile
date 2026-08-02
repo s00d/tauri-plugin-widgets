@@ -200,11 +200,7 @@ record-linux case:
     fi
     mkdir -p "{{repo}}/tests/golden/linux"
     SRC="{{repo}}/out/linux/${CASE}-${SIZE}.png"
-    if [[ ! -f "$SRC" ]]; then
-      # shot may name by fixture stem — accept any matching out/linux file.
-      SRC="$(ls -1 "{{repo}}/out/linux/"*"${SIZE}.png" 2>/dev/null | head -1 || true)"
-    fi
-    [[ -f "$SRC" ]] || { echo "record-linux: no PNG for $CASE"; exit 1; }
+    [[ -f "$SRC" ]] || { echo "record-linux: expected PNG missing: $SRC"; exit 1; }
     cp "$SRC" "{{repo}}/tests/golden/linux/${CASE}.png"
     echo "record-linux: tests/golden/linux/${CASE}.png"
 
