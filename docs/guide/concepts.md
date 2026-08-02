@@ -27,10 +27,16 @@ interface WidgetConfig {
 
 ## `group` and `widgetId`
 
-- **`group`** — shared storage namespace (App Group on Apple, SharedPreferences group on Android, file namespace on desktop).
+- **`group`** — shared storage namespace (App Group on Apple, SharedPreferences name on Android, file namespace on desktop).
 - **`widgetId`** — logical identity of one widget UI inside that group. Required on `setWidgetConfig` / `getWidgetConfig` / `startWidgetUpdater`.
 
 Storage keys look like `config:{widgetId}`. Multiple widgets can share a group and show different configs.
+
+**Platform gotchas:**
+
+- **Apple:** `group` must equal `plugins.widgets.appGroup` and the Xcode App Group. Swift `TauriWidgetProvider(widgetId:)` defaults to `"default"` — keep it equal to the JS `widgetId`.
+- **Android:** default store name is the app **package name** (not an arbitrary `group.com…` string) unless you set `tauri_widget_group` meta-data. See [Android setup](/guide/setup/android).
+- **Desktop webview:** any stable string works for the embedded window; still set `plugins.widgets` when developing on a **macOS** host.
 
 On Android, each home-screen instance maps to a logical `widgetId` (meta `widgetId:{appWidgetId}`). Call `setWidgetConfig` per id after pinning.
 

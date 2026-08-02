@@ -41,6 +41,8 @@ The host writes widget data through **one** transport you choose in config. You 
 
 Wrong `transport` / missing `appGroup` **fails plugin init** with a concrete message (empty widgets from a silent fallback are not a thing).
 
+`init-macos` / `init-ios` do **not** write this block — add `plugins.widgets` yourself ([Install](/guide/install#apple-hosts-plugin-config)).
+
 Override without editing conf: `WIDGET_TRANSPORT=widgetContainer`.
 
 The **widget extension** still reads all channels and picks the freshest map (so it can find data wherever the host wrote). Host-side writes use only the configured driver. Render receipts feed `getWidgetDiagnostics`, not transport selection.

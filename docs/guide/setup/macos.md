@@ -31,7 +31,32 @@ This creates `src-tauri/macos-widget/` with:
 - `build-widget.sh` — builds and signs the `.appex` (`beforeBundleCommand`)
 - `embed-widget.sh` — **deprecated** emergency re-embed; not part of the normal DX
 
-## Step 2: Configure tauri.conf.json
+## Step 2: Plugin config (`plugins.widgets`)
+
+`init-macos` patches bundle / beforeBundle paths, but **does not** write `plugins.widgets`. Without this block the **host app fails at plugin init** even before you care about WidgetKit:
+
+```json
+{
+  "plugins": {
+    "widgets": {
+      "appGroup": "group.com.example.myapp",
+      "transport": "appGroup",
+      "extensionBundleId": "com.example.myapp.widgetkit"
+    }
+  }
+}
+```
+
+| Situation | `transport` |
+|-----------|-------------|
+| Release / Team ID + App Groups enabled | `appGroup` |
+| Mac App Store | `appGroup` |
+| Local ad-hoc signing (no shared App Group container) | `widgetContainer` |
+| Not sure yet | `auto` once at startup (dev only) — read the log, then pin the winner in conf |
+
+Wrong `transport` / missing `appGroup` **fails plugin init** with a concrete message. Full driver table: [Apple data transport](/guide/transport) (also summarized below).
+
+## Step 3: Configure tauri.conf.json bundle hooks
 
 The CLI patches these fields (paths relative to `src-tauri/`):
 
@@ -55,7 +80,7 @@ The CLI patches these fields (paths relative to `src-tauri/`):
 - **`bundle.macOS.files`** copies the `.appex` into `Contents/PlugIns/` during bundling
 - Tauri nested-codesigns `PlugIns/` and can produce a normal DMG via `bundle.targets`
 
-## Step 3: Build
+## Step 4: Build
 
 ```bash
 pnpm tauri build
@@ -71,31 +96,9 @@ Pipeline:
 
 > **Tip:** `{ "scripts": { "build:macos": "tauri build" } }` then `pnpm build:macos`.
 
-## Apple data transport
+## Apple data transport (reference)
 
 See the dedicated guide: [Apple data transport](/guide/transport).
-
-The host writes widget data through **one** transport you choose in config. You know your signing setup — do not rely on runtime fan-out.
-
-```json
-{
-  "plugins": {
-    "widgets": {
-      "appGroup": "group.com.example.myapp",
-      "transport": "appGroup",
-      "extensionBundleId": "com.example.myapp.widgetkit"
-    }
-  }
-}
-```
-
-| Situation | `transport` |
-|-----------|-------------|
-| Release / Team ID + App Groups enabled | `appGroup` |
-| Mac App Store | `appGroup` |
-| Local ad-hoc signing (no shared App Group container) | `widgetContainer` |
-| iOS (device and simulator) | `appGroup` only — other values fail at plugin init |
-| Not sure yet | `auto` once at startup (dev only) — read the log, then pin the winner in conf |
 
 | `transport` | Host write path | Requirements |
 |-------------|-----------------|--------------|
@@ -104,13 +107,13 @@ The host writes widget data through **one** transport you choose in config. You 
 | `widgetContainer` | `~/Library/Containers/<appex>/Data/widget_data.json` | macOS host **not** sandboxed; works with ad-hoc |
 | `auto` | One-shot probe, then latch | Development only — never ship this |
 
-Wrong `transport` / missing `appGroup` **fails plugin init** with a concrete message (empty widgets from a silent fallback are not a thing).
-
 Override without editing conf: `WIDGET_TRANSPORT=widgetContainer`.
 
-The **widget extension** still reads all channels and picks the freshest map (so it can find data wherever the host wrote). Host-side writes use only the configured driver. Render receipts feed `getWidgetDiagnostics`, not transport selection.
+The **widget extension** still reads all channels and picks the freshest map. Host-side writes use only the configured driver. Render receipts feed `getWidgetDiagnostics`, not transport selection.
 
 `setItems` skips disk I/O when the value is unchanged (no nonce bump).
+
+Match Swift `TauriWidgetProvider` `widgetId` with JS `setWidgetConfig` (CLI templates default to `"default"`).
 
 ## Code Signing
 
@@ -148,8 +151,9 @@ Select the widget scheme in Xcode, set your app as the Host Application, and run
 
 ### Widget shows "No configuration"
 
+- Confirm `plugins.widgets.appGroup` is set and matches Xcode App Groups + JS `group`.
 - Call `setWidgetConfig(...)` from your app before adding the widget.
-- Verify the app is signed with a real certificate (`security find-identity -v -p codesigning`), not ad-hoc.
+- Verify the app is signed with a real certificate (`security find-identity -v -p codesigning`), not ad-hoc — or use `transport: "widgetContainer"` for ad-hoc.
 - Check that the app is **not sandboxed** (`App.entitlements` should not contain `com.apple.security.app-sandbox`) when using `widgetContainer`.
 - Verify the widget's container has the data file:
   ```bash
@@ -157,6 +161,7 @@ Select the widget scheme in Xcode, set your app as the Host Application, and run
   ```
 - Check widget logs: `log show --last 1m --predicate 'subsystem == "com.tauri.widgets"' --style compact`
 - Ensure `TauriWidgetExtension.entitlements` contains `com.apple.security.app-sandbox` and the correct App Group.
+- Align Swift `widgetId` with JS (default `"default"`).
 
 ### Widget doesn't update
 

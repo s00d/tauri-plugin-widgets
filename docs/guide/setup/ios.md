@@ -74,7 +74,10 @@ struct MyWidget: Widget {
         StaticConfiguration(
             kind: kind,
             // Use the same App Group that `init-ios` generated for your project.
-            provider: TauriWidgetProvider(appGroup: "group.<your-tauri-identifier>")
+            provider: TauriWidgetProvider(
+                appGroup: "group.<your-tauri-identifier>",
+                widgetId: "default" // must match JS setWidgetConfig widgetId
+            )
         ) { entry in
             MyWidgetEntryView(entry: entry)
         }
@@ -85,7 +88,7 @@ struct MyWidget: Widget {
 }
 ```
 
-Or copy from `templates/ios-widget/MyWidget.swift`.
+Or copy from `node_modules/tauri-plugin-widgets-api/templates/ios-widget/MyWidget.swift` (plugin repo path: `templates/ios-widget/MyWidget.swift`).
 
 ## Step 5: Configure App Groups
 
@@ -96,7 +99,28 @@ Or copy from `templates/ios-widget/MyWidget.swift`.
 5. Verify the App Group value is **exactly the same** in both targets.
 6. If **+ Capability** is disabled, set a valid **Team** in Signing for that target first.
 
-## Step 6: Run
+## Step 6: Plugin config (`tauri.conf.json`)
+
+Xcode App Groups alone are not enough. The **Rust host** must know the same id or plugin init fails:
+
+```json
+{
+  "plugins": {
+    "widgets": {
+      "appGroup": "group.<your-tauri-identifier>",
+      "transport": "appGroup"
+    }
+  }
+}
+```
+
+- `init-ios` does **not** patch this — add it yourself.
+- On iOS, `transport` must be `appGroup` (other values fail at init).
+- JS `setWidgetConfig(..., group, widgetId)` must use that same `group` string.
+
+Also keep Swift `TauriWidgetProvider(..., widgetId:)` aligned with the JS `widgetId` (CLI default is `"default"`). If your app writes `widgetId: "weather"`, pass `widgetId: "weather"` into the provider or the extension reads `config:default` while the host wrote `config:weather`.
+
+## Step 7: Run
 
 ```bash
 pnpm tauri ios dev
@@ -108,8 +132,10 @@ pnpm tauri ios dev
 
 ### Widget shows "No configuration"
 
-- Ensure the App Group identifier is **identical** in the main app and widget extension (Xcode → Signing & Capabilities → App Groups).
+- Ensure the App Group identifier is **identical** in the main app, widget extension, `plugins.widgets.appGroup`, and the JS `group` argument.
+- Ensure Swift `widgetId` matches JS `widgetId` (default `"default"`).
 - Call `setWidgetConfig(...)` from your app before adding the widget.
+- Confirm plugin init succeeded (missing `plugins.widgets.appGroup` aborts startup).
 
 ### Widget doesn't update
 

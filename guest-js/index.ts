@@ -613,7 +613,7 @@ function pollAndDispatchPendingActions(group: string): Promise<void> {
  *                     May be async.
  * @param group      - App Group / SharedPreferences group identifier.
  * @param options    - Optional settings.
- * @param options.intervalMs  - Update interval in milliseconds (default `1000`).
+ * @param options.intervalMs  - Update interval in milliseconds (default `5000`).
  *                              For native mobile widgets, consider using a
  *                              longer interval (60000+) to avoid wasted work.
  * @param options.immediate   - If `true`, run the builder immediately before

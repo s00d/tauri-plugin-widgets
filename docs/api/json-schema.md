@@ -8,21 +8,27 @@ The widget config schema is generated from Rust models (`pnpm codegen`):
 
 [`schemas/widget-config.v1.json`](https://github.com/s00d/tauri-plugin-widgets/blob/main/schemas/widget-config.v1.json)
 
+Raw URL for editors:
+
+```text
+https://raw.githubusercontent.com/s00d/tauri-plugin-widgets/main/schemas/widget-config.v1.json
+```
+
+The npm package (`tauri-plugin-widgets-api`) does **not** ship `schemas/` — point tools at the GitHub raw URL or a local clone of this repo.
+
 ## IDE association
 
-Point your editor at the schema for `WidgetConfig` JSON files, for example VS Code:
+Example VS Code / Cursor `settings.json`:
 
 ```json
 {
   "json.schemas": [
     {
       "fileMatch": ["**/widget*.json", "**/fixtures/**/*.json"],
-      "url": "./node_modules/tauri-plugin-widgets-api/schemas/widget-config.v1.json"
+      "url": "https://raw.githubusercontent.com/s00d/tauri-plugin-widgets/main/schemas/widget-config.v1.json"
     }
   ]
 }
 ```
-
-(If the schema is not published inside the npm package path in your version, use the GitHub raw URL or a local checkout.)
 
 Element reference: [Elements](/elements/).

@@ -31,7 +31,7 @@ bun tauri add tauri-plugin-widgets
 cargo tauri add tauri-plugin-widgets
 ```
 
-Then finish [Register the plugin](#register-the-plugin) and [Permissions](#permissions) if the CLI did not wire them for your project layout.
+Then finish [Register the plugin](#register-the-plugin), [Permissions](#permissions), and (on Apple hosts) [Plugin config](#apple-hosts-plugin-config) if the CLI did not wire them for your project layout.
 
 Optional Cargo features: [Cargo features](/api/cargo-features).
 
@@ -72,14 +72,41 @@ pub fn run() {
 }
 ```
 
-For Apple transport / App Group, pass config via `tauri.conf.json` — see [Plugin config](/api/plugin-config) and [Transport](/guide/transport).
+## Apple hosts: plugin config
 
-## Permissions
+`init-macos` / `init-ios` do **not** write `plugins.widgets` for you. Without it, **plugin init fails** on macOS and iOS (`plugins.widgets.appGroup is required`).
 
-`src-tauri/capabilities/default.json`:
+Add to `src-tauri/tauri.conf.json` (use your real App Group id):
 
 ```json
 {
+  "plugins": {
+    "widgets": {
+      "appGroup": "group.com.example.myapp",
+      "transport": "appGroup"
+    }
+  }
+}
+```
+
+| Host | Notes |
+| --- | --- |
+| **iOS** | `transport` must be `appGroup` (or omit / `auto` → appGroup). |
+| **macOS** local ad-hoc | Prefer `"transport": "widgetContainer"` until you have a Team ID + App Groups. |
+| **macOS** Team ID / MAS | `"transport": "appGroup"`. |
+
+Details: [Plugin config](/api/plugin-config) · [Transport](/guide/transport).
+
+Linux / Windows desktop webview do not need this block for the built-in window path.
+
+## Permissions
+
+`src-tauri/capabilities/default.json` must list **every window label** that calls plugin commands — including desktop widget labels from `createWidgetWindow`:
+
+```json
+{
+  "identifier": "default",
+  "windows": ["main", "weather"],
   "permissions": [
     "core:default",
     "widgets:default"
@@ -87,14 +114,20 @@ For Apple transport / App Group, pass config via `tauri.conf.json` — see [Plug
 }
 ```
 
+Use `"*"` only if you intentionally allow all labels. Missing the widget label → the embedded renderer cannot call `getWidgetConfig` and the window stays empty.
+
 Full list: [Permissions](/api/permissions).
 
 ## Scaffold native extensions
 
+These copy templates into **your** app under `src-tauri/` (they do not leave files only inside `node_modules`):
+
 ```bash
-npx tauri-plugin-widgets-api init-macos
-npx tauri-plugin-widgets-api init-ios
-npx tauri-plugin-widgets-api init-windows
+npx tauri-plugin-widgets-api init-macos    # → src-tauri/macos-widget/
+npx tauri-plugin-widgets-api init-ios     # syncs gen/apple widget Swift
+npx tauri-plugin-widgets-api init-windows # → src-tauri/windows-widget/
 ```
 
-Next: [First widget](/guide/first-widget) (desktop, ~10 minutes) or [Platform setup](/guide/setup/).
+Still add [Apple plugin config](#apple-hosts-plugin-config) yourself. Guides: [Platform setup](/guide/setup/).
+
+Next: [First widget](/guide/first-widget) (desktop) or [Platform setup](/guide/setup/).

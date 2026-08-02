@@ -10,7 +10,8 @@ OS backends follow `target_os` (no empty Cargo feature toggles). Optional featur
 - `rasterize` — SVG→PNG data-URI for Adaptive Cards chart/canvas/gauge (pulls resvg)
 - `workerw` — Windows wallpaper WorkerW parenting
 - `layer-shell` — Wayland gtk-layer-shell Background (requires `linux`)
-- `macos-private-api` — transparent macOS webviews
+- `macos-private-api` — transparent macOS desktop widget webviews (also enable Tauri `macosPrivateApi` in conf)
+- `schema` / `codegen` — JSON Schema / TS codegen tooling (dev)
 
 ```toml
 # Default (linux pin enabled; other OS via target_os)

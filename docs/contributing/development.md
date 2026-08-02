@@ -1,6 +1,6 @@
 # Development guide
 
-Contributor docs for **tauri-plugin-widgets**. For app integration, see the root [README](../README.md).
+Contributor docs for **tauri-plugin-widgets**. For app integration, start at the [Guide](/guide/) (install, first widget, platform setup).
 
 ## Architecture
 
@@ -11,16 +11,16 @@ The plugin is a **library**, not a widget builder. You own the extension / provi
 | **Rust** (`src/`) | Storage, FFI, reload, desktop windows, Adaptive Cards, receipts |
 | **Swift** (`swift/TauriWidgets`) | SwiftUI WidgetKit views / models / store |
 | **Android** (`android/`) | Jetpack Glance renderer + receivers |
-| **Desktop HTML** (`widget.html`) | Frameless webview renderer |
+| **Desktop HTML** (`widget.html`) | Frameless webview renderer (embedded via `widgetview`; users do not copy it by default) |
 | **Adaptive Cards** (`src/adaptive_card.rs`) | IR → Adaptive Cards 1.5 (Windows Widgets Board) |
 | **Linux pin** (`src/linux/`) | X11 `_NET_WM_*` desktop hints; optional `layer-shell` |
-| **Templates** (`templates/`) | iOS / macOS / Windows starters |
+| **Templates** (`templates/`) | iOS / macOS / Windows starters → copied into `src-tauri/*-widget/` by CLI |
 
 **Data flow:** `setWidgetConfig(json, group, widgetId)` → platform storage (`nonce`) → reload / Glance / Widgets Board → native UI for that `widgetId`.
 
 ### Apple transport drivers
 
-Host writes use **one** driver from `plugins.widgets.transport` (`appGroup` | `userDefaults` | `widgetContainer` | `auto`). See README → *Apple data transport*.
+Host writes use **one** driver from `plugins.widgets.transport` (`appGroup` | `userDefaults` | `widgetContainer` | `auto`). See [Apple data transport](/guide/transport).
 
 | Piece | Role |
 |-------|------|

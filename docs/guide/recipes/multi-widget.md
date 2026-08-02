@@ -36,4 +36,4 @@ Each pinned AppWidget instance can bind to a different logical id via meta `widg
 
 ## Desktop windows
 
-`createWidgetWindow` needs `group`, `widgetId`, and `size` so the **embedded** renderer (no local `widget.html` copy) loads the right config. See [Desktop webview](/guide/setup/desktop).
+`createWidgetWindow` needs `group` and `widgetId` for the **embedded** renderer (`size` optional, default `"small"`). No local `widget.html` copy. See [Desktop webview](/guide/setup/desktop).

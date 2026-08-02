@@ -36,8 +36,8 @@ fn main() {
 ```
 
 Optional plugin config (`plugins.widgets` in `tauri.conf.json`) controls the
-macOS transport (`appGroup` vs `widgetContainer`) and App Group id. See the
-platform setup guides under Contributing.
+macOS / iOS App Group and host transport. See [Plugin config](/api/plugin-config),
+[Transport](/guide/transport), and [Platform setup](/guide/setup/).
 
 ## Building a config
 

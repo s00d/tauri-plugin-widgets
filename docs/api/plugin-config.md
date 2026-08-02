@@ -20,8 +20,10 @@ Configure the plugin under `plugins.widgets` in `tauri.conf.json`:
 
 | Field | Type | Description |
 | --- | --- | --- |
-| `appGroup` | string | App Group / shared storage group identifier |
-| `transport` | `appGroup` \| `userDefaults` \| `widgetContainer` \| `auto` | Host write driver (Apple). See [Transport](/guide/transport). |
+| `appGroup` | string | **Required on macOS and iOS.** App Group / shared storage group identifier. Missing → plugin init error. |
+| `transport` | `appGroup` \| `userDefaults` \| `widgetContainer` \| `auto` | Host write driver (Apple). iOS: `appGroup` only. See [Transport](/guide/transport). |
 | `extensionBundleId` | string | Widget extension bundle id (macOS `widgetContainer` / tooling) |
+
+`init-macos` / `init-ios` do not invent this block for you — add it under `plugins.widgets` in `tauri.conf.json`. Linux / Windows desktop webview can omit it.
 
 Permissions: [Permissions](/api/permissions). Environment overrides: [Environment](/api/env).

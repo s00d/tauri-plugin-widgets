@@ -47,7 +47,9 @@ await createWidgetWindow({
 await closeWidgetWindow("weather");
 ```
 
-`group`, `widgetId`, and `size` are required when `url` is omitted — they tell the embedded page which config to load.
+`group` and `widgetId` are required when `url` is omitted — they tell the embedded page which config to load. `size` is optional and defaults to `"small"`.
+
+On **macOS**, `transparent(true)` is applied only when the crate is built with feature `macos-private-api` and the host enables Tauri’s macOS private API. Without that, the window still opens (opaque chrome / background).
 
 Full walkthrough: [First widget](/guide/first-widget).
 
@@ -103,10 +105,11 @@ If you declare a window in config instead, **`"/widget.html"` is not provided by
 
 ## When it fails
 
-- Call `createWidgetWindow(...)` without `url`, and pass `group` / `widgetId` / `size`.
+- Call `createWidgetWindow(...)` without `url`, and pass `group` / `widgetId` (`size` optional, default `small`).
 - Do not expect `/widget.html` to exist unless you copied a custom page into the frontend.
-- Allow the window label in capabilities (`widgets:default` / window permissions).
+- Allow the **window label** in capabilities (`"windows": ["main", "weather"]` + `widgets:default`).
+- On macOS hosts, set `plugins.widgets.appGroup` (+ `transport`) or plugin init fails — even for webview-only widgets.
 - On Linux, enable the `linux` feature for X11 DESKTOP pinning.
-- On Windows Widgets Board, run `init-windows` and verify `ac:template:*` after `setWidgetConfig`.
+- On Windows Widgets Board, run `init-windows` into `src-tauri/windows-widget/` and verify `ac:template:*` after `setWidgetConfig`.
 
 More symptoms: [Troubleshooting index](/guide/troubleshooting).
