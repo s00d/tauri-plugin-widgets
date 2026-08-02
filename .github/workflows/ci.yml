@@ -10,22 +10,19 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Install GTK/glib (default `linux` feature)
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y libgtk-3-dev libglib2.0-dev pkg-config
       - uses: dtolnay/rust-toolchain@stable
         with:
           targets: aarch64-linux-android
+      # Host is Linux; default `linux` feature pulls GTK/WebKit. Lib tests do not need it.
       - name: Lib tests
-        run: cargo test --lib
+        run: cargo test --lib --no-default-features
       - name: Android target check
-        run: cargo check --target aarch64-linux-android --lib
+        run: cargo check --target aarch64-linux-android --lib --no-default-features
       - name: Codegen drift
         run: |
-          cargo run --bin gen-schema --features codegen
-          cargo run --bin gen-ts --features codegen
-          cargo test --lib capabilities::write_docs::capability_matrix_doc_matches
+          cargo run --bin gen-schema --no-default-features --features codegen
+          cargo run --bin gen-ts --no-default-features --features codegen
+          cargo test --lib --no-default-features capabilities::write_docs::capability_matrix_doc_matches
           git diff --exit-code schemas/widget-config.v1.json guest-js/generated/widget-types.ts docs/guide/_generated/capability-matrix.md
 
   rust-ios:
