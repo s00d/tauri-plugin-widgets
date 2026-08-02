@@ -84,4 +84,4 @@ Architecture, goldens, harnesses: [docs/contributing/development.md](docs/contri
 
 ## License
 
-MIT
+[MIT](LICENSE)
