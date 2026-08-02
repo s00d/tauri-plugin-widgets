@@ -14,6 +14,18 @@ title: Guide
 
 App code calls `setWidgetConfig` → plugin host writes shared storage → native renderers (Glance, WidgetKit, embedded desktop `widget.html`, Adaptive Cards) read and draw. On desktop you do not install `widget.html` yourself for the default path — see [Desktop webview](/guide/setup/desktop).
 
+```mermaid
+flowchart LR
+  App["App<br/>setWidgetConfig"] --> Host["Rust plugin host"]
+  Host --> Store["Shared store<br/>config:{widgetId}"]
+  Store --> G["Glance"]
+  Store --> WK["WidgetKit"]
+  Store --> HTML["widget.html"]
+  Host --> AC["Adaptive Cards"] --> WB["Widgets Board"]
+```
+
+Full diagram + action sequence: [Concepts → Architecture flowchart](/guide/concepts#architecture-flowchart).
+
 ## What it is
 
 - Shared **widget IR** (`WidgetConfig` / `WidgetElement`) defined in Rust, generated for TypeScript
