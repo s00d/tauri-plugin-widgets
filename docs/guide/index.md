@@ -12,7 +12,7 @@ title: Guide
 
 </div>
 
-App code calls `setWidgetConfig` → plugin host writes shared storage → native renderers (Glance, WidgetKit, `widget.html`, Adaptive Cards) read and draw.
+App code calls `setWidgetConfig` → plugin host writes shared storage → native renderers (Glance, WidgetKit, embedded desktop `widget.html`, Adaptive Cards) read and draw. On desktop you do not install `widget.html` yourself for the default path — see [Desktop webview](/guide/setup/desktop).
 
 ## What it is
 

@@ -43,6 +43,8 @@ import {
 
 ## Desktop windows
 
+Omit `url` to use the **embedded** renderer (`widget.html` inside the crate, served over `widgetview`). You do not copy that file into the app. Optional custom `url` and declarative-config caveats: [Desktop webview](/guide/setup/desktop).
+
 | Function | Purpose |
 | --- | --- |
 | `createWidgetWindow(config)` | Frameless transparent window; pass `group`, `widgetId`, `size` for the built-in renderer |

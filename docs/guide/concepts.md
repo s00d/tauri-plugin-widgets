@@ -34,6 +34,10 @@ Storage keys look like `config:{widgetId}`. Multiple widgets can share a group a
 
 On Android, each home-screen instance maps to a logical `widgetId` (meta `widgetId:{appWidgetId}`). Call `setWidgetConfig` per id after pinning.
 
+## Desktop renderer (`widget.html`)
+
+On desktop, the default UI is **not** a file you add to the Vite/Webpack root. The plugin embeds `widget.html` in the Rust crate and serves it via a custom URI scheme when you call `createWidgetWindow` without `url`. Install the crate/JS package, push a config, open a window — nothing else to fetch. Optional custom pages and `tauri.conf.json` caveats: [Desktop webview](/guide/setup/desktop).
+
 ## Transport (Apple)
 
 The host writes through **one** configured driver (`plugins.widgets.transport`). Wrong transport fails plugin init loudly — empty widgets from a silent fallback are not expected. Details: [Transport](/guide/transport).

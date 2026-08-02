@@ -75,7 +75,9 @@ await createWidgetWindow({
 });
 ```
 
-Run `pnpm tauri dev`. You should see a frameless widget window rendering the same HTML path as production desktop widgets.
+No `url` and **no** `widget.html` copy into your app: the plugin serves its embedded renderer over the `widgetview` protocol. Details: [Desktop webview](/guide/setup/desktop).
+
+Run `pnpm tauri dev`. You should see a frameless widget window painting the config from step 2.
 
 ## Next
 
