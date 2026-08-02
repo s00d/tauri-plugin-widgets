@@ -1,4 +1,5 @@
 import { defineConfig } from "vitepress";
+import { withMermaid } from "vitepress-plugin-mermaid";
 
 const docsBase = process.env.NODE_ENV === "production" ? "/tauri-plugin-widgets/" : "/";
 
@@ -70,64 +71,69 @@ const sidebar = [
   },
 ];
 
-export default defineConfig({
-  lang: "en-US",
-  title: "tauri-plugin-widgets",
-  description:
-    "Native widgets for Android, iOS, macOS, Windows, and Linux from one declarative JSON config.",
-  titleTemplate: ":title | tauri-plugin-widgets",
-  lastUpdated: true,
-  cleanUrls: true,
-  base: docsBase,
+export default withMermaid({
+  ...defineConfig({
+    lang: "en-US",
+    title: "tauri-plugin-widgets",
+    description:
+      "Native widgets for Android, iOS, macOS, Windows, and Linux from one declarative JSON config.",
+    titleTemplate: ":title | tauri-plugin-widgets",
+    lastUpdated: true,
+    cleanUrls: true,
+    base: docsBase,
 
-  ignoreDeadLinks: [
-    /\/src\//,
-    /\/tests\//,
-    /\/examples\//,
-    /README/,
-    /interfaces\//,
-  ],
+    ignoreDeadLinks: [
+      /\/src\//,
+      /\/tests\//,
+      /\/examples\//,
+      /README/,
+      /interfaces\//,
+    ],
 
-  head: [
-    ["meta", { name: "theme-color", content: "#0f172a" }],
-    ["link", { rel: "icon", type: "image/png", sizes: "32x32", href: `${docsBase}favicon-32x32.png` }],
-    ["link", { rel: "icon", type: "image/png", sizes: "16x16", href: `${docsBase}favicon-16x16.png` }],
-    ["link", { rel: "apple-touch-icon", sizes: "180x180", href: `${docsBase}apple-touch-icon.png` }],
-    ["meta", { property: "og:type", content: "website" }],
-    ["meta", { property: "og:title", content: "tauri-plugin-widgets" }],
-    [
-      "meta",
-      {
-        property: "og:description",
-        content:
-          "Native widgets for Android, iOS, macOS, Windows, and Linux from one declarative JSON config.",
+    head: [
+      ["meta", { name: "theme-color", content: "#0f172a" }],
+      ["link", { rel: "icon", type: "image/png", sizes: "32x32", href: `${docsBase}favicon-32x32.png` }],
+      ["link", { rel: "icon", type: "image/png", sizes: "16x16", href: `${docsBase}favicon-16x16.png` }],
+      ["link", { rel: "apple-touch-icon", sizes: "180x180", href: `${docsBase}apple-touch-icon.png` }],
+      ["meta", { property: "og:type", content: "website" }],
+      ["meta", { property: "og:title", content: "tauri-plugin-widgets" }],
+      [
+        "meta",
+        {
+          property: "og:description",
+          content:
+            "Native widgets for Android, iOS, macOS, Windows, and Linux from one declarative JSON config.",
+        },
+      ],
+      ["meta", { property: "og:image", content: "https://s00d.github.io/tauri-plugin-widgets/og.jpg" }],
+      ["meta", { name: "twitter:card", content: "summary_large_image" }],
+      ["meta", { name: "twitter:image", content: "https://s00d.github.io/tauri-plugin-widgets/og.jpg" }],
+    ],
+
+    themeConfig: {
+      logo: "/logo.png",
+      search: { provider: "local" },
+      socialLinks: [
+        { icon: "github", link: "https://github.com/s00d/tauri-plugin-widgets" },
+      ],
+      nav: [
+        { text: "Guide", link: "/guide/" },
+        { text: "Elements", link: "/elements/" },
+        { text: "API", link: "/api/js" },
+        { text: "Showcase", link: "/showcase" },
+      ],
+      sidebar,
+      editLink: {
+        pattern: "https://github.com/s00d/tauri-plugin-widgets/edit/main/docs/:path",
+        text: "Edit this page on GitHub",
       },
-    ],
-    ["meta", { property: "og:image", content: "https://s00d.github.io/tauri-plugin-widgets/og.jpg" }],
-    ["meta", { name: "twitter:card", content: "summary_large_image" }],
-    ["meta", { name: "twitter:image", content: "https://s00d.github.io/tauri-plugin-widgets/og.jpg" }],
-  ],
-
-  themeConfig: {
-    logo: "/logo.png",
-    search: { provider: "local" },
-    socialLinks: [
-      { icon: "github", link: "https://github.com/s00d/tauri-plugin-widgets" },
-    ],
-    nav: [
-      { text: "Guide", link: "/guide/" },
-      { text: "Elements", link: "/elements/" },
-      { text: "API", link: "/api/js" },
-      { text: "Showcase", link: "/showcase" },
-    ],
-    sidebar,
-    editLink: {
-      pattern: "https://github.com/s00d/tauri-plugin-widgets/edit/main/docs/:path",
-      text: "Edit this page on GitHub",
+      footer: {
+        message: `Released under the MIT License. · <a href="${docsBase}contributing/">Contributing</a>`,
+        copyright: "Copyright © s00d",
+      },
     },
-    footer: {
-      message: `Released under the MIT License. · <a href="${docsBase}contributing/">Contributing</a>`,
-      copyright: "Copyright © s00d",
-    },
+  }),
+  mermaid: {
+    theme: "neutral",
   },
 });
