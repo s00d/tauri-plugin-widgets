@@ -18,8 +18,11 @@ function Test-MsvcLinker {
 }
 
 function Ensure-PreviewHost {
+  param(
+    [bool]$FullRenderer = $false
+  )
   $src = Join-Path $Repo "templates\windows-widget\PreviewHost"
-  $smokeDir = Join-Path $env:TEMP "tpw-previewhost"
+  $smokeDir = Join-Path $env:TEMP ("tpw-previewhost-" + $(if ($FullRenderer) { "full" } else { "smoke" }))
   if (Test-Path $smokeDir) { Remove-Item -Recurse -Force $smokeDir }
   Copy-Item -Recurse $src $smokeDir
   Get-ChildItem -Path $smokeDir -Recurse -Force -Filter "._*" | Remove-Item -Force -ErrorAction SilentlyContinue
@@ -31,9 +34,16 @@ function Ensure-PreviewHost {
     $platform = "ARM64"
   }
   $proj = Join-Path $smokeDir "PreviewHost.csproj"
-  Write-Host ("==> dotnet build PreviewHost (" + $rid + ", Smoke=true)")
-  dotnet build $proj -c Release -p:Platform=$platform -p:RuntimeIdentifier=$rid -p:Smoke=true | Out-Host
-  if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+  $smokeFlag = if ($FullRenderer) { "false" } else { "true" }
+  Write-Host ("==> dotnet build PreviewHost (" + $rid + ", Smoke=" + $smokeFlag + ")")
+  dotnet build $proj -c Release -p:Platform=$platform -p:RuntimeIdentifier=$rid -p:Smoke=$smokeFlag | Out-Host
+  if ($LASTEXITCODE -ne 0) {
+    if ($FullRenderer) {
+      Write-Host "WARN: full AC renderer build failed — falling back to Smoke=true walker"
+      return Ensure-PreviewHost -FullRenderer:$false
+    }
+    exit $LASTEXITCODE
+  }
   $exe = Get-ChildItem -Path $smokeDir -Recurse -Filter "AcPreviewHost.exe" |
     Where-Object { $_.FullName -match "Release" } |
     Select-Object -First 1
@@ -97,26 +107,23 @@ if ($Mode -eq "smoke") {
   exit 0
 }
 
-# --- visual: transpile cards + PreviewHost PNG ---
-$exe = Ensure-PreviewHost
+# --- visual: transpile cards + PreviewHost PNG (full AdaptiveCards.Rendering.Wpf) ---
+$exe = Ensure-PreviewHost -FullRenderer:$true
 $casesDir = Join-Path $Repo "tests\cases"
-$fixtures = Join-Path $Repo "tests\fixtures"
 $goldenDir = Join-Path $Repo "tests\golden\windows"
 $outDir = Join-Path $Repo "out\windows"
 New-Item -ItemType Directory -Force -Path $goldenDir | Out-Null
 New-Item -ItemType Directory -Force -Path $outDir | Out-Null
 
-# Prefer prebuilt AC JSON from Mac sync under snapshots; else minimal card from fixture name.
+# Prefer prebuilt AC JSON from Mac sync under snapshots; else minimal card from case name.
 $caseFiles = Get-ChildItem $casesDir -Filter "*.json"
 if ($Case) {
   $caseFiles = $caseFiles | Where-Object { $_.BaseName -eq $Case }
 }
 
-$cardTool = Join-Path $Repo "tools\win\emit-ac.ps1"
 foreach ($cf in $caseFiles) {
   $name = $cf.BaseName
   $caseJson = Get-Content $cf.FullName -Raw | ConvertFrom-Json
-  $fixture = [string]$caseJson.fixture
   $size = [string]$caseJson.size
   if (-not $size) { $size = "small" }
 

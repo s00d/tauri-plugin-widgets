@@ -31,4 +31,4 @@ Contributor deep-dive: [Render testing](/contributing/render-testing), [Visual s
 - a schema element never appears in any fixture
 - a case is missing a golden on desktop / ios / macos / android / linux
 
-Windows goldens are optional until PreviewHost recording is restored.
+Windows goldens are recorded on a Windows VM via PreviewHost (`just record-windows`, full WPF Adaptive Cards renderer).

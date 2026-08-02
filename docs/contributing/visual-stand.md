@@ -164,7 +164,7 @@ Native AC pixels (not `widget.html`):
 # Adaptive Card JSON snapshots (transpile)
 pnpm -C scripts cli gen-adaptive-snapshots
 
-# UTM: capture PNG via PreviewHost (WinUI3)
+# UTM: capture PNG via PreviewHost (AdaptiveCards.Rendering.Wpf, Smoke=false)
 just record-windows weather.small
 just test-windows-visual
 node tests/windows/compare.mjs

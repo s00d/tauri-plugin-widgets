@@ -387,7 +387,6 @@ const IR_ELEMENTS: &[ElementSpec] = &[
 mod tests {
     use super::*;
     use crate::capabilities::ELEMENT_TYPES;
-    use crate::models::WidgetElement;
 
     #[test]
     fn ir_spec_covers_all_element_types() {

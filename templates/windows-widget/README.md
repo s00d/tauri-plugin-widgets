@@ -41,6 +41,9 @@ dotnet build WidgetProvider/WidgetProvider.csproj -c Release -p:Smoke=false
 
 # PreviewHost PNG:
 dotnet build PreviewHost/PreviewHost.csproj -c Release -p:Smoke=true
+# Full Adaptive Cards renderer (Widgets Board parity goldens):
+dotnet build PreviewHost/PreviewHost.csproj -c Release -p:Smoke=false
+# Capture: just win-shot / tools/win/shot.ps1 -Mode visual
 ```
 
 Pack / sideload helpers live in the plugin repo: `tools/win/pack.ps1`, `tools/win/sideload.ps1` (`just win-pack`, `just win-sideload`).

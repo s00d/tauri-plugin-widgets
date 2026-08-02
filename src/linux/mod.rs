@@ -57,6 +57,7 @@ fn apply_x11_desktop_hints<R: Runtime>(
         let state_atom = intern(&conn, b"_NET_WM_STATE")?;
         let skip_atom = intern(&conn, b"_NET_WM_STATE_SKIP_TASKBAR")?;
         // Merge with existing state so ABOVE / sticky bits survive (REPLACE would wipe them).
+        // get_property → Cookie (ConnectionError); reply() → ReplyError — different Err types.
         let mut atoms: Vec<u32> = match XprotoConnectionExt::get_property(
             &conn,
             false,
@@ -66,9 +67,10 @@ fn apply_x11_desktop_hints<R: Runtime>(
             0,
             64,
         )
-        .and_then(|c| c.reply())
+        .ok()
+        .and_then(|c| c.reply().ok())
         {
-            Ok(reply) if reply.format == 32 => reply
+            Some(reply) if reply.format == 32 => reply
                 .value32()
                 .map(|it| it.collect())
                 .unwrap_or_default(),
