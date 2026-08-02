@@ -10,6 +10,77 @@ title: Concepts
 
 </div>
 
+## Architecture flowchart
+
+End-to-end data path: one IR write on the host, five possible render surfaces.
+
+```mermaid
+flowchart TB
+  subgraph App["Your app"]
+    JS["JS / TS<br/>tauri-plugin-widgets-api"]
+    RS["Rust host code<br/>optional"]
+  end
+
+  subgraph Host["Plugin host (Rust)"]
+    CMD["Commands<br/>setWidgetConfig · setItems<br/>createWidgetWindow · …"]
+    APPLY["Apply / validate<br/>capability warnings"]
+    STORE["Shared store<br/>config:{widgetId}<br/>pending_actions · nonce"]
+    AC["Adaptive Cards<br/>transpile + optional rasterize"]
+    PROTO["widgetview protocol<br/>embedded widget.html"]
+  end
+
+  subgraph Surfaces["Native / desktop surfaces"]
+    AND["Android<br/>Jetpack Glance"]
+    IOS["iOS WidgetKit"]
+    MAC["macOS WidgetKit"]
+    WIN["Windows Widgets Board<br/>C# IWidgetProvider"]
+    DESK["Desktop webview<br/>macOS · Windows · Linux"]
+  end
+
+  JS --> CMD
+  RS --> CMD
+  CMD --> APPLY --> STORE
+  APPLY --> AC
+  CMD --> PROTO
+
+  STORE --> AND
+  STORE --> IOS
+  STORE --> MAC
+  STORE --> DESK
+  AC --> WIN
+  PROTO --> DESK
+
+  AND -.->|actions / receipts| CMD
+  IOS -.->|actions / receipts| CMD
+  MAC -.->|actions / receipts| CMD
+  WIN -.->|actions / receipts| CMD
+  DESK -.->|actions / receipts| CMD
+```
+
+**Write path:** `setWidgetConfig` → validate → write `config:{widgetId}` (+ Apple transport / Android prefs / desktop file) → reload or pin update → renderer paints IR.
+
+**Desktop shortcut:** `createWidgetWindow` without `url` loads the embedded page over `widgetview`; that page calls `getWidgetConfig` itself — you do not copy `widget.html`.
+
+**Windows Board:** same IR write also fills `ac:template:{widgetId}` / `ac:data:{widgetId}` for the MSIX provider.
+
+**Actions (tap → app):**
+
+```mermaid
+sequenceDiagram
+  participant Surface as Widget surface
+  participant Store as Shared store
+  participant Host as Plugin host
+  participant App as Your app
+
+  Surface->>Store: enqueue pending_actions
+  Surface->>Host: optional receipt
+  App->>Host: onWidgetAction / pollPendingWidgetActions
+  Host->>Store: drain pending_actions
+  Host->>App: { action, payload, widgetId, group, ts }
+```
+
+Apple host writes use **one** configured transport — see [Transport](/guide/transport). Platform setup: [Choose a platform](/guide/setup/).
+
 ## Intermediate representation (IR)
 
 The IR source of truth is Rust (`src/models.rs`). TypeScript types are generated (`pnpm codegen`). Every platform renderer consumes the same JSON tree.
