@@ -19,8 +19,6 @@ on:
       - "package.json"
       - "pnpm-lock.yaml"
       - "pnpm-workspace.yaml"
-      - "src/capabilities.rs"
-      - "src/snapshot.rs"
       - ".github/workflows/docs.yml"
   pull_request:
     paths:
@@ -36,8 +34,6 @@ on:
       - "package.json"
       - "pnpm-lock.yaml"
       - "pnpm-workspace.yaml"
-      - "src/capabilities.rs"
-      - "src/snapshot.rs"
       - ".github/workflows/docs.yml"
   workflow_dispatch:
 
@@ -45,13 +41,16 @@ concurrency:
   group: docs-${{ github.ref }}
   cancel-in-progress: true
 
+# Node-only: VitePress build + Pages deploy.
+# Generated markers / capability matrix are committed locally
+# (`pnpm docs:generate`, `cargo test --lib capabilities::write_docs::…`).
+# Drift of the Rust-owned matrix is checked in CI (`ci.yml` Codegen drift), not here.
+
 jobs:
   docs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
 
       - uses: pnpm/action-setup@v4
         with:
@@ -63,33 +62,14 @@ jobs:
           node-version: 22
           cache: pnpm
 
-      - uses: dtolnay/rust-toolchain@stable
-
-      - name: Install Linux Tauri deps
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y \
-            libwebkit2gtk-4.1-dev libgtk-3-dev libglib2.0-dev \
-            libsoup-3.0-dev libayatana-appindicator3-dev \
-            librsvg2-dev patchelf pkg-config
-
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
-      - name: Refresh capability matrix (force rewrite)
-        run: |
-          rm -f docs/guide/_generated/capability-matrix.md
-          cargo test --lib capabilities::write_docs::capability_matrix_doc_matches
-          git diff --exit-code docs/guide/_generated/capability-matrix.md || {
-            echo "::error::capability-matrix.md drifted — regenerate and commit"
-            exit 1
-          }
-
-      - name: Docs check (marker drift + audit)
+      - name: Docs check (committed markers up to date)
         run: pnpm docs:check
 
       - name: Docs build
-        run: pnpm docs:build
+        run: pnpm -C docs build
 
       - name: Add nojekyll
         run: touch docs/.vitepress/dist/.nojekyll
