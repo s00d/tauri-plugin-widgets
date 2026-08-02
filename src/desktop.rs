@@ -226,7 +226,12 @@ impl<R: Runtime> Widget<R> {
             // so a stale UserDefaults/App Group snapshot cannot outrank this write.
             crate::macos_transport::mirror_to_siblings(self.macos_driver.as_ref(), group, map);
         }
-        #[cfg(not(target_os = "macos"))]
+        #[cfg(target_os = "windows")]
+        {
+            let path = self.storage_path(group)?;
+            persist_windows_shared_map(&path, map)?;
+        }
+        #[cfg(all(not(target_os = "macos"), not(target_os = "windows")))]
         {
             let path = self.storage_path(group)?;
             let json = serde_json::to_string_pretty(map)?;
@@ -822,4 +827,88 @@ fn atomic_write(path: &PathBuf, data: &[u8]) -> std::io::Result<()> {
             Err(e)
         }
     }
+}
+
+/// Windows Widgets Board provider and Rust host share one `widget_data.json`.
+/// Match `WidgetStore.PersistUnlocked`: exclusive `.lock` + merge under it so
+/// provider-enqueued `pending_actions` are not wiped by a concurrent host write.
+#[cfg(target_os = "windows")]
+fn persist_windows_shared_map(path: &PathBuf, map: &DataMap) -> crate::Result<()> {
+    use std::fs::OpenOptions;
+    use std::os::windows::fs::OpenOptionsExt;
+    use std::thread;
+    use std::time::Duration;
+
+    if let Some(parent) = path.parent() {
+        fs::create_dir_all(parent).map_err(|e| Error::Io(e.to_string()))?;
+    }
+
+    // Same path convention as C#: `{widget_data.json}.lock`
+    let lock_path = PathBuf::from(format!("{}.lock", path.display()));
+    let _lock = {
+        let mut last_err = None;
+        let mut held = None;
+        for _ in 0..100 {
+            let mut opts = OpenOptions::new();
+            opts.read(true).write(true).create(true).share_mode(0); // FILE_SHARE_NONE
+            match opts.open(&lock_path) {
+                Ok(f) => {
+                    held = Some(f);
+                    break;
+                }
+                Err(e) => {
+                    // ERROR_SHARING_VIOLATION (32) while the provider holds the lock.
+                    if e.raw_os_error() == Some(32) {
+                        last_err = Some(e);
+                        thread::sleep(Duration::from_millis(20));
+                        continue;
+                    }
+                    return Err(Error::Io(e.to_string()));
+                }
+            }
+        }
+        held.ok_or_else(|| {
+            Error::Io(
+                last_err
+                    .map(|e| e.to_string())
+                    .unwrap_or_else(|| "widget_data.json.lock busy".into()),
+            )
+        })?
+    };
+
+    let mut merged: DataMap = if path.exists() {
+        fs::read_to_string(path)
+            .ok()
+            .and_then(|s| serde_json::from_str(&s).ok())
+            .unwrap_or_default()
+    } else {
+        DataMap::new()
+    };
+
+    for (k, v) in map {
+        if k == PENDING_ACTIONS_KEY {
+            let host_empty = v.trim().is_empty() || v.trim() == "[]";
+            let disk_empty = merged
+                .get(k)
+                .map(|s| s.trim().is_empty() || s.trim() == "[]")
+                .unwrap_or(true);
+            if host_empty && !disk_empty {
+                // Provider enqueued actions after our in-memory snapshot was taken.
+                continue;
+            }
+        }
+        merged.insert(k.clone(), v.clone());
+    }
+
+    // Keep host meta (already bumped) authoritative for this write.
+    if let Some(n) = map.get(store::META_NONCE_KEY) {
+        merged.insert(store::META_NONCE_KEY.into(), n.clone());
+    }
+    if let Some(t) = map.get(store::META_UPDATED_AT_KEY) {
+        merged.insert(store::META_UPDATED_AT_KEY.into(), t.clone());
+    }
+
+    let json = serde_json::to_string_pretty(&merged).map_err(|e| Error::new(e.to_string()))?;
+    atomic_write(path, json.as_bytes()).map_err(|e| Error::Io(e.to_string()))?;
+    Ok(())
 }

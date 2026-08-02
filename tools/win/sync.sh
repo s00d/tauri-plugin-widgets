@@ -7,7 +7,8 @@ ROOT="$(cd "$(dirname "$0")/../.." && pwd)"
 HOST="${UTM_WIN_HOST:-utm-win}"
 
 echo "==> ensuring remote dir on $HOST"
-ssh "$HOST" 'powershell -NoProfile -Command "New-Item -ItemType Directory -Force -Path ''C:\work\tauri-plugin-widgets'' | Out-Null"'
+ssh "$HOST" powershell -NoProfile -Command \
+  "New-Item -ItemType Directory -Force -Path 'C:\work\tauri-plugin-widgets' | Out-Null"
 
 echo "==> tar+scp → ${HOST}:C:\\work\\tauri-plugin-widgets"
 TMP="$(mktemp -t tpw-sync.XXXXXX.tgz)"
@@ -26,12 +27,10 @@ tar -C "$ROOT" \
 scp "$TMP" "${HOST}:C:/work/tpw-sync.tgz"
 
 # Wipe remote tree before extract so deleted local files don't linger.
-ssh "$HOST" 'powershell -NoProfile -Command "
-  \$dest = ''C:\work\tauri-plugin-widgets''
-  if (Test-Path \$dest) { Remove-Item -Recurse -Force \$dest }
-  New-Item -ItemType Directory -Force -Path \$dest | Out-Null
-  tar -xzf C:\work\tpw-sync.tgz -C \$dest
-"'
+# Pass -Command as its own argv (no nested bash single-quotes) so PowerShell
+# keeps the path string intact.
+ssh "$HOST" powershell -NoProfile -Command \
+  "\$dest = 'C:\work\tauri-plugin-widgets'; if (Test-Path \$dest) { Remove-Item -Recurse -Force \$dest }; New-Item -ItemType Directory -Force -Path \$dest | Out-Null; tar -xzf C:\work\tpw-sync.tgz -C \$dest"
 
 echo "==> install C:\\work\\shot.ps1"
 scp "$(cd "$(dirname "$0")" && pwd)/shot.ps1" "${HOST}:C:/work/shot.ps1"
