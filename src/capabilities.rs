@@ -37,16 +37,16 @@ impl WidgetPlatform {
         }
     }
 
-    /// Platform matching the current compile target (and enabled OS feature).
+    /// Platform matching the current compile target.
     pub fn current() -> WidgetPlatform {
-        if cfg!(all(target_os = "ios", feature = "ios")) {
+        if cfg!(target_os = "ios") {
             WidgetPlatform::Ios
-        } else if cfg!(all(target_os = "macos", feature = "macos")) {
+        } else if cfg!(target_os = "macos") {
             WidgetPlatform::Macos
-        } else if cfg!(all(target_os = "android", feature = "android")) {
+        } else if cfg!(target_os = "android") {
             WidgetPlatform::Android
-        } else if cfg!(all(target_os = "windows", feature = "windows")) {
-            // Prefer Widgets Board Adaptive Cards when the Windows backend is enabled.
+        } else if cfg!(target_os = "windows") {
+            // Prefer Widgets Board Adaptive Cards on Windows.
             WidgetPlatform::Windows
         } else {
             WidgetPlatform::Desktop

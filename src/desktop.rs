@@ -5,7 +5,7 @@ use std::fs;
 use std::hash::{Hash, Hasher};
 use std::path::PathBuf;
 use std::sync::Mutex;
-#[cfg(all(target_os = "macos", feature = "macos"))]
+#[cfg(target_os = "macos")]
 use std::sync::Arc;
 use tauri::{
     plugin::PluginApi, AppHandle, Emitter, Manager, Runtime, WebviewUrl, WebviewWindowBuilder,
@@ -18,21 +18,21 @@ use crate::store::{
     self, config_key, parse_pending_actions, touch_meta, DataMap, PENDING_ACTIONS_KEY,
 };
 
-#[cfg(all(target_os = "macos", feature = "macos"))]
+#[cfg(target_os = "macos")]
 use std::ffi::CString;
-#[cfg(all(target_os = "macos", feature = "macos"))]
+#[cfg(target_os = "macos")]
 use crate::transport::TransportSet;
 
 /// Protocol name registered by the plugin for the built-in widget renderer.
 pub(crate) const BUILTIN_PROTOCOL: &str = "widgetview";
 
 fn builtin_widget_url(group: &str, size: &str, widget_id: &str) -> WebviewUrl {
-    #[cfg(all(target_os = "windows", feature = "windows"))]
+    #[cfg(target_os = "windows")]
     let url_str = format!(
         "https://{}.localhost/?group={}&size={}&widgetId={}",
         BUILTIN_PROTOCOL, group, size, widget_id
     );
-    #[cfg(not(all(target_os = "windows", feature = "windows")))]
+    #[cfg(not(target_os = "windows"))]
     let url_str = format!(
         "{}://localhost/?group={}&size={}&widgetId={}",
         BUILTIN_PROTOCOL, group, size, widget_id
@@ -54,9 +54,9 @@ pub fn init<R: Runtime, C: DeserializeOwned>(
         store: Mutex::new(HashMap::new()),
         known_groups: Mutex::new(Vec::new()),
         receipts,
-        #[cfg(all(target_os = "macos", feature = "macos"))]
+        #[cfg(target_os = "macos")]
         poller_started: Mutex::new(false),
-        #[cfg(all(target_os = "macos", feature = "macos"))]
+        #[cfg(target_os = "macos")]
         transport_sets: Mutex::new(HashMap::new()),
     })
 }
@@ -70,10 +70,10 @@ pub struct Widget<R: Runtime> {
     known_groups: Mutex<Vec<String>>,
     /// Cross-platform render receipts (outside config nonce space).
     receipts: ReceiptStore,
-    #[cfg(all(target_os = "macos", feature = "macos"))]
+    #[cfg(target_os = "macos")]
     poller_started: Mutex<bool>,
     /// Per-group Apple transport health (fan-out → receipt → narrow).
-    #[cfg(all(target_os = "macos", feature = "macos"))]
+    #[cfg(target_os = "macos")]
     transport_sets: Mutex<HashMap<String, Arc<TransportSet>>>,
 }
 
@@ -86,7 +86,7 @@ impl<R: Runtime> Widget<R> {
     }
 
     fn storage_path(&self, group: &str) -> crate::Result<PathBuf> {
-        #[cfg(all(target_os = "macos", feature = "macos"))]
+        #[cfg(target_os = "macos")]
         {
             if let Some(path) = crate::macos_transport::app_group_data_override() {
                 if let Some(parent) = path.parent() {
@@ -128,7 +128,7 @@ impl<R: Runtime> Widget<R> {
         Ok(dir.join(format!("{safe}.json")))
     }
 
-    #[cfg(all(target_os = "macos", feature = "macos"))]
+    #[cfg(target_os = "macos")]
     fn transport_set(&self, group: &str) -> Arc<TransportSet> {
         let mut sets = self.transport_sets.lock().unwrap();
         sets.entry(group.to_string())
@@ -162,13 +162,13 @@ impl<R: Runtime> Widget<R> {
 
     /// Persist map: Apple TransportSet (fan-out or narrowed) / single file elsewhere.
     fn persist_map(&self, group: &str, map: &DataMap) -> crate::Result<()> {
-        #[cfg(all(target_os = "macos", feature = "macos"))]
+        #[cfg(target_os = "macos")]
         {
             let set = self.transport_set(group);
             set.reconcile();
             set.write(map)?;
         }
-        #[cfg(not(all(target_os = "macos", feature = "macos")))]
+        #[cfg(not(target_os = "macos"))]
         {
             let path = self.storage_path(group)?;
             let json = serde_json::to_string_pretty(map)?;
@@ -193,12 +193,12 @@ impl<R: Runtime> Widget<R> {
     }
 
     pub fn get_items(&self, key: &str, group: &str) -> crate::Result<Option<String>> {
-        #[cfg(all(target_os = "macos", feature = "macos"))]
+        #[cfg(target_os = "macos")]
         {
             let freshest = self.macos_freshest_map(group)?;
             return Ok(freshest.get(key).cloned());
         }
-        #[cfg(not(all(target_os = "macos", feature = "macos")))]
+        #[cfg(not(target_os = "macos"))]
         {
             let path = self.storage_path(group)?;
             let mut store = self.store.lock().unwrap();
@@ -329,7 +329,7 @@ impl<R: Runtime> Widget<R> {
     }
 
     pub fn reload_all_timelines(&self) -> crate::Result<bool> {
-        #[cfg(all(target_os = "macos", feature = "macos"))]
+        #[cfg(target_os = "macos")]
         {
             let _ = unsafe { macos_widget_reload_all() };
         }
@@ -338,7 +338,7 @@ impl<R: Runtime> Widget<R> {
     }
 
     pub fn reload_timelines(&self, of_kind: &str) -> crate::Result<bool> {
-        #[cfg(all(target_os = "macos", feature = "macos"))]
+        #[cfg(target_os = "macos")]
         {
             let c = CString::new(of_kind).unwrap_or_default();
             let _ = unsafe { macos_widget_reload_kind(c.as_ptr()) };
@@ -390,7 +390,7 @@ impl<R: Runtime> Widget<R> {
             let key = config_key(widget_id);
             self.set_items(&key, &json, group)?;
 
-            #[cfg(all(target_os = "windows", feature = "windows"))]
+            #[cfg(target_os = "windows")]
             {
                 // Widgets Board provider reads Adaptive Card blobs from the same store.
                 // Desktop webview (widget.html) remains the fallback outside Widget Board.
@@ -427,7 +427,7 @@ impl<R: Runtime> Widget<R> {
             self.reload_all_timelines()?;
         }
 
-        #[cfg(all(target_os = "macos", feature = "macos"))]
+        #[cfg(target_os = "macos")]
         self.ensure_action_poller();
 
         Ok(true)
@@ -453,7 +453,7 @@ impl<R: Runtime> Widget<R> {
     }
 
     /// Merge disk transports + in-memory, pick freshest, refresh store if disk wins.
-    #[cfg(all(target_os = "macos", feature = "macos"))]
+    #[cfg(target_os = "macos")]
     fn macos_freshest_map(&self, group: &str) -> crate::Result<DataMap> {
         let set = self.transport_set(group);
         set.reconcile();
@@ -473,13 +473,13 @@ impl<R: Runtime> Widget<R> {
     pub fn poll_pending_actions(&self, group: &str) -> crate::Result<Vec<serde_json::Value>> {
         self.remember_group(group);
 
-        #[cfg(all(target_os = "macos", feature = "macos"))]
+        #[cfg(target_os = "macos")]
         let disk_maps = {
             let set = self.transport_set(group);
             set.reconcile();
             set.read_all()
         };
-        #[cfg(not(all(target_os = "macos", feature = "macos")))]
+        #[cfg(not(target_os = "macos"))]
         let disk_maps: Vec<DataMap> = {
             let path = self.storage_path(group)?;
             if path.exists() {
@@ -529,7 +529,7 @@ impl<R: Runtime> Widget<R> {
             let _ = self.receipts.save_to_path(&receipts_path(&dir));
         }
         // Feed macOS transport reconcile from render receipts that name a transport.
-        #[cfg(all(target_os = "macos", feature = "macos"))]
+        #[cfg(target_os = "macos")]
         {
             // Extension still writes transport files; host-side push receipts use source=push/pull.
         }
@@ -543,7 +543,7 @@ impl<R: Runtime> Widget<R> {
         Ok(self.receipts.list(group))
     }
 
-    #[cfg(all(target_os = "macos", feature = "macos"))]
+    #[cfg(target_os = "macos")]
     fn ensure_action_poller(&self) {
         let mut started = self.poller_started.lock().unwrap();
         if *started {
@@ -584,7 +584,7 @@ impl<R: Runtime> Widget<R> {
 
 // ─── macOS helpers ────────────────────────────────────────────────────────────
 
-#[cfg(all(target_os = "macos", feature = "macos"))]
+#[cfg(target_os = "macos")]
 extern "C" {
     fn macos_widget_reload_all() -> bool;
     fn macos_widget_reload_kind(kind: *const std::ffi::c_char) -> bool;
@@ -592,7 +592,7 @@ extern "C" {
     fn macos_widget_free_string(ptr: *mut std::ffi::c_char);
 }
 
-#[cfg(all(target_os = "macos", feature = "macos"))]
+#[cfg(target_os = "macos")]
 fn macos_shared_container(group: &str) -> Option<PathBuf> {
     use std::ffi::CStr;
     let c_group = CString::new(group).ok()?;
@@ -607,7 +607,7 @@ fn macos_shared_container(group: &str) -> Option<PathBuf> {
     Some(PathBuf::from(path))
 }
 
-#[cfg(not(all(target_os = "macos", feature = "macos")))]
+#[cfg(not(target_os = "macos"))]
 fn atomic_write(path: &PathBuf, data: &[u8]) -> std::io::Result<()> {
     let tmp = path.with_extension("tmp");
     fs::write(&tmp, data)?;

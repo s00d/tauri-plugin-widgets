@@ -276,22 +276,45 @@ const initMacos = defineCommand({
     writeFileSync(join(widgetDir, ".gitignore"), "build/\n*.xcodeproj\nxcuserdata/\n");
     console.log("  Created .gitignore");
 
-    // Auto-patch tauri.conf.json
+    // Auto-patch tauri.conf.json — .appex ships via beforeBundle + macOS.files
     if (conf) {
       let modified = false;
       const data = conf.data;
+      const widgetRel = args.dir.replace(/\\/g, "/");
+      const appexSrc = `./${widgetRel.replace(/^src-tauri\//, "")}/build/Build/Products/Release/TauriWidgetExtension.appex`;
+      // Paths in bundle.macOS are relative to src-tauri/
+      const entitlementsRel = `./${widgetRel.replace(/^src-tauri\//, "")}/App.entitlements`;
+      const beforeCmd = `./${widgetRel}/build-widget.sh`;
 
       if (!data.build) data.build = {};
       if (!data.build.beforeBundleCommand) {
-        data.build.beforeBundleCommand = `./${args.dir}/build-widget.sh || true`;
+        data.build.beforeBundleCommand = beforeCmd;
         modified = true;
+        console.log(`  Set build.beforeBundleCommand → ${beforeCmd}`);
+      } else if (String(data.build.beforeBundleCommand).includes("|| true")) {
+        data.build.beforeBundleCommand = String(data.build.beforeBundleCommand)
+          .replace(/\s*\|\|\s*true\s*$/, "")
+          .trim();
+        modified = true;
+        console.log("  Removed '|| true' from beforeBundleCommand");
       }
 
       if (!data.bundle) data.bundle = {};
-      if (data.bundle.targets !== "app" && !(Array.isArray(data.bundle.targets) && data.bundle.targets.includes("app") && data.bundle.targets.length === 1)) {
-        data.bundle.targets = ["app"];
+      if (!data.bundle.macOS) data.bundle.macOS = {};
+      const mac = data.bundle.macOS;
+
+      if (!mac.entitlements) {
+        mac.entitlements = entitlementsRel;
         modified = true;
-        console.log(`  Set bundle.targets to ["app"] (DMG is rebuilt by embed-widget.sh)`);
+        console.log(`  Set bundle.macOS.entitlements → ${entitlementsRel}`);
+      }
+
+      if (!mac.files) mac.files = {};
+      const plugKey = "PlugIns/TauriWidgetExtension.appex";
+      if (!mac.files[plugKey]) {
+        mac.files[plugKey] = appexSrc;
+        modified = true;
+        console.log(`  Set bundle.macOS.files[${plugKey}] → ${appexSrc}`);
       }
 
       if (modified) {
@@ -306,17 +329,13 @@ Done! Next steps:
   1. Install xcodegen if not already:
      brew install xcodegen
 
-  2. Build the app (this also builds the .appex via beforeBundleCommand):
+  2. Build (builds .appex, copies into Contents/PlugIns/, signs, DMG):
      pnpm tauri build
-
-  3. Embed the widget extension into the .app bundle:
-     ./${args.dir}/embed-widget.sh
-
-  Or combine both in one command:
-     pnpm tauri build && ./${args.dir}/embed-widget.sh
 
   Bundle ID:  ${bundleId}
   App Group:  ${appGroup}
+
+  Note: embed-widget.sh is deprecated — PlugIns come from bundle.macOS.files.
 `);
   },
 });

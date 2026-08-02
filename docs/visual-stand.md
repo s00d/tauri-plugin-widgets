@@ -134,7 +134,7 @@ just test-macos-pipeline
 # → tests/macos/pipeline.sh
 ```
 
-Asserts: `init-macos` → executable scripts → `.appex` builds → App Group in entitlements → `widgetkit-extension` → embed into `Contents/PlugIns/` (stub `.app`, `WIDGET_SKIP_DMG=1`).
+Asserts: `init-macos` → `beforeBundleCommand` + `macOS.files` in conf → signed `.appex` → App Group in entitlements → `widgetkit-extension` → stub bundle via `macOS.files` path under `Contents/PlugIns/`.
 
 Level A runs `swift test` on the host in seconds and hits `#elseif canImport(AppKit)` (`Color.adaptive` via `NSAppearance`, semantic `NSColor`, `NSImage` decode) — which an iOS-simulator run never executes.
 
@@ -161,16 +161,16 @@ just record-desktop weather.small
 Native AC pixels (not `widget.html`):
 
 ```bash
-# Mac: regenerate PNG + AC JSON for the core trio
-bash tools/gen-windows-goldens.sh
+# Adaptive Card JSON snapshots (transpile)
+bash tools/gen-adaptive-snapshots.sh
 
-# UTM: capture via PreviewHost
+# UTM: capture PNG via PreviewHost (WinUI3)
 just record-windows weather.small
 just test-windows-visual
 node tests/windows/compare.mjs
 ```
 
-Goldens live in `tests/golden/windows/`. See [windows-surfaces.md](windows-surfaces.md).
+PNG goldens live in `tests/golden/windows/` (record from VM). See [windows-surfaces.md](windows-surfaces.md).
 
 ## Linux desktop (Docker)
 
@@ -209,8 +209,8 @@ Findings from the last full pass live in `out/audit/CATALOG.md` (gitignored unde
 |--------|---------|
 | Desktop visual | `pnpm test:visual:desktop` |
 | Record desktop case | `CASE=x.y GOLDEN_RECORD=1 pnpm test:visual:desktop` |
-| Windows AC goldens (Mac) | `bash tools/gen-windows-goldens.sh` |
-| Windows visual (UTM) | `just test-windows-visual` / `just record-windows weather.small` |
+| Windows AC JSON snapshots | `bash tools/gen-adaptive-snapshots.sh` |
+| Windows PNG goldens (UTM) | `just test-windows-visual` / `just record-windows weather.small` |
 | Windows xwin check | `just check-windows-xwin` |
 | Windows example xwin | `just build-windows-example-xwin` |
 | Android visual | `just test-android-visual` |

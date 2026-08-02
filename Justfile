@@ -101,9 +101,14 @@ record-windows case:
     scp "utm-win:C:/work/tauri-plugin-widgets/out/windows/{{case}}.png" "{{repo}}/tests/golden/windows/{{case}}.png" || \
       scp "utm-win:C:/work/tauri-plugin-widgets/tests/golden/windows/{{case}}.png" "{{repo}}/tests/golden/windows/{{case}}.png"
 
-# Mac-side: regenerate all 36 Windows Adaptive Card goldens (no UTM).
+# Dump Adaptive Card JSON snapshots (transpile). PNG goldens: record-windows via PreviewHost.
+record-adaptive-snapshots:
+    bash {{repo}}/tools/gen-adaptive-snapshots.sh
+
+# Alias kept for muscle memory — dumps AC JSON only (no fake Mac SVG PNGs).
 record-windows-all:
-    bash {{repo}}/tools/gen-windows-goldens.sh
+    @echo "PNG goldens come from PreviewHost (just record-windows <case>). Dumping AC JSON…"
+    bash {{repo}}/tools/gen-adaptive-snapshots.sh
 
 test-windows-visual:
     bash {{repo}}/tools/win-up.sh

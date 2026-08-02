@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.4.1
+
+### Cleanup
+- Removed Mac-side SVG Adaptive Cards compositor (`gen-windows-goldens`) and fake `tests/golden/windows/*.png`; keep `tests/snapshots/adaptive/` + PreviewHost for real WinUI3 pixels
+- `rasterize` no longer in default features (opt-in resvg)
+- Dropped empty Cargo features `windows` / `macos` / `ios` / `android` / `all-platforms` — backends follow `target_os`
+- `gtk` is optional under feature `linux`
+- Removed dead Kotlin helpers (`sparkline`, `countRenderableChildren`, `maxRenderableItems`)
+
 ## 0.4.0
 
 First public cut of the redesign (unpublished drafts were never released separately).

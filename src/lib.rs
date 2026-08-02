@@ -60,9 +60,9 @@
 //! 2. Add `swift/` as a Local Swift Package dependency
 //! 3. Enable **App Groups** in both the main app entitlements and
 //!    the widget extension entitlements
-//! 4. `build-widget.sh` is called automatically via `beforeBundleCommand`
-//! 5. After `tauri build`, run `embed-widget.sh` to copy the `.appex`
-//!    into `Contents/PlugIns/` and re-sign
+//! 4. `build-widget.sh` runs via `beforeBundleCommand` (builds + signs `.appex`)
+//! 5. `bundle.macOS.files` copies the `.appex` into `Contents/PlugIns/`
+//!    during a normal `tauri build` (Tauri nested-codesigns PlugIns)
 //!
 //! ## Rust API
 //!
@@ -106,13 +106,13 @@ pub mod store;
 pub mod transport;
 pub mod receipt;
 
-#[cfg(all(target_os = "windows", feature = "windows"))]
+#[cfg(target_os = "windows")]
 pub mod windows;
 
 #[cfg(all(target_os = "linux", feature = "linux"))]
 pub mod linux;
 
-#[cfg(all(target_os = "macos", feature = "macos"))]
+#[cfg(target_os = "macos")]
 pub mod macos_transport;
 
 pub use adaptive_card::{to_adaptive_card, to_adaptive_card_for_size, TranspileResult};

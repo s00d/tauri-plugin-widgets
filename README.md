@@ -14,7 +14,19 @@ A Tauri v2 plugin for **cross-platform widgets** from one JSON UI config:
 - **Windows** — Widgets Board via Adaptive Cards **and** desktop webview fallback
 - **Linux** — desktop webview pinned as `_NET_WM_WINDOW_TYPE_DESKTOP` (optional gtk-layer-shell on Wayland)
 
-Each OS backend is an optional Cargo feature (all enabled by default). See [Platform Support](#platform-support).
+Each OS backend follows `target_os` (optional Cargo features). See [Platform Support](#platform-support).
+
+This README is the **integration guide**. Contributor docs (architecture, goldens, harnesses): [`docs/development.md`](docs/development.md).
+
+## Contents
+
+1. [Demo / Preview](#demo)
+2. [Breaking changes](#breaking-changes-in-04) · [Capability matrix](#capability-matrix-element--platform)
+3. [Quick Start](#quick-start) · [CLI](#cli--quick-init)
+4. [Platform Setup](#platform-setup)
+5. [Widget Config Schema](#widget-config-schema) · [API](#low-level-data-api)
+6. [Troubleshooting](#troubleshooting)
+7. [Development](docs/development.md)
 
 ## Demo
 
@@ -46,30 +58,6 @@ Same JSON config rendered natively on each platform (`nested-dashboard` fixture)
 <div align="center">
   <img src="./preview.png" alt="Widgets preview on Android and iOS home screens" width="85%" />
 </div>
-
----
-
-## Architecture
-
-The plugin acts as a **library**, not a builder:
-
-| Component | Role |
-|-----------|------|
-| **Rust plugin** (`src/`) | Storage, FFI, reload, desktop windows, Adaptive Cards transpile, receipts |
-| **Swift Package** (`swift/TauriWidgets`) | SwiftUI views/models/store for iOS/macOS WidgetKit extensions |
-| **Android plugin** (`android/`) | Jetpack Glance renderer + receivers |
-| **Desktop HTML** (`widget.html`) | HTML/CSS renderer for frameless webview widget windows |
-| **Adaptive Cards** (`src/adaptive_card.rs`) | IR → Adaptive Cards 1.5 for Windows Widgets Board |
-| **Linux pin** (`src/linux/`) | X11 `_NET_WM_*` desktop hints; optional `layer-shell` |
-| **Templates** (`templates/`) | Starters for iOS, macOS, and Windows widget providers |
-
-**Data flow:** `setWidgetConfig(json, group, widgetId)` → platform storage (with freshness `nonce`) → reload / Glance update / Widgets Board provider → native UI for that `widgetId`.
-
-On Apple the host **fan-outs** writes across App Group file, UserDefaults suite, and (macOS) widget sandbox file; the extension **picks the freshest** map by `nonce` / `updatedAt`. Render **receipts** narrow fan-out after the extension reports what it painted.
-
-Storage keys (0.4+): `config:{widgetId}`, `pending_actions`, `__meta_nonce__`, `__meta_updated_at__`. On Windows also `ac:template:{widgetId}` / `ac:data:{widgetId}` for Widgets Board.
-
-The developer owns the widget extension / provider target — the plugin supplies reusable components and bridges.
 
 ---
 
@@ -143,13 +131,17 @@ const config: WidgetConfig = {
 await setWidgetConfig(config, "group.com.example.myapp", "weather");
 ```
 
-Regenerate types after model changes: `pnpm codegen` (or `cargo run --bin gen-ts --features codegen`).
+Regenerate types after model changes: `pnpm codegen` (see [`docs/development.md`](docs/development.md)).
 
 On Android, each home-screen instance maps to a logical `widgetId` (meta `widgetId:{appWidgetId}`). Call `setWidgetConfig` per id after pinning so two widgets can show different configs.
 
 Capability warnings (degraded / unsupported) are logged when a config **changes**, for the current platform only.
 
+> Prefer flat `vstack` / `hstack` on Android; always set `progress.label`. Deeper architecture: [`docs/development.md`](docs/development.md).
+
 ---
+
+## Features
 
 - **Universal Widget UI** — one JSON IR, five renderers (SwiftUI, Glance, HTML, Adaptive Cards).
 - **Three size families** — `small`, `medium`, `large` in a single config.
@@ -162,39 +154,38 @@ Capability warnings (degraded / unsupported) are logged when a config **changes*
 - **Swift Package** — reusable `TauriWidgets` for iOS/macOS extensions.
 - **Windows Widgets Board** — Adaptive Cards transpile + optional WorkerW wallpaper parenting.
 - **Linux desktop pin** — X11 `_NET_WM_WINDOW_TYPE_DESKTOP` (+ optional Wayland `layer-shell`).
-- **Optional OS Cargo features** — enable only the backends you need.
-- **File-based / shared storage** — App Group, SharedPreferences, or JSON files on desktop.
-- **Configurable reload throttling** — `TAURI_WIDGET_MIN_RELOAD_SECS` for WidgetKit.
-- **Desktop widget windows** — frameless transparent Tauri webviews (Windows / Linux / macOS host).
+- **Desktop widget windows** — frameless transparent Tauri webviews.
 - **Low-level data API** — `setItems` / `getItems` shared with native widgets.
-
-## Recent Android Updates
-
-- Android rendering path migrated to **Jetpack Glance**.
-- Example presets were simplified to avoid over-nested layout trees that can render inconsistently on some launchers.
-- Complex `container` wrappers were reduced in favor of flatter `vstack`/`hstack` structures.
-- Progress examples now include explicit labels to avoid host text fallbacks like `null`.
 
 ---
 
 ## Platform Support
 
-| Platform | Surface | UI | Storage | Reload / update | Cargo feature |
-|----------|---------|----|---------|-----------------|---------------|
-| **Android** | AppWidget | Jetpack Glance from JSON | SharedPreferences + Glance state | Glance `updateAll()` | `android` (default) |
-| **iOS** | WidgetKit (17+) | SwiftUI from JSON | App Group (JSON + suite fan-out) | WidgetCenter | `ios` (default) |
-| **macOS** | WidgetKit (14+) | SwiftUI from JSON | App Group + sandbox fan-out | WidgetCenter | `macos` (default) |
-| **Windows** | Widgets Board **+** desktop webview | Adaptive Cards 1.5 **and** HTML/CSS | JSON file + `ac:template` / `ac:data` | Provider / Tauri | `windows` (default) |
-| **Linux** | Desktop webview (X11 DESKTOP pin; optional layer-shell) | HTML/CSS from JSON | JSON file | Tauri | `linux` (default) |
+| Platform | Surface | UI | Storage | Reload / update |
+|----------|---------|----|---------|-----------------|
+| **Android** | AppWidget | Jetpack Glance from JSON | SharedPreferences + Glance state | Glance `updateAll()` |
+| **iOS** | WidgetKit (17+) | SwiftUI from JSON | App Group (JSON + suite fan-out) | WidgetCenter |
+| **macOS** | WidgetKit (14+) | SwiftUI from JSON | App Group + sandbox fan-out | WidgetCenter |
+| **Windows** | Widgets Board **+** desktop webview | Adaptive Cards 1.5 **and** HTML/CSS | JSON file + `ac:template` / `ac:data` | Provider / Tauri |
+| **Linux** | Desktop webview (X11 DESKTOP pin; optional layer-shell) | HTML/CSS from JSON | JSON file | Tauri |
 
-Extra features: `rasterize` (SVG→PNG for AC), `workerw` (Windows wallpaper parent), `layer-shell` (Wayland), `macos-private-api` (transparent macOS webviews), `all-platforms` (alias for the five OS features).
+OS backends follow `target_os` (no empty Cargo feature toggles). Optional features:
+
+- `linux` (**default**) — gtk + x11rb for `_NET_WM_WINDOW_TYPE_DESKTOP` pin
+- `rasterize` — SVG→PNG data-URI for Adaptive Cards chart/canvas/gauge (pulls resvg)
+- `workerw` — Windows wallpaper WorkerW parenting
+- `layer-shell` — Wayland gtk-layer-shell Background (requires `linux`)
+- `macos-private-api` — transparent macOS webviews
 
 ```toml
-# Full (default)
+# Default (linux pin enabled; other OS via target_os)
 tauri-plugin-widgets = "0.4"
 
-# Desktop Linux + Windows only
-tauri-plugin-widgets = { version = "0.4", default-features = false, features = ["rasterize", "linux", "windows"] }
+# Slim: no linux pin / no gtk
+tauri-plugin-widgets = { version = "0.4", default-features = false }
+
+# Windows Widgets Board with chart rasterization
+tauri-plugin-widgets = { version = "0.4", default-features = false, features = ["rasterize"] }
 ```
 
 ---
@@ -207,8 +198,10 @@ tauri-plugin-widgets = { version = "0.4", default-features = false, features = [
 # src-tauri/Cargo.toml
 [dependencies]
 tauri-plugin-widgets = "0.4"
-# Or slim backends:
-# tauri-plugin-widgets = { version = "0.4", default-features = false, features = ["rasterize", "linux", "windows"] }
+# Or without linux pin:
+# tauri-plugin-widgets = { version = "0.4", default-features = false }
+# With Adaptive Cards rasterization:
+# tauri-plugin-widgets = { version = "0.4", features = ["rasterize"] }
 ```
 
 ```bash
@@ -314,16 +307,11 @@ npx tauri-plugin-widgets-api init-windows
 npx tauri-plugin-widgets-api init-macos
 ```
 
-This creates `src-tauri/macos-widget/` with all required files and auto-patches your `tauri.conf.json` with `beforeBundleCommand`.
-
-**Important:** Set `"targets": ["app"]` in `bundle` section of `tauri.conf.json` to disable Tauri's built-in DMG (it won't include the widget). The embed script rebuilds the DMG itself.
+This creates `src-tauri/macos-widget/` and auto-patches `tauri.conf.json` with `beforeBundleCommand`, `bundle.macOS.files` (→ `Contents/PlugIns/`), and host `entitlements`.
 
 ```bash
-# Build + embed + DMG:
-pnpm tauri build && ./src-tauri/macos-widget/embed-widget.sh
-
-# With signing identity for production:
-pnpm tauri build && ./src-tauri/macos-widget/embed-widget.sh "Developer ID Application: ..."
+# One command: builds .appex, copies into PlugIns, signs, creates DMG
+pnpm tauri build
 ```
 
 **Options:**
@@ -368,7 +356,7 @@ If a Widget Extension target already exists in `src-tauri/gen/apple/*`, the CLI 
 
 | Variable | Scope | Default | Description |
 |----------|-------|---------|-------------|
-| `WIDGET_SIGN_IDENTITY` | macOS (`embed-widget.sh`) | ad-hoc (`-`) | Signing identity for widget/app re-signing. |
+| `WIDGET_SIGN_IDENTITY` | macOS (`build-widget.sh`) | `APPLE_SIGNING_IDENTITY` or ad-hoc (`-`) | Signing identity for the `.appex` before bundling. |
 | `TAURI_WIDGET_MIN_RELOAD_SECS` | iOS/macOS runtime (plugin) | Debug: `0`, Release: `900` | Minimum seconds between plugin-triggered `reloadAllTimelines()`. Use `0` to disable plugin-side throttle. |
 | `TAURI_DEV_HOST` | Example app dev (`vite.config.ts`) | — | Dev host used by Tauri/Vite during `tauri dev` (usually set automatically). |
 
@@ -378,9 +366,9 @@ Examples:
 # iOS dev without plugin-side reload throttle
 TAURI_WIDGET_MIN_RELOAD_SECS=0 pnpm tauri ios dev
 
-# macOS build with explicit signing identity
+# macOS build with explicit signing identity for the .appex
 WIDGET_SIGN_IDENTITY="Apple Development: you@example.com (TEAMID)" \
-  pnpm tauri build && ./src-tauri/macos-widget/embed-widget.sh
+  pnpm tauri build
 ```
 
 ---
@@ -491,10 +479,10 @@ pnpm tauri ios dev
 
 ### macOS Setup
 
-macOS widgets require a "sidecar" Xcode project — a small project alongside your Tauri app that compiles the Widget Extension (`.appex`).
+macOS widgets require a "sidecar" Xcode project — a small project alongside your Tauri app that compiles the Widget Extension (`.appex`). After `init-macos`, a normal **`pnpm tauri build`** produces an `.app` (and DMG) with `Contents/PlugIns/*.appex` already inside.
 
 > **Important:** On macOS, WidgetKit picks up extension widgets from the installed app bundle.  
-> Addable widgets appear only after you **build** the app and move the resulting `.app` to **`/Applications`** (or install from the DMG generated by `embed-widget.sh`).
+> Addable widgets appear only after you **build** the app and move the resulting `.app` to **`/Applications`** (or install from the DMG).
 
 **Requirements:** `xcodegen` (`brew install xcodegen`)
 
@@ -512,66 +500,59 @@ npx tauri-plugin-widgets-api init-macos \
 
 This creates `src-tauri/macos-widget/` with:
 - `Sources/MyWidget.swift` — widget code using `TauriWidgetProvider`
-- `TauriWidgetExtension.entitlements` — App Group configuration
+- `TauriWidgetExtension.entitlements` — App Group for the extension
+- `App.entitlements` — App Group for the host app (wired via `bundle.macOS.entitlements`)
 - `project.yml` — xcodegen spec
-- `build-widget.sh` — builds the `.appex` without signing (called automatically by `beforeBundleCommand`)
-- `embed-widget.sh` — injects `.appex` into the `.app` bundle, signs widget with entitlements, re-signs the app
+- `build-widget.sh` — builds and signs the `.appex` (`beforeBundleCommand`)
+- `embed-widget.sh` — **deprecated** emergency re-embed; not part of the normal DX
 
 #### Step 2: Configure tauri.conf.json
 
-The CLI automatically adds `beforeBundleCommand`. Verify your config and make two adjustments:
+The CLI patches these fields (paths relative to `src-tauri/`):
 
 ```json
 {
   "build": {
-    "beforeBundleCommand": "./src-tauri/macos-widget/build-widget.sh || true"
+    "beforeBundleCommand": "./src-tauri/macos-widget/build-widget.sh"
   },
   "bundle": {
-    "targets": ["app"]
+    "macOS": {
+      "entitlements": "./macos-widget/App.entitlements",
+      "files": {
+        "PlugIns/TauriWidgetExtension.appex": "./macos-widget/build/Build/Products/Release/TauriWidgetExtension.appex"
+      }
+    }
   }
 }
 ```
 
-- **`beforeBundleCommand`** compiles the widget extension (without code-signing — signing is deferred to the embed step)
-- **`"targets": ["app"]`** — disable Tauri's built-in DMG creation. Tauri creates the DMG **before** `embed-widget.sh` runs, so it would not contain the widget. The `embed-widget.sh` script rebuilds the DMG itself after embedding the `.appex`.
+- **`beforeBundleCommand`** builds and signs the `.appex` (failures are not swallowed)
+- **`bundle.macOS.files`** copies the `.appex` into `Contents/PlugIns/` during bundling
+- Tauri nested-codesigns `PlugIns/` and can produce a normal DMG via `bundle.targets`
 
-> **Note:** Tauri 2.x does not natively support embedding `.appex` via `bundle.macOS.frameworks`. The `embed-widget.sh` script handles copying the `.appex` into `Contents/PlugIns/`, signing it with its own entitlements, re-signing the app bundle with hardened runtime, and rebuilding the DMG.
-
-#### Step 3: Register App Groups
-
-Add an entitlements file to your main app with the same App Group identifier (e.g. `group.com.example.myapp`).
-
-#### Step 4: Build & Sign
+#### Step 3: Build
 
 ```bash
-# Local development (ad-hoc signing):
-pnpm tauri build && ./src-tauri/macos-widget/embed-widget.sh
+pnpm tauri build
 
-# With signing identity (via env):
-WIDGET_SIGN_IDENTITY="Apple Development: you@example.com (TEAMID)" \
-  pnpm tauri build && ./src-tauri/macos-widget/embed-widget.sh
-
-# Or via argument:
-pnpm tauri build && ./src-tauri/macos-widget/embed-widget.sh "Apple Development: you@example.com (TEAMID)"
+# Optional: identity for signing the .appex before bundling
+WIDGET_SIGN_IDENTITY="Apple Development: you@example.com (TEAMID)" pnpm tauri build
 ```
 
-The full pipeline:
-1. `tauri build` — compiles Rust, builds `.appex` via `beforeBundleCommand`, creates `.app`
-2. `embed-widget.sh` — copies `.appex` → `Contents/PlugIns/`, signs with entitlements, re-signs app, rebuilds DMG, opens DMG
+Pipeline:
+1. Rust + frontend build
+2. `build-widget.sh` → signed `.appex`
+3. Tauri copies PlugIns, nested-codesigns, notarizes (if configured), writes `.app` / DMG
 
-> **Tip:** Add a shortcut to `package.json`:
-> ```json
-> { "scripts": { "build:macos": "tauri build && ./src-tauri/macos-widget/embed-widget.sh" } }
-> ```
-> Then just run `pnpm build:macos`.
+> **Tip:** `{ "scripts": { "build:macos": "tauri build" } }` then `pnpm build:macos`.
 
 #### Code Signing
 
-The `embed-widget.sh` script signs both the widget extension (`.appex`) and the main app bundle. Signing identity is resolved in this order:
+`build-widget.sh` signs the `.appex` before bundling. Identity resolution:
 
-1. `WIDGET_SIGN_IDENTITY` environment variable
-2. First argument to the script
-3. Fallback: `-` (ad-hoc signing)
+1. `WIDGET_SIGN_IDENTITY`
+2. `APPLE_SIGNING_IDENTITY`
+3. Fallback: `-` (ad-hoc)
 
 **Finding your signing identity:**
 
@@ -710,27 +691,9 @@ Pass `group`, `widgetId`, and `size` so the built-in renderer loads the right co
 npx tauri-plugin-widgets-api init-windows
 ```
 
-This scaffolds a C# `IWidgetProvider` under `templates/windows-widget/` (see [`docs/windows-surfaces.md`](docs/windows-surfaces.md)). On `setWidgetConfig` the plugin writes Adaptive Cards JSON under `ac:template:{widgetId}` / `ac:data:{widgetId}`.
-
-Visual goldens: `tests/golden/windows/` — regenerate with:
-
-```bash
-cargo run --bin gen-windows-goldens --features rasterize
-# or: just gen-windows-goldens / just test-windows-visual
-```
+This scaffolds a C# `IWidgetProvider` under `templates/windows-widget/` (details: [`docs/windows-surfaces.md`](docs/windows-surfaces.md)). On `setWidgetConfig` the plugin writes Adaptive Cards JSON under `ac:template:{widgetId}` / `ac:data:{widgetId}`.
 
 Optional wallpaper parenting (not Widgets Board): enable Cargo feature `workerw`.
-
-#### Linux harness (Docker)
-
-Live webview screenshots and X11 property gates:
-
-```bash
-just test-linux-x11          # xprop DESKTOP + SKIP_TASKBAR + PNGs
-just shot-linux weather small
-```
-
-Details: [`docs/linux-harness.md`](docs/linux-harness.md). Goldens: `tests/golden/linux/`.
 
 ---
 
@@ -1293,38 +1256,11 @@ fn update_widget(app: &tauri::AppHandle) {
 
 ---
 
-## Project Structure
+## Development
 
-```
-├── android/                    Android plugin (Jetpack Glance renderer)
-├── ios/                        iOS plugin (Tauri bridge)
-├── macos/                      macOS FFI bridge (reload + container path)
-├── swift/                      TauriWidgets Swift Package
-├── src/                        Rust plugin core
-│   ├── lib.rs                  Plugin init + commands
-│   ├── desktop.rs              Desktop storage + widget windows
-│   ├── mobile.rs               Mobile bridge + throttled reload
-│   ├── linux/                  X11 DESKTOP pin / optional layer-shell
-│   ├── windows/                Optional WorkerW helper
-│   ├── models.rs               WidgetConfig / WidgetElement (IR SoT)
-│   ├── capabilities.rs         Platform × element support matrix
-│   ├── adaptive_card.rs        IR → Adaptive Cards 1.5
-│   ├── rasterize.rs            SVG → PNG for AC
-│   ├── receipt.rs / transport.rs  Render receipts + Apple fan-out
-│   ├── snapshot.rs / codegen.rs / store.rs
-├── guest-js/                   TypeScript API + generated IR types
-├── schemas/widget-config.v1.json
-├── docs/
-│   ├── capability-matrix.md    Generated capability table
-│   ├── linux-harness.md        Docker X11/Wayland harness
-│   └── windows-surfaces.md     Widgets Board + webview notes
-├── tests/fixtures/             Golden WidgetConfig JSON
-├── tests/golden/{android,ios,macos,desktop,windows,linux}/
-├── templates/{ios,macos,windows}-widget/
-├── examples/widget-probe/      Minimal host for Linux Docker shots
-├── widget.html                 Desktop HTML renderer
-└── examples/tauri-plugin-widgets-example/
-```
+Architecture, repo layout, golden / visual tests, Linux harness, codegen:
+
+→ **[`docs/development.md`](docs/development.md)**
 
 ---
 
@@ -1364,7 +1300,7 @@ fn update_widget(app: &tauri::AppHandle) {
 
 - Call `createWidgetWindow(...)` (or define a window in `tauri.conf.json`).
 - Allow the window label in capabilities (`widgets:default` / window permissions).
-- On Linux, enable the `linux` feature for X11 DESKTOP pinning; harness: [`docs/linux-harness.md`](docs/linux-harness.md).
+- On Linux, enable the `linux` feature for X11 DESKTOP pinning (see [`docs/linux-harness.md`](docs/linux-harness.md)).
 - On Windows Widgets Board, run `init-windows` and verify `ac:template:*` after `setWidgetConfig`.
 
 ---

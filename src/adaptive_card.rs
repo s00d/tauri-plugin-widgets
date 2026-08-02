@@ -931,6 +931,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg(feature = "rasterize")]
     fn chart_becomes_image_data_uri() {
         let cfg: WidgetConfig = serde_json::from_value(json!({
             "version": 1,

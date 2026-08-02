@@ -7,7 +7,7 @@ options:
 
 packages:
   TauriWidgets:
-    path: /Users/s00d/Downloads/tauri-plugin-widget-main/swift
+    path: ../../../../swift
 
 targets:
   TauriWidgetExtension:

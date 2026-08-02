@@ -91,11 +91,14 @@ final class MacRenderTests: XCTestCase {
         let pxW = Int((size.width * scale).rounded())
         let pxH = Int((size.height * scale).rounded())
 
-        let root = DynamicElementView(element: element)
-            .frame(width: size.width, height: size.height)
-            .environment(\.colorScheme, scheme)
-            .environment(\.locale, Locale(identifier: c.locale.replacingOccurrences(of: "_", with: "-")))
-            .environment(\.sizeCategory, .large)
+        let root = WidgetChrome.framed(
+            element: element,
+            width: size.width,
+            height: size.height,
+        )
+        .environment(\.colorScheme, scheme)
+        .environment(\.locale, Locale(identifier: c.locale.replacingOccurrences(of: "_", with: "-")))
+        .environment(\.sizeCategory, .large)
 
         let hosting = NSHostingView(rootView: root)
         hosting.frame = NSRect(origin: .zero, size: size)

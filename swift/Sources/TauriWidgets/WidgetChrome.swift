@@ -42,7 +42,8 @@ public enum WidgetChrome {
         cornerRadius: CGFloat = 22
     ) -> some View {
         DynamicElementView(element: element)
-            .frame(maxWidth: .infinity, maxHeight: .infinity)
+            // Same topLeading pin as TauriWidgetView — goldens/ImageRenderer share this path.
+            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
             .frame(width: width, height: height)
             .containerBackground(for: .widget) { background(for: element) }
             .clipShape(RoundedRectangle(cornerRadius: cornerRadius, style: .continuous))

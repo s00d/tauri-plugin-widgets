@@ -4,26 +4,25 @@ Native **arm64** Ubuntu 24.04 container — do **not** use `--platform linux/amd
 
 ## Platform features
 
-Each OS backend is an optional Cargo feature. **Default enables all of them** plus `rasterize`:
+OS backends follow `target_os`. The only OS-related Cargo feature is `linux` (gtk + x11rb for DESKTOP pin). `rasterize` is opt-in for Adaptive Cards chart/canvas/gauge → PNG.
 
 | Feature | Default | What it gates |
 |---------|---------|----------------|
-| `linux` | yes | X11 desktop pin (`_NET_WM_*`) + optional `layer-shell` |
-| `windows` | yes | Windows webview URL scheme + `workerw` prerequisite |
-| `macos` | yes | WidgetKit / App Group transport |
-| `ios` | yes | iOS plugin bridge |
-| `android` | yes | Android plugin bridge |
-| `rasterize` | yes | SVG→PNG for Adaptive Cards |
+| `linux` | yes | X11 desktop pin (`_NET_WM_*`) + gtk; prerequisite for `layer-shell` |
+| `rasterize` | no | SVG→PNG for Adaptive Cards |
+| `layer-shell` | no | Wayland gtk-layer-shell Background |
+| `workerw` | no | Windows wallpaper WorkerW parenting |
 
 ```toml
-# Full (same as default)
+# Default (linux pin)
 tauri-plugin-widgets = "0.4"
 
-# Desktop Linux + Windows only
-tauri-plugin-widgets = { version = "0.4", default-features = false, features = ["rasterize", "linux", "windows"] }
-```
+# No pin / no gtk
+tauri-plugin-widgets = { version = "0.4", default-features = false }
 
-`all-platforms` is a convenience alias for the five OS features.
+# Widgets Board charts
+tauri-plugin-widgets = { version = "0.4", features = ["rasterize"] }
+```
 
 ## What is tested
 

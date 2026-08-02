@@ -1,6 +1,6 @@
 [package]
 name = "tauri-plugin-widgets"
-version = "0.4.0"
+version = "0.4.1"
 authors = ["s00d"]
 description = "Tauri plugin for App Widgets on Android, iOS, and macOS (WidgetKit); Windows Widgets Board (Adaptive Cards) + desktop webview; Linux desktop webview with X11 DESKTOP pin."
 edition = "2021"
@@ -31,7 +31,7 @@ resvg = { version = "0.45", optional = true }
 base64 = { version = "0.22", optional = true }
 
 [target.'cfg(target_os = "linux")'.dependencies]
-gtk = "0.18"
+gtk = { version = "0.18", optional = true }
 x11rb = { version = "0.13", optional = true }
 raw-window-handle = { version = "0.6", optional = true }
 gtk-layer-shell = { version = "0.8", optional = true }
@@ -40,25 +40,18 @@ gtk-layer-shell = { version = "0.8", optional = true }
 tempfile = "3"
 
 [features]
-default = ["rasterize", "linux", "windows", "macos", "ios", "android"]
-# Platform backends (optional). Default enables all; pick a subset with
-# `default-features = false` + explicit list (e.g. `["rasterize", "linux", "windows"]`).
-linux = ["dep:x11rb", "dep:raw-window-handle"]
-windows = []
-macos = []
-ios = []
-android = []
-# Convenience: every OS backend.
-all-platforms = ["linux", "windows", "macos", "ios", "android"]
+# `linux` pulls gtk + x11rb for DESKTOP pin. Other OS backends follow `target_os` only.
+# `rasterize` is opt-in (resvg) for Adaptive Cards chart/canvas/gauge → PNG data-URI.
+default = ["linux"]
+linux = ["dep:x11rb", "dep:raw-window-handle", "dep:gtk"]
 schema = ["dep:schemars"]
 codegen = ["schema"]
-# SVG → PNG for Adaptive Cards (chart/canvas/gauge).
 rasterize = ["dep:resvg", "dep:base64"]
-# Enables transparent desktop widget windows on macOS (requires host `tauri.conf` macosPrivateApi).
+# Transparent desktop widget windows on macOS (requires host `tauri.conf` macosPrivateApi).
 macos-private-api = ["tauri/macos-private-api"]
 # Windows wallpaper WorkerW parenting (not Widgets Board).
-workerw = ["windows"]
-# Wayland: remap widget windows onto gtk-layer-shell Background (Linux only).
+workerw = []
+# Wayland: remap widget windows onto gtk-layer-shell Background (requires `linux`).
 layer-shell = ["linux", "dep:gtk-layer-shell"]
 
 [[bin]]
@@ -72,9 +65,8 @@ path = "src/bin/gen_ts.rs"
 required-features = ["codegen"]
 
 [[bin]]
-name = "gen-windows-goldens"
-path = "src/bin/gen_windows_goldens.rs"
-required-features = ["rasterize"]
+name = "gen-adaptive-snapshots"
+path = "src/bin/gen_adaptive_snapshots.rs"
 
 [build-dependencies]
 tauri-plugin = { version = "2", features = ["build"] }

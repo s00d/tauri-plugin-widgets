@@ -106,7 +106,8 @@ public struct TauriWidgetView: View {
     public var body: some View {
         if let el = layoutForFamily() {
             DynamicElementView(element: el)
-                .frame(maxWidth: .infinity, maxHeight: .infinity)
+                // Pin to top — default center left a fake “top padding” when content is shorter than the canvas.
+                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
                 .containerBackground(for: .widget) { WidgetChrome.background(for: el) }
         } else {
             placeholderView()

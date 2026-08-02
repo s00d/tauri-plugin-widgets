@@ -1,6 +1,6 @@
 {
   "name": "tauri-plugin-widgets-api",
-  "version": "0.4.0",
+  "version": "0.4.1",
   "author": "s00d",
   "description": "A Tauri v2 plugin to interact with App Widgets on Android and iOS, with desktop fallback. SharedPreferences / UserDefaults / WidgetKit / AppWidgetManager.",
   "license": "MIT",
@@ -35,6 +35,9 @@
     "build": "rollup -c rollup.config.mjs",
     "prepublishOnly": "pnpm build",
     "pretest": "pnpm build",
+    "dev": "pnpm --dir examples/tauri-plugin-widgets-example run tauri dev",
+    "build:example": "bash tools/build-example-artifacts.sh",
+    "build:example:mobile": "bash tools/build-example-artifacts.sh ios android",
     "tauri-widgets": "node bin/cli.mjs",
     "playground": "pnpm --dir examples/tauri-plugin-widgets-example run tauri dev",
     "codegen": "cargo run --bin gen-schema --features codegen && cargo run --bin gen-ts --features codegen",

@@ -20,34 +20,22 @@ Generated via `pnpm audit:sheets` → `out/audit/index.html` (panels: Desktop | 
 
 ## Windows Adaptive Cards
 
-Corpus: **36/36** `tests/golden/windows/` via `bash tools/gen-windows-goldens.sh` (AC transpile + SVG composite + resvg). Source of truth is Mac-side; UTM PreviewHost is spot-check only.
+Corpus: Adaptive Card **JSON** in `tests/snapshots/adaptive/` (`bash tools/gen-adaptive-snapshots.sh`). Windows **PNG** goldens: PreviewHost on UTM (`just record-windows <case>`), not a Mac SVG compositor.
 
 | Issue | Fix |
 |-------|-----|
-| Blank goldens (no text) | `usvg` `fontdb.load_system_fonts()` in rasterize + gen |
-| Only 3 goldens | Full case walk in `gen-windows-goldens` |
 | shape / zstack empty | shape → rasterized PNG; zstack → flattened Container |
-| Progress bar invisible in composite | ColumnSet empty+emphasis → painted bar rects |
-| Progress label not tinted | AC TextBlock `color=Good` from progress `tint` |
 | Toggle looked like blue ActionSet buttons | Toggle → `✓` / `○` TextBlock |
-| Flat gray composite bg | Always `#0f172a` navy |
-| Canvas Stretch image tiny / top-left | Fill frame + `xMidYMid meet` |
-| Dim/invisible text (`Dark`, slate→Accent) | `label`→Default; low-sat hex→Light; brighter composite fills |
-| Button labels blue-on-blue / missing glyphs | White fg; ASCII media (`\|\|`, `>\|`); larger font |
 | Progress always green | Hex tint → `id=fill:#…` + hue style |
-| Gauge “Steps” / % unreadable | Rasterize: white current + white label |
 | SF Symbol images empty | `gear`/`person.fill` → emoji TextBlock |
-| Link chip no background | `apply_container_style` + composite pill |
-| Empty/zstack off-center | Center badges; expand spacers; inherit Center |
-| Image+label false overlay (“Card”) | Overlay only short glyphs (≤2) / `badge:overlay` |
 | Audit sheets missing Windows | `tools/audit-sheets.ts` 5th panel |
 
 ### Intentionally Degraded (Windows)
 
 - No true zstack overlay (children stacked)
-- Hex text colors often omitted in AC (semantic tokens only); composite approximates
-- Chart/canvas/gauge are rasterized PNGs, not live Adaptive Cards primitives
-- Composite is Adaptive Card fidelity stand-in, not WinUI Widgets Board pixels
+- Hex text colors often omitted in AC (semantic tokens only)
+- Chart/canvas/gauge are rasterized PNGs when `rasterize` is enabled
+- Pixel goldens must come from WinUI3 PreviewHost, not a Mac-side SVG stand-in
 
 ## Still open / needs emulator
 
@@ -60,7 +48,8 @@ Corpus: **36/36** `tests/golden/windows/` via `bash tools/gen-windows-goldens.sh
 
 ```bash
 pnpm audit:sheets && open out/audit/index.html
-bash tools/gen-windows-goldens.sh   # or: just record-windows-all
+bash tools/gen-adaptive-snapshots.sh   # AC JSON; FEATURES=rasterize for chart URIs
+just record-windows weather.small      # real WinUI3 PNG via PreviewHost
 just test-macos-visual
 pnpm test:visual:desktop
 ```

@@ -13,7 +13,8 @@ Two independent Windows integrations. Do **not** mix them in one code path.
 - Host write: `desktop::set_widget_config` on `cfg(windows)`
 - Provider: `templates/windows-widget/WidgetProvider`
 - Init: `npx tauri-plugin-widgets-api init-windows`
-- Preview / goldens: `templates/windows-widget/PreviewHost` + `tests/golden/windows/`
+- Preview / goldens: `templates/windows-widget/PreviewHost` → `tests/golden/windows/` (record on Windows VM via `just record-windows <case>`)
+- Adaptive Card JSON snapshots: `tests/snapshots/adaptive/` (`bash tools/gen-adaptive-snapshots.sh`)
 
 ## WorkerW wallpaper
 

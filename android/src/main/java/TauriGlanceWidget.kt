@@ -1611,20 +1611,6 @@ private fun progressBar(percent: Int): String {
     return "[" + "#".repeat(blocks) + "-".repeat(10 - blocks) + "] $clamped%"
 }
 
-private fun sparkline(values: List<Double>): String {
-    if (values.isEmpty()) return ""
-    val ticks = charArrayOf('_', '.', '-', '~', '*', '+', 'x', '%', '#')
-    val min = values.minOrNull() ?: 0.0
-    val max = values.maxOrNull() ?: 1.0
-    val span = (max - min).takeIf { it > 0.00001 } ?: 1.0
-    val sb = StringBuilder()
-    for (v in values.take(24)) {
-        val idx = (((v - min) / span) * (ticks.size - 1)).toInt().coerceIn(0, ticks.size - 1)
-        sb.append(ticks[idx])
-    }
-    return sb.toString()
-}
-
 private fun drawChartBitmap(context: Context, el: JSONObject): Bitmap? {
     val data = el.optJSONArray("chartData") ?: return null
     if (data.length() == 0) return null
@@ -2281,18 +2267,4 @@ private fun JSONObject.widgetString(key: String, fallback: String = ""): String 
     }
     return s
 }
-
-private fun countRenderableChildren(children: JSONArray): Int {
-    var count = 0
-    for (i in 0 until children.length()) {
-        if (children.optJSONObject(i) != null) count += 1
-    }
-    return count.coerceAtLeast(1)
-}
-
-private fun maxRenderableItems(@Suppress("UNUSED_PARAMETER") spacing: Int): Int {
-    return GLANCE_CONTAINER_LIMIT
-}
-
-
 

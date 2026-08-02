@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Level C2 — macOS widget build + entitlements + embed smoke test.
+# Level C2 — macOS widget build + entitlements + macOS.files smoke test.
 # Slow (xcodebuild), but answers whether the macOS packaging path still works.
 set -euo pipefail
 
@@ -21,8 +21,26 @@ node "$REPO/bin/cli.mjs" init-macos \
 
 test -x src-tauri/macos-widget/build-widget.sh \
   || { echo "FAIL: build-widget.sh not executable"; exit 1; }
-test -x src-tauri/macos-widget/embed-widget.sh \
-  || { echo "FAIL: embed-widget.sh not executable"; exit 1; }
+
+# Conf must wire PlugIns via bundle.macOS.files (no || true, no forced targets=["app"]).
+python3 - <<'PY'
+import json, sys
+c = json.load(open("src-tauri/tauri.conf.json"))
+bb = c.get("build", {}).get("beforeBundleCommand", "")
+if "|| true" in bb:
+    print("FAIL: beforeBundleCommand still has || true:", bb); sys.exit(1)
+if "build-widget.sh" not in bb:
+    print("FAIL: beforeBundleCommand missing build-widget.sh:", bb); sys.exit(1)
+mac = c.get("bundle", {}).get("macOS", {})
+files = mac.get("files") or {}
+key = "PlugIns/TauriWidgetExtension.appex"
+if key not in files:
+    print("FAIL: bundle.macOS.files missing", key, files); sys.exit(1)
+ent = mac.get("entitlements", "")
+if "App.entitlements" not in str(ent):
+    print("FAIL: bundle.macOS.entitlements missing App.entitlements:", ent); sys.exit(1)
+print("[pipeline] conf OK:", bb, files[key], ent)
+PY
 
 echo "[pipeline] building .appex…"
 ./src-tauri/macos-widget/build-widget.sh
@@ -31,14 +49,7 @@ APPEX="$(find src-tauri/macos-widget -name '*.appex' -type d | head -1)"
 [ -n "$APPEX" ] || { echo "FAIL: .appex was not built"; exit 1; }
 echo "[pipeline] appex: $APPEX"
 
-# Ad-hoc sign so codesign -dv --entitlements can dump the embedded entitlements.
-codesign --force --sign - \
-  --entitlements src-tauri/macos-widget/TauriWidgetExtension.entitlements \
-  "$APPEX" 2>/dev/null || true
-
-ENT_OUT="$TMP/ent.txt"
-codesign -dv --entitlements - "$APPEX" 2>"$ENT_OUT" || true
-# entitlements dump goes to stdout as XML for -dv --entitlements -
+# build-widget.sh already signs; dump entitlements
 codesign -d --entitlements :- "$APPEX" >"$TMP/ent.xml" 2>/dev/null \
   || codesign -dv --entitlements - "$APPEX" >"$TMP/ent.xml" 2>&1
 
@@ -50,27 +61,20 @@ plutil -extract NSExtension.NSExtensionPointIdentifier raw \
   | grep -q widgetkit-extension \
   || { echo "FAIL: NSExtensionPointIdentifier is not widgetkit-extension"; exit 1; }
 
-# Stub .app so embed can run without a full `tauri build`.
+# Simulate Tauri bundle.macOS.files: copy .appex into Contents/PlugIns/
 PRODUCT_NAME="$(python3 -c "import json; print(json.load(open('src-tauri/tauri.conf.json'))['productName'])")"
 APP_DIR="src-tauri/target/release/bundle/macos/${PRODUCT_NAME}.app"
-mkdir -p "$APP_DIR/Contents/MacOS" "$APP_DIR/Contents/Resources"
-printf '%s\n' \
-  '<?xml version="1.0" encoding="UTF-8"?>' \
-  '<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">' \
-  '<plist version="1.0"><dict>' \
-  '  <key>CFBundleIdentifier</key><string>test.app</string>' \
-  '  <key>CFBundleName</key><string>'"$PRODUCT_NAME"'</string>' \
-  '  <key>CFBundleExecutable</key><string>stub</string>' \
-  '  <key>CFBundlePackageType</key><string>APPL</string>' \
-  '</dict></plist>' >"$APP_DIR/Contents/Info.plist"
-printf '#!/bin/sh\necho stub\n' >"$APP_DIR/Contents/MacOS/stub"
-chmod +x "$APP_DIR/Contents/MacOS/stub"
-# Minimal Mach-O stub is not required for embed path check; codesign may warn.
+PLUG_KEY="PlugIns/TauriWidgetExtension.appex"
+APPEX_SRC="$(python3 -c "import json; print(json.load(open('src-tauri/tauri.conf.json'))['bundle']['macOS']['files']['$PLUG_KEY'])")"
+# Path in conf is relative to src-tauri/
+APPEX_ABS="src-tauri/${APPEX_SRC#./}"
+[ -d "$APPEX_ABS" ] || { echo "FAIL: files source missing: $APPEX_ABS"; exit 1; }
 
-echo "[pipeline] embedding into stub .app…"
-WIDGET_SKIP_DMG=1 ./src-tauri/macos-widget/embed-widget.sh
+mkdir -p "$APP_DIR/Contents/$(dirname "$PLUG_KEY")"
+rm -rf "$APP_DIR/Contents/$PLUG_KEY"
+cp -R "$APPEX_ABS" "$APP_DIR/Contents/$PLUG_KEY"
 
 find . -path '*.app/Contents/PlugIns/*.appex' -print -quit | grep -q . \
-  || { echo "FAIL: .appex not embedded under Contents/PlugIns"; exit 1; }
+  || { echo "FAIL: .appex not under Contents/PlugIns after files-copy sim"; exit 1; }
 
 echo "[pipeline] OK"
