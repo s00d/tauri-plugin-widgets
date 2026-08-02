@@ -1,6 +1,6 @@
 //! Canonical layout dump for core WidgetConfig snapshot tests.
 
-use crate::models::{WidgetConfig, WidgetElement};
+use crate::models::{WidgetConfig, WidgetElement, VStackElement, HStackElement, ZStackElement, GridElement, ContainerElement, TextElement, ImageElement, ProgressElement, ButtonElement, DividerElement, SpacerElement, LinkElement, ShapeElement};
 use serde_json::{json, Value};
 
 /// Core elements with a strict cross-platform snapshot contract.
@@ -67,12 +67,12 @@ fn dump_element(el: &WidgetElement, parent: ParentAxis) -> Value {
     );
 
     match el {
-        WidgetElement::VStack {
+        WidgetElement::VStack(VStackElement {
             children,
             spacing,
             alignment,
             style,
-        } => {
+        }) => {
             put_opt_f64(&mut obj, "spacing", *spacing);
             if let Some(a) = alignment {
                 obj.insert("alignment".into(), json!(format!("{a:?}").to_lowercase()));
@@ -88,12 +88,12 @@ fn dump_element(el: &WidgetElement, parent: ParentAxis) -> Value {
                 ),
             );
         }
-        WidgetElement::HStack {
+        WidgetElement::HStack(HStackElement {
             children,
             spacing,
             alignment,
             style,
-        } => {
+        }) => {
             put_opt_f64(&mut obj, "spacing", *spacing);
             if let Some(a) = alignment {
                 obj.insert("alignment".into(), json!(format!("{a:?}").to_lowercase()));
@@ -109,11 +109,11 @@ fn dump_element(el: &WidgetElement, parent: ParentAxis) -> Value {
                 ),
             );
         }
-        WidgetElement::ZStack {
+        WidgetElement::ZStack(ZStackElement {
             children,
             alignment,
             style,
-        } => {
+        }) => {
             if let Some(a) = alignment {
                 obj.insert("alignment".into(), json!(a));
             } else {
@@ -130,13 +130,13 @@ fn dump_element(el: &WidgetElement, parent: ParentAxis) -> Value {
                 ),
             );
         }
-        WidgetElement::Grid {
+        WidgetElement::Grid(GridElement {
             children,
             columns,
             spacing,
             row_spacing,
             style,
-        } => {
+        }) => {
             obj.insert("columns".into(), json!(columns));
             put_opt_f64(&mut obj, "spacing", *spacing);
             put_opt_f64(&mut obj, "rowSpacing", *row_spacing);
@@ -151,11 +151,11 @@ fn dump_element(el: &WidgetElement, parent: ParentAxis) -> Value {
                 ),
             );
         }
-        WidgetElement::Container {
+        WidgetElement::Container(ContainerElement {
             children,
             content_alignment,
             style,
-        } => {
+        }) => {
             if let Some(a) = content_alignment {
                 obj.insert("contentAlignment".into(), json!(a));
             }
@@ -170,7 +170,7 @@ fn dump_element(el: &WidgetElement, parent: ParentAxis) -> Value {
                 ),
             );
         }
-        WidgetElement::Text {
+        WidgetElement::Text(TextElement {
             content,
             font_size,
             font_weight,
@@ -180,7 +180,7 @@ fn dump_element(el: &WidgetElement, parent: ParentAxis) -> Value {
             line_limit,
             style,
             ..
-        } => {
+        }) => {
             obj.insert("content".into(), json!(content));
             put_opt_f64(&mut obj, "fontSize", *font_size);
             if let Some(w) = font_weight {
@@ -200,7 +200,7 @@ fn dump_element(el: &WidgetElement, parent: ParentAxis) -> Value {
             }
             dump_style(&mut obj, style);
         }
-        WidgetElement::Image {
+        WidgetElement::Image(ImageElement {
             system_name,
             url,
             size,
@@ -208,7 +208,7 @@ fn dump_element(el: &WidgetElement, parent: ParentAxis) -> Value {
             content_mode,
             style,
             ..
-        } => {
+        }) => {
             if let Some(s) = system_name {
                 obj.insert("systemName".into(), json!(s));
             }
@@ -224,15 +224,15 @@ fn dump_element(el: &WidgetElement, parent: ParentAxis) -> Value {
             }
             dump_style(&mut obj, style);
         }
-        WidgetElement::Spacer { min_length } => {
+        WidgetElement::Spacer(SpacerElement { min_length }) => {
             put_opt_f64(&mut obj, "minLength", *min_length);
             obj.insert("flex".into(), json!(true));
         }
-        WidgetElement::Divider {
+        WidgetElement::Divider(DividerElement {
             color,
             thickness,
             style,
-        } => {
+        }) => {
             let axis = match parent {
                 ParentAxis::Horizontal => "vertical",
                 _ => "horizontal",
@@ -244,7 +244,7 @@ fn dump_element(el: &WidgetElement, parent: ParentAxis) -> Value {
             }
             dump_style(&mut obj, style);
         }
-        WidgetElement::Progress {
+        WidgetElement::Progress(ProgressElement {
             value,
             total,
             label,
@@ -252,7 +252,7 @@ fn dump_element(el: &WidgetElement, parent: ParentAxis) -> Value {
             bar_style,
             style,
             ..
-        } => {
+        }) => {
             obj.insert("value".into(), json!(value));
             obj.insert("total".into(), json!(total));
             if let Some(l) = label {
@@ -266,7 +266,7 @@ fn dump_element(el: &WidgetElement, parent: ParentAxis) -> Value {
             }
             dump_style(&mut obj, style);
         }
-        WidgetElement::Button {
+        WidgetElement::Button(ButtonElement {
             label,
             url,
             action,
@@ -275,7 +275,7 @@ fn dump_element(el: &WidgetElement, parent: ParentAxis) -> Value {
             font_size,
             style,
             ..
-        } => {
+        }) => {
             obj.insert("label".into(), json!(label));
             if let Some(u) = url {
                 obj.insert("url".into(), json!(u));
@@ -292,12 +292,12 @@ fn dump_element(el: &WidgetElement, parent: ParentAxis) -> Value {
             put_opt_f64(&mut obj, "fontSize", *font_size);
             dump_style(&mut obj, style);
         }
-        WidgetElement::Link {
+        WidgetElement::Link(LinkElement {
             children,
             url,
             action,
             style,
-        } => {
+        }) => {
             if let Some(u) = url {
                 obj.insert("url".into(), json!(u));
             }
@@ -310,14 +310,14 @@ fn dump_element(el: &WidgetElement, parent: ParentAxis) -> Value {
                 Value::Array(children.iter().map(|c| dump_element(c, parent)).collect()),
             );
         }
-        WidgetElement::Shape {
+        WidgetElement::Shape(ShapeElement {
             shape_type,
             fill,
             stroke,
             stroke_width,
             size,
             style,
-        } => {
+        }) => {
             obj.insert(
                 "shapeType".into(),
                 json!(format!("{shape_type:?}").to_lowercase()),

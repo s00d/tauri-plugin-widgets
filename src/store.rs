@@ -54,6 +54,19 @@ pub fn touch_meta(map: &mut DataMap) {
     map.insert(META_UPDATED_AT_KEY.into(), now_ms().to_string());
 }
 
+/// Like [`touch_meta`], but the new nonce is at least `floor + 1`.
+///
+/// Needed on Apple: the widget still picks the freshest map across *all*
+/// transports. A stale sibling with a higher nonce would otherwise win forever
+/// after the host switches to a single writer.
+pub fn touch_meta_above(map: &mut DataMap, floor: u64) {
+    let next = map_nonce(map)
+        .saturating_add(1)
+        .max(floor.saturating_add(1));
+    map.insert(META_NONCE_KEY.into(), next.to_string());
+    map.insert(META_UPDATED_AT_KEY.into(), now_ms().to_string());
+}
+
 /// Pick the freshest map among candidates (max nonce, then max updatedAt).
 pub fn pick_freshest(maps: impl IntoIterator<Item = DataMap>) -> DataMap {
     let mut best: Option<DataMap> = None;
@@ -113,4 +126,19 @@ pub fn parse_pending_actions(raw: Option<&str>) -> Vec<WidgetActionEnvelope> {
 /// Serialize pending actions for storage.
 pub fn encode_pending_actions(actions: &[WidgetActionEnvelope]) -> crate::Result<String> {
     Ok(serde_json::to_string(actions)?)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn touch_meta_above_beats_stale_sibling_nonce() {
+        let mut map = DataMap::new();
+        map.insert("config:example".into(), "{}".into());
+        // Local map only saw nonce 9; sibling UserDefaults is stuck at 65.
+        map.insert(META_NONCE_KEY.into(), "9".into());
+        touch_meta_above(&mut map, 65);
+        assert_eq!(map_nonce(&map), 66);
+    }
 }

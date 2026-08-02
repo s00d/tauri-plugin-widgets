@@ -43,7 +43,7 @@ public struct TauriWidgetProvider: TimelineProvider {
                 appGroup: appGroup, widgetId: widgetId
             )
             cfg = loaded
-            writeProviderReceipt(context: context, source: source, nonce: nonce, config: loaded)
+            writeProviderReceipt(context: context, source: source, nonce: nonce, config: loaded, trigger: context.isPreview ? "added" : "snapshot")
         }
         completion(TauriWidgetEntry(date: Date(), config: cfg, family: context.family))
     }
@@ -52,7 +52,7 @@ public struct TauriWidgetProvider: TimelineProvider {
         let (cfg, source, nonce) = TauriWidgetDataStore.loadConfigWithSource(
             appGroup: appGroup, widgetId: widgetId
         )
-        writeProviderReceipt(context: context, source: source, nonce: nonce, config: cfg)
+        writeProviderReceipt(context: context, source: source, nonce: nonce, config: cfg, trigger: "timeline")
         let entry = TauriWidgetEntry(date: Date(), config: cfg, family: context.family)
         let nextUpdate = Calendar.current.date(byAdding: .minute, value: refreshMinutes, to: Date()) ?? Date()
         completion(Timeline(entries: [entry], policy: .after(nextUpdate)))
@@ -62,7 +62,8 @@ public struct TauriWidgetProvider: TimelineProvider {
         context: Context,
         source: String,
         nonce: UInt64,
-        config: WidgetUIConfig?
+        config: WidgetUIConfig?,
+        trigger: String
     ) {
         let size: String = {
             switch context.family {
@@ -85,7 +86,8 @@ public struct TauriWidgetProvider: TimelineProvider {
             size: size,
             schema: 1,
             rendered: rendered,
-            skipped: []
+            skipped: [],
+            trigger: trigger
         )
         TauriWidgetDataStore.writeReceiptEverywhere(receipt, appGroup: appGroup)
     }
@@ -105,7 +107,7 @@ public struct TauriWidgetView: View {
 
     public var body: some View {
         if let el = layoutForFamily() {
-            DynamicElementView(element: el)
+            DynamicElementView(element: el, isWidgetRoot: true)
                 // Pin to top — default center left a fake “top padding” when content is shorter than the canvas.
                 .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
                 .containerBackground(for: .widget) { WidgetChrome.background(for: el) }

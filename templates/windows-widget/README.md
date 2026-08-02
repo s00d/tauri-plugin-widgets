@@ -9,7 +9,7 @@ Scaffold produced by `npx tauri-plugin-widgets-api init-windows`.
 - Adaptive Card JSON is **transpiled in Rust** (`to_adaptive_card`, with chart/canvas/gauge rasterized to PNG data URIs).
 - `PreviewHost/` — headless AC → PNG for goldens (`tests/golden/windows/`, record on Windows VM).
 
-See also: plugin docs `docs/windows-surfaces.md` (Widgets Board vs WorkerW wallpaper).
+See also: plugin docs `docs/contributing/windows-surfaces.md` (Widgets Board vs WorkerW wallpaper).
 
 ## Before packaging
 

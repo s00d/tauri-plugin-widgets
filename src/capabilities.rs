@@ -3,7 +3,7 @@
 //! Source of truth for what each renderer supports. Used for docs generation
 //! and non-blocking warnings on [`crate::Widget::set_widget_config`](set path).
 
-use crate::models::{WidgetConfig, WidgetElement};
+use crate::models::{WidgetConfig, WidgetElement, VStackElement, HStackElement, ZStackElement, GridElement, ContainerElement, TextElement, ImageElement, ProgressElement, GaugeElement, ButtonElement, ToggleElement, DividerElement, DateElement, ChartElement, ListElement, LinkElement, ShapeElement, TimerElement, CanvasElement, LabelElement};
 
 /// Target renderer family.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
@@ -379,38 +379,38 @@ impl WidgetElement {
     /// Serde `type` tag for this element.
     pub fn type_name(&self) -> &'static str {
         match self {
-            WidgetElement::VStack { .. } => "vstack",
-            WidgetElement::HStack { .. } => "hstack",
-            WidgetElement::ZStack { .. } => "zstack",
-            WidgetElement::Grid { .. } => "grid",
-            WidgetElement::Container { .. } => "container",
-            WidgetElement::Text { .. } => "text",
-            WidgetElement::Image { .. } => "image",
-            WidgetElement::Progress { .. } => "progress",
-            WidgetElement::Gauge { .. } => "gauge",
-            WidgetElement::Button { .. } => "button",
-            WidgetElement::Toggle { .. } => "toggle",
-            WidgetElement::Divider { .. } => "divider",
-            WidgetElement::Spacer { .. } => "spacer",
-            WidgetElement::Date { .. } => "date",
-            WidgetElement::Chart { .. } => "chart",
-            WidgetElement::List { .. } => "list",
-            WidgetElement::Link { .. } => "link",
-            WidgetElement::Shape { .. } => "shape",
-            WidgetElement::Timer { .. } => "timer",
-            WidgetElement::Canvas { .. } => "canvas",
-            WidgetElement::Label { .. } => "label",
+            WidgetElement::VStack(_) => "vstack",
+            WidgetElement::HStack(_) => "hstack",
+            WidgetElement::ZStack(_) => "zstack",
+            WidgetElement::Grid(_) => "grid",
+            WidgetElement::Container(_) => "container",
+            WidgetElement::Text(_) => "text",
+            WidgetElement::Image(_) => "image",
+            WidgetElement::Progress(_) => "progress",
+            WidgetElement::Gauge(_) => "gauge",
+            WidgetElement::Button(_) => "button",
+            WidgetElement::Toggle(_) => "toggle",
+            WidgetElement::Divider(_) => "divider",
+            WidgetElement::Spacer(_) => "spacer",
+            WidgetElement::Date(_) => "date",
+            WidgetElement::Chart(_) => "chart",
+            WidgetElement::List(_) => "list",
+            WidgetElement::Link(_) => "link",
+            WidgetElement::Shape(_) => "shape",
+            WidgetElement::Timer(_) => "timer",
+            WidgetElement::Canvas(_) => "canvas",
+            WidgetElement::Label(_) => "label",
         }
     }
 
     fn children_ref(&self) -> &[WidgetElement] {
         match self {
-            WidgetElement::VStack { children, .. }
-            | WidgetElement::HStack { children, .. }
-            | WidgetElement::ZStack { children, .. }
-            | WidgetElement::Grid { children, .. }
-            | WidgetElement::Container { children, .. }
-            | WidgetElement::Link { children, .. } => children,
+            WidgetElement::VStack(VStackElement { children, .. })
+            | WidgetElement::HStack(HStackElement { children, .. })
+            | WidgetElement::ZStack(ZStackElement { children, .. })
+            | WidgetElement::Grid(GridElement { children, .. })
+            | WidgetElement::Container(ContainerElement { children, .. })
+            | WidgetElement::Link(LinkElement { children, .. }) => children,
             _ => &[],
         }
     }
@@ -418,27 +418,27 @@ impl WidgetElement {
     fn style_background_is_gradient(&self) -> bool {
         use crate::models::{BackgroundValue, ElementStyle};
         let style: Option<&ElementStyle> = match self {
-            WidgetElement::VStack { style, .. }
-            | WidgetElement::HStack { style, .. }
-            | WidgetElement::ZStack { style, .. }
-            | WidgetElement::Grid { style, .. }
-            | WidgetElement::Container { style, .. }
-            | WidgetElement::Text { style, .. }
-            | WidgetElement::Image { style, .. }
-            | WidgetElement::Progress { style, .. }
-            | WidgetElement::Gauge { style, .. }
-            | WidgetElement::Button { style, .. }
-            | WidgetElement::Toggle { style, .. }
-            | WidgetElement::Divider { style, .. }
-            | WidgetElement::Date { style, .. }
-            | WidgetElement::Chart { style, .. }
-            | WidgetElement::List { style, .. }
-            | WidgetElement::Link { style, .. }
-            | WidgetElement::Shape { style, .. }
-            | WidgetElement::Timer { style, .. }
-            | WidgetElement::Canvas { style, .. }
-            | WidgetElement::Label { style, .. } => Some(style),
-            WidgetElement::Spacer { .. } => None,
+            WidgetElement::VStack(VStackElement { style, .. })
+            | WidgetElement::HStack(HStackElement { style, .. })
+            | WidgetElement::ZStack(ZStackElement { style, .. })
+            | WidgetElement::Grid(GridElement { style, .. })
+            | WidgetElement::Container(ContainerElement { style, .. })
+            | WidgetElement::Text(TextElement { style, .. })
+            | WidgetElement::Image(ImageElement { style, .. })
+            | WidgetElement::Progress(ProgressElement { style, .. })
+            | WidgetElement::Gauge(GaugeElement { style, .. })
+            | WidgetElement::Button(ButtonElement { style, .. })
+            | WidgetElement::Toggle(ToggleElement { style, .. })
+            | WidgetElement::Divider(DividerElement { style, .. })
+            | WidgetElement::Date(DateElement { style, .. })
+            | WidgetElement::Chart(ChartElement { style, .. })
+            | WidgetElement::List(ListElement { style, .. })
+            | WidgetElement::Link(LinkElement { style, .. })
+            | WidgetElement::Shape(ShapeElement { style, .. })
+            | WidgetElement::Timer(TimerElement { style, .. })
+            | WidgetElement::Canvas(CanvasElement { style, .. })
+            | WidgetElement::Label(LabelElement { style, .. }) => Some(style),
+            WidgetElement::Spacer(_) => None,
         };
         matches!(
             style.and_then(|s| s.background.as_ref()),
@@ -479,9 +479,9 @@ fn walk_element(
         push_warn(out, path, "background.gradient", platform);
     }
 
-    if let WidgetElement::Image {
+    if let WidgetElement::Image(ImageElement {
         url, system_name, ..
-    } = el
+    }) = el
     {
         if url.as_ref().map(|s| !s.is_empty()).unwrap_or(false) {
             push_warn(out, path, "image.url", platform);
@@ -491,11 +491,11 @@ fn walk_element(
         }
     }
 
-    if let WidgetElement::Timer { .. } = el {
+    if let WidgetElement::Timer(_) = el {
         push_warn(out, path, "timer.live", platform);
     }
 
-    if let WidgetElement::Canvas { elements, .. } = el {
+    if let WidgetElement::Canvas(CanvasElement { elements, .. }) = el {
         if elements
             .iter()
             .any(|c| matches!(c, crate::models::CanvasDrawCommand::Path { .. }))
@@ -618,7 +618,9 @@ fn cell_md(e: &CapabilityEntry) -> String {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::models::{ChartDataPoint, ChartType, WidgetConfig, WidgetElement};
+    use crate::models::{
+        ChartDataPoint, ChartElement, ChartType, ImageElement, WidgetConfig, WidgetElement,
+    };
 
     #[test]
     fn all_element_types_have_five_platforms() {
@@ -635,7 +637,7 @@ mod tests {
     fn validate_flags_image_url_on_ios() {
         let cfg = WidgetConfig {
             version: 1,
-            small: Some(WidgetElement::Image {
+            small: Some(WidgetElement::Image(ImageElement {
                 system_name: None,
                 data: None,
                 url: Some("https://example.com/a.png".into()),
@@ -643,7 +645,7 @@ mod tests {
                 color: None,
                 content_mode: None,
                 style: Default::default(),
-            }),
+            })),
             medium: None,
             large: None,
         };
@@ -665,7 +667,7 @@ mod tests {
 
     #[test]
     fn chart_roundtrip_type_name() {
-        let el = WidgetElement::Chart {
+        let el = WidgetElement::Chart(ChartElement {
             chart_type: ChartType::Bar,
             chart_data: vec![ChartDataPoint {
                 label: "a".into(),
@@ -674,7 +676,7 @@ mod tests {
             }],
             tint: None,
             style: Default::default(),
-        };
+        });
         assert_eq!(el.type_name(), "chart");
     }
 }
@@ -684,8 +686,8 @@ mod write_docs {
     #[test]
     fn capability_matrix_doc_matches() {
         let expected = super::render_capability_matrix_md();
-        let path =
-            std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("docs/capability-matrix.md");
+        let path = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
+            .join("docs/guide/_generated/capability-matrix.md");
         if !path.exists() {
             std::fs::create_dir_all(path.parent().unwrap()).unwrap();
             std::fs::write(&path, &expected).unwrap();
@@ -694,7 +696,7 @@ mod write_docs {
         let on_disk = std::fs::read_to_string(&path).unwrap();
         assert_eq!(
             on_disk, expected,
-            "docs/capability-matrix.md drifted — regenerate with:\n\
+            "docs/guide/_generated/capability-matrix.md drifted — regenerate with:\n\
              cargo test --lib write_docs::capability_matrix_doc_matches -- --ignored\n\
              or delete the file and re-run this test"
         );

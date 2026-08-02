@@ -421,9 +421,10 @@ mod tests {
     #[test]
     fn type_name_exhaustive() {
         // Compiling this match fails if a WidgetElement variant is added without update.
+        use crate::models::{SpacerElement, WidgetElement};
         fn check(el: &WidgetElement) -> &'static str {
             el.type_name()
         }
-        let _ = check(&WidgetElement::Spacer { min_length: None });
+        let _ = check(&WidgetElement::Spacer(SpacerElement { min_length: None }));
     }
 }

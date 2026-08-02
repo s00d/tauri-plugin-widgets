@@ -610,7 +610,7 @@ function collectTrace(node, rendered, skipped){
   });
 }
 
-function reportReceipt(cfg, source){
+function reportReceipt(cfg, source, trigger){
   try{
     var label=(window.__TAURI_INTERNALS__&&window.__TAURI_INTERNALS__.metadata&&
       window.__TAURI_INTERNALS__.metadata.currentWindow&&
@@ -620,6 +620,7 @@ function reportReceipt(cfg, source){
     collectTrace(branch,rendered,skipped);
     var nonce=0;
     if(cfg&&cfg.__nonce!=null)nonce=Number(cfg.__nonce)||0;
+    var trig=trigger||(source==='push'?'reload':'timeline');
     invoke('plugin:widgets|report_receipt',{receipt:{
       widgetId:WIDGET_ID,
       group:GROUP,
@@ -629,6 +630,7 @@ function reportReceipt(cfg, source){
       theme:document.documentElement.getAttribute('data-theme')||undefined,
       schema:1,
       source:source||'pull',
+      trigger:trig,
       rendered:rendered,
       skipped:skipped,
       ts:Date.now()
@@ -672,7 +674,7 @@ function render(cfg, source){
   };
   wrapper.appendChild(cls);
   root.appendChild(wrapper);
-  reportReceipt(cfg, source||'pull');
+  reportReceipt(cfg, source||'pull', source==='push'?'reload':'timeline');
 }
 
 function loadConfig(){

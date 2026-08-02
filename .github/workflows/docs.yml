@@ -1,0 +1,90 @@
+name: docs
+
+permissions:
+  contents: write
+
+on:
+  push:
+    branches: [main, master]
+    paths:
+      - "docs/**"
+      - "scripts/**"
+      - "schemas/**"
+      - "tests/cases/**"
+      - "tests/fixtures/**"
+      - "tests/golden/**"
+      - "guest-js/**"
+      - "permissions/**"
+      - "widget.html"
+      - "package.json"
+      - "pnpm-lock.yaml"
+      - "pnpm-workspace.yaml"
+      - "src/capabilities.rs"
+      - "src/snapshot.rs"
+      - ".github/workflows/docs.yml"
+  pull_request:
+    paths:
+      - "docs/**"
+      - "scripts/**"
+      - "schemas/**"
+      - "tests/cases/**"
+      - "tests/fixtures/**"
+      - "tests/golden/**"
+      - "guest-js/**"
+      - "permissions/**"
+      - "widget.html"
+      - "package.json"
+      - "pnpm-lock.yaml"
+      - "pnpm-workspace.yaml"
+      - "src/capabilities.rs"
+      - "src/snapshot.rs"
+      - ".github/workflows/docs.yml"
+  workflow_dispatch:
+
+concurrency:
+  group: docs-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  docs:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9
+          run_install: false
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - uses: dtolnay/rust-toolchain@stable
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Refresh capability matrix
+        run: cargo test --lib capabilities::write_docs::capability_matrix_doc_matches
+
+      - name: Docs check (marker drift + audit)
+        run: pnpm docs:check
+
+      - name: Docs build
+        run: pnpm docs:build
+
+      - name: Add nojekyll
+        run: touch docs/.vitepress/dist/.nojekyll
+
+      - name: Deploy to GitHub Pages
+        if: github.event_name != 'pull_request' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master')
+        uses: crazy-max/ghaction-github-pages@v4
+        with:
+          target_branch: gh-pages
+          build_dir: docs/.vitepress/dist
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

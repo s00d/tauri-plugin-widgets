@@ -1,5 +1,6 @@
 use tauri::{AppHandle, Emitter, Runtime, State};
 
+use crate::apply::ApplyOutcome;
 use crate::error::Error;
 use crate::models::{WidgetConfig, WidgetWindowConfig};
 
@@ -89,7 +90,7 @@ pub fn set_widget_config<R: Runtime>(
     group: String,
     widget_id: String,
     skip_reload: Option<bool>,
-) -> Result<bool, Error> {
+) -> Result<ApplyOutcome, Error> {
     widget.set_widget_config(&config, &group, &widget_id, skip_reload.unwrap_or(false))
 }
 
@@ -128,7 +129,7 @@ pub fn poll_pending_actions<R: Runtime>(
     _app: AppHandle<R>,
     widget: State<'_, Widget<R>>,
     group: String,
-) -> Result<Vec<serde_json::Value>, Error> {
+) -> Result<Vec<crate::WidgetActionEnvelope>, Error> {
     widget.poll_pending_actions(&group)
 }
 
@@ -148,4 +149,22 @@ pub fn get_widget_diagnostics<R: Runtime>(
     group: String,
 ) -> Result<Vec<crate::receipt::WidgetRenderReceipt>, Error> {
     widget.get_widget_diagnostics(&group)
+}
+
+#[tauri::command]
+pub fn get_widget_trace<R: Runtime>(
+    _app: AppHandle<R>,
+    widget: State<'_, Widget<R>>,
+    group: String,
+    since_ms: Option<u64>,
+) -> Result<crate::trace::WidgetTrace, Error> {
+    widget.get_widget_trace(&group, since_ms)
+}
+
+#[tauri::command]
+pub fn flush_widget_trace<R: Runtime>(
+    _app: AppHandle<R>,
+    widget: State<'_, Widget<R>>,
+) -> Result<bool, Error> {
+    widget.flush_widget_trace()
 }

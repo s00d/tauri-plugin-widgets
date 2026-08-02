@@ -162,7 +162,7 @@ Native AC pixels (not `widget.html`):
 
 ```bash
 # Adaptive Card JSON snapshots (transpile)
-bash tools/gen-adaptive-snapshots.sh
+pnpm -C scripts cli gen-adaptive-snapshots
 
 # UTM: capture PNG via PreviewHost (WinUI3)
 just record-windows weather.small
@@ -209,7 +209,7 @@ Findings from the last full pass live in `out/audit/CATALOG.md` (gitignored unde
 |--------|---------|
 | Desktop visual | `pnpm test:visual:desktop` |
 | Record desktop case | `CASE=x.y GOLDEN_RECORD=1 pnpm test:visual:desktop` |
-| Windows AC JSON snapshots | `bash tools/gen-adaptive-snapshots.sh` |
+| Windows AC JSON snapshots | `pnpm -C scripts cli gen-adaptive-snapshots` |
 | Windows PNG goldens (UTM) | `just test-windows-visual` / `just record-windows weather.small` |
 | Windows xwin check | `just check-windows-xwin` |
 | Windows example xwin | `just build-windows-example-xwin` |

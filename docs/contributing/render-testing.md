@@ -43,7 +43,7 @@ cd swift && swift test --filter RenderTests
 CASE=weather.small GOLDEN_RECORD=1 swift test --filter RenderTests
 
 # Vision triage (manual, not CI)
-node --experimental-strip-types tools/triage.ts \
+pnpm triage \
   --android tests/golden/android/null-fields.small.png \
   --ios tests/golden/ios/null-fields.small.png \
   --desktop tests/golden/desktop/null-fields.small.png \

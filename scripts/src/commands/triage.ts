@@ -1,40 +1,14 @@
-#!/usr/bin/env node
-/**
- * Vision triage for failed geometry/pixel diffs (manual — NOT a CI gate).
- *
- * Builds a contact sheet (Android | iOS | Desktop) via sharp and optionally
- * sends it to a vision model. Expects JSON:
- *   [{ platform, element, property, actual, expected }]
- *
- * Usage:
- *   node --experimental-strip-types tools/triage.ts \
- *     --android path/a.png --ios path/i.png --desktop path/d.png \
- *     --config tests/fixtures/bugs/null-fields.json \
- *     --out /tmp/contact.png
- *
- * Env:
- *   OPENAI_API_KEY / ANTHROPIC_API_KEY — optional; without keys only contact sheet is written.
- */
 import fs from "node:fs";
 import path from "node:path";
-import { fileURLToPath } from "node:url";
+import { defineCommand } from "citty";
 import sharp from "sharp";
 
-const __dirname = path.dirname(fileURLToPath(import.meta.url));
-
-function arg(name, fallback = undefined) {
-  const i = process.argv.indexOf(`--${name}`);
-  if (i >= 0 && process.argv[i + 1]) return process.argv[i + 1];
-  return fallback;
-}
-
-function usage() {
-  console.log(`Usage: node tools/triage.ts --android a.png --desktop d.png [--ios i.png] [--config fixture.json] [--out contact.png]`);
-}
-
-async function loadOrBlank(p, label, w = 360, h = 380) {
+async function loadOrBlank(p: string | undefined, label: string, w = 360, h = 380) {
   if (p && fs.existsSync(p)) {
-    return sharp(p).resize(w, h, { fit: "contain", background: { r: 20, g: 20, b: 24, alpha: 1 } }).png().toBuffer();
+    return sharp(p)
+      .resize(w, h, { fit: "contain", background: { r: 20, g: 20, b: 24, alpha: 1 } })
+      .png()
+      .toBuffer();
   }
   const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${w}" height="${h}">
     <rect width="100%" height="100%" fill="#141418"/>
@@ -43,17 +17,22 @@ async function loadOrBlank(p, label, w = 360, h = 380) {
   return sharp(Buffer.from(svg)).png().toBuffer();
 }
 
-async function contactSheet({ android, ios, desktop, out }) {
+async function contactSheet(opts: {
+  android?: string;
+  ios?: string;
+  desktop?: string;
+  out: string;
+}) {
   const w = 360;
   const h = 380;
   const labelH = 28;
   const panels = await Promise.all([
-    loadOrBlank(android, "Android", w, h),
-    loadOrBlank(ios, "iOS", w, h),
-    loadOrBlank(desktop, "Desktop", w, h),
+    loadOrBlank(opts.android, "Android", w, h),
+    loadOrBlank(opts.ios, "iOS", w, h),
+    loadOrBlank(opts.desktop, "Desktop", w, h),
   ]);
   const labels = ["Android", "iOS", "Desktop"];
-  const composites = [];
+  const composites: sharp.OverlayOptions[] = [];
   for (let i = 0; i < 3; i++) {
     const labelSvg = Buffer.from(
       `<svg xmlns="http://www.w3.org/2000/svg" width="${w}" height="${labelH}">
@@ -82,11 +61,11 @@ async function contactSheet({ android, ios, desktop, out }) {
   })
     .composite(composites)
     .png()
-    .toFile(out);
-  return out;
+    .toFile(opts.out);
+  return opts.out;
 }
 
-async function askVision({ contactPath, configJson }) {
+async function askVision(contactPath: string, configJson: string) {
   const key = process.env.OPENAI_API_KEY;
   if (!key) {
     console.log("No OPENAI_API_KEY — skipped vision call. Contact sheet only.");
@@ -124,40 +103,57 @@ Focus on layout/geometry/color mismatches. Empty array if nothing material.`;
   if (!res.ok) {
     throw new Error(`vision API ${res.status}: ${await res.text()}`);
   }
-  const body = await res.json();
+  const body = (await res.json()) as {
+    choices?: { message?: { content?: string } }[];
+  };
   const text = body.choices?.[0]?.message?.content || "[]";
   const match = text.match(/\[[\s\S]*\]/);
   return match ? JSON.parse(match[0]) : [];
 }
 
-async function main() {
-  const android = arg("android");
-  const ios = arg("ios");
-  const desktop = arg("desktop");
-  const configPath = arg("config");
-  const out = arg("out", path.join(process.cwd(), "triage-contact.png"));
-
-  if (!android && !desktop && !ios) {
-    usage();
-    process.exit(2);
-  }
-
-  await contactSheet({ android, ios, desktop, out });
-  console.log(`contact sheet → ${out}`);
-
-  const configJson = configPath && fs.existsSync(configPath)
-    ? fs.readFileSync(configPath, "utf8")
-    : "{}";
-
-  try {
-    const findings = await askVision({ contactPath: out, configJson });
-    if (findings) {
-      console.log(JSON.stringify(findings, null, 2));
+export const triageCommand = defineCommand({
+  meta: {
+    name: "triage",
+    description:
+      "Build Android|iOS|Desktop contact sheet for visual triage (optional OpenAI vision)",
+  },
+  args: {
+    android: { type: "string", description: "Android PNG path" },
+    ios: { type: "string", description: "iOS PNG path" },
+    desktop: { type: "string", description: "Desktop PNG path" },
+    config: { type: "string", description: "Fixture JSON path" },
+    out: {
+      type: "string",
+      default: path.join(process.cwd(), "triage-contact.png"),
+      description: "Output contact sheet path",
+    },
+  },
+  async run({ args }) {
+    if (!args.android && !args.desktop && !args.ios) {
+      console.error(
+        "Usage: pnpm -C scripts cli triage --android a.png --desktop d.png [--ios i.png] [--config fixture.json] [--out contact.png]",
+      );
+      process.exit(2);
     }
-  } catch (e) {
-    console.error("vision triage failed:", e.message || e);
-    process.exitCode = 1;
-  }
-}
 
-main();
+    const out = args.out;
+    await contactSheet({
+      android: args.android,
+      ios: args.ios,
+      desktop: args.desktop,
+      out,
+    });
+    console.log(`contact sheet → ${out}`);
+
+    const configJson =
+      args.config && fs.existsSync(args.config) ? fs.readFileSync(args.config, "utf8") : "{}";
+
+    try {
+      const findings = await askVision(out, configJson);
+      if (findings) console.log(JSON.stringify(findings, null, 2));
+    } catch (e) {
+      console.error("vision triage failed:", e instanceof Error ? e.message : e);
+      process.exitCode = 1;
+    }
+  },
+});

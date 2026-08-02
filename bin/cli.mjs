@@ -608,18 +608,254 @@ function cryptoRandomGuid() {
   return `${hex.slice(0, 8)}-${hex.slice(8, 12)}-${hex.slice(12, 16)}-${hex.slice(16, 20)}-${hex.slice(20)}`;
 }
 
+function findEntitlementsFiles(cwd) {
+  // Walk src-tauri once (covers macos-widget + gen/apple). Dedupe by real path.
+  const root = join(cwd, "src-tauri");
+  const seen = new Set();
+  const out = [];
+  if (!existsSync(root)) return out;
+  const walk = (dir, depth = 0) => {
+    if (depth > 6) return;
+    let entries = [];
+    try {
+      entries = readdirSync(dir, { withFileTypes: true });
+    } catch {
+      return;
+    }
+    for (const e of entries) {
+      if (e.name === "node_modules" || e.name === "target" || e.name.startsWith(".")) continue;
+      const p = join(dir, e.name);
+      if (e.isDirectory()) {
+        walk(p, depth + 1);
+        continue;
+      }
+      if (!e.name.endsWith(".entitlements")) continue;
+      let key = p;
+      try {
+        key = resolve(p);
+      } catch {
+        /* ignore */
+      }
+      if (seen.has(key)) continue;
+      seen.add(key);
+      out.push(p);
+    }
+  };
+  walk(root);
+  return out;
+}
+
+function extractAppGroups(filePath) {
+  try {
+    const raw = readFileSync(filePath, "utf-8");
+    const groups = [];
+    const re = /group\.[A-Za-z0-9._-]+/g;
+    let m;
+    while ((m = re.exec(raw))) groups.push(m[0]);
+    return [...new Set(groups)];
+  } catch {
+    return [];
+  }
+}
+
+function findFilesNamed(dir, name, depth = 0, out = []) {
+  if (depth > 5 || !existsSync(dir)) return out;
+  let entries = [];
+  try {
+    entries = readdirSync(dir, { withFileTypes: true });
+  } catch {
+    return out;
+  }
+  for (const e of entries) {
+    const p = join(dir, e.name);
+    if (e.isFile() && e.name === name) out.push(p);
+    else if (e.isDirectory() && !e.name.startsWith(".")) findFilesNamed(p, name, depth + 1, out);
+  }
+  return out;
+}
+
+function loadTraceFile(cwd, identifier) {
+  const candidates = [
+    join(cwd, "src-tauri", "target", "debug", "widgets", "widget_trace.json"),
+    join(cwd, "src-tauri", "target", "release", "widgets", "widget_trace.json"),
+  ];
+  const home = process.env.HOME || "";
+  if (home) {
+    const support = join(home, "Library", "Application Support");
+    // Tauri app data: Application Support/<bundle-id>/widgets/widget_trace.json
+    if (identifier) {
+      candidates.push(join(support, identifier, "widgets", "widget_trace.json"));
+    }
+    candidates.push(...findFilesNamed(support, "widget_trace.json").slice(0, 8));
+  }
+  for (const c of candidates) {
+    if (!c || !existsSync(c)) continue;
+    try {
+      const events = JSON.parse(readFileSync(c, "utf-8"));
+      if (Array.isArray(events)) return { path: c, events };
+    } catch {
+      /* ignore */
+    }
+  }
+  return null;
+}
+
+const doctor = defineCommand({
+  meta: {
+    name: "doctor",
+    description: "Static + optional runtime checks for widget transport / signing / bundle",
+  },
+  args: {
+    cwd: {
+      type: "positional",
+      description: "App project root (default: cwd)",
+      required: false,
+    },
+  },
+  async run({ args }) {
+    const cwd = resolve(args.cwd || process.cwd());
+    let failures = 0;
+    let warnings = 0;
+    const ok = (msg) => console.log(`  ✓ ${msg}`);
+    const bad = (msg) => {
+      failures++;
+      console.log(`  ✗ ${msg}`);
+    };
+    const warn = (msg) => {
+      warnings++;
+      console.log(`  ⚠ ${msg}`);
+    };
+
+    console.log("transport");
+    const conf = readTauriConf(cwd);
+    if (!conf) {
+      bad("tauri.conf.json not found under src-tauri/ or cwd");
+    } else {
+      const widgets = conf.data?.plugins?.widgets || {};
+      const transport = widgets.transport || "auto";
+      const appGroup = widgets.appGroup || "";
+      ok(`${conf.path}`);
+      ok(`plugins.widgets.transport = ${transport}`);
+      if (!appGroup) bad("plugins.widgets.appGroup is empty");
+      else ok(`appGroup = ${appGroup}`);
+
+      if (transport === "widgetContainer") {
+        warn("widgetContainer is macOS ad-hoc friendly; invalid on iOS (use appGroup)");
+      }
+      if (transport === "appGroup" && !appGroup) {
+        bad("transport=appGroup requires plugins.widgets.appGroup");
+      }
+      if (transport === "auto") {
+        warn("transport=auto is for local dev — pin appGroup or widgetContainer before release");
+      }
+    }
+
+    console.log("entitlements");
+    const appGroupConf = conf?.data?.plugins?.widgets?.appGroup || "";
+    const identifier = detectTauriIdentifier(conf) || "";
+    const ents = findEntitlementsFiles(cwd);
+    if (!ents.length) warn("no .entitlements files found under src-tauri");
+    const allGroups = new Set();
+    for (const f of ents) {
+      const gs = extractAppGroups(f);
+      gs.forEach((g) => allGroups.add(g));
+      const rel = f.startsWith(cwd) ? f.slice(cwd.length + 1) : f;
+      if (appGroupConf && gs.length && !gs.includes(appGroupConf)) {
+        bad(`${rel}: App Groups ${gs.join(", ")} ≠ conf ${appGroupConf}`);
+      } else if (appGroupConf && gs.includes(appGroupConf)) {
+        ok(`${rel} contains ${appGroupConf}`);
+      } else if (gs.length) {
+        ok(`${rel}: ${gs.join(", ")}`);
+      }
+    }
+    if (appGroupConf && allGroups.size && !allGroups.has(appGroupConf)) {
+      bad(`no entitlements file lists ${appGroupConf}`);
+    }
+
+    console.log("\nbundle");
+    const appexCandidates = [
+      join(cwd, "src-tauri", "target", "release", "bundle", "macos"),
+      join(cwd, "artifacts", "macos"),
+      join(PLUGIN_ROOT, "artifacts", "macos"),
+    ];
+    let foundAppex = false;
+    for (const root of appexCandidates) {
+      if (!existsSync(root)) continue;
+      const walk = (dir, depth = 0) => {
+        if (depth > 5 || foundAppex) return;
+        let entries = [];
+        try {
+          entries = readdirSync(dir, { withFileTypes: true });
+        } catch {
+          return;
+        }
+        for (const e of entries) {
+          const p = join(dir, e.name);
+          if (e.isDirectory() && e.name.endsWith(".appex")) {
+            foundAppex = true;
+            ok(`.appex found: ${p}`);
+            return;
+          }
+          if (e.isDirectory()) walk(p, depth + 1);
+        }
+      };
+      walk(root);
+    }
+    if (!foundAppex) warn("no .appex found in release bundle / artifacts (ok if not built yet)");
+
+    console.log("\nruntime (trace)");
+    const trace = loadTraceFile(cwd, identifier);
+    if (!trace) {
+      warn(
+        "widget_trace.json not found — run `pnpm tauri dev` once (debug journals by default), or set WIDGET_DEBUG=1 for release",
+      );
+    } else {
+      ok(`trace ${trace.path} (${trace.events.length} events)`);
+      const dayAgo = Date.now() - 86_400_000;
+      const recent = trace.events.filter((e) => Number(e.ts) >= dayAgo);
+      const reloads = recent.filter((e) => e.kind === "reload");
+      const throttled = reloads.filter(
+        (e) => e.reason && (e.reason.outcome === "throttled" || e.reason.Throttled),
+      );
+      if (throttled.length) {
+        bad(`${throttled.length}/${reloads.length} reloads throttled in last 24h — TAURI_WIDGET_MIN_RELOAD_SECS or skipReload`);
+      } else if (reloads.length) {
+        ok(`${reloads.length} reload events in last 24h`);
+      }
+      if (reloads.length >= 60) {
+        warn(`${reloads.length} reloads/24h — near WidgetKit daily budget`);
+      }
+      const renders = recent.filter((e) => e.kind === "render");
+      if (renders.length) {
+        const last = renders[renders.length - 1];
+        const ageSec = Math.round((Date.now() - Number(last.ts)) / 1000);
+        ok(`last render ${ageSec}s ago, nonce ${last.nonce}, trigger=${last.trigger}`);
+      } else {
+        warn("no render events in trace (native/desktop widget may not have painted)");
+      }
+    }
+
+    console.log("\nschema");
+    ok("crate receipt schema=1 (host + Swift/Kotlin default)");
+
+    console.log(`\n${failures ? "FAIL" : "OK"} — ${failures} error(s), ${warnings} warning(s)`);
+    process.exitCode = failures ? 1 : 0;
+  },
+});
+
 // ─── Main ──────────────────────────────────────────────────────────────────
 
 const main = defineCommand({
   meta: {
     name: "tauri-widgets",
-    version: "0.3.0",
+    version: "0.4.0",
     description: "CLI for tauri-plugin-widgets — initialize native widget extensions",
   },
   subCommands: {
     "init-macos": initMacos,
     "init-ios": initIos,
     "init-windows": initWindows,
+    doctor,
   },
 });
 

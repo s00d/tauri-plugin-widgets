@@ -103,12 +103,12 @@ record-windows case:
 
 # Dump Adaptive Card JSON snapshots (transpile). PNG goldens: record-windows via PreviewHost.
 record-adaptive-snapshots:
-    bash {{repo}}/tools/gen-adaptive-snapshots.sh
+    pnpm -C {{repo}}/scripts cli gen-adaptive-snapshots
 
 # Alias kept for muscle memory — dumps AC JSON only (no fake Mac SVG PNGs).
 record-windows-all:
     @echo "PNG goldens come from PreviewHost (just record-windows <case>). Dumping AC JSON…"
-    bash {{repo}}/tools/gen-adaptive-snapshots.sh
+    pnpm -C {{repo}}/scripts cli gen-adaptive-snapshots
 
 test-windows-visual:
     bash {{repo}}/tools/win-up.sh

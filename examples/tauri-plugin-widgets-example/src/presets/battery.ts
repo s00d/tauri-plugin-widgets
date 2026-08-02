@@ -10,7 +10,6 @@ export const battery: PresetDef = {
     small: {
       type: "vstack", padding: 14, spacing: 8, cornerRadius: 16,
       background: { light: "#F0F0FF", dark: "#0c0c1d" },
-      shadow: { color: "#6366f1", radius: 12, x: 0, y: 0 },
       children: [
         { type: "label", text: "Battery", systemName: "battery.100", iconColor: "#22c55e",
           fontSize: 12, fontWeight: "semibold", color: "secondaryLabel" },

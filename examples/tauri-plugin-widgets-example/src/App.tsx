@@ -7,7 +7,9 @@ import {
   startWidgetUpdater,
   setWidgetConfig,
   onWidgetAction,
+  getWidgetTrace,
   type WidgetConfig,
+  type WidgetTrace,
 } from "tauri-plugin-widgets-api";
 import { PRESETS } from "./presets";
 import "./App.css";
@@ -33,10 +35,13 @@ function App() {
   const [tab, setTab] = useState<"presets" | "editor" | "controls">("presets");
   const [jsonText, setJsonText] = useState("");
   const [jsonError, setJsonError] = useState<string | null>(null);
-  const [updaterStop, setUpdaterStop] = useState<(() => void) | null>(null);
   const [widgetSize, setWidgetSize] = useState<WidgetSize>("small");
+  const [liveIntervalMs, setLiveIntervalMs] = useState(0);
+  const [trace, setTrace] = useState<WidgetTrace | null>(null);
   const activePresetRef = useRef<string | null>(null);
   const updaterBuilderRef = useRef<(() => WidgetConfig | Promise<WidgetConfig>) | null>(null);
+  const updaterStopRef = useRef<(() => void) | null>(null);
+  const applyGenRef = useRef(0);
 
   const addLog = useCallback((message: string, isError = false) => {
     const prefix = isError ? "[ERR]" : "[OK]";
@@ -93,56 +98,85 @@ function App() {
   }, [addLog]);
 
   function stopUpdater() {
-    if (updaterStop) {
-      updaterStop();
-      setUpdaterStop(null);
-    }
+    updaterStopRef.current?.();
+    updaterStopRef.current = null;
     updaterBuilderRef.current = null;
+    setLiveIntervalMs(0);
   }
 
   async function handleApplyPreset(name: string) {
+    const gen = ++applyGenRef.current;
     stopUpdater();
     const preset = PRESETS[name];
     if (!preset) return;
     try {
       const builder = preset.builder ?? (() => preset.config);
       updaterBuilderRef.current = builder;
-      const intervalMs = preset.builder ? (preset.intervalMs ?? 1000) : 0;
+      // Live tick only when intervalMs is explicitly > 0.
+      // A bare `builder` is for action rebuilds (tasks/payments), not auto-poll.
+      const intervalMs =
+        typeof preset.intervalMs === "number" && preset.intervalMs > 0
+          ? preset.intervalMs
+          : 0;
 
       const stop = await startWidgetUpdater(builder, APP_GROUP, WIDGET_ID, {
         intervalMs,
         immediate: true,
       });
 
-      setUpdaterStop(() => stop);
+      // A newer click won the race — drop this updater.
+      if (gen !== applyGenRef.current) {
+        stop();
+        return;
+      }
+
+      updaterStopRef.current = stop;
+      setLiveIntervalMs(intervalMs);
       setActivePreset(name);
       const snap = await builder();
+      if (gen !== applyGenRef.current) return;
       if (intervalMs > 0) {
-        setJsonText(`// Auto-updating every ${intervalMs / 1000}s via startWidgetUpdater\n` + JSON.stringify(snap, null, 2));
+        setJsonText(
+          `// Auto-updating every ${intervalMs / 1000}s via startWidgetUpdater\n` +
+            JSON.stringify(snap, null, 2),
+        );
       } else {
         setJsonText(JSON.stringify(snap, null, 2));
       }
       setJsonError(null);
       addLog(`Applied "${preset.name}"${intervalMs > 0 ? ` (live ${intervalMs / 1000}s)` : ""}`);
     } catch (e) {
+      if (gen !== applyGenRef.current) return;
       addLog(`Failed: ${String(e)}`, true);
     }
   }
 
   async function handleApplyJson() {
+    const gen = ++applyGenRef.current;
     stopUpdater();
     try {
-      const config: WidgetConfig = JSON.parse(jsonText);
+      // Strip // comment lines so live-preset snapshots still parse.
+      const cleaned = jsonText
+        .split("\n")
+        .filter((line) => !/^\s*\/\//.test(line))
+        .join("\n");
+      const config: WidgetConfig = JSON.parse(cleaned);
       updaterBuilderRef.current = () => config;
       const stop = await startWidgetUpdater(() => config, APP_GROUP, WIDGET_ID, {
         intervalMs: 0,
         immediate: true,
       });
-      setUpdaterStop(() => stop);
+      if (gen !== applyGenRef.current) {
+        stop();
+        return;
+      }
+      updaterStopRef.current = stop;
+      setLiveIntervalMs(0);
       setActivePreset(null);
       setJsonError(null);
       addLog("Applied custom config");
     } catch (e) {
+      if (gen !== applyGenRef.current) return;
       setJsonError(String(e));
       addLog(`JSON error: ${String(e)}`, true);
     }
@@ -150,11 +184,36 @@ function App() {
 
   function handleFormat() {
     try {
-      const parsed = JSON.parse(jsonText);
+      const cleaned = jsonText
+        .split("\n")
+        .filter((line) => !/^\s*\/\//.test(line))
+        .join("\n");
+      const parsed = JSON.parse(cleaned);
       setJsonText(JSON.stringify(parsed, null, 2));
       setJsonError(null);
     } catch (e) {
       setJsonError(String(e));
+    }
+  }
+
+  useEffect(() => {
+    return () => {
+      updaterStopRef.current?.();
+      updaterStopRef.current = null;
+    };
+  }, []);
+
+  async function handleRefreshTrace() {
+    try {
+      const t = await getWidgetTrace(APP_GROUP, { since: Date.now() - 3_600_000 });
+      setTrace(t);
+      addLog(
+        t.enabled
+          ? `Trace: ${t.events.length} events, ${t.receipts.length} receipts`
+          : "Trace disabled (set WIDGET_DEBUG=1 in release)",
+      );
+    } catch (e) {
+      addLog("Trace failed: " + String(e), true);
     }
   }
 
@@ -229,7 +288,7 @@ function App() {
               >
                 <span className="preset-icon">{p.icon}</span>
                 {p.name}
-                {activePreset === key && updaterStop && (
+                {activePreset === key && liveIntervalMs > 0 && (
                   <span style={{ fontSize: 10, color: "#4ade80", marginLeft: 4 }}> LIVE</span>
                 )}
               </div>
@@ -275,7 +334,34 @@ function App() {
               <button className="btn-secondary" onClick={() => reloadAllTimelines().then(() => addLog("Reloaded"))}>
                 Reload timelines
               </button>
+              <button className="btn-secondary" onClick={handleRefreshTrace}>
+                Refresh trace
+              </button>
             </div>
+            {trace && (
+              <div className="trace-panel">
+                <h3>Delivery trace {trace.enabled ? "" : "(off)"}</h3>
+                <pre className="trace-pre">
+                  {trace.events
+                    .slice(-40)
+                    .map((e) => {
+                      const kind = String(e.kind ?? "?");
+                      const extra =
+                        kind === "reload"
+                          ? ` performed=${String(e.performed)} ${JSON.stringify(e.reason)}`
+                          : kind === "configSet"
+                            ? ` id=${e.widgetId} changed=${String(e.changed)} bytes=${e.bytes}`
+                            : kind === "render"
+                              ? ` ${e.trigger}@${e.source} nonce=${e.nonce} lag=${e.lagMs}ms`
+                              : kind === "write"
+                                ? ` ${e.transport} ok=${String(e.ok)} ${e.durationMs}ms`
+                                : "";
+                      return `${new Date(Number(e.ts)).toLocaleTimeString()}  ${kind}${extra}`;
+                    })
+                    .join("\n") || "(empty)"}
+                </pre>
+              </div>
+            )}
           </div>
         )}
 

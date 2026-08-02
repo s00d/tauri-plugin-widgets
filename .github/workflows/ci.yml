@@ -22,7 +22,7 @@ jobs:
           cargo run --bin gen-schema --features codegen
           cargo run --bin gen-ts --features codegen
           cargo test --lib capabilities::write_docs::capability_matrix_doc_matches
-          git diff --exit-code schemas/widget-config.v1.json guest-js/generated/widget-types.ts docs/capability-matrix.md
+          git diff --exit-code schemas/widget-config.v1.json guest-js/generated/widget-types.ts docs/guide/_generated/capability-matrix.md
 
   rust-ios:
     runs-on: macos-latest

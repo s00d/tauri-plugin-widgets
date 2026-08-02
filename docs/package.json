@@ -1,0 +1,16 @@
+{
+  "name": "@tauri-plugin-widgets/docs",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "description": "VitePress documentation site for tauri-plugin-widgets.",
+  "scripts": {
+    "dev": "vitepress dev .",
+    "build": "vitepress build .",
+    "preview": "vitepress preview ."
+  },
+  "devDependencies": {
+    "vitepress": "^1.6.3",
+    "vue": "^3.5.13"
+  }
+}

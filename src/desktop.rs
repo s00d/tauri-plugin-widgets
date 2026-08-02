@@ -1,7 +1,5 @@
-use std::collections::hash_map::DefaultHasher;
 use std::collections::HashMap;
 use std::fs;
-use std::hash::{Hash, Hasher};
 use std::path::PathBuf;
 #[cfg(target_os = "macos")]
 use std::sync::Arc;
@@ -10,6 +8,7 @@ use tauri::{
     plugin::PluginApi, AppHandle, Emitter, Manager, Runtime, WebviewUrl, WebviewWindowBuilder,
 };
 
+use crate::apply::{config_content_hash, ApplyOutcome, ReloadOutcome};
 use crate::config::WidgetsPluginConfig;
 use crate::error::Error;
 use crate::models::{WidgetConfig, WidgetWindowConfig};
@@ -17,6 +16,7 @@ use crate::receipt::{receipts_path, ReceiptStore, WidgetRenderReceipt};
 use crate::store::{
     self, config_key, parse_pending_actions, touch_meta, DataMap, PENDING_ACTIONS_KEY,
 };
+use crate::trace::{trace_path, TraceEvent, TraceSkipReason, TraceStore, WidgetTrace};
 
 #[cfg(target_os = "macos")]
 use crate::transport::Transport;
@@ -53,38 +53,48 @@ pub(crate) fn init_with_config<R: Runtime>(
     cfg: WidgetsPluginConfig,
 ) -> crate::Result<Widget<R>> {
     let receipts = ReceiptStore::new();
+    let trace = TraceStore::new();
     if let Ok(dir) = app.path().app_data_dir() {
         receipts.load_from_path(&receipts_path(&dir));
+        trace.load_from_path(&trace_path(&dir));
     }
 
     #[cfg(target_os = "macos")]
     let macos_driver = crate::transport::resolve_driver(&cfg)?;
 
-    Ok(Widget {
+    let widget = Widget {
         app: app.clone(),
         cfg,
-        last_config_hash: Mutex::new(HashMap::new()),
         store: Mutex::new(HashMap::new()),
         known_groups: Mutex::new(Vec::new()),
         receipts,
+        trace,
         #[cfg(target_os = "macos")]
         poller_started: Mutex::new(false),
         #[cfg(target_os = "macos")]
         macos_driver,
-    })
+    };
+    // Seed poller with configured App Group so widget taps work before first set_widget_config.
+    if let Some(g) = widget.cfg.app_group.clone() {
+        widget.remember_group(&g);
+    }
+    #[cfg(target_os = "macos")]
+    widget.ensure_action_poller();
+
+    Ok(widget)
 }
 
 pub struct Widget<R: Runtime> {
     app: AppHandle<R>,
     #[allow(dead_code)]
     cfg: WidgetsPluginConfig,
-    /// Content hash per (group, widget_id).
-    last_config_hash: Mutex<HashMap<(String, String), u64>>,
     /// In-memory data store keyed by group.
     store: Mutex<HashMap<String, DataMap>>,
     known_groups: Mutex<Vec<String>>,
     /// Cross-platform render receipts (diagnostics only).
     receipts: ReceiptStore,
+    /// Host delivery journal (debug / `WIDGET_DEBUG=1`).
+    trace: TraceStore,
     #[cfg(target_os = "macos")]
     poller_started: Mutex<bool>,
     /// Single Apple host transport (config-chosen).
@@ -151,14 +161,24 @@ impl<R: Runtime> Widget<R> {
         group: &str,
     ) -> &'a mut DataMap {
         store.entry(group.to_string()).or_insert_with(|| {
+            let mut maps = Vec::new();
             if path.exists() {
-                fs::read_to_string(path)
+                if let Some(m) = fs::read_to_string(path)
                     .ok()
                     .and_then(|s| serde_json::from_str(&s).ok())
-                    .unwrap_or_default()
-            } else {
-                DataMap::new()
+                {
+                    maps.push(m);
+                }
             }
+            #[cfg(target_os = "macos")]
+            {
+                for t in crate::macos_transport::all_transports(group) {
+                    if let Some(m) = t.read() {
+                        maps.push(m);
+                    }
+                }
+            }
+            store::pick_freshest(maps)
         })
     }
 
@@ -166,8 +186,10 @@ impl<R: Runtime> Widget<R> {
     fn persist_map(&self, group: &str, map: &DataMap) -> crate::Result<()> {
         #[cfg(target_os = "macos")]
         {
-            let _ = group;
             self.macos_driver.write(map)?;
+            // Widget still picks freshest across all transports — keep siblings in sync
+            // so a stale UserDefaults/App Group snapshot cannot outrank this write.
+            crate::macos_transport::mirror_to_siblings(self.macos_driver.as_ref(), group, map);
         }
         #[cfg(not(target_os = "macos"))]
         {
@@ -189,7 +211,15 @@ impl<R: Runtime> Widget<R> {
             return Ok(true);
         }
         map.insert(key.into(), value.into());
-        touch_meta(map);
+        #[cfg(target_os = "macos")]
+        {
+            let floor = crate::macos_transport::max_nonce_across(group);
+            store::touch_meta_above(map, floor);
+        }
+        #[cfg(not(target_os = "macos"))]
+        {
+            touch_meta(map);
+        }
         let snapshot = map.clone();
         drop(store);
         self.persist_map(group, &snapshot)?;
@@ -324,6 +354,13 @@ impl<R: Runtime> Widget<R> {
         }
     }
 
+    /// Register native widget provider ids.
+    ///
+    /// | Platform | Behaviour |
+    /// |---|---|
+    /// | Android | stores fully-qualified provider class names |
+    /// | iOS / macOS | stores WidgetKit kind strings (advisory) |
+    /// | Desktop | **no-op**, accepted for API symmetry |
     pub fn set_register_widget(&self, _widgets: Vec<String>) -> crate::Result<bool> {
         // Desktop has no native provider registry; accept for API symmetry.
         Ok(true)
@@ -348,6 +385,13 @@ impl<R: Runtime> Widget<R> {
         Ok(true)
     }
 
+    /// Request that the OS show the "add widget" / pin UI.
+    ///
+    /// | Platform | Behaviour |
+    /// |---|---|
+    /// | Android | opens the pin-widget flow |
+    /// | iOS / macOS | no native pin API — returns `Ok` from the mobile bridge |
+    /// | Desktop | **error** — use [`Self::create_widget_window`] instead |
     pub fn request_widget(&self) -> crate::Result<bool> {
         Err(Error::Unsupported(
             "Use create_widget_window on desktop".into(),
@@ -360,7 +404,7 @@ impl<R: Runtime> Widget<R> {
         group: &str,
         widget_id: &str,
         skip_reload: bool,
-    ) -> crate::Result<bool> {
+    ) -> crate::Result<ApplyOutcome> {
         if widget_id.is_empty() {
             return Err(Error::new("widget_id must not be empty"));
         }
@@ -370,46 +414,14 @@ impl<R: Runtime> Widget<R> {
             .map_err(|e| Error::new(format!("serialize config: {e}")))?;
         let compact: serde_json::Value = serde_json::from_str(&json)
             .map_err(|e| Error::new(format!("serialize config: {e}")))?;
+        let hash = config_content_hash(&json);
+        let key = config_key(widget_id);
 
-        let mut hasher = DefaultHasher::new();
-        json.hash(&mut hasher);
-        let new_hash = hasher.finish();
-        let hash_key = (group.to_string(), widget_id.to_string());
+        let existing = self.get_items(&key, group)?;
+        let changed = existing.as_deref() != Some(json.as_str());
 
-        let changed = {
-            let mut prev = self.last_config_hash.lock().unwrap();
-            if prev.get(&hash_key) == Some(&new_hash) {
-                false
-            } else {
-                prev.insert(hash_key, new_hash);
-                true
-            }
-        };
-
-        if changed {
-            crate::capabilities::log_capabilities(config);
-            let key = config_key(widget_id);
-            self.set_items(&key, &json, group)?;
-
-            #[cfg(target_os = "windows")]
-            {
-                // Widgets Board provider reads Adaptive Card blobs from the same store.
-                // Desktop webview (widget.html) remains the fallback outside Widget Board.
-                if let Some(result) =
-                    crate::adaptive_card::to_adaptive_card_for_size(config, "medium")
-                {
-                    let template = serde_json::to_string(&result.card)
-                        .map_err(|e| Error::new(format!("serialize adaptive card: {e}")))?;
-                    self.set_items(
-                        &crate::adaptive_card::ac_template_key(widget_id),
-                        &template,
-                        group,
-                    )?;
-                    self.set_items(&crate::adaptive_card::ac_data_key(widget_id), "{}", group)?;
-                }
-            }
-        }
-
+        // Desktop webview always gets a push so an open window stays in sync
+        // even when store bytes were already identical.
         let _ = self.app.emit(
             "widget-config-push",
             serde_json::json!({
@@ -419,14 +431,116 @@ impl<R: Runtime> Widget<R> {
             }),
         );
 
-        if changed && !skip_reload {
-            self.reload_all_timelines()?;
+        if !changed {
+            let outcome = ApplyOutcome::unchanged(hash);
+            self.trace.push(TraceEvent::ConfigSet {
+                widget_id: widget_id.into(),
+                nonce: 0,
+                bytes: json.len(),
+                changed: false,
+                skip: Some(TraceSkipReason::Unchanged { hash }),
+            });
+            self.trace.push(TraceEvent::Reload {
+                performed: false,
+                reason: outcome.reload.clone(),
+            });
+            self.maybe_flush_trace();
+            return Ok(outcome);
         }
+
+        crate::capabilities::log_capabilities(config);
+        let t0 = std::time::Instant::now();
+        self.set_items(&key, &json, group)?;
+        let write_ms = t0.elapsed().as_millis() as u32;
+        let transports = self.written_transport_names(group);
+        let nonce = self
+            .get_items("__meta_nonce__", group)
+            .ok()
+            .flatten()
+            .and_then(|s| s.parse().ok())
+            .unwrap_or(0);
+
+        self.trace.push(TraceEvent::ConfigSet {
+            widget_id: widget_id.into(),
+            nonce,
+            bytes: json.len(),
+            changed: true,
+            skip: None,
+        });
+        for name in &transports {
+            self.trace.push(TraceEvent::Write {
+                transport: name.clone(),
+                ok: true,
+                duration_ms: write_ms,
+                error: None,
+            });
+        }
+
+        #[cfg(target_os = "windows")]
+        {
+            // Widgets Board provider reads Adaptive Card blobs from the same store.
+            // Desktop webview (widget.html) remains the fallback outside Widget Board.
+            if let Some(result) =
+                crate::adaptive_card::to_adaptive_card_for_size(config, "medium")
+            {
+                let template = serde_json::to_string(&result.card)
+                    .map_err(|e| Error::new(format!("serialize adaptive card: {e}")))?;
+                self.set_items(
+                    &crate::adaptive_card::ac_template_key(widget_id),
+                    &template,
+                    group,
+                )?;
+                self.set_items(&crate::adaptive_card::ac_data_key(widget_id), "{}", group)?;
+            }
+        }
+
+        let reload = if skip_reload {
+            ReloadOutcome::Skipped {
+                why: "skip_reload".into(),
+            }
+        } else {
+            match self.reload_all_timelines() {
+                Ok(_) => ReloadOutcome::Ok,
+                Err(e) => ReloadOutcome::Failed {
+                    error: e.to_string(),
+                },
+            }
+        };
+        self.trace.push(TraceEvent::Reload {
+            performed: matches!(reload, ReloadOutcome::Ok),
+            reason: reload.clone(),
+        });
 
         #[cfg(target_os = "macos")]
         self.ensure_action_poller();
 
-        Ok(true)
+        self.maybe_flush_trace();
+
+        Ok(ApplyOutcome {
+            written: true,
+            reload,
+            transports,
+            skip: None,
+        })
+    }
+
+    /// Names of transports that hold the current map after a write.
+    fn written_transport_names(&self, group: &str) -> Vec<String> {
+        #[cfg(target_os = "macos")]
+        {
+            let mut names = vec![self.macos_driver.name().to_string()];
+            for t in crate::macos_transport::all_transports(group) {
+                if t.name() != self.macos_driver.name() && t.available() {
+                    names.push(t.name().to_string());
+                }
+            }
+            names
+        }
+        #[cfg(not(target_os = "macos"))]
+        {
+            let _ = group;
+            vec!["file".into()]
+        }
     }
 
     pub fn get_widget_config(
@@ -467,11 +581,22 @@ impl<R: Runtime> Widget<R> {
     }
 
     /// Drain pending actions for a group (CAS clear under store lock).
-    pub fn poll_pending_actions(&self, group: &str) -> crate::Result<Vec<serde_json::Value>> {
+    pub fn poll_pending_actions(
+        &self,
+        group: &str,
+    ) -> crate::Result<Vec<crate::WidgetActionEnvelope>> {
         self.remember_group(group);
 
         #[cfg(target_os = "macos")]
-        let disk_maps: Vec<DataMap> = self.macos_driver.read().into_iter().collect();
+        let disk_maps: Vec<DataMap> = {
+            let mut maps = Vec::new();
+            for t in crate::macos_transport::all_transports(group) {
+                if let Some(m) = t.read() {
+                    maps.push(m);
+                }
+            }
+            maps
+        };
         #[cfg(not(target_os = "macos"))]
         let disk_maps: Vec<DataMap> = {
             let path = self.storage_path(group)?;
@@ -502,29 +627,89 @@ impl<R: Runtime> Widget<R> {
         }
 
         map.insert(PENDING_ACTIONS_KEY.into(), "[]".into());
-        touch_meta(map);
+        #[cfg(target_os = "macos")]
+        {
+            let floor = crate::macos_transport::max_nonce_across(group);
+            store::touch_meta_above(map, floor);
+        }
+        #[cfg(not(target_os = "macos"))]
+        {
+            touch_meta(map);
+        }
         let snapshot = map.clone();
         drop(store);
 
         self.persist_map(group, &snapshot)?;
 
-        Ok(actions
-            .into_iter()
-            .filter_map(|a| serde_json::to_value(a).ok())
-            .collect())
+        Ok(actions)
     }
 
     pub fn report_receipt(&self, receipt: WidgetRenderReceipt) -> crate::Result<bool> {
         self.remember_group(&receipt.group);
+        let trigger = receipt
+            .trigger
+            .clone()
+            .unwrap_or_else(|| "timeline".into());
+        let lag_ms = {
+            let since = self.trace.list_since(None);
+            since
+                .iter()
+                .rev()
+                .find_map(|e| match &e.event {
+                    TraceEvent::ConfigSet { nonce, .. } if *nonce == receipt.nonce && *nonce > 0 => {
+                        Some(receipt.ts.saturating_sub(e.ts))
+                    }
+                    _ => None,
+                })
+                .unwrap_or(0)
+        };
+        self.trace.push(TraceEvent::Render {
+            instance: receipt.instance.clone(),
+            nonce: receipt.nonce,
+            source: receipt.source.clone(),
+            trigger,
+            lag_ms,
+            skipped: receipt.skipped.clone(),
+        });
         self.receipts.upsert(receipt);
         if let Ok(dir) = self.app.path().app_data_dir() {
             let _ = self.receipts.save_to_path(&receipts_path(&dir));
         }
+        self.maybe_flush_trace();
         Ok(true)
     }
 
     pub fn get_widget_diagnostics(&self, group: &str) -> crate::Result<Vec<WidgetRenderReceipt>> {
         Ok(self.receipts.list(group))
+    }
+
+    pub fn get_widget_trace(
+        &self,
+        group: &str,
+        since_ms: Option<u64>,
+    ) -> crate::Result<WidgetTrace> {
+        self.maybe_flush_trace();
+        Ok(WidgetTrace {
+            enabled: crate::trace::trace_enabled(),
+            events: self.trace.list_since(since_ms),
+            receipts: self.receipts.history(group),
+        })
+    }
+
+    pub fn flush_widget_trace(&self) -> crate::Result<bool> {
+        if let Ok(dir) = self.app.path().app_data_dir() {
+            self.trace.flush_to_path(&trace_path(&dir))?;
+        }
+        Ok(true)
+    }
+
+    fn maybe_flush_trace(&self) {
+        if !self.trace.needs_timed_flush() {
+            return;
+        }
+        if let Ok(dir) = self.app.path().app_data_dir() {
+            let _ = self.trace.flush_to_path(&trace_path(&dir));
+        }
     }
 
     #[cfg(target_os = "macos")]
@@ -535,25 +720,21 @@ impl<R: Runtime> Widget<R> {
         }
         *started = true;
 
-        let app_handle = self.app.clone();
-        // Poller walks known_groups via a shared approach: we clone app and
-        // re-read groups from a side channel — use the Widget state through
-        // periodic emit after reading all known groups from disk registry file.
-        // Simpler: poll by listing groups from in-memory via weak pattern —
-        // spawn thread that emits for each group file found is hard without
-        // Widget handle. Instead keep groups list by writing a registry.
-        let groups_handle = app_handle.clone();
+        let groups_handle = self.app.clone();
         std::thread::spawn(move || {
             loop {
                 std::thread::sleep(std::time::Duration::from_millis(500));
-                // Best-effort: ask managed state if available
                 let Some(widget) = groups_handle.try_state::<Widget<R>>() else {
                     continue;
                 };
+                widget.inner().maybe_flush_trace();
                 let groups = widget.inner().known_groups.lock().unwrap().clone();
                 for group in groups {
                     match widget.inner().poll_pending_actions(&group) {
                         Ok(actions) if !actions.is_empty() => {
+                            widget.inner().trace.push(TraceEvent::Poll {
+                                count: actions.len(),
+                            });
                             for action in actions {
                                 let _ = groups_handle.emit("widget-action", action);
                             }

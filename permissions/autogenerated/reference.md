@@ -18,6 +18,8 @@ Default permissions for the widgets plugin — enables all commands.
 - `allow-poll-pending-actions`
 - `allow-report-receipt`
 - `allow-get-widget-diagnostics`
+- `allow-get-widget-trace`
+- `allow-flush-widget-trace`
 
 ## Permission Table
 
@@ -76,6 +78,32 @@ Enables the create_widget_window command without any pre-configured scope.
 <td>
 
 Denies the create_widget_window command without any pre-configured scope.
+
+</td>
+</tr>
+
+<tr>
+<td>
+
+`widgets:allow-flush-widget-trace`
+
+</td>
+<td>
+
+Enables the flush_widget_trace command without any pre-configured scope.
+
+</td>
+</tr>
+
+<tr>
+<td>
+
+`widgets:deny-flush-widget-trace`
+
+</td>
+<td>
+
+Denies the flush_widget_trace command without any pre-configured scope.
 
 </td>
 </tr>
@@ -154,6 +182,32 @@ Enables the get_widget_diagnostics command without any pre-configured scope.
 <td>
 
 Denies the get_widget_diagnostics command without any pre-configured scope.
+
+</td>
+</tr>
+
+<tr>
+<td>
+
+`widgets:allow-get-widget-trace`
+
+</td>
+<td>
+
+Enables the get_widget_trace command without any pre-configured scope.
+
+</td>
+</tr>
+
+<tr>
+<td>
+
+`widgets:deny-get-widget-trace`
+
+</td>
+<td>
+
+Denies the get_widget_trace command without any pre-configured scope.
 
 </td>
 </tr>

@@ -16,6 +16,8 @@ const COMMANDS: &[&str] = &[
     "poll_pending_actions",
     "report_receipt",
     "get_widget_diagnostics",
+    "get_widget_trace",
+    "flush_widget_trace",
 ];
 
 fn main() {
@@ -54,6 +56,7 @@ fn compile_reload_bridge(sdk: &str, arch: &str) {
     assert!(
         Command::new("swiftc")
             .args([
+                "-parse-as-library",
                 "-emit-object",
                 "-o",
                 obj.to_str().unwrap(),

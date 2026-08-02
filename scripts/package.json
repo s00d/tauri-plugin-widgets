@@ -1,0 +1,18 @@
+{
+  "name": "@tauri-plugin-widgets/scripts",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Maintainer CLI for tauri-plugin-widgets (docs, triage, stand wrappers).",
+  "scripts": {
+    "cli": "pnpm exec tsx ./src/run.ts",
+    "typecheck": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.0",
+    "citty": "^0.2.1",
+    "sharp": "^0.33.5",
+    "tsx": "^4.19.0",
+    "typescript": "^5.3.3"
+  }
+}

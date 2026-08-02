@@ -6,6 +6,7 @@
 
 use crate::models::{
     ColorValue, ElementStyle, FontWeight, TextAlignment, WidgetConfig, WidgetElement,
+    VStackElement, HStackElement, ZStackElement, GridElement, ContainerElement, TextElement, ImageElement, ProgressElement, GaugeElement, ButtonElement, ToggleElement, DividerElement, DateElement, ChartElement, ListElement, LinkElement, ShapeElement, TimerElement, CanvasElement, LabelElement,
 };
 use crate::receipt::SkippedElement;
 use serde_json::{json, Value};
@@ -80,13 +81,13 @@ pub fn ac_data_key(widget_id: &str) -> String {
 
 fn el(e: &WidgetElement, skipped: &mut Vec<SkippedElement>) -> Value {
     match e {
-        WidgetElement::VStack {
+        WidgetElement::VStack(VStackElement {
             children,
             style,
             alignment,
             spacing,
             ..
-        } => {
+        }) => {
             let mut obj = json!({
                 "type": "Container",
                 "spacing": "None",
@@ -109,9 +110,9 @@ fn el(e: &WidgetElement, skipped: &mut Vec<SkippedElement>) -> Value {
             obj
         }
 
-        WidgetElement::HStack {
+        WidgetElement::HStack(HStackElement {
             children, spacing, ..
-        } => {
+        }) => {
             let n = children.len();
             let mut obj = json!({
                 "type": "ColumnSet",
@@ -120,10 +121,10 @@ fn el(e: &WidgetElement, skipped: &mut Vec<SkippedElement>) -> Value {
                     .enumerate()
                     .map(|(i, c)| {
                         let (width, items) = match c {
-                            WidgetElement::Spacer { .. } => (json!("stretch"), json!([])),
+                            WidgetElement::Spacer(_) => (json!("stretch"), json!([])),
                             // Column immediately before a spacer expands (title + Sync pattern).
                             _ if i + 1 < n
-                                && matches!(children[i + 1], WidgetElement::Spacer { .. }) =>
+                                && matches!(children[i + 1], WidgetElement::Spacer(_)) =>
                             {
                                 (json!("stretch"), json!([el(c, skipped)]))
                             }
@@ -141,12 +142,12 @@ fn el(e: &WidgetElement, skipped: &mut Vec<SkippedElement>) -> Value {
             obj
         }
 
-        WidgetElement::Container {
+        WidgetElement::Container(ContainerElement {
             children,
             style,
             content_alignment,
             ..
-        } => {
+        }) => {
             let mut obj = json!({
                 "type": "Container",
                 "spacing": "None",
@@ -163,13 +164,13 @@ fn el(e: &WidgetElement, skipped: &mut Vec<SkippedElement>) -> Value {
             obj
         }
 
-        WidgetElement::Grid {
+        WidgetElement::Grid(GridElement {
             children,
             columns,
             spacing,
             row_spacing,
             ..
-        } => {
+        }) => {
             let cols = (*columns).max(1) as usize;
             let mut rows = Vec::new();
             for chunk in children.chunks(cols) {
@@ -199,7 +200,7 @@ fn el(e: &WidgetElement, skipped: &mut Vec<SkippedElement>) -> Value {
             obj
         }
 
-        WidgetElement::Text {
+        WidgetElement::Text(TextElement {
             content,
             font_size,
             font_weight,
@@ -207,7 +208,7 @@ fn el(e: &WidgetElement, skipped: &mut Vec<SkippedElement>) -> Value {
             alignment,
             line_limit,
             ..
-        } => {
+        }) => {
             let wrap = !matches!(line_limit, Some(n) if *n <= 1);
             let mut obj = json!({
                 "type": "TextBlock",
@@ -231,14 +232,14 @@ fn el(e: &WidgetElement, skipped: &mut Vec<SkippedElement>) -> Value {
             obj
         }
 
-        WidgetElement::Image {
+        WidgetElement::Image(ImageElement {
             url,
             data,
             system_name,
             size,
             color,
             ..
-        } => {
+        }) => {
             let url_str = url.clone().unwrap_or_else(|| {
                 let b64 = data.clone().unwrap_or_default();
                 if b64.is_empty() {
@@ -273,14 +274,14 @@ fn el(e: &WidgetElement, skipped: &mut Vec<SkippedElement>) -> Value {
             })
         }
 
-        WidgetElement::Button {
+        WidgetElement::Button(ButtonElement {
             label,
             action,
             url,
             background_color,
             color,
             ..
-        } => {
+        }) => {
             let title = sanitize_button_label(label);
             let mut action_json = match action {
                 Some(a) => json!({
@@ -311,12 +312,12 @@ fn el(e: &WidgetElement, skipped: &mut Vec<SkippedElement>) -> Value {
             })
         }
 
-        WidgetElement::Toggle {
+        WidgetElement::Toggle(ToggleElement {
             is_on,
             label,
             action,
             ..
-        } => {
+        }) => {
             // Prefer readable TextBlock for Adaptive Cards / goldens (ActionSet is clickable but low-fidelity).
             let title =
                 label
@@ -332,14 +333,14 @@ fn el(e: &WidgetElement, skipped: &mut Vec<SkippedElement>) -> Value {
             })
         }
 
-        WidgetElement::Progress {
+        WidgetElement::Progress(ProgressElement {
             value,
             total,
             label,
             tint,
             color,
             ..
-        } => {
+        }) => {
             let total = if *total <= 0.0 { 1.0 } else { *total };
             let pct = ((*value / total) * 100.0).clamp(0.0, 100.0) as u32;
             let rest = 100u32.saturating_sub(pct);
@@ -390,7 +391,7 @@ fn el(e: &WidgetElement, skipped: &mut Vec<SkippedElement>) -> Value {
             })
         }
 
-        WidgetElement::Divider { color, .. } => {
+        WidgetElement::Divider(DividerElement { color, .. }) => {
             let mut obj = json!({
                 "type": "Container",
                 "separator": true,
@@ -405,32 +406,32 @@ fn el(e: &WidgetElement, skipped: &mut Vec<SkippedElement>) -> Value {
             obj
         }
 
-        WidgetElement::Spacer { .. } => json!({
+        WidgetElement::Spacer(_) => json!({
             "type": "TextBlock",
             "text": " ",
             "spacing": "Medium",
         }),
 
-        WidgetElement::Date { date, .. } => json!({
+        WidgetElement::Date(DateElement { date, .. }) => json!({
             "type": "TextBlock",
             "text": date,
             "wrap": true,
             "size": "Default",
         }),
 
-        WidgetElement::Timer { target_date, .. } => json!({
+        WidgetElement::Timer(TimerElement { target_date, .. }) => json!({
             "type": "TextBlock",
             "text": target_date,
             "wrap": true,
             "size": "Default",
         }),
 
-        WidgetElement::Label {
+        WidgetElement::Label(LabelElement {
             text,
             system_name,
             color,
             ..
-        } => {
+        }) => {
             let prefix = if system_name.is_empty() {
                 String::new()
             } else {
@@ -453,13 +454,13 @@ fn el(e: &WidgetElement, skipped: &mut Vec<SkippedElement>) -> Value {
             obj
         }
 
-        WidgetElement::Link {
+        WidgetElement::Link(LinkElement {
             children,
             action,
             url,
             style,
             ..
-        } => {
+        }) => {
             let inner: Vec<Value> = children.iter().map(|c| el(c, skipped)).collect();
             let mut container = json!({
                 "type": "Container",
@@ -476,7 +477,7 @@ fn el(e: &WidgetElement, skipped: &mut Vec<SkippedElement>) -> Value {
             container
         }
 
-        WidgetElement::List { items, spacing, .. } => {
+        WidgetElement::List(ListElement { items, spacing, .. }) => {
             // ColumnSet mark | text keeps a shared left edge regardless of glyph width.
             let lines: Vec<Value> = items
                 .iter()
@@ -528,14 +529,14 @@ fn el(e: &WidgetElement, skipped: &mut Vec<SkippedElement>) -> Value {
             obj
         }
 
-        WidgetElement::Shape { .. } => rasterized_or_skip(e, skipped),
+        WidgetElement::Shape(_) => rasterized_or_skip(e, skipped),
 
-        WidgetElement::ZStack {
+        WidgetElement::ZStack(ZStackElement {
             children,
             style,
             alignment,
             ..
-        } => {
+        }) => {
             // Degraded: no true overlay — flatten; keep center hint for composite.
             let mut obj = json!({
                 "type": "Container",
@@ -559,9 +560,9 @@ fn el(e: &WidgetElement, skipped: &mut Vec<SkippedElement>) -> Value {
             obj
         }
 
-        WidgetElement::Gauge { .. }
-        | WidgetElement::Chart { .. }
-        | WidgetElement::Canvas { .. } => rasterized_or_skip(e, skipped),
+        WidgetElement::Gauge(_)
+        | WidgetElement::Chart(_)
+        | WidgetElement::Canvas(_) => rasterized_or_skip(e, skipped),
     }
 }
 
@@ -576,12 +577,12 @@ fn rasterized_or_skip(e: &WidgetElement, skipped: &mut Vec<SkippedElement>) -> V
                 "horizontalAlignment": "Center",
             });
             match e {
-                WidgetElement::Canvas { .. }
-                | WidgetElement::Chart { .. }
-                | WidgetElement::Gauge { .. } => {
+                WidgetElement::Canvas(_)
+                | WidgetElement::Chart(_)
+                | WidgetElement::Gauge(_) => {
                     img["size"] = json!("Stretch");
                 }
-                WidgetElement::Shape { size, .. } => {
+                WidgetElement::Shape(ShapeElement { size, .. }) => {
                     img["size"] = json!(img_size_bucket(*size));
                 }
                 _ => {}
@@ -616,27 +617,27 @@ fn flex_width(c: &WidgetElement) -> Value {
 
 fn flex_of(e: &WidgetElement) -> Option<f64> {
     match e {
-        WidgetElement::VStack { style, .. }
-        | WidgetElement::HStack { style, .. }
-        | WidgetElement::ZStack { style, .. }
-        | WidgetElement::Grid { style, .. }
-        | WidgetElement::Container { style, .. }
-        | WidgetElement::Text { style, .. }
-        | WidgetElement::Image { style, .. }
-        | WidgetElement::Progress { style, .. }
-        | WidgetElement::Gauge { style, .. }
-        | WidgetElement::Button { style, .. }
-        | WidgetElement::Toggle { style, .. }
-        | WidgetElement::Divider { style, .. }
-        | WidgetElement::Date { style, .. }
-        | WidgetElement::Chart { style, .. }
-        | WidgetElement::List { style, .. }
-        | WidgetElement::Link { style, .. }
-        | WidgetElement::Shape { style, .. }
-        | WidgetElement::Timer { style, .. }
-        | WidgetElement::Canvas { style, .. }
-        | WidgetElement::Label { style, .. } => style.flex,
-        WidgetElement::Spacer { .. } => None,
+        WidgetElement::VStack(VStackElement { style, .. })
+        | WidgetElement::HStack(HStackElement { style, .. })
+        | WidgetElement::ZStack(ZStackElement { style, .. })
+        | WidgetElement::Grid(GridElement { style, .. })
+        | WidgetElement::Container(ContainerElement { style, .. })
+        | WidgetElement::Text(TextElement { style, .. })
+        | WidgetElement::Image(ImageElement { style, .. })
+        | WidgetElement::Progress(ProgressElement { style, .. })
+        | WidgetElement::Gauge(GaugeElement { style, .. })
+        | WidgetElement::Button(ButtonElement { style, .. })
+        | WidgetElement::Toggle(ToggleElement { style, .. })
+        | WidgetElement::Divider(DividerElement { style, .. })
+        | WidgetElement::Date(DateElement { style, .. })
+        | WidgetElement::Chart(ChartElement { style, .. })
+        | WidgetElement::List(ListElement { style, .. })
+        | WidgetElement::Link(LinkElement { style, .. })
+        | WidgetElement::Shape(ShapeElement { style, .. })
+        | WidgetElement::Timer(TimerElement { style, .. })
+        | WidgetElement::Canvas(CanvasElement { style, .. })
+        | WidgetElement::Label(LabelElement { style, .. }) => style.flex,
+        WidgetElement::Spacer(_) => None,
     }
 }
 

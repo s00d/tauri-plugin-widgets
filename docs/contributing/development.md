@@ -61,7 +61,7 @@ pnpm codegen
 # or: cargo run --bin gen-ts --features codegen
 ```
 
-Capability table: [`capability-matrix.md`](capability-matrix.md) (generated from `src/capabilities.rs`).
+Capability table: embedded in [Core vs extended](/guide/tiers) (source file `docs/guide/_generated/capability-matrix.md` from `src/capabilities.rs`).
 
 ## Visual / golden tests
 
@@ -81,8 +81,8 @@ Windows PNG goldens: record on a Windows VM (`just record-windows <case>`), not 
 Adaptive Cards JSON snapshots:
 
 ```bash
-bash tools/gen-adaptive-snapshots.sh
-FEATURES=rasterize bash tools/gen-adaptive-snapshots.sh   # chart/canvas data-URIs
+pnpm -C scripts cli gen-adaptive-snapshots
+FEATURES=rasterize pnpm -C scripts cli gen-adaptive-snapshots   # chart/canvas data-URIs
 ```
 
 ## Linux harness
@@ -97,7 +97,7 @@ just shot-linux weather small
 ## Example artifacts
 
 ```bash
-bash tools/build-example-artifacts.sh macos   # or ios / android / …
+pnpm build:example macos   # or ios / android / …
 ```
 
 ## Android notes
@@ -105,6 +105,24 @@ bash tools/build-example-artifacts.sh macos   # or ios / android / …
 - Rendering path is **Jetpack Glance**.
 - Prefer flat `vstack` / `hstack` trees; deep `container` nesting is flaky on some launchers.
 - Always set `progress.label` so hosts never show `null`.
+
+## Documentation site
+
+VitePress is the `@tauri-plugin-widgets/docs` workspace (`docs/`). Maintainer tooling is `@tauri-plugin-widgets/scripts` (citty + TypeScript under `scripts/src`). Consumer CLI `bin/cli.mjs` (`init-macos|ios|windows`) stays separate.
+
+```bash
+pnpm docs:generate   # gallery, elements, shots, permissions, …
+pnpm docs:check      # marker drift + coverage audit
+pnpm docs:audit      # coverage + schema docs asserts
+pnpm docs:dev        # generate + local VitePress
+pnpm docs:build      # generate + static site
+pnpm -C scripts cli --help          # all maintainer commands
+pnpm -C scripts typecheck
+```
+
+Root aliases (`pnpm triage`, `pnpm ios-up`, `pnpm build:example`, …) call `pnpm -C scripts cli …`. Bash stands under `tools/*.sh` are unchanged; citty only `spawn`s them.
+
+Generated trees (`docs/public/shots/**`, showcase/elements marker bodies) are rebuilt by `pnpm docs:generate`.
 
 ## Related docs
 
@@ -114,5 +132,5 @@ bash tools/build-example-artifacts.sh macos   # or ios / android / …
 | [`linux-harness.md`](linux-harness.md) | Docker desktop shots |
 | [`windows-surfaces.md`](windows-surfaces.md) | Widgets Board + webview |
 | [`render-testing.md`](render-testing.md) | Render test overview |
-| [`capability-matrix.md`](capability-matrix.md) | Element × platform |
-| [`visual-audit-notes.md`](visual-audit-notes.md) | Audit notes |
+| [Core vs extended](/guide/tiers) | Element × platform matrix |
+

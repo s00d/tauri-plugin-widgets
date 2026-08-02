@@ -32,13 +32,9 @@
 //!
 //! ## Quick Start (Rust)
 //!
-//! ```rust,ignore
-//! fn main() {
-//!     tauri::Builder::default()
-//!         .plugin(tauri_plugin_widgets::init())
-//!         .run(tauri::generate_context!())
-//!         .expect("error while running tauri application");
-//! }
+//! ```no_run
+//! tauri::Builder::default()
+//!     .plugin(tauri_plugin_widgets::init());
 //! ```
 //!
 //! ## iOS Setup
@@ -68,18 +64,21 @@
 //!
 //! ## Rust API
 //!
-//! Access widget methods from Rust via [`WidgetExt`]:
+//! Build a config with typed helpers (compile-checked, not executed here):
 //!
-//! ```rust,ignore
-//! use tauri::Manager;
-//! use tauri_plugin_widgets::WidgetExt;
-//!
-//! fn update(app: &tauri::AppHandle) {
-//!     let w = app.widget();
-//!     w.set_items("key", "value", "group.com.example.myapp").unwrap();
-//!     w.reload_all_timelines().unwrap();
-//! }
 //! ```
+//! use tauri_plugin_widgets::models::{text, vstack, WidgetConfig};
+//!
+//! let _cfg = WidgetConfig::small(vstack(vec![
+//!     text("72°").font_size(36.0).into(),
+//! ]));
+//! ```
+//!
+//! Then call [`WidgetExt::widget`] on an `AppHandle` to `set_widget_config` /
+//! `reload_all_timelines` (requires a running Tauri app).
+
+#![cfg_attr(docsrs, feature(doc_cfg))]
+#![warn(missing_docs)]
 
 #[cfg(mobile)]
 use tauri::RunEvent;
@@ -92,37 +91,77 @@ use tauri::{
 use std::borrow::Cow;
 
 #[cfg(desktop)]
+#[allow(missing_docs)]
+#[cfg_attr(docsrs, doc(cfg(desktop)))]
 pub mod desktop;
 #[cfg(mobile)]
+#[allow(missing_docs)]
+#[cfg_attr(docsrs, doc(cfg(mobile)))]
 pub mod mobile;
 
+/// Adaptive Cards transpiler (Windows Widgets Board).
+#[allow(missing_docs)]
 pub mod adaptive_card;
+/// Outcomes for `set_widget_config` (written / reload / skip).
+pub mod apply;
+/// Element × platform capability matrix.
+#[allow(missing_docs)]
 pub mod capabilities;
+/// TypeScript IR emitter (`gen-ts`).
+#[allow(missing_docs)]
 pub mod codegen;
 mod commands;
+/// Plugin configuration (`plugins.widgets` in `tauri.conf.json`).
+#[allow(missing_docs)]
 pub mod config;
+/// Plugin error type.
 pub mod error;
+/// Widget IR models (`WidgetConfig`, `WidgetElement`, …).
+///
+/// Element structs and their fields carry rustdoc used by `schemars` / docs site.
+#[allow(missing_docs)]
 pub mod models;
+/// SVG / PNG helpers for Adaptive Cards fallbacks.
+#[allow(missing_docs)]
 pub mod rasterize;
+/// Render receipts written by native / desktop surfaces.
+#[allow(missing_docs)]
 pub mod receipt;
+/// Canonical layout dumps for snapshot tests.
+#[allow(missing_docs)]
 pub mod snapshot;
+/// Shared key-value store helpers and action envelopes.
+#[allow(missing_docs)]
 pub mod store;
+/// Host black-box journal (`WIDGET_DEBUG` / debug builds).
+#[allow(missing_docs)]
+pub mod trace;
+/// macOS / desktop config transport selection.
+#[allow(missing_docs)]
 pub mod transport;
 
 #[cfg(target_os = "windows")]
+#[allow(missing_docs)]
+#[cfg_attr(docsrs, doc(cfg(windows)))]
 pub mod windows;
 
 #[cfg(all(target_os = "linux", feature = "linux"))]
+#[allow(missing_docs)]
+#[cfg_attr(docsrs, doc(cfg(all(target_os = "linux", feature = "linux"))))]
 pub mod linux;
 
 #[cfg(target_os = "macos")]
+#[allow(missing_docs)]
+#[cfg_attr(docsrs, doc(cfg(macos)))]
 pub mod macos_transport;
 
 pub use adaptive_card::{to_adaptive_card, to_adaptive_card_for_size, TranspileResult};
+pub use apply::{ApplyOutcome, ReloadOutcome, SkipReason};
 pub use config::{TransportKind, WidgetsPluginConfig};
 pub use error::{Error, Result};
 pub use receipt::{SkippedElement, WidgetRenderReceipt};
 pub use store::WidgetActionEnvelope;
+pub use trace::{TraceEntry, TraceEvent, WidgetTrace};
 pub use transport::{Receipt, Transport};
 
 #[cfg(desktop)]
@@ -132,6 +171,7 @@ pub use mobile::Widget;
 
 /// Extension trait for convenient access from any Tauri manager.
 pub trait WidgetExt<R: Runtime> {
+    /// Returns the managed [`Widget`] state.
     fn widget(&self) -> &Widget<R>;
 }
 
@@ -159,6 +199,8 @@ pub fn init<R: Runtime>() -> TauriPlugin<R, Option<WidgetsPluginConfig>> {
             commands::poll_pending_actions,
             commands::report_receipt,
             commands::get_widget_diagnostics,
+            commands::get_widget_trace,
+            commands::flush_widget_trace,
         ])
         .setup(|app, api| {
             #[cfg(mobile)]

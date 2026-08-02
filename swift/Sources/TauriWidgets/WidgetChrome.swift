@@ -33,7 +33,8 @@ public enum WidgetChrome {
         }
     }
 
-    /// Fixed-size widget frame with containerBackground + continuous corner mask.
+    /// Fixed-size widget frame with full-bleed chrome + continuous corner mask.
+    /// Used by visual tests / ImageRenderer (no live WidgetKit containerBackground).
     @ViewBuilder
     public static func framed(
         element: WidgetElement,
@@ -41,11 +42,12 @@ public enum WidgetChrome {
         height: CGFloat,
         cornerRadius: CGFloat = 22
     ) -> some View {
-        DynamicElementView(element: element)
-            // Same topLeading pin as TauriWidgetView — goldens/ImageRenderer share this path.
-            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
-            .frame(width: width, height: height)
-            .containerBackground(for: .widget) { background(for: element) }
-            .clipShape(RoundedRectangle(cornerRadius: cornerRadius, style: .continuous))
+        ZStack(alignment: .topLeading) {
+            background(for: element)
+            DynamicElementView(element: element, isWidgetRoot: true)
+                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+        }
+        .frame(width: width, height: height)
+        .clipShape(RoundedRectangle(cornerRadius: cornerRadius, style: .continuous))
     }
 }

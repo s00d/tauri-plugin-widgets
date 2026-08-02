@@ -240,6 +240,35 @@ export * from "./generated/widget-types";
 import type { WidgetConfig } from "./generated/widget-types";
 
 /**
+ * Why a config write was skipped.
+ */
+export type SkipReason = {
+  reason: "unchanged";
+  hash: number;
+};
+
+/**
+ * Result of a native WidgetKit / AppWidget reload attempt.
+ */
+export type ReloadOutcome =
+  | { outcome: "ok" }
+  | { outcome: "throttled"; remainingSecs: number }
+  | { outcome: "skipped"; why: string }
+  | { outcome: "failed"; error: string };
+
+/**
+ * Full result of {@link setWidgetConfig}. Never treat success as “reload happened”.
+ */
+export interface ApplyOutcome {
+  /** `true` when store bytes changed and were written. */
+  written: boolean;
+  reload: ReloadOutcome;
+  /** Transport names that received the map (empty when not written). */
+  transports: string[];
+  skip?: SkipReason;
+}
+
+/**
  * Send a declarative UI configuration to native widgets.
  *
  * The JSON config is stored in the widget data store and read by the native
@@ -248,14 +277,15 @@ import type { WidgetConfig } from "./generated/widget-types";
  * - **Android** — `RemoteViews` (`LinearLayout`, `TextView`, etc.)
  * - **Desktop** — HTML/CSS in the widget window
  *
- * After setting the config, all widget timelines are automatically reloaded.
+ * Returns {@link ApplyOutcome}: check `written` and `reload.outcome` — a
+ * successful invoke no longer means a native reload was performed.
  *
  * @param config - The widget UI configuration.
  * @param group  - Widget group identifier (same as `setItems` group).
  *
  * @example
  * ```ts
- * await setWidgetConfig({
+ * const outcome = await setWidgetConfig({
  *   small: {
  *     type: "vstack",
  *     padding: 12,
@@ -266,6 +296,9 @@ import type { WidgetConfig } from "./generated/widget-types";
  *     ],
  *   },
  * }, "group.com.example.myapp", "weather");
+ * if (outcome.reload.outcome === "throttled") {
+ *   console.warn("reload delayed", outcome.reload.remainingSecs);
+ * }
  * ```
  */
 export async function setWidgetConfig(
@@ -275,10 +308,10 @@ export async function setWidgetConfig(
   /** Skip native widget reload (WidgetKit / AppWidgetManager).
    *  Desktop widget windows are always updated instantly via eval push. */
   skipReload = false,
-): Promise<boolean> {
+): Promise<ApplyOutcome> {
   if (!group) throw new Error("setWidgetConfig: 'group' must not be empty");
   if (!widgetId) throw new Error("setWidgetConfig: 'widgetId' must not be empty");
-  return await invoke<boolean>(`${PLUGIN_ID}|set_widget_config`, {
+  return await invoke<ApplyOutcome>(`${PLUGIN_ID}|set_widget_config`, {
     config, group, widgetId, skipReload,
   });
 }
@@ -319,9 +352,55 @@ export interface WidgetRenderReceipt {
   schema?: number;
   /** prefs | state | appgroup | defaults | container | push | pull */
   source: string;
+  /** reload | timeline | action | added | resize | snapshot */
+  trigger?: string;
   rendered?: string[];
   skipped?: SkippedElement[];
   ts: number;
+}
+
+/** One host journal entry (`WIDGET_DEBUG` / debug builds). */
+export type TraceEvent =
+  | {
+      kind: "configSet";
+      widgetId: string;
+      nonce: number;
+      bytes: number;
+      changed: boolean;
+      skip?: { reason: "unchanged"; hash: number } | { reason: "noInstances" } | {
+        reason: "transportUnavailable";
+        name: string;
+      };
+    }
+  | {
+      kind: "write";
+      transport: string;
+      ok: boolean;
+      durationMs: number;
+      error?: string;
+    }
+  | { kind: "reload"; performed: boolean; reason: ReloadOutcome }
+  | { kind: "poll"; count: number }
+  | {
+      kind: "render";
+      instance: string;
+      nonce: number;
+      source: string;
+      trigger: string;
+      lagMs: number;
+      skipped: SkippedElement[];
+    };
+
+export interface TraceEntry {
+  ts: number;
+  kind: TraceEvent["kind"];
+  [key: string]: unknown;
+}
+
+export interface WidgetTrace {
+  enabled: boolean;
+  events: TraceEntry[];
+  receipts: WidgetRenderReceipt[];
 }
 
 /**
@@ -342,6 +421,26 @@ export async function getWidgetDiagnostics(
   return await invoke<WidgetRenderReceipt[]>(`${PLUGIN_ID}|get_widget_diagnostics`, {
     group,
   });
+}
+
+/**
+ * Host delivery journal + receipt history for `group`.
+ * Active in debug builds or when `WIDGET_DEBUG=1`.
+ */
+export async function getWidgetTrace(
+  group: string,
+  opts?: { since?: number },
+): Promise<WidgetTrace> {
+  if (!group) throw new Error("getWidgetTrace: 'group' must not be empty");
+  return await invoke<WidgetTrace>(`${PLUGIN_ID}|get_widget_trace`, {
+    group,
+    sinceMs: opts?.since ?? null,
+  });
+}
+
+/** Force-flush the in-memory journal to disk (desktop). */
+export async function flushWidgetTrace(): Promise<boolean> {
+  return await invoke<boolean>(`${PLUGIN_ID}|flush_widget_trace`);
 }
 
 // ─── Widget Action API ──────────────────────────────────────────────────────
@@ -536,14 +635,16 @@ export async function startWidgetUpdater(
   const reload = options?.reload ?? false;
 
   let running = false;
+  let cancelled = false;
 
   async function tick() {
-    if (running) return;
+    if (cancelled || running) return;
     running = true;
     try {
       // Drain native pending_actions (iOS WidgetKit / Android fallback) into handlers.
       try {
         const pending = await pollPendingWidgetActions(group);
+        if (cancelled) return;
         if (options?.onAction) {
           for (const item of pending) {
             if (item.widgetId && item.widgetId !== widgetId) continue;
@@ -555,13 +656,16 @@ export async function startWidgetUpdater(
         console.debug("[widget-updater] pollPendingWidgetActions failed:", e);
       }
 
+      if (cancelled) return;
       const config = await builder();
+      if (cancelled) return;
       await setWidgetConfig(config, group, widgetId);
+      if (cancelled) return;
       if (reload) {
         await reloadAllTimelines();
       }
     } catch (e) {
-      console.error("[widget-updater] tick failed:", e);
+      if (!cancelled) console.error("[widget-updater] tick failed:", e);
     } finally {
       running = false;
     }
@@ -571,12 +675,13 @@ export async function startWidgetUpdater(
     await tick();
   }
 
-  const id = intervalMs > 0 ? setInterval(tick, intervalMs) : null;
+  const id = !cancelled && intervalMs > 0 ? setInterval(tick, intervalMs) : null;
 
   let actionUnsub: (() => void) | null = null;
-  if (options?.onAction) {
+  if (!cancelled && options?.onAction) {
     const handler = options.onAction;
     actionUnsub = await onWidgetAction((data) => {
+      if (cancelled) return;
       if (data.widgetId && data.widgetId !== widgetId) return;
       if (data.group && data.group !== group) return;
       handler(data.action, data.payload);
@@ -584,6 +689,7 @@ export async function startWidgetUpdater(
   }
 
   return () => {
+    cancelled = true;
     if (id !== null) clearInterval(id);
     if (actionUnsub) { actionUnsub(); actionUnsub = null; }
   };

@@ -283,6 +283,43 @@ pub fn widget_container_transport(group: &str) -> Arc<dyn Transport> {
     })
 }
 
+/// All host-writable Apple transports for `group` (best-effort App Group).
+pub fn all_transports(group: &str) -> Vec<Arc<dyn Transport>> {
+    let mut out = Vec::new();
+    match app_group_transport(group) {
+        Ok(t) => out.push(t),
+        Err(e) => log::debug!("all_transports: appGroup skipped: {e}"),
+    }
+    out.push(user_defaults_transport(group));
+    out.push(widget_container_transport(group));
+    out
+}
+
+/// Max `__meta_nonce__` across every readable sibling transport.
+pub fn max_nonce_across(group: &str) -> u64 {
+    all_transports(group)
+        .into_iter()
+        .filter_map(|t| t.read())
+        .map(|m| store::map_nonce(&m))
+        .max()
+        .unwrap_or(0)
+}
+
+/// Write `map` to every available transport except `primary` (same bytes / nonce).
+///
+/// The widget still multi-reads and picks by nonce. Mirroring keeps inactive
+/// channels from serving a stale higher-nonce snapshot.
+pub fn mirror_to_siblings(primary: &dyn Transport, group: &str, map: &DataMap) {
+    for t in all_transports(group) {
+        if t.name() == primary.name() || !t.available() {
+            continue;
+        }
+        if let Err(e) = t.write(map) {
+            log::debug!("mirror_to_siblings({}): {e}", t.name());
+        }
+    }
+}
+
 // ─── Helpers used by integration tests ────────────────────────────────────────
 
 pub fn read_file_transports(group: &str, app_group_file: Option<&Path>) -> Vec<DataMap> {

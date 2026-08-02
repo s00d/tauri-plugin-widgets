@@ -64,6 +64,8 @@ public struct WidgetTransportReceipt: Codable {
     public let rendered: [String]
     public let skipped: [SkippedElement]
     public let ts: UInt64
+    /// Why this paint ran: `reload` | `timeline` | `action` | `added` | `resize` | `snapshot`.
+    public let trigger: String?
 
     public struct SkippedElement: Codable {
         public let type: String
@@ -85,7 +87,8 @@ public struct WidgetTransportReceipt: Codable {
         schema: UInt32 = 1,
         rendered: [String] = [],
         skipped: [SkippedElement] = [],
-        ts: UInt64 = UInt64(Date().timeIntervalSince1970 * 1000)
+        ts: UInt64 = UInt64(Date().timeIntervalSince1970 * 1000),
+        trigger: String? = nil
     ) {
         self.source = source
         self.readFrom = source
@@ -99,6 +102,7 @@ public struct WidgetTransportReceipt: Codable {
         self.rendered = rendered
         self.skipped = skipped
         self.ts = ts
+        self.trigger = trigger
     }
 }
 
@@ -208,20 +212,33 @@ public struct TauriWidgetDataStore {
     }
 
     /// Same as `loadFreshestMap`, but also returns which transport won.
+    ///
+    /// File transports (container / App Group) win over UserDefaults when they
+    /// carry any `config:*` key. A stale suite with a higher leftover nonce
+    /// otherwise shadows live host writes after an app restart (low file nonce).
     public static func loadFreshestMapWithSource(appGroup: String) -> ([String: String], String) {
-        var candidates: [(String, [String: String])] = []
+        var fileCandidates: [(String, [String: String])] = []
+        var defaultsCandidates: [(String, [String: String])] = []
 
         if let m = readOwnContainerMap() {
-            candidates.append((TauriWidgetTransportName.container, m))
-        }
-        if let m = readUserDefaultsMap(appGroup: appGroup) {
-            candidates.append((TauriWidgetTransportName.defaults, m))
+            fileCandidates.append((TauriWidgetTransportName.container, m))
         }
         if let m = readAppGroupFileMap(appGroup: appGroup) {
-            candidates.append((TauriWidgetTransportName.appGroup, m))
+            fileCandidates.append((TauriWidgetTransportName.appGroup, m))
+        }
+        for map in readAllUserDefaultsMaps(appGroup: appGroup) {
+            defaultsCandidates.append((TauriWidgetTransportName.defaults, map))
         }
 
-        return pickFreshestWithSource(candidates)
+        let filesBest = pickFreshestWithSource(fileCandidates)
+        if mapHasConfig(filesBest.0) {
+            return filesBest
+        }
+        return pickFreshestWithSource(fileCandidates + defaultsCandidates)
+    }
+
+    private static func mapHasConfig(_ map: [String: String]) -> Bool {
+        map.keys.contains { $0.hasPrefix(TauriWidgetStoreKeys.configPrefix) }
     }
 
     private static func pickFreshestWithSource(
@@ -346,21 +363,34 @@ public struct TauriWidgetDataStore {
     }
 
     // App Group UserDefaults
-    private static func readUserDefaultsMap(appGroup: String) -> [String: String]? {
-        let plainSuite = appGroup.hasPrefix("group.") ? String(appGroup.dropFirst(6)) : appGroup
-        for suite in [appGroup, plainSuite] {
+    private static func userDefaultsSuites(_ appGroup: String) -> [String] {
+        let plain = appGroup.hasPrefix("group.") ? String(appGroup.dropFirst(6)) : appGroup
+        return plain == appGroup ? [appGroup] : [appGroup, plain]
+    }
+
+    /// Every suite that has a `widget_data` map (both `group.*` and bare id).
+    private static func readAllUserDefaultsMaps(appGroup: String) -> [[String: String]] {
+        var out: [[String: String]] = []
+        for suite in userDefaultsSuites(appGroup) {
             if let defaults = UserDefaults(suiteName: suite),
                let dict = defaults.dictionary(forKey: "widget_data") as? [String: String] {
-                return dict
+                out.append(dict)
             }
         }
-        return nil
+        return out
+    }
+
+    private static func readUserDefaultsMap(appGroup: String) -> [String: String]? {
+        let maps = readAllUserDefaultsMaps(appGroup: appGroup)
+        guard !maps.isEmpty else { return nil }
+        return pickFreshestWithSource(maps.map { (TauriWidgetTransportName.defaults, $0) }).0
     }
 
     private static func writeUserDefaultsMap(_ map: [String: String], appGroup: String) {
-        let plainSuite = appGroup.hasPrefix("group.") ? String(appGroup.dropFirst(6)) : appGroup
-        for suite in [appGroup, plainSuite] {
+        for suite in userDefaultsSuites(appGroup) {
             if let defaults = UserDefaults(suiteName: suite) {
+                // remove+set so CFPreferences notices a change across processes
+                defaults.removeObject(forKey: "widget_data")
                 defaults.set(map, forKey: "widget_data")
                 defaults.synchronize()
             }

@@ -1,24 +1,8 @@
-#!/usr/bin/env node
-/**
- * Batch visual audit contact sheets for all declarative cases.
- *
- * Panels: Desktop | iOS | macOS | Android | Windows | Linux
- * Output: out/audit/<case>.png + out/audit/index.html
- *
- *   pnpm audit:sheets
- *   node --experimental-strip-types tools/audit-sheets.ts --case weather.small
- */
 import fs from "node:fs";
 import path from "node:path";
-import { fileURLToPath } from "node:url";
+import { defineCommand } from "citty";
 import sharp from "sharp";
-
-const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const REPO = path.resolve(__dirname, "..");
-const CASES = path.join(REPO, "tests/cases");
-const GOLDEN = path.join(REPO, "tests/golden");
-const OUT = path.join(REPO, "out/audit");
-const OUT_LINUX = path.join(REPO, "out/linux");
+import { repoRoot } from "../utils/workspace.js";
 
 const PLATFORMS = [
   { id: "desktop", label: "Desktop" },
@@ -27,15 +11,9 @@ const PLATFORMS = [
   { id: "android", label: "Android" },
   { id: "windows", label: "Windows" },
   { id: "linux", label: "Linux" },
-];
+] as const;
 
-function arg(name, fallback) {
-  const i = process.argv.indexOf(`--${name}`);
-  if (i >= 0 && process.argv[i + 1]) return process.argv[i + 1];
-  return fallback;
-}
-
-async function loadOrBlank(p, label, w, h) {
+async function loadOrBlank(p: string, label: string, w: number, h: number) {
   if (p && fs.existsSync(p)) {
     return sharp(p)
       .resize(w, h, {
@@ -52,11 +30,18 @@ async function loadOrBlank(p, label, w, h) {
   return sharp(Buffer.from(svg)).png().toBuffer();
 }
 
-async function sheetForCase(caseName, panelW = 280, panelH = 300) {
+async function sheetForCase(
+  caseName: string,
+  golden: string,
+  outLinux: string,
+  outDir: string,
+  panelW = 280,
+  panelH = 300,
+) {
   const labelH = 26;
   const titleH = 32;
   const n = PLATFORMS.length;
-  const composites = [];
+  const composites: sharp.OverlayOptions[] = [];
 
   const titleSvg = Buffer.from(
     `<svg xmlns="http://www.w3.org/2000/svg" width="${panelW * n}" height="${titleH}">
@@ -72,19 +57,21 @@ async function sheetForCase(caseName, panelW = 280, panelH = 300) {
 
   for (let i = 0; i < n; i++) {
     const { id, label } = PLATFORMS[i];
-    let pngPath = path.join(GOLDEN, id, `${caseName}.png`);
-    // Linux triage shots land in out/linux/<case>-<size>.png before record-linux.
+    let pngPath = path.join(golden, id, `${caseName}.png`);
     if (id === "linux" && !fs.existsSync(pngPath)) {
       const size = caseName.split(".").pop() || "small";
-      const alt = path.join(OUT_LINUX, `${caseName}.png`);
-      const alt2 = path.join(OUT_LINUX, `${caseName.replace(/\.(small|medium|large)$/, "")}-${size}.png`);
+      const alt = path.join(outLinux, `${caseName}.png`);
+      const alt2 = path.join(
+        outLinux,
+        `${caseName.replace(/\.(small|medium|large)$/, "")}-${size}.png`,
+      );
       if (fs.existsSync(alt)) pngPath = alt;
       else if (fs.existsSync(alt2)) pngPath = alt2;
       else {
-        const hits = fs.existsSync(OUT_LINUX)
-          ? fs.readdirSync(OUT_LINUX).filter((f) => f.startsWith(caseName) && f.endsWith(".png"))
+        const hits = fs.existsSync(outLinux)
+          ? fs.readdirSync(outLinux).filter((f) => f.startsWith(caseName) && f.endsWith(".png"))
           : [];
-        if (hits[0]) pngPath = path.join(OUT_LINUX, hits[0]);
+        if (hits[0]) pngPath = path.join(outLinux, hits[0]);
       }
     }
     const panel = await loadOrBlank(pngPath, label, panelW, panelH);
@@ -106,7 +93,7 @@ async function sheetForCase(caseName, panelW = 280, panelH = 300) {
     });
   }
 
-  const outPath = path.join(OUT, `${caseName}.png`);
+  const outPath = path.join(outDir, `${caseName}.png`);
   await sharp({
     create: {
       width: panelW * n,
@@ -121,7 +108,7 @@ async function sheetForCase(caseName, panelW = 280, panelH = 300) {
   return outPath;
 }
 
-function writeIndex(caseNames) {
+function writeIndex(outDir: string, caseNames: string[]) {
   const cards = caseNames
     .map(
       (name) => `
@@ -153,33 +140,45 @@ function writeIndex(caseNames) {
   <main>${cards}</main>
 </body>
 </html>`;
-  fs.writeFileSync(path.join(OUT, "index.html"), html);
+  fs.writeFileSync(path.join(outDir, "index.html"), html);
 }
 
-async function main() {
-  const only = arg("case");
-  fs.mkdirSync(OUT, { recursive: true });
-  const names = fs
-    .readdirSync(CASES)
-    .filter((f) => f.endsWith(".json"))
-    .map((f) => f.replace(/\.json$/, ""))
-    .sort()
-    .filter((n) => !only || n === only);
+export const auditSheetsCommand = defineCommand({
+  meta: {
+    name: "audit-sheets",
+    description: "Build contact sheets for all (or one) visual cases → out/audit/",
+  },
+  args: {
+    case: {
+      type: "string",
+      description: "Only this case name (e.g. weather.small)",
+    },
+  },
+  async run({ args }) {
+    const root = repoRoot();
+    const casesDir = path.join(root, "tests/cases");
+    const golden = path.join(root, "tests/golden");
+    const outDir = path.join(root, "out/audit");
+    const outLinux = path.join(root, "out/linux");
 
-  if (names.length === 0) {
-    console.error("no cases found");
-    process.exit(2);
-  }
+    fs.mkdirSync(outDir, { recursive: true });
+    const names = fs
+      .readdirSync(casesDir)
+      .filter((f) => f.endsWith(".json"))
+      .map((f) => f.replace(/\.json$/, ""))
+      .sort()
+      .filter((n) => !args.case || n === args.case);
 
-  for (const name of names) {
-    const p = await sheetForCase(name);
-    console.log(p);
-  }
-  writeIndex(names);
-  console.log(`index → ${path.join(OUT, "index.html")} (${names.length} cases)`);
-}
+    if (names.length === 0) {
+      console.error("no cases found");
+      process.exit(2);
+    }
 
-main().catch((e) => {
-  console.error(e);
-  process.exit(1);
+    for (const name of names) {
+      const p = await sheetForCase(name, golden, outLinux, outDir);
+      console.log(p);
+    }
+    writeIndex(outDir, names);
+    console.log(`index → ${path.join(outDir, "index.html")} (${names.length} cases)`);
+  },
 });

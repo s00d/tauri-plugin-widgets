@@ -43,7 +43,7 @@ function buildConfig(): WidgetConfig {
       ],
     },
     medium: {
-      type: "hstack", padding: 14, spacing: 16, cornerRadius: 12,
+      type: "hstack", padding: 14, spacing: 12, cornerRadius: 12,
       background: { light: "#ffffff", dark: "#1C1C1E" },
       children: [
         { type: "vstack", spacing: 6, alignment: "leading", flex: 1, children: [
@@ -51,17 +51,15 @@ function buildConfig(): WidgetConfig {
           { type: "list", spacing: 3, fontSize: 12, items: listItems(3) },
         ]},
         { type: "divider", color: "separator" },
-        { type: "vstack", spacing: 6, alignment: "center", children: [
-          { type: "vstack", spacing: 2, alignment: "center", padding: 8,
-            background: { light: "#F0FDF4", dark: "#14532D" }, cornerRadius: 10,
-            children: [
-              { type: "text", content: `${done} / ${total}`, fontSize: 28, fontWeight: "bold", color: "#4CAF50" },
-              { type: "text", content: "completed", textStyle: "caption", color: "secondaryLabel" },
-            ],
-          },
-          { type: "progress", value: done / total, tint: "#4CAF50", label: `${done} of ${total} completed`, color: "secondaryLabel" },
+        // Fixed-feel sidebar: big count + unlabeled bar + button (no nested card).
+        { type: "vstack", spacing: 8, alignment: "center", frame: { width: 108 }, children: [
+          { type: "text", content: `${done} / ${total}`, fontSize: 26, fontWeight: "bold", color: "#4CAF50",
+            alignment: "center" },
+          { type: "text", content: "completed", textStyle: "caption2", color: "secondaryLabel",
+            alignment: "center" },
+          { type: "progress", value: done / total, tint: "#4CAF50" },
           { type: "button", label: "Add Task", action: "add_task",
-            backgroundColor: "#4CAF50", color: "#ffffff", fontSize: 12, cornerRadius: 6 },
+            backgroundColor: "#4CAF50", color: "#ffffff", fontSize: 11, cornerRadius: 6 },
         ]},
       ],
     },

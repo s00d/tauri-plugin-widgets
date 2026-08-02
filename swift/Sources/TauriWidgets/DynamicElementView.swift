@@ -81,11 +81,20 @@ public struct DynamicElementView: View {
     var parentAxis: Axis? = nil
     /// When true, text must not expand to maxWidth (breaks ZStack badge centering).
     var inZStack: Bool = false
+    /// WidgetKit root: `containerBackground` already paints the canvas — skip
+    /// root `background`/`shadow` or a content-sized card floats inside (looks “crooked”).
+    var isWidgetRoot: Bool = false
 
-    public init(element: WidgetElement, parentAxis: Axis? = nil, inZStack: Bool = false) {
+    public init(
+        element: WidgetElement,
+        parentAxis: Axis? = nil,
+        inZStack: Bool = false,
+        isWidgetRoot: Bool = false
+    ) {
         self.element = element
         self.parentAxis = parentAxis
         self.inZStack = inZStack
+        self.isWidgetRoot = isWidgetRoot
     }
 
     public var body: some View { applyStyle(to: renderElement(), element: element) }
@@ -186,7 +195,11 @@ public struct DynamicElementView: View {
                                   design: fontDesign(element.fontDesign)))
         }()
         let colored = txt.foregroundColor(resolveColor(element.color) ?? .primary)
-        let alignRaw = (element.alignment ?? "leading").lowercased()
+        // Circle / fixed box badges (e.g. avatar initials) center by default — leading +
+        // maxWidth:.infinity pinned "AK" to the top-left of the clip.
+        let hasFixedBox = element.frame?.width != nil && element.frame?.height != nil
+        let defaultAlign = (element.clipShape == "circle" || hasFixedBox) ? "center" : "leading"
+        let alignRaw = (element.alignment ?? defaultAlign).lowercased()
         let textAlign: TextAlignment = alignRaw == "trailing" || alignRaw == "right" || alignRaw == "end" ? .trailing
             : (alignRaw == "center" || alignRaw == "middle" ? .center : .leading)
         let frameAlign: Alignment = alignRaw == "trailing" || alignRaw == "right" || alignRaw == "end" ? .trailing
@@ -199,8 +212,8 @@ public struct DynamicElementView: View {
                 base
             }
         }
-        .fixedSize(horizontal: inZStack, vertical: false)
-        .frame(maxWidth: inZStack ? nil : .infinity, alignment: frameAlign)
+        .fixedSize(horizontal: inZStack || hasFixedBox, vertical: hasFixedBox)
+        .frame(maxWidth: (inZStack || hasFixedBox) ? nil : .infinity, alignment: frameAlign)
     }
 
     // MARK: Image
@@ -267,23 +280,32 @@ public struct DynamicElementView: View {
             }
             .frame(width: 40, height: 40)
         } else {
+            // Avoid bare GeometryReader in unconstrained HStacks — it steals height and
+            // collapses into a tall thin strip (Tasks medium sidebar).
             VStack(alignment: .leading, spacing: 2) {
                 if let lbl = element.label {
                     Text(lbl).font(.caption2)
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.75)
                         .foregroundColor(
                             resolveColor(element.color)
                                 ?? resolveColor(element.tint)
                                 ?? .secondary
                         )
                 }
-                GeometryReader { geo in
-                    ZStack(alignment: .leading) {
-                        Capsule().fill(tc.opacity(0.25))
-                        Capsule().fill(tc).frame(width: max(geo.size.width * frac, 2))
+                Capsule()
+                    .fill(tc.opacity(0.25))
+                    .frame(height: 6)
+                    .frame(maxWidth: .infinity)
+                    .overlay(alignment: .leading) {
+                        GeometryReader { geo in
+                            Capsule()
+                                .fill(tc)
+                                .frame(width: max(geo.size.width * CGFloat(frac), 2), height: 6)
+                        }
                     }
-                }
-                .frame(height: 6)
             }
+            .frame(minWidth: 72, maxWidth: .infinity, alignment: .leading)
         }
     }
 
@@ -344,15 +366,32 @@ public struct DynamicElementView: View {
         let textAlign: TextAlignment = alignRaw == "trailing" || alignRaw == "right" || alignRaw == "end" ? .trailing : (alignRaw == "center" || alignRaw == "middle" ? .center : .leading)
         let frameAlign: Alignment = alignRaw == "trailing" || alignRaw == "right" || alignRaw == "end" ? .trailing : (alignRaw == "center" || alignRaw == "middle" ? .center : .leading)
         let hasExplicitAlign = element.textAlignment != nil || element.alignment != nil
+        let fs = element.fontSize ?? 14
+        // Prefer explicit `padding` as content insets; otherwise scale with fontSize so
+        // keypad grids (Calculator small/medium) fit WidgetKit family height.
+        let insets: EdgeInsets = {
+            if let p = element.padding {
+                switch p {
+                case .uniform(let v):
+                    return EdgeInsets(top: v, leading: v, bottom: v, trailing: v)
+                case .edges(let t, let b, let l, let tr):
+                    return EdgeInsets(top: t ?? 0, leading: l ?? 0, bottom: b ?? 0, trailing: tr ?? 0)
+                }
+            }
+            let h = min(12, max(3, fs * 0.45))
+            let v = min(6, max(1.5, fs * 0.22))
+            return EdgeInsets(top: v, leading: h, bottom: v, trailing: h)
+        }()
         let baseText = Text(lbl)
-            .font(.system(size: element.fontSize ?? 14, weight: .medium))
+            .font(.system(size: fs, weight: .medium))
             .foregroundColor(resolveColor(element.color) ?? .primary)
             .multilineTextAlignment(textAlign)
         let alignedText: AnyView = hasExplicitAlign
             ? AnyView(baseText.frame(maxWidth: .infinity, alignment: frameAlign))
             : AnyView(baseText)
         let btnContent = alignedText
-            .padding(.horizontal, 12).padding(.vertical, 6)
+            .padding(insets)
+            .frame(maxWidth: .infinity)
             .background(resolveColor(element.backgroundColor) ?? Color.accentColor)
             .cornerRadius(element.cornerRadius ?? 8)
         if let act = element.action, !act.isEmpty {
@@ -634,52 +673,71 @@ public struct DynamicElementView: View {
     // MARK: Canvas
 
     @ViewBuilder private func renderCanvas() -> some View {
-        let cw = element.width ?? 100; let ch = element.height ?? 100
+        let cw = max(element.width ?? 100, 1)
+        let ch = max(element.height ?? 100, 1)
         let commands = element.elements ?? []
+        // Uniform scale + letterbox — independent sx/sy stretches circles into ovals
+        // and splits clock faces when the view is flex-resized (Analog Clock large).
         let canvasView = SwiftUI.Canvas { context, size in
-            let sx = size.width / cw; let sy = size.height / ch; let s = Swift.min(sx, sy)
+            let s = Swift.min(size.width / cw, size.height / ch)
+            let ox = (size.width - cw * s) / 2
+            let oy = (size.height - ch * s) / 2
+            func X(_ v: CGFloat) -> CGFloat { ox + v * s }
+            func Y(_ v: CGFloat) -> CGFloat { oy + v * s }
             for cmd in commands {
                 switch cmd.draw {
                 case "circle":
-                    let cx = (cmd.cx ?? 0) * sx; let cy = (cmd.cy ?? 0) * sy; let r = (cmd.r ?? 10) * s
+                    let cx = X(cmd.cx ?? 0); let cy = Y(cmd.cy ?? 0); let r = (cmd.r ?? 10) * s
                     let rect = CGRect(x: cx - r, y: cy - r, width: r * 2, height: r * 2)
                     if let f = resolveColor(cmd.fill) { context.fill(SwiftUI.Path(ellipseIn: rect), with: .color(f)) }
-                    if let st = resolveColor(cmd.stroke) { context.stroke(SwiftUI.Path(ellipseIn: rect), with: .color(st), lineWidth: (cmd.strokeWidth ?? 1) * s) }
+                    if let st = resolveColor(cmd.stroke) {
+                        context.stroke(SwiftUI.Path(ellipseIn: rect), with: .color(st), lineWidth: (cmd.strokeWidth ?? 1) * s)
+                    }
                 case "line":
                     var path = SwiftUI.Path()
-                    path.move(to: CGPoint(x: (cmd.x1 ?? 0) * sx, y: (cmd.y1 ?? 0) * sy))
-                    path.addLine(to: CGPoint(x: (cmd.x2 ?? 0) * sx, y: (cmd.y2 ?? 0) * sy))
+                    path.move(to: CGPoint(x: X(cmd.x1 ?? 0), y: Y(cmd.y1 ?? 0)))
+                    path.addLine(to: CGPoint(x: X(cmd.x2 ?? 0), y: Y(cmd.y2 ?? 0)))
                     var style = StrokeStyle(lineWidth: (cmd.strokeWidth ?? 1) * s)
                     if cmd.lineCap == "round" { style.lineCap = .round }
                     context.stroke(path, with: .color(resolveColor(cmd.stroke) ?? Color(hex: "#ffffff")), style: style)
                 case "rect":
-                    let rect = CGRect(x: (cmd.x ?? 0) * sx, y: (cmd.y ?? 0) * sy,
-                                      width: (cmd.width ?? 10) * sx, height: (cmd.height ?? 10) * sy)
+                    let rect = CGRect(
+                        x: X(cmd.x ?? 0), y: Y(cmd.y ?? 0),
+                        width: (cmd.width ?? 10) * s, height: (cmd.height ?? 10) * s
+                    )
                     let cr = (cmd.cornerRadius ?? 0) * s
                     let p = SwiftUI.Path(roundedRect: rect, cornerRadius: cr)
                     if let f = resolveColor(cmd.fill) { context.fill(p, with: .color(f)) }
-                    if let st = resolveColor(cmd.stroke) { context.stroke(p, with: .color(st), lineWidth: (cmd.strokeWidth ?? 1) * s) }
+                    if let st = resolveColor(cmd.stroke) {
+                        context.stroke(p, with: .color(st), lineWidth: (cmd.strokeWidth ?? 1) * s)
+                    }
                 case "arc":
-                    let cx = (cmd.cx ?? 0) * sx; let cy = (cmd.cy ?? 0) * sy; let r = (cmd.r ?? 10) * s
+                    let cx = X(cmd.cx ?? 0); let cy = Y(cmd.cy ?? 0); let r = (cmd.r ?? 10) * s
                     var path = SwiftUI.Path()
                     if cmd.fill != nil { path.move(to: CGPoint(x: cx, y: cy)) }
-                    path.addArc(center: CGPoint(x: cx, y: cy), radius: r,
-                                startAngle: .degrees(Double(cmd.startAngle ?? 0)),
-                                endAngle: .degrees(Double(cmd.endAngle ?? 360)), clockwise: false)
+                    path.addArc(
+                        center: CGPoint(x: cx, y: cy), radius: r,
+                        startAngle: .degrees(Double(cmd.startAngle ?? 0)),
+                        endAngle: .degrees(Double(cmd.endAngle ?? 360)), clockwise: false
+                    )
                     if cmd.fill != nil { path.closeSubpath() }
                     if let f = resolveColor(cmd.fill) { context.fill(path, with: .color(f)) }
-                    if let st = resolveColor(cmd.stroke) { context.stroke(path, with: .color(st), lineWidth: (cmd.strokeWidth ?? 1) * s) }
+                    if let st = resolveColor(cmd.stroke) {
+                        context.stroke(path, with: .color(st), lineWidth: (cmd.strokeWidth ?? 1) * s)
+                    }
                 case "text":
                     let fs = (cmd.fontSize ?? 12) * s
                     let txt = SwiftUI.Text(cmd.content ?? "").font(.system(size: fs))
                         .foregroundColor(resolveColor(cmd.color) ?? .white)
-                    let pt = CGPoint(x: (cmd.x ?? 0) * sx, y: (cmd.y ?? 0) * sy)
+                    let pt = CGPoint(x: X(cmd.x ?? 0), y: Y(cmd.y ?? 0))
                     let anchor: UnitPoint = cmd.anchor == "end" ? .trailing : cmd.anchor == "middle" ? .center : .leading
                     context.draw(context.resolve(txt), at: pt, anchor: anchor)
                 case "path":
                     if let d = cmd.d {
                         var path = parseSVGPath(d)
-                        path = path.applying(CGAffineTransform(scaleX: sx, y: sy))
+                        path = path.applying(
+                            CGAffineTransform(a: s, b: 0, c: 0, d: s, tx: ox, ty: oy)
+                        )
                         if let f = resolveColor(cmd.fill) { context.fill(path, with: .color(f)) }
                         if let st = resolveColor(cmd.stroke) {
                             context.stroke(path, with: .color(st), lineWidth: (cmd.strokeWidth ?? 1) * s)
@@ -689,29 +747,37 @@ public struct DynamicElementView: View {
                 }
             }
         }
-        let shouldFill = (element.flex ?? 0) > 0
-        if shouldFill {
-            canvasView
-                .aspectRatio(cw / ch, contentMode: .fit)
-                .frame(maxWidth: .infinity, maxHeight: .infinity)
-        } else {
-            canvasView.frame(width: cw, height: ch)
-        }
+        // Fit into offered space; never force a fixed pt size larger than the family.
+        canvasView
+            .aspectRatio(cw / ch, contentMode: .fit)
+            .frame(maxWidth: cw, maxHeight: ch)
+            .frame(maxWidth: (element.flex ?? 0) > 0 ? .infinity : nil,
+                   maxHeight: (element.flex ?? 0) > 0 ? .infinity : nil)
     }
 
     // MARK: - Style Application
 
     @ViewBuilder
     private func applyStyle<V: View>(to view: V, element el: WidgetElement) -> some View {
-        view
+        // Buttons consume `padding` as content insets in renderButton — don't double-apply.
+        let outerPad: PaddingValue? = el.type == "button" ? nil : el.padding
+        let styled = view
             .modifier(FlexMod(flex: el.flex))
-            .modifier(PaddingMod(p: el.padding))
+            .modifier(PaddingMod(p: outerPad))
             .modifier(FrameMod(f: el.frame))
-            .modifier(BgMod(bg: el.background, cr: el.cornerRadius))
-            .modifier(BorderMod(b: el.border, cr: el.cornerRadius))
-            .modifier(ClipShapeMod(shape: el.clipShape, cr: el.cornerRadius))
-            .modifier(OpacityMod(o: el.opacity))
-            .modifier(ShadowMod(s: el.shadow))
+        if isWidgetRoot {
+            // Keep padding/frame; chrome comes from WidgetKit containerBackground.
+            styled
+                .modifier(BorderMod(b: el.border, cr: el.cornerRadius))
+                .modifier(OpacityMod(o: el.opacity))
+        } else {
+            styled
+                .modifier(BgMod(bg: el.background, cr: el.cornerRadius))
+                .modifier(BorderMod(b: el.border, cr: el.cornerRadius))
+                .modifier(ClipShapeMod(shape: el.clipShape, cr: el.cornerRadius))
+                .modifier(OpacityMod(o: el.opacity))
+                .modifier(ShadowMod(s: el.shadow))
+        }
     }
 
     // MARK: - Helpers
@@ -820,7 +886,8 @@ private struct FrameMod: ViewModifier {
     let f: FrameConfig?
     func body(content: Content) -> some View {
         if let f = f {
-            content.frame(width: f.width, height: f.height)
+            // Explicit center so badge/avatar content isn't left/top-biased inside the box.
+            content.frame(width: f.width, height: f.height, alignment: .center)
                 .frame(maxWidth: f.maxWidth?.cgFloat, maxHeight: f.maxHeight?.cgFloat)
         } else { content }
     }

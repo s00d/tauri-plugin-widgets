@@ -93,6 +93,38 @@ final class TransportTests: XCTestCase {
         XCTAssertEqual(cfg?.small?.content, "new")
     }
 
+    /// Stale UserDefaults with a high leftover nonce must not beat live file writes.
+    func testFileConfigBeatsStaleHigherNonceDefaults() throws {
+        let group = "group.test.app"
+        let widgetId = "probe"
+
+        let fileMap: [String: String] = [
+            TauriWidgetStoreKeys.configKey(widgetId): #"{"version":1,"small":{"type":"text","content":"from-file"}}"#,
+            TauriWidgetStoreKeys.metaNonce: "3",
+            TauriWidgetStoreKeys.metaUpdatedAt: "300",
+        ]
+        try writeMap(fileMap, to: URL(fileURLWithPath: TauriWidgetDataStore.ownContainerDataPath()))
+
+        let staleDefaults: [String: String] = [
+            TauriWidgetStoreKeys.configKey(widgetId): #"{"version":1,"small":{"type":"text","content":"stale-ud"}}"#,
+            TauriWidgetStoreKeys.metaNonce: "65",
+            TauriWidgetStoreKeys.metaUpdatedAt: "1",
+        ]
+        let ud = UserDefaults(suiteName: group)!
+        ud.set(staleDefaults, forKey: "widget_data")
+        ud.synchronize()
+        defer {
+            ud.removeObject(forKey: "widget_data")
+            ud.synchronize()
+        }
+
+        let (map, source) = TauriWidgetDataStore.loadFreshestMapWithSource(appGroup: group)
+        XCTAssertEqual(source, TauriWidgetTransportName.container)
+        XCTAssertEqual(map[TauriWidgetStoreKeys.metaNonce], "3")
+        let cfg = TauriWidgetDataStore.loadConfig(appGroup: group, widgetId: widgetId)
+        XCTAssertEqual(cfg?.small?.content, "from-file")
+    }
+
     private func setEnv(_ key: String, _ value: String) {
         if previousEnv[key] == nil {
             previousEnv[key] = getenv(key).map { String(cString: $0) }

@@ -2,7 +2,7 @@
 #
 # Generate with:
 #   pnpm build:example
-#   # or: bash tools/build-example-artifacts.sh macos ios android linux
+#   # or: pnpm -C scripts cli build-example macos ios android linux
 #
 # Layout:
 #   artifacts/macos/    .app (+ raw binary)
@@ -16,4 +16,4 @@
 # Prerequisites:
 #   - macOS/iOS: Xcode + rustup ios targets
 #   - Android: ANDROID_HOME + NDK + rustup android targets
-#   - Linux: `docker build -t widgets-linux tests/linux` (or `bash tools/linux-up.sh`)
+#   - Linux: `docker build -t widgets-linux tests/linux` (or `pnpm linux-up`)

@@ -382,6 +382,7 @@ private fun WidgetRootBody(
             .put("size", size)
             .put("schema", 1)
             .put("source", source)
+            .put("trigger", "timeline")
             .put("rendered", JSONArray(RenderTrace.renderedTypes()))
             .put("skipped", RenderTrace.skippedJson())
             .put("ts", System.currentTimeMillis())

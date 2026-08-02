@@ -108,24 +108,36 @@ const FG_SUB: ColorValue = { light: "#475569", dark: "#8e8e93" };
 const FG_OP: ColorValue = { light: "#b45309", dark: "#f09a36" };
 const DIVIDER: ColorValue = { light: "#cbd5e1", dark: "#3a3a3c" };
 
-function btn(label: string, key: string, bg: ColorValue, fg: ColorValue, fs: number): WidgetElement {
+function btn(
+  label: string,
+  key: string,
+  bg: ColorValue,
+  fg: ColorValue,
+  fs: number,
+  pad: number | { top?: number; bottom?: number; leading?: number; trailing?: number } = 2,
+): WidgetElement {
   const isActive = ["+", "-", "*", "/"].includes(key) && operator === key && waitingForOperand;
   return {
     type: "button", label,
     action: `calc:${key}`,
     backgroundColor: isActive ? fg : bg,
     color: isActive ? bg : fg,
-    fontSize: fs, cornerRadius: 8,
+    fontSize: fs, cornerRadius: 6,
+    padding: pad,
   };
 }
 
-function keypad(fsNum: number, fsSym: number): WidgetElement[] {
+function keypad(
+  fsNum: number,
+  fsSym: number,
+  pad: number | { top?: number; bottom?: number; leading?: number; trailing?: number } = 2,
+): WidgetElement[] {
   return [
-    btn("C", "C", BG_FN, FG, fsSym), btn("±", "+-", BG_FN, FG, fsSym), btn("⌫", "BS", BG_FN, FG, fsSym), btn("÷", "/", BG_OP, FG, fsSym),
-    btn("7", "7", BG_NUM, FG, fsNum), btn("8", "8", BG_NUM, FG, fsNum), btn("9", "9", BG_NUM, FG, fsNum), btn("×", "*", BG_OP, FG, fsSym),
-    btn("4", "4", BG_NUM, FG, fsNum), btn("5", "5", BG_NUM, FG, fsNum), btn("6", "6", BG_NUM, FG, fsNum), btn("−", "-", BG_OP, FG, fsSym),
-    btn("1", "1", BG_NUM, FG, fsNum), btn("2", "2", BG_NUM, FG, fsNum), btn("3", "3", BG_NUM, FG, fsNum), btn("+", "+", BG_OP, FG, fsSym),
-    btn("%", "%", BG_FN, FG, fsSym), btn("0", "0", BG_NUM, FG, fsNum), btn(".", ".", BG_NUM, FG, fsNum), btn("=", "=", BG_OP, FG, fsSym),
+    btn("C", "C", BG_FN, FG, fsSym, pad), btn("±", "+-", BG_FN, FG, fsSym, pad), btn("⌫", "BS", BG_FN, FG, fsSym, pad), btn("÷", "/", BG_OP, FG, fsSym, pad),
+    btn("7", "7", BG_NUM, FG, fsNum, pad), btn("8", "8", BG_NUM, FG, fsNum, pad), btn("9", "9", BG_NUM, FG, fsNum, pad), btn("×", "*", BG_OP, FG, fsSym, pad),
+    btn("4", "4", BG_NUM, FG, fsNum, pad), btn("5", "5", BG_NUM, FG, fsNum, pad), btn("6", "6", BG_NUM, FG, fsNum, pad), btn("−", "-", BG_OP, FG, fsSym, pad),
+    btn("1", "1", BG_NUM, FG, fsNum, pad), btn("2", "2", BG_NUM, FG, fsNum, pad), btn("3", "3", BG_NUM, FG, fsNum, pad), btn("+", "+", BG_OP, FG, fsSym, pad),
+    btn("%", "%", BG_FN, FG, fsSym, pad), btn("0", "0", BG_NUM, FG, fsNum, pad), btn(".", ".", BG_NUM, FG, fsNum, pad), btn("=", "=", BG_OP, FG, fsSym, pad),
   ];
 }
 
@@ -134,29 +146,35 @@ function buildCalculatorConfig(): WidgetConfig {
   const dsp = display.length > 10 ? display.slice(0, 10) + "\u2026" : display;
   const opHint = operator && waitingForOperand ? ` ${OP_SYMBOL[operator] ?? operator}` : "";
 
+  // systemSmall ≈ systemMedium height on macOS (~158) — keep vertical chrome tiny so 5 keypad rows fit.
+  const compactPad = { top: 1, bottom: 1, leading: 2, trailing: 2 };
+
   const small: WidgetElement = {
-    type: "vstack", padding: 10, spacing: 6, cornerRadius: 16, background: BG,
+    type: "vstack", padding: 6, spacing: 2, cornerRadius: 14, background: BG,
     children: [
-      { type: "text", content: opHint || " ", fontSize: 12, color: FG_OP, alignment: "trailing" },
-      { type: "text", content: dsp, fontSize: 28, fontWeight: "bold", color: FG, alignment: "trailing", lineLimit: 1 },
+      { type: "hstack", spacing: 4, alignment: "center", children: [
+        { type: "text", content: opHint.trim() || " ", fontSize: 10, color: FG_OP, alignment: "leading", lineLimit: 1 },
+        { type: "spacer" },
+        { type: "text", content: dsp, fontSize: 20, fontWeight: "bold", color: FG, alignment: "trailing", lineLimit: 1 },
+      ] },
       { type: "divider", color: DIVIDER },
-      { type: "grid", columns: 4, spacing: 3, rowSpacing: 3, children: [
-        ...keypad(13, 12),
+      { type: "grid", columns: 4, spacing: 2, rowSpacing: 2, children: [
+        ...keypad(11, 10, compactPad),
       ] },
     ],
   };
 
   const medium: WidgetElement = {
-    type: "vstack", padding: 12, spacing: 6, cornerRadius: 16, background: BG,
+    type: "vstack", padding: 8, spacing: 3, cornerRadius: 14, background: BG,
     children: [
-      { type: "text", content: opHint || " ", fontSize: 13, color: FG_OP, alignment: "trailing" },
-      { type: "text", content: display.length > 12 ? display.slice(0, 12) + "\u2026" : display, fontSize: 36, fontWeight: "bold", color: FG, alignment: "trailing", lineLimit: 1 },
-      ...(history.length > 0
-        ? [{ type: "text", content: history[0], fontSize: 11, color: FG_SUB, alignment: "trailing", lineLimit: 1 } as WidgetElement]
-        : []),
+      { type: "hstack", spacing: 6, alignment: "center", children: [
+        { type: "text", content: opHint.trim() || " ", fontSize: 11, color: FG_OP, alignment: "leading", lineLimit: 1 },
+        { type: "spacer" },
+        { type: "text", content: display.length > 12 ? display.slice(0, 12) + "\u2026" : display, fontSize: 24, fontWeight: "bold", color: FG, alignment: "trailing", lineLimit: 1 },
+      ] },
       { type: "divider", color: DIVIDER },
-      { type: "grid", columns: 4, spacing: 4, rowSpacing: 4, children: [
-        ...keypad(15, 14),
+      { type: "grid", columns: 4, spacing: 3, rowSpacing: 2, children: [
+        ...keypad(13, 12, compactPad),
       ] },
     ],
   };
@@ -168,13 +186,13 @@ function buildCalculatorConfig(): WidgetConfig {
         { type: "text", content: "\u{1F9EE}", fontSize: 14 },
         { type: "text", content: "Calculator", fontSize: 14, fontWeight: "semibold", color: FG_SUB },
         { type: "spacer" },
-        btn("AC", "AC", BG_FN, FG, 11),
+        btn("AC", "AC", BG_FN, FG, 11, 4),
       ] },
       { type: "text", content: opHint || " ", fontSize: 16, color: FG_OP, alignment: "trailing" },
       { type: "text", content: display.length > 14 ? display.slice(0, 14) + "\u2026" : display, fontSize: 42, fontWeight: "bold", color: FG, alignment: "trailing", lineLimit: 1 },
       { type: "divider", color: DIVIDER },
       { type: "grid", columns: 4, spacing: 5, rowSpacing: 5, children: [
-        ...keypad(20, 18),
+        ...keypad(18, 16, { top: 4, bottom: 4, leading: 6, trailing: 6 }),
       ] },
       { type: "divider", color: DIVIDER },
       { type: "text", content: "History", fontSize: 11, fontWeight: "semibold", color: FG_SUB },

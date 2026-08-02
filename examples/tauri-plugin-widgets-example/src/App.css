@@ -164,3 +164,17 @@ h3 { font-size: 13px; font-weight: 600; margin: 8px 0 6px; color: #555; text-tra
 .log-ok { background: #f0fdf4; color: #166534; }
 .log-err { background: #fef2f2; color: #991b1b; }
 .log-empty { text-align: center; color: #9ca3af; font-size: 12px; padding: 16px; }
+
+.trace-panel { margin-top: 12px; }
+.trace-pre {
+  font-family: "SF Mono", "Fira Code", monospace;
+  font-size: 10px;
+  background: #1e1e2e;
+  color: #a6e3a1;
+  padding: 8px;
+  border-radius: 8px;
+  max-height: 220px;
+  overflow: auto;
+  white-space: pre-wrap;
+  word-break: break-word;
+}

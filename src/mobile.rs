@@ -1,21 +1,23 @@
 use serde::Serialize;
 use serde_json::Value;
-use std::collections::hash_map::DefaultHasher;
-use std::collections::{HashMap, HashSet};
+use std::collections::HashSet;
 use std::env;
-use std::hash::{Hash, Hasher};
 use std::sync::Mutex;
 use std::time::Instant;
 use tauri::{plugin::PluginApi, AppHandle, Emitter, Runtime};
 
+use crate::apply::{config_content_hash, ApplyOutcome, ReloadOutcome};
 use crate::config::WidgetsPluginConfig;
 use crate::models::{WidgetConfig, WidgetWindowConfig};
 use crate::receipt::{ReceiptStore, WidgetRenderReceipt};
 use crate::store::config_key;
+use crate::trace::{TraceEvent, TraceSkipReason, TraceStore, WidgetTrace};
 use crate::transport::validate_mobile_transport;
 
-/// Default minimum interval between WidgetKit reload calls.
-/// Can be overridden with `TAURI_WIDGET_MIN_RELOAD_SECS`.
+/// Default minimum interval between WidgetKit reload calls (**iOS/Android host only**).
+///
+/// Override with `TAURI_WIDGET_MIN_RELOAD_SECS`. The macOS/desktop host does not
+/// use this throttle — see `desktop::Widget::set_widget_config`.
 #[cfg(debug_assertions)]
 const DEFAULT_RELOAD_MIN_INTERVAL_SECS: u64 = 0;
 #[cfg(not(debug_assertions))]
@@ -52,10 +54,10 @@ pub fn init<R: Runtime>(
     Ok(Widget {
         app: app.clone(),
         handle,
-        last_config_hash: Mutex::new(HashMap::new()),
         last_reload: Mutex::new(None),
         known_groups: Mutex::new(HashSet::new()),
         receipts: ReceiptStore::new(),
+        trace: TraceStore::new(),
     })
 }
 
@@ -107,10 +109,10 @@ struct SetWidgetConfigPayload<'a> {
 pub struct Widget<R: Runtime> {
     app: AppHandle<R>,
     handle: tauri::plugin::PluginHandle<R>,
-    last_config_hash: Mutex<HashMap<(String, String), u64>>,
     last_reload: Mutex<Option<Instant>>,
     known_groups: Mutex<HashSet<String>>,
     receipts: ReceiptStore,
+    trace: TraceStore,
 }
 
 impl<R: Runtime> Widget<R> {
@@ -156,6 +158,13 @@ impl<R: Runtime> Widget<R> {
             .map(|s| s.to_string()))
     }
 
+    /// Register native widget provider ids.
+    ///
+    /// | Platform | Behaviour |
+    /// |---|---|
+    /// | Android | stores fully-qualified provider class names |
+    /// | iOS / macOS | stores WidgetKit kind strings (advisory) |
+    /// | Desktop | **no-op**, accepted for API symmetry |
     pub fn set_register_widget(&self, widgets: Vec<String>) -> crate::Result<bool> {
         if widgets.is_empty() {
             return Err(crate::Error::new(
@@ -177,22 +186,38 @@ impl<R: Runtime> Widget<R> {
 
     /// Rate-limited reload: skips the actual WidgetKit call if the last
     /// reload happened less than `reload_min_interval_secs()` ago.
-    fn throttled_reload(&self) -> crate::Result<bool> {
+    ///
+    /// Never returns a silent “success” — callers must surface [`ReloadOutcome`].
+    fn throttled_reload(&self) -> crate::Result<ReloadOutcome> {
         let min_interval = reload_min_interval_secs();
         if min_interval == 0 {
-            return self.reload_all_timelines();
+            return match self.reload_all_timelines() {
+                Ok(_) => Ok(ReloadOutcome::Ok),
+                Err(e) => Ok(ReloadOutcome::Failed {
+                    error: e.to_string(),
+                }),
+            };
         }
 
         let mut last = self.last_reload.lock().unwrap();
         let now = Instant::now();
         if let Some(prev) = *last {
-            if now.duration_since(prev).as_secs() < min_interval {
-                return Ok(false);
+            let elapsed = now.duration_since(prev).as_secs();
+            if elapsed < min_interval {
+                return Ok(ReloadOutcome::Throttled {
+                    remaining_secs: crate::apply::throttle_remaining_secs(elapsed, min_interval)
+                        .unwrap_or(0),
+                });
             }
         }
         *last = Some(now);
         drop(last);
-        self.reload_all_timelines()
+        match self.reload_all_timelines() {
+            Ok(_) => Ok(ReloadOutcome::Ok),
+            Err(e) => Ok(ReloadOutcome::Failed {
+                error: e.to_string(),
+            }),
+        }
     }
 
     pub fn reload_timelines(&self, of_kind: &str) -> crate::Result<bool> {
@@ -202,6 +227,13 @@ impl<R: Runtime> Widget<R> {
             .map_err(Into::into)
     }
 
+    /// Request that the OS show the "add widget" / pin UI.
+    ///
+    /// | Platform | Behaviour |
+    /// |---|---|
+    /// | Android | opens the pin-widget flow |
+    /// | iOS / macOS | bridge call (may be a no-op on the OS side) |
+    /// | Desktop | **error** — use `create_widget_window` instead |
     pub fn request_widget(&self) -> crate::Result<bool> {
         self.handle
             .run_mobile_plugin("requestWidget", ())
@@ -227,7 +259,7 @@ impl<R: Runtime> Widget<R> {
         group: &str,
         widget_id: &str,
         skip_reload: bool,
-    ) -> crate::Result<bool> {
+    ) -> crate::Result<ApplyOutcome> {
         if widget_id.is_empty() {
             return Err(crate::Error::new("widget_id must not be empty"));
         }
@@ -235,30 +267,33 @@ impl<R: Runtime> Widget<R> {
 
         let json = serde_json::to_string(config)
             .map_err(|e| crate::Error::new(format!("serialize config: {e}")))?;
+        let hash = config_content_hash(&json);
+        let key = config_key(widget_id);
 
-        let mut hasher = DefaultHasher::new();
-        json.hash(&mut hasher);
-        let new_hash = hasher.finish();
-        let hash_key = (group.to_string(), widget_id.to_string());
-
-        let changed = {
-            let mut prev = self.last_config_hash.lock().unwrap();
-            if prev.get(&hash_key) == Some(&new_hash) {
-                false
-            } else {
-                prev.insert(hash_key, new_hash);
-                true
-            }
-        };
+        let existing = self.get_items(&key, group)?;
+        let changed = existing.as_deref() != Some(json.as_str());
 
         if !changed {
-            return Ok(true);
+            let outcome = ApplyOutcome::unchanged(hash);
+            self.trace.push(TraceEvent::ConfigSet {
+                widget_id: widget_id.into(),
+                nonce: 0,
+                bytes: json.len(),
+                changed: false,
+                skip: Some(TraceSkipReason::Unchanged { hash }),
+            });
+            self.trace.push(TraceEvent::Reload {
+                performed: false,
+                reason: outcome.reload.clone(),
+            });
+            return Ok(outcome);
         }
 
         crate::capabilities::log_capabilities(config);
 
         // Prefer native setWidgetConfig (Android image preprocess + Glance sync).
         // Falls back to set_items with config:{widgetId} key.
+        let t0 = Instant::now();
         let native_ok: Result<Value, _> = self.handle.run_mobile_plugin(
             "setWidgetConfig",
             SetWidgetConfigPayload {
@@ -267,22 +302,50 @@ impl<R: Runtime> Widget<R> {
                 widget_id,
             },
         );
+        let write_ms = t0.elapsed().as_millis() as u32;
 
-        match native_ok {
-            Ok(_) => {
-                if !skip_reload {
-                    self.throttled_reload()?;
-                }
-                Ok(true)
-            }
+        let transports: Vec<String> = match &native_ok {
+            Ok(_) => vec!["native".into()],
             Err(_) => {
-                self.set_items(&config_key(widget_id), &json, group)?;
-                if !skip_reload {
-                    self.throttled_reload()?;
-                }
-                Ok(true)
+                self.set_items(&key, &json, group)?;
+                vec!["items".into()]
             }
+        };
+        for name in &transports {
+            self.trace.push(TraceEvent::Write {
+                transport: name.clone(),
+                ok: true,
+                duration_ms: write_ms,
+                error: None,
+            });
         }
+
+        let reload = if skip_reload {
+            ReloadOutcome::Skipped {
+                why: "skip_reload".into(),
+            }
+        } else {
+            self.throttled_reload()?
+        };
+
+        self.trace.push(TraceEvent::ConfigSet {
+            widget_id: widget_id.into(),
+            nonce: 0,
+            bytes: json.len(),
+            changed: true,
+            skip: None,
+        });
+        self.trace.push(TraceEvent::Reload {
+            performed: matches!(reload, ReloadOutcome::Ok),
+            reason: reload.clone(),
+        });
+
+        Ok(ApplyOutcome {
+            written: true,
+            reload,
+            transports,
+            skip: None,
+        })
     }
 
     pub fn get_widget_config(
@@ -324,20 +387,45 @@ impl<R: Runtime> Widget<R> {
         }
     }
 
-    pub fn poll_pending_actions(&self, group: &str) -> crate::Result<Vec<Value>> {
+    pub fn poll_pending_actions(
+        &self,
+        group: &str,
+    ) -> crate::Result<Vec<crate::WidgetActionEnvelope>> {
         self.remember_group(group);
         let res: Value = self
             .handle
             .run_mobile_plugin("pollPendingActions", GroupPayload { group })?;
-        Ok(res
+        let arr = res
             .get("results")
             .and_then(|v| v.as_array())
             .cloned()
-            .unwrap_or_default())
+            .unwrap_or_default();
+        let mut out = Vec::with_capacity(arr.len());
+        for item in arr {
+            match serde_json::from_value::<crate::WidgetActionEnvelope>(item) {
+                Ok(env) => out.push(env),
+                Err(e) => {
+                    log::warn!("poll_pending_actions: skip malformed envelope: {e}");
+                }
+            }
+        }
+        Ok(out)
     }
 
     pub fn report_receipt(&self, receipt: WidgetRenderReceipt) -> crate::Result<bool> {
         self.remember_group(&receipt.group);
+        let trigger = receipt
+            .trigger
+            .clone()
+            .unwrap_or_else(|| "timeline".into());
+        self.trace.push(TraceEvent::Render {
+            instance: receipt.instance.clone(),
+            nonce: receipt.nonce,
+            source: receipt.source.clone(),
+            trigger,
+            lag_ms: 0,
+            skipped: receipt.skipped.clone(),
+        });
         self.receipts.upsert(receipt.clone());
         #[derive(Serialize)]
         #[serde(rename_all = "camelCase")]
@@ -376,5 +464,22 @@ impl<R: Runtime> Widget<R> {
             }
         }
         Ok(self.receipts.list(group))
+    }
+
+    pub fn get_widget_trace(
+        &self,
+        group: &str,
+        since_ms: Option<u64>,
+    ) -> crate::Result<WidgetTrace> {
+        Ok(WidgetTrace {
+            enabled: crate::trace::trace_enabled(),
+            events: self.trace.list_since(since_ms),
+            receipts: self.receipts.history(group),
+        })
+    }
+
+    pub fn flush_widget_trace(&self) -> crate::Result<bool> {
+        // Mobile: memory-only unless host later adds a shared file path.
+        Ok(true)
     }
 }

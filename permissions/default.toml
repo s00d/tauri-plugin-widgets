@@ -17,4 +17,6 @@ permissions = [
     "allow-poll-pending-actions",
     "allow-report-receipt",
     "allow-get-widget-diagnostics",
+    "allow-get-widget-trace",
+    "allow-flush-widget-trace",
 ]

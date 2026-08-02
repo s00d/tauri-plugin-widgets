@@ -319,6 +319,18 @@
           "markdownDescription": "Denies the create_widget_window command without any pre-configured scope."
         },
         {
+          "description": "Enables the flush_widget_trace command without any pre-configured scope.",
+          "type": "string",
+          "const": "allow-flush-widget-trace",
+          "markdownDescription": "Enables the flush_widget_trace command without any pre-configured scope."
+        },
+        {
+          "description": "Denies the flush_widget_trace command without any pre-configured scope.",
+          "type": "string",
+          "const": "deny-flush-widget-trace",
+          "markdownDescription": "Denies the flush_widget_trace command without any pre-configured scope."
+        },
+        {
           "description": "Enables the get_items command without any pre-configured scope.",
           "type": "string",
           "const": "allow-get-items",
@@ -353,6 +365,18 @@
           "type": "string",
           "const": "deny-get-widget-diagnostics",
           "markdownDescription": "Denies the get_widget_diagnostics command without any pre-configured scope."
+        },
+        {
+          "description": "Enables the get_widget_trace command without any pre-configured scope.",
+          "type": "string",
+          "const": "allow-get-widget-trace",
+          "markdownDescription": "Enables the get_widget_trace command without any pre-configured scope."
+        },
+        {
+          "description": "Denies the get_widget_trace command without any pre-configured scope.",
+          "type": "string",
+          "const": "deny-get-widget-trace",
+          "markdownDescription": "Denies the get_widget_trace command without any pre-configured scope."
         },
         {
           "description": "Enables the poll_pending_actions command without any pre-configured scope.",
@@ -463,10 +487,10 @@
           "markdownDescription": "Denies the widget_action command without any pre-configured scope."
         },
         {
-          "description": "Default permissions for the widgets plugin — enables all commands.\n#### This default permission set includes:\n\n- `allow-set-items`\n- `allow-get-items`\n- `allow-set-register-widget`\n- `allow-reload-all-timelines`\n- `allow-reload-timelines`\n- `allow-request-widget`\n- `allow-create-widget-window`\n- `allow-close-widget-window`\n- `allow-set-widget-config`\n- `allow-get-widget-config`\n- `allow-widget-action`\n- `allow-poll-pending-actions`\n- `allow-report-receipt`\n- `allow-get-widget-diagnostics`",
+          "description": "Default permissions for the widgets plugin — enables all commands.\n#### This default permission set includes:\n\n- `allow-set-items`\n- `allow-get-items`\n- `allow-set-register-widget`\n- `allow-reload-all-timelines`\n- `allow-reload-timelines`\n- `allow-request-widget`\n- `allow-create-widget-window`\n- `allow-close-widget-window`\n- `allow-set-widget-config`\n- `allow-get-widget-config`\n- `allow-widget-action`\n- `allow-poll-pending-actions`\n- `allow-report-receipt`\n- `allow-get-widget-diagnostics`\n- `allow-get-widget-trace`\n- `allow-flush-widget-trace`",
           "type": "string",
           "const": "default",
-          "markdownDescription": "Default permissions for the widgets plugin — enables all commands.\n#### This default permission set includes:\n\n- `allow-set-items`\n- `allow-get-items`\n- `allow-set-register-widget`\n- `allow-reload-all-timelines`\n- `allow-reload-timelines`\n- `allow-request-widget`\n- `allow-create-widget-window`\n- `allow-close-widget-window`\n- `allow-set-widget-config`\n- `allow-get-widget-config`\n- `allow-widget-action`\n- `allow-poll-pending-actions`\n- `allow-report-receipt`\n- `allow-get-widget-diagnostics`"
+          "markdownDescription": "Default permissions for the widgets plugin — enables all commands.\n#### This default permission set includes:\n\n- `allow-set-items`\n- `allow-get-items`\n- `allow-set-register-widget`\n- `allow-reload-all-timelines`\n- `allow-reload-timelines`\n- `allow-request-widget`\n- `allow-create-widget-window`\n- `allow-close-widget-window`\n- `allow-set-widget-config`\n- `allow-get-widget-config`\n- `allow-widget-action`\n- `allow-poll-pending-actions`\n- `allow-report-receipt`\n- `allow-get-widget-diagnostics`\n- `allow-get-widget-trace`\n- `allow-flush-widget-trace`"
         }
       ]
     }

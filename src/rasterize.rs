@@ -3,7 +3,7 @@
 //! Used for `chart` / `canvas` / `gauge` nodes that Adaptive Cards cannot express natively.
 
 use crate::models::{
-    CanvasDrawCommand, ChartDataPoint, ChartType, ColorValue, GaugeStyle, ShapeType, WidgetElement,
+    CanvasDrawCommand, ChartDataPoint, ChartType, ColorValue, GaugeStyle, ShapeType, WidgetElement, GaugeElement, ChartElement, ShapeElement, CanvasElement,
 };
 use std::f64::consts::PI;
 
@@ -15,19 +15,19 @@ const PIE_COLORS: &[&str] = &[
 /// Build an SVG document for chart/canvas/gauge/shape; `None` for other element types.
 pub fn element_to_svg(el: &WidgetElement) -> Option<String> {
     match el {
-        WidgetElement::Chart {
+        WidgetElement::Chart(ChartElement {
             chart_type,
             chart_data,
             tint,
             ..
-        } => Some(chart_svg(chart_type, chart_data, tint.as_ref())),
-        WidgetElement::Canvas {
+        }) => Some(chart_svg(chart_type, chart_data, tint.as_ref())),
+        WidgetElement::Canvas(CanvasElement {
             width,
             height,
             elements,
             ..
-        } => Some(canvas_svg(*width, *height, elements)),
-        WidgetElement::Gauge {
+        }) => Some(canvas_svg(*width, *height, elements)),
+        WidgetElement::Gauge(GaugeElement {
             value,
             min,
             max,
@@ -36,7 +36,7 @@ pub fn element_to_svg(el: &WidgetElement) -> Option<String> {
             current_value_label,
             label,
             ..
-        } => Some(gauge_svg(
+        }) => Some(gauge_svg(
             *value,
             min.unwrap_or(0.0),
             max.unwrap_or(1.0),
@@ -45,14 +45,14 @@ pub fn element_to_svg(el: &WidgetElement) -> Option<String> {
             current_value_label.as_deref(),
             label.as_deref(),
         )),
-        WidgetElement::Shape {
+        WidgetElement::Shape(ShapeElement {
             shape_type,
             fill,
             stroke,
             stroke_width,
             size,
             ..
-        } => Some(shape_svg(
+        }) => Some(shape_svg(
             shape_type,
             fill.as_ref(),
             stroke.as_ref(),
@@ -473,7 +473,7 @@ mod tests {
 
     #[test]
     fn chart_svg_non_empty() {
-        let el = WidgetElement::Chart {
+        let el = WidgetElement::Chart(ChartElement {
             chart_type: ChartType::Bar,
             chart_data: vec![
                 ChartDataPoint {
@@ -489,7 +489,7 @@ mod tests {
             ],
             tint: None,
             style: Default::default(),
-        };
+        });
         let svg = element_to_svg(&el).unwrap();
         assert!(svg.contains("<svg"));
         assert!(svg.contains("<rect"));
@@ -497,14 +497,14 @@ mod tests {
 
     #[test]
     fn shape_svg_circle() {
-        let el = WidgetElement::Shape {
+        let el = WidgetElement::Shape(ShapeElement {
             shape_type: ShapeType::Circle,
             fill: None,
             stroke: None,
             stroke_width: None,
             size: Some(32.0),
             style: Default::default(),
-        };
+        });
         let svg = element_to_svg(&el).unwrap();
         assert!(svg.contains("<circle"));
     }
@@ -512,7 +512,7 @@ mod tests {
     #[cfg(feature = "rasterize")]
     #[test]
     fn chart_png_data_uri() {
-        let el = WidgetElement::Chart {
+        let el = WidgetElement::Chart(ChartElement {
             chart_type: ChartType::Line,
             chart_data: vec![
                 ChartDataPoint {
@@ -528,7 +528,7 @@ mod tests {
             ],
             tint: None,
             style: Default::default(),
-        };
+        });
         let uri = element_to_png_data_uri(&el).unwrap();
         assert!(uri.starts_with("data:image/png;base64,"));
         assert!(uri.len() > 64);

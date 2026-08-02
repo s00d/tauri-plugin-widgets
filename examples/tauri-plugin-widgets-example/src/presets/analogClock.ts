@@ -35,6 +35,17 @@ function buildClockFace(size: number, hAngle: number, mAngle: number, sAngle: nu
   ];
 }
 
+function clockCanvas(size: number, hAngle: number, mAngle: number, sAngle: number): WidgetElement {
+  return {
+    type: "canvas",
+    width: size,
+    height: size,
+    // Let the canvas shrink inside WidgetKit families without clipping.
+    flex: 1,
+    elements: buildClockFace(size, hAngle, mAngle, sAngle),
+  };
+}
+
 function buildClockConfig(): WidgetConfig {
   const now = new Date();
   const h = now.getHours() % 12;
@@ -43,52 +54,52 @@ function buildClockConfig(): WidgetConfig {
   const hAngle = ((h + m / 60) * 30 - 90) * Math.PI / 180;
   const mAngle = ((m + s / 60) * 6 - 90) * Math.PI / 180;
   const sAngle = (s * 6 - 90) * Math.PI / 180;
-  const smallSize = 136;
-  const mediumSize = 288;
-  const largeSize = 326;
-  const clockCanvasSmall: WidgetElement = { type: "canvas", width: smallSize, height: smallSize, elements: buildClockFace(smallSize, hAngle, mAngle, sAngle) };
-  const clockCanvasMedium: WidgetElement = { type: "canvas", width: mediumSize, height: mediumSize, elements: buildClockFace(mediumSize, hAngle, mAngle, sAngle) };
-  const clockCanvasLarge: WidgetElement = { type: "canvas", width: largeSize, height: largeSize, elements: buildClockFace(largeSize, hAngle, mAngle, sAngle) };
+  // Logical design sizes — renderer fits them into the family with uniform scale.
+  // Keep under typical content areas: small≈130, medium height≈140, large half≈150.
+  const smallSize = 120;
+  const mediumSize = 128;
+  const largeSize = 148;
   const timeStr = `${String(now.getHours()).padStart(2, "0")}:${String(m).padStart(2, "0")}:${String(s).padStart(2, "0")}`;
   const dateStr = now.toLocaleDateString("en-US", { weekday: "long", month: "short", day: "numeric" });
   const tzOffset = now.getTimezoneOffset();
   const tz = "UTC" + (tzOffset <= 0 ? "+" : "-") + Math.abs(tzOffset / 60);
 
   const small: WidgetElement = {
-    type: "vstack", spacing: 6, padding: 12, cornerRadius: 16,
+    type: "vstack", spacing: 6, padding: 12, cornerRadius: 16, alignment: "center",
     background: { gradientType: "linear", colors: ["#0f172a", "#1e293b"], direction: "topToBottom" },
     children: [
-      clockCanvasSmall,
+      clockCanvas(smallSize, hAngle, mAngle, sAngle),
       { type: "text", content: timeStr, fontSize: 13, fontWeight: "semibold", color: "#94a3b8", alignment: "center" },
     ],
   };
 
   const medium: WidgetElement = {
-    type: "hstack", spacing: 16, padding: 14, cornerRadius: 16,
+    type: "hstack", spacing: 12, padding: 14, cornerRadius: 16, alignment: "center",
     background: { gradientType: "linear", colors: ["#0f172a", "#1e293b"], direction: "leadingToTrailing" },
     children: [
-      { ...clockCanvasMedium },
-      { type: "vstack", spacing: 8, flex: 1, children: [
-        { type: "text", content: timeStr, fontSize: 28, fontWeight: "bold", color: "#f1f5f9" },
-        { type: "text", content: dateStr, fontSize: 13, color: "#94a3b8" },
+      clockCanvas(mediumSize, hAngle, mAngle, sAngle),
+      { type: "vstack", spacing: 6, alignment: "leading", flex: 1, children: [
+        { type: "text", content: timeStr, fontSize: 22, fontWeight: "bold", color: "#f1f5f9", lineLimit: 1 },
+        { type: "text", content: dateStr, fontSize: 12, color: "#94a3b8", lineLimit: 1 },
         { type: "spacer" },
-        { type: "label", text: tz, systemName: "globe", fontSize: 12, color: "#64748b" },
+        { type: "label", text: tz, systemName: "globe", fontSize: 11, color: "#64748b" },
       ] },
     ],
   };
 
   const large: WidgetElement = {
-    type: "vstack", spacing: 8, padding: 14, cornerRadius: 16,
+    type: "vstack", spacing: 8, padding: 14, cornerRadius: 16, alignment: "center",
     background: { gradientType: "linear", colors: ["#0f172a", "#1e293b", "#0f172a"], direction: "topToBottom" },
     children: [
-      { type: "text", content: "World Clock", fontSize: 16, fontWeight: "bold", color: "#f1f5f9", alignment: "center" },
-      { type: "hstack", spacing: 12, children: [
-        { type: "vstack", spacing: 4, flex: 1, children: [
-          { ...clockCanvasLarge },
+      { type: "text", content: "World Clock", fontSize: 15, fontWeight: "bold", color: "#f1f5f9", alignment: "center" },
+      { type: "hstack", spacing: 10, alignment: "center", children: [
+        { type: "vstack", spacing: 4, alignment: "center", flex: 1, children: [
+          clockCanvas(largeSize, hAngle, mAngle, sAngle),
           { type: "text", content: "Local", fontSize: 11, color: "#94a3b8", alignment: "center" },
         ] },
-        { type: "vstack", spacing: 4, flex: 1, children: [
-          { ...clockCanvasLarge },
+        { type: "vstack", spacing: 4, alignment: "center", flex: 1, children: [
+          // Tokyo ≈ UTC+9 — show same face for demo (hands already live via builder tick).
+          clockCanvas(largeSize, hAngle, mAngle, sAngle),
           { type: "text", content: "Tokyo", fontSize: 11, color: "#94a3b8", alignment: "center" },
         ] },
       ] },

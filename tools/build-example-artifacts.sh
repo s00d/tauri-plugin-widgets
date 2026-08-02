@@ -54,21 +54,26 @@ log "build plugin JS (root)"
 # ── macOS ──────────────────────────────────────────────────────────────────
 if want macos; then
   log "macOS: tauri build (PlugIns via bundle.macOS.files)"
+  macos_ok=0
   if pnpm tauri build 2>&1 | tee "$OUT/logs/macos-${STAMP}.log"; then
-    APPEX="src-tauri/target/release/bundle/macos/widget-example.app/Contents/PlugIns/TauriWidgetExtension.appex"
-    if [[ ! -d "$APPEX" ]]; then
-      fail_log macos "macOS build OK but PlugIns/.appex missing — check beforeBundleCommand + macOS.files"
-    else
-      log "macOS: found $APPEX"
-      copy_glob "$OUT/macos" \
-        "src-tauri/target/release/bundle/macos/*.app" \
-        "src-tauri/target/release/bundle/dmg/*.dmg" \
-        "src-tauri/target/release/widget-example" \
-        "src-tauri/target/release/tauri-plugin-widgets-example" \
-        || log "macOS: build ok but no bundle files found (check logs)"
-    fi
+    macos_ok=1
   else
-    fail_log macos "macOS build FAILED"
+    log "macOS: tauri build reported failure — harvesting .app if present (DMG often flakes)"
+  fi
+  APPEX="src-tauri/target/release/bundle/macos/widget-example.app/Contents/PlugIns/TauriWidgetExtension.appex"
+  if [[ -d "$APPEX" ]]; then
+    log "macOS: found $APPEX"
+    copy_glob "$OUT/macos" \
+      "src-tauri/target/release/bundle/macos/*.app" \
+      "src-tauri/target/release/bundle/dmg/*.dmg" \
+      "src-tauri/target/release/widget-example" \
+      "src-tauri/target/release/tauri-plugin-widgets-example" \
+      || log "macOS: no bundle files found (check logs)"
+    macos_ok=1
+  elif [[ "$macos_ok" -ne 1 ]]; then
+    fail_log macos "macOS build FAILED — no .app / PlugIns"
+  else
+    fail_log macos "macOS build OK but PlugIns/.appex missing — check beforeBundleCommand + macOS.files"
   fi
 fi
 
