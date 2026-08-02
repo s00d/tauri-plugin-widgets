@@ -194,7 +194,11 @@ class WidgetBridgePlugin(private val activity: Activity) : Plugin(activity) {
                 if (type == "image") {
                     val url = node.optString("url", "")
                     if (url.isNotBlank()) {
-                        val ttlMs = DEFAULT_IMAGE_CACHE_TTL_MS
+                        val ttlMs = when {
+                            node.has("cacheTtlMs") -> node.optLong("cacheTtlMs", DEFAULT_IMAGE_CACHE_TTL_MS)
+                            node.has("cacheTtlSec") -> node.optLong("cacheTtlSec", DEFAULT_IMAGE_CACHE_TTL_MS / 1000L) * 1000L
+                            else -> DEFAULT_IMAGE_CACHE_TTL_MS
+                        }
                         val localPath = cacheImageFromUrl(url, ttlMs)
                         if (!localPath.isNullOrBlank()) {
                             node.put("localPath", localPath)
@@ -378,6 +382,16 @@ class WidgetBridgePlugin(private val activity: Activity) : Plugin(activity) {
                     "processedLen=${processedConfig.length}"
             )
             val prefs = activity.applicationContext.getSharedPreferences(safeGroup, Context.MODE_PRIVATE)
+            val previous = prefs.getString(key, null)
+            if (previous == processedConfig) {
+                // Same bytes after prefetch — skip nonce bump / Glance sync / reload.
+                getMetaPrefs().edit()
+                    .putString(WidgetStoreKeys.KEY_ACTIVE_GROUP, safeGroup)
+                    .putString(WidgetStoreKeys.KEY_ACTIVE_WIDGET_ID, args.widgetId)
+                    .apply()
+                invoke.resolve(JSObject().put("results", true))
+                return
+            }
             val editor = prefs.edit()
             editor.putString(key, processedConfig)
             bumpMetaNonce(editor, prefs)

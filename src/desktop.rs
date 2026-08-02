@@ -14,7 +14,7 @@ use crate::error::Error;
 use crate::models::{WidgetConfig, WidgetWindowConfig};
 use crate::receipt::{receipts_path, ReceiptStore, WidgetRenderReceipt};
 use crate::store::{
-    self, config_key, parse_pending_actions, touch_meta, DataMap, PENDING_ACTIONS_KEY,
+    self, config_key, parse_pending_actions, DataMap, PENDING_ACTIONS_KEY,
 };
 use crate::trace::{trace_path, TraceEvent, TraceSkipReason, TraceStore, WidgetTrace};
 
@@ -130,7 +130,42 @@ impl<R: Runtime> Widget<R> {
             Ok(crate::macos_transport::sandbox_widget_data_path(group))
         }
 
-        #[cfg(not(target_os = "macos"))]
+        #[cfg(target_os = "windows")]
+        {
+            // Align with WidgetProvider Store.DefaultPath so Widgets Board sees host writes.
+            if let Ok(env_path) = std::env::var("TAURI_WIDGETS_DATA") {
+                let p = env_path.trim();
+                if !p.is_empty() {
+                    let path = if p.ends_with(".json") {
+                        PathBuf::from(p)
+                    } else {
+                        PathBuf::from(p).join("widget_data.json")
+                    };
+                    if let Some(parent) = path.parent() {
+                        if !parent.exists() {
+                            fs::create_dir_all(parent)?;
+                        }
+                    }
+                    return Ok(path);
+                }
+            }
+            let local = std::env::var("LOCALAPPDATA")
+                .map(PathBuf::from)
+                .or_else(|_| {
+                    self.app
+                        .path()
+                        .app_data_dir()
+                        .map_err(|e| Error::Io(e.to_string()))
+                })?;
+            let dir = local.join("tauri-plugin-widgets");
+            if !dir.exists() {
+                fs::create_dir_all(&dir)?;
+            }
+            let _ = group; // single shared widget_data.json — group lives in map keys
+            Ok(dir.join("widget_data.json"))
+        }
+
+        #[cfg(all(not(target_os = "macos"), not(target_os = "windows")))]
         {
             let base = self
                 .app
@@ -218,7 +253,7 @@ impl<R: Runtime> Widget<R> {
         }
         #[cfg(not(target_os = "macos"))]
         {
-            touch_meta(map);
+            store::touch_meta(map);
         }
         let snapshot = map.clone();
         drop(store);
@@ -634,7 +669,7 @@ impl<R: Runtime> Widget<R> {
         }
         #[cfg(not(target_os = "macos"))]
         {
-            touch_meta(map);
+            store::touch_meta(map);
         }
         let snapshot = map.clone();
         drop(store);
@@ -774,8 +809,17 @@ fn macos_shared_container(group: &str) -> Option<PathBuf> {
 
 #[cfg(not(target_os = "macos"))]
 fn atomic_write(path: &PathBuf, data: &[u8]) -> std::io::Result<()> {
-    let tmp = path.with_extension("tmp");
+    let nanos = std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .map(|d| d.as_nanos())
+        .unwrap_or(0);
+    let tmp = path.with_extension(format!("tmp.{}.{}", std::process::id(), nanos));
     fs::write(&tmp, data)?;
-    fs::rename(&tmp, path)?;
-    Ok(())
+    match fs::rename(&tmp, path) {
+        Ok(()) => Ok(()),
+        Err(e) => {
+            let _ = fs::remove_file(&tmp);
+            Err(e)
+        }
+    }
 }

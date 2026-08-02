@@ -64,8 +64,14 @@ _From showcase preset — case `calculator.small`._
   "action": "calc:C",
   "backgroundColor": "#636366",
   "color": "#fff",
-  "fontSize": 11,
-  "cornerRadius": 6
+  "fontSize": 10,
+  "cornerRadius": 6,
+  "padding": {
+    "top": 1,
+    "bottom": 1,
+    "leading": 2,
+    "trailing": 2
+  }
 }
 ```
 

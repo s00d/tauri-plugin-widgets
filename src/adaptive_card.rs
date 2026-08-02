@@ -501,7 +501,7 @@ fn el(e: &WidgetElement, skipped: &mut Vec<SkippedElement>) -> Value {
                         // Keep a blank mark slot so labels share a left edge.
                         None => (" ", "Light"),
                     };
-                    let mut row = json!({
+                    let row = json!({
                         "type": "ColumnSet",
                         "columns": [
                             {
@@ -531,14 +531,20 @@ fn el(e: &WidgetElement, skipped: &mut Vec<SkippedElement>) -> Value {
                             }
                         ]
                     });
+                    // ColumnSet has no selectAction in AC 1.5 — wrap in Container.
                     if let Some(ref a) = it.action {
-                        row["selectAction"] = json!({
-                            "type": "Action.Execute",
-                            "verb": a,
-                            "data": { "payload": it.payload },
-                        });
+                        json!({
+                            "type": "Container",
+                            "items": [row],
+                            "selectAction": {
+                                "type": "Action.Execute",
+                                "verb": a,
+                                "data": { "payload": it.payload },
+                            }
+                        })
+                    } else {
+                        row
                     }
-                    row
                 })
                 .collect();
             let mut obj = json!({

@@ -8,7 +8,7 @@
           "color": "Light",
           "id": "fg:#fff",
           "size": "ExtraLarge",
-          "text": "72°",
+          "text": "72\u00b0",
           "type": "TextBlock",
           "weight": "Bolder",
           "wrap": true
@@ -43,7 +43,7 @@
           "type": "Container"
         }
       ],
-      "spacing": "None",
+      "spacing": "Default",
       "style": "emphasis",
       "type": "Container"
     }

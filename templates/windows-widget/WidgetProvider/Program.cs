@@ -1,5 +1,8 @@
 using System.Runtime.InteropServices;
 using ComTypes = System.Runtime.InteropServices.ComTypes;
+#if !WIDGET_SMOKE
+using WinRT;
+#endif
 
 namespace TauriWidgets.WidgetProvider;
 
@@ -11,6 +14,9 @@ internal static class Program
 {
     private const uint CLSCTX_LOCAL_SERVER = 0x4;
     private const uint REGCLS_MULTIPLEUSE = 0x1;
+
+    /// <summary>Signaled when the last Widgets Board instance is deleted (or Ctrl+C).</summary>
+    internal static readonly ManualResetEvent ExitEvent = new(false);
 
     [DllImport("ole32.dll")]
     private static extern int CoRegisterClassObject(
@@ -51,13 +57,12 @@ internal static class Program
 
         try
         {
-            using var exit = new ManualResetEvent(false);
             Console.CancelKeyPress += (_, e) =>
             {
                 e.Cancel = true;
-                exit.Set();
+                ExitEvent.Set();
             };
-            exit.WaitOne();
+            ExitEvent.WaitOne();
         }
         finally
         {
@@ -73,6 +78,8 @@ internal static class Program
 [ClassInterface(ClassInterfaceType.None)]
 internal sealed class WidgetProviderFactory : IClassFactory
 {
+    private static readonly Guid IidIUnknown = Guid.Parse("00000000-0000-0000-C000-000000000046");
+
     public int CreateInstance(nint pUnkOuter, ref Guid riid, out nint ppvObject)
     {
         ppvObject = 0;
@@ -81,8 +88,25 @@ internal sealed class WidgetProviderFactory : IClassFactory
             return unchecked((int)0x80040110); // CLASS_E_NOAGGREGATION
         }
 
-        object instance = new WidgetProvider();
-        return Marshal.QueryInterface(Marshal.GetIUnknownForObject(instance), ref riid, out ppvObject);
+#if !WIDGET_SMOKE
+        // Widgets Board expects the WinRT IWidgetProvider projection, not a classic COM IUnknown.
+        if (riid == typeof(WidgetProvider).GUID || riid == IidIUnknown)
+        {
+            ppvObject = MarshalInspectable<WidgetProvider>.FromManaged(new WidgetProvider());
+            return 0; // S_OK
+        }
+        return unchecked((int)0x80004002); // E_NOINTERFACE
+#else
+        var unk = Marshal.GetIUnknownForObject(new WidgetProvider());
+        try
+        {
+            return Marshal.QueryInterface(unk, ref riid, out ppvObject);
+        }
+        finally
+        {
+            Marshal.Release(unk);
+        }
+#endif
     }
 
     public int LockServer(bool fLock) => 0;

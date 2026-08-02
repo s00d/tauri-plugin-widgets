@@ -51,6 +51,10 @@ public sealed class WidgetProvider
     {
         Running.Remove(widgetId);
         Store.UntrackWidget(widgetId);
+        if (Running.Ids.Length == 0)
+        {
+            Program.ExitEvent.Set();
+        }
     }
 
     public void OnActionInvoked(WidgetActionInvokedArgs actionInvokedArgs)
@@ -104,6 +108,10 @@ public sealed class WidgetProvider
     {
         Running.Remove(widgetId);
         Store.UntrackWidget(widgetId);
+        if (Running.Ids.Length == 0)
+        {
+            Program.ExitEvent.Set();
+        }
     }
 #endif
 

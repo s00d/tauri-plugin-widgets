@@ -53,7 +53,7 @@ var root=document.getElementById('root');
 function emitAction(action,payload){
   return invoke('plugin:widgets|widget_action',{
     action:action,
-    payload:payload||null,
+    payload:payload==null?null:payload,
     widgetId:WIDGET_ID,
     group:GROUP
   }).catch(console.error);
@@ -632,20 +632,26 @@ function reportReceipt(cfg, source, trigger){
     var nonce=0;
     if(cfg&&cfg.__nonce!=null)nonce=Number(cfg.__nonce)||0;
     var trig=trigger||(source==='push'?'reload':'timeline');
-    invoke('plugin:widgets|report_receipt',{receipt:{
-      widgetId:WIDGET_ID,
-      group:GROUP,
-      instance:label,
-      nonce:nonce,
-      size:SIZE||'small',
-      theme:document.documentElement.getAttribute('data-theme')||undefined,
-      schema:1,
-      source:source||'pull',
-      trigger:trig,
-      rendered:rendered,
-      skipped:skipped,
-      ts:Date.now()
-    }}).catch(function(){});
+    function send(n){
+      invoke('plugin:widgets|report_receipt',{receipt:{
+        widgetId:WIDGET_ID,
+        group:GROUP,
+        instance:label,
+        nonce:n,
+        size:SIZE||'small',
+        theme:document.documentElement.getAttribute('data-theme')||undefined,
+        schema:1,
+        source:source||'pull',
+        trigger:trig,
+        rendered:rendered,
+        skipped:skipped,
+        ts:Date.now()
+      }}).catch(function(){});
+    }
+    if(nonce){send(nonce);return}
+    invoke('plugin:widgets|get_items',{key:'__meta_nonce__',group:GROUP})
+      .then(function(v){send(Number(v)||0)})
+      .catch(function(){send(0)});
   }catch(_){}
 }
 

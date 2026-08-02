@@ -73,18 +73,33 @@ _From showcase preset — case `calculator.small`._
 {
   "type": "vstack",
   "padding": 6,
-  "spacing": 3,
+  "spacing": 2,
   "cornerRadius": 14,
   "background": "#1c1c1e",
   "children": [
     {
-      "type": "text",
-      "content": "0",
-      "fontSize": 22,
-      "fontWeight": "bold",
-      "color": "#ffffff",
-      "alignment": "trailing",
-      "lineLimit": 1
+      "type": "hstack",
+      "spacing": 4,
+      "alignment": "center",
+      "children": [
+        {
+          "type": "text",
+          "content": " ",
+          "fontSize": 10,
+          "color": "#f09a36",
+          "alignment": "leading",
+          "lineLimit": 1
+        },
+        {
+          "type": "spacer"
+        },
+        {
+          "type": "text",
+          "content": "… +1 more",
+          "fontSize": 11,
+          "color": "secondaryLabel"
+        }
+      ]
     },
     {
       "type": "divider",
@@ -103,8 +118,14 @@ _From showcase preset — case `calculator.small`._
           "action": "calc:C",
           "backgroundColor": "#636366",
           "color": "#fff",
-          "fontSize": 11,
-          "cornerRadius": 6
+          "fontSize": 10,
+          "cornerRadius": 6,
+          "padding": {
+            "top": 1,
+            "bottom": 1,
+            "leading": 2,
+            "trailing": 2
+          }
         },
         {
           "type": "button",
@@ -112,12 +133,18 @@ _From showcase preset — case `calculator.small`._
           "action": "calc:+-",
           "backgroundColor": "#636366",
           "color": "#fff",
-          "fontSize": 11,
-          "cornerRadius": 6
+          "fontSize": 10,
+          "cornerRadius": 6,
+          "padding": {
+            "top": 1,
+            "bottom": 1,
+            "leading": 2,
+            "trailing": 2
+          }
         },
         {
           "type": "text",
-          "content": "… +14 more",
+          "content": "… +18 more",
           "fontSize": 11,
           "color": "secondaryLabel"
         }
@@ -203,9 +230,9 @@ _From showcase preset — case `calculator.small`._
 
 Horizontal stack of children.
 
-![hstack (chart-mix.medium)](/shots/desktop/chart-mix.medium.png)
+![hstack (calculator.small)](/shots/desktop/calculator.small.png)
 
-_From showcase preset — case `chart-mix.medium`._
+_From showcase preset — case `calculator.small`._
 
 ### Properties
 
@@ -246,6 +273,38 @@ _From showcase preset — case `chart-mix.medium`._
       "fontSize": 28,
       "fontWeight": "bold",
       "color": "label"
+    }
+  ]
+}
+```
+
+#### From showcase `calculator.small`
+
+```json
+{
+  "type": "hstack",
+  "spacing": 4,
+  "alignment": "center",
+  "children": [
+    {
+      "type": "text",
+      "content": " ",
+      "fontSize": 10,
+      "color": "#f09a36",
+      "alignment": "leading",
+      "lineLimit": 1
+    },
+    {
+      "type": "spacer"
+    },
+    {
+      "type": "text",
+      "content": "0",
+      "fontSize": 20,
+      "fontWeight": "bold",
+      "color": "#ffffff",
+      "alignment": "trailing",
+      "lineLimit": 1
     }
   ]
 }
@@ -374,79 +433,6 @@ _From showcase preset — case `chart-mix.medium`._
               "color": "#f97316"
             }
           ]
-        }
-      ]
-    }
-  ]
-}
-```
-
-#### From showcase `date-timer.medium`
-
-```json
-{
-  "type": "hstack",
-  "spacing": 16,
-  "alignment": "center",
-  "children": [
-    {
-      "type": "vstack",
-      "spacing": 4,
-      "alignment": "leading",
-      "children": [
-        {
-          "type": "text",
-          "content": "Time",
-          "fontSize": 11,
-          "color": "#94a3b8"
-        },
-        {
-          "type": "date",
-          "date": "2099-06-15T14:30:00Z",
-          "dateStyle": "time",
-          "fontSize": 14,
-          "color": "#e2e8f0"
-        }
-      ]
-    },
-    {
-      "type": "vstack",
-      "spacing": 4,
-      "alignment": "leading",
-      "children": [
-        {
-          "type": "text",
-          "content": "Relative",
-          "fontSize": 11,
-          "color": "#94a3b8"
-        },
-        {
-          "type": "date",
-          "date": "2099-12-25T00:00:00Z",
-          "dateStyle": "relative",
-          "fontSize": 14,
-          "color": "#e2e8f0"
-        }
-      ]
-    },
-    {
-      "type": "vstack",
-      "spacing": 4,
-      "alignment": "leading",
-      "children": [
-        {
-          "type": "text",
-          "content": "Countdown",
-          "fontSize": 11,
-          "color": "#94a3b8"
-        },
-        {
-          "type": "timer",
-          "targetDate": "2099-01-01T00:00:00Z",
-          "counting": "down",
-          "fontSize": 14,
-          "fontWeight": "semibold",
-          "color": "#38bdf8"
         }
       ]
     }
@@ -685,8 +671,14 @@ _From showcase preset — case `calculator.small`._
       "action": "calc:C",
       "backgroundColor": "#636366",
       "color": "#fff",
-      "fontSize": 11,
-      "cornerRadius": 6
+      "fontSize": 10,
+      "cornerRadius": 6,
+      "padding": {
+        "top": 1,
+        "bottom": 1,
+        "leading": 2,
+        "trailing": 2
+      }
     },
     {
       "type": "button",
@@ -694,8 +686,14 @@ _From showcase preset — case `calculator.small`._
       "action": "calc:+-",
       "backgroundColor": "#636366",
       "color": "#fff",
-      "fontSize": 11,
-      "cornerRadius": 6
+      "fontSize": 10,
+      "cornerRadius": 6,
+      "padding": {
+        "top": 1,
+        "bottom": 1,
+        "leading": 2,
+        "trailing": 2
+      }
     },
     {
       "type": "button",
@@ -703,12 +701,18 @@ _From showcase preset — case `calculator.small`._
       "action": "calc:BS",
       "backgroundColor": "#636366",
       "color": "#fff",
-      "fontSize": 11,
-      "cornerRadius": 6
+      "fontSize": 10,
+      "cornerRadius": 6,
+      "padding": {
+        "top": 1,
+        "bottom": 1,
+        "leading": 2,
+        "trailing": 2
+      }
     },
     {
       "type": "text",
-      "content": "… +13 more",
+      "content": "… +17 more",
       "fontSize": 11,
       "color": "secondaryLabel"
     }

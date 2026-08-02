@@ -12,7 +12,7 @@ if [[ -z "$ARCH" ]]; then
   esac
 fi
 SYS_IMAGE="system-images;android-34;google_apis;${ARCH}"
-PACKAGE="${TEST_PACKAGE:-git.s00d.widgets.test}"
+PACKAGE="${TEST_PACKAGE:-git.s00d.widgets}"
 # Frozen wall clock (UTC): 2026-08-01 12:00:00
 FIXED_DATE="${FIXED_DATE:-080112002026.00}"
 

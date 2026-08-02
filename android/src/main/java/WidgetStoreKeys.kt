@@ -52,6 +52,15 @@ object WidgetStoreKeys {
         ed.apply()
     }
 
+    /** Clear binding when an AppWidgetId is deleted / recycled. */
+    fun clearInstance(context: Context, appWidgetId: Int) {
+        if (appWidgetId < 0) return
+        metaPrefs(context).edit()
+            .remove(instanceWidgetIdKey(appWidgetId))
+            .remove(instanceGroupKey(appWidgetId))
+            .apply()
+    }
+
     fun resolveGroup(context: Context, appWidgetId: Int = -1): String {
         mappedGroup(context, appWidgetId)?.takeIf { it.isNotBlank() }?.let { mapped ->
             val prefs = context.getSharedPreferences(mapped, Context.MODE_PRIVATE)

@@ -67,14 +67,25 @@ pub fn read_map_file(path: &Path) -> Option<DataMap> {
         .and_then(|s| serde_json::from_str(&s).ok())
 }
 
+fn unique_tmp_path(path: &Path) -> PathBuf {
+    let nanos = std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .map(|d| d.as_nanos())
+        .unwrap_or(0);
+    path.with_extension(format!("tmp.{}.{}", std::process::id(), nanos))
+}
+
 pub fn write_map_file(path: &Path, map: &DataMap) -> crate::Result<()> {
     if let Some(parent) = path.parent() {
         fs::create_dir_all(parent).map_err(|e| Error::Io(e.to_string()))?;
     }
     let json = serde_json::to_string_pretty(map).map_err(|e| Error::new(e.to_string()))?;
-    let tmp = path.with_extension("tmp");
+    let tmp = unique_tmp_path(path);
     fs::write(&tmp, json.as_bytes()).map_err(|e| Error::Io(e.to_string()))?;
-    fs::rename(&tmp, path).map_err(|e| Error::Io(e.to_string()))?;
+    fs::rename(&tmp, path).map_err(|e| {
+        let _ = fs::remove_file(&tmp);
+        Error::Io(e.to_string())
+    })?;
     Ok(())
 }
 
@@ -89,9 +100,12 @@ fn write_receipt_file(path: &Path, receipt: &Receipt) -> crate::Result<()> {
         fs::create_dir_all(parent).map_err(|e| Error::Io(e.to_string()))?;
     }
     let json = serde_json::to_string(receipt).map_err(|e| Error::new(e.to_string()))?;
-    let tmp = path.with_extension("tmp");
+    let tmp = unique_tmp_path(path);
     fs::write(&tmp, json.as_bytes()).map_err(|e| Error::Io(e.to_string()))?;
-    fs::rename(&tmp, path).map_err(|e| Error::Io(e.to_string()))?;
+    fs::rename(&tmp, path).map_err(|e| {
+        let _ = fs::remove_file(&tmp);
+        Error::Io(e.to_string())
+    })?;
     Ok(())
 }
 

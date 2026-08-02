@@ -76,8 +76,14 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
-      - name: Refresh capability matrix
-        run: cargo test --lib capabilities::write_docs::capability_matrix_doc_matches
+      - name: Refresh capability matrix (force rewrite)
+        run: |
+          rm -f docs/guide/_generated/capability-matrix.md
+          cargo test --lib capabilities::write_docs::capability_matrix_doc_matches
+          git diff --exit-code docs/guide/_generated/capability-matrix.md || {
+            echo "::error::capability-matrix.md drifted — regenerate and commit"
+            exit 1
+          }
 
       - name: Docs check (marker drift + audit)
         run: pnpm docs:check

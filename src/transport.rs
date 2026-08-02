@@ -64,9 +64,17 @@ pub fn build_driver(
     kind: TransportKind,
     cfg: &WidgetsPluginConfig,
 ) -> crate::Result<Arc<dyn Transport>> {
+    // Validate appGroup before the platform gate so CI/non-macOS tests see the
+    // configuration error rather than a generic "Apple-only" message.
+    if matches!(
+        kind,
+        TransportKind::AppGroup | TransportKind::UserDefaults | TransportKind::WidgetContainer
+    ) {
+        let _ = require_app_group(cfg)?;
+    }
     #[cfg(not(target_os = "macos"))]
     {
-        let _ = (kind, cfg);
+        let _ = kind;
         return Err(Error::new(
             "Apple transport drivers are only available on macOS host builds",
         ));
@@ -331,6 +339,7 @@ mod tests {
         m
     }
 
+    #[cfg(target_os = "macos")]
     #[test]
     fn explicit_appgroup_fails_loudly_when_container_missing() {
         let cfg = WidgetsPluginConfig {

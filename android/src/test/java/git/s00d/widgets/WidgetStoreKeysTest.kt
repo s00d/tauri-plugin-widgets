@@ -18,4 +18,12 @@ class WidgetStoreKeysTest {
         assertEquals("widgetId:7", WidgetStoreKeys.instanceWidgetIdKey(7))
         assertEquals("group:7", WidgetStoreKeys.instanceGroupKey(7))
     }
+
+    @Test
+    fun clearInstance_keyNamesMatchBind() {
+        // clearInstance removes the same keys bindInstance writes.
+        val id = 42
+        assertEquals("widgetId:$id", WidgetStoreKeys.instanceWidgetIdKey(id))
+        assertEquals("group:$id", WidgetStoreKeys.instanceGroupKey(id))
+    }
 }

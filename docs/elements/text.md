@@ -64,11 +64,10 @@ _From showcase preset — case `calculator.small`._
 ```json
 {
   "type": "text",
-  "content": "0",
-  "fontSize": 22,
-  "fontWeight": "bold",
-  "color": "#ffffff",
-  "alignment": "trailing",
+  "content": " ",
+  "fontSize": 10,
+  "color": "#f09a36",
+  "alignment": "leading",
   "lineLimit": 1
 }
 ```

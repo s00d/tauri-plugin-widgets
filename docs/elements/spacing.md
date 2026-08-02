@@ -14,9 +14,9 @@ Spacers and dividers.
 
 Flexible empty space.
 
-![spacer (layout.small)](/shots/desktop/layout.small.png)
+![spacer (calculator.small)](/shots/desktop/calculator.small.png)
 
-_From showcase preset — case `layout.small`._
+_From showcase preset — case `calculator.small`._
 
 ### Properties
 
@@ -35,7 +35,7 @@ _From showcase preset — case `layout.small`._
 }
 ```
 
-#### From showcase `layout.small`
+#### From showcase `calculator.small`
 
 ```json
 {

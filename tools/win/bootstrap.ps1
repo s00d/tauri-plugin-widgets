@@ -108,7 +108,8 @@ if (-not $SkipWinget) {
   Write-Host "==> winget: Windows App Runtime"
   winget install --id Microsoft.WindowsAppRuntime.1.6 -e --accept-package-agreements --accept-source-agreements
   if ($LASTEXITCODE -ne 0 -and $LASTEXITCODE -ne -1978335189) {
-    Write-Host ("winget WinAppRuntime exit: " + $LASTEXITCODE)
+    Write-Host ("ERROR: winget WinAppRuntime exit: " + $LASTEXITCODE)
+    exit $LASTEXITCODE
   }
 }
 

@@ -45,6 +45,7 @@ public sealed class WidgetStore : IDisposable
         };
         // Atomic host writes replace via rename — watch the directory for .tmp → final.
         _watcher.NotifyFilter |= NotifyFilters.FileName;
+    }
 
     public static string DefaultPath()
     {
@@ -55,10 +56,10 @@ public sealed class WidgetStore : IDisposable
             var env = Environment.GetEnvironmentVariable(key);
             if (!string.IsNullOrWhiteSpace(env))
             {
-                // TAURI_WIDGETS_DATA is a directory; TAURI_WIDGET_GROUP may be a group id used as folder name.
+                // TAURI_WIDGETS_DATA is a directory or full .json path; TAURI_WIDGET_GROUP may be a group id.
                 if (key == "TAURI_WIDGET_GROUP")
                 {
-                    return Path.Combine(local, env.Trim(), "widget_data.json");
+                    return Path.Combine(local, "tauri-plugin-widgets", "widget_data.json");
                 }
                 var p = env.Trim();
                 if (p.EndsWith(".json", StringComparison.OrdinalIgnoreCase))
@@ -68,6 +69,7 @@ public sealed class WidgetStore : IDisposable
                 return Path.Combine(p, "widget_data.json");
             }
         }
+        // Must match Rust desktop.rs Windows storage_path default.
         return Path.Combine(local, "tauri-plugin-widgets", "widget_data.json");
     }
 

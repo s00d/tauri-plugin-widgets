@@ -11,9 +11,13 @@ use x11rb::wrapper::ConnectionExt as WrapperConnectionExt;
 /// - **Wayland** (`feature = "layer-shell"`): remap into a gtk-layer-shell Background surface.
 /// - Failures are logged; the ordinary frameless window remains usable (fallback).
 pub fn pin_widget_window<R: Runtime>(win: &WebviewWindow<R>, skip_taskbar: bool) {
+    // Prefer the actual native backend over env vars: X11 apps can still run
+    // when WAYLAND_DISPLAY is set (XWayland), and vice versa.
+    let is_x11 = x11_xid(win).is_some();
+
     #[cfg(feature = "layer-shell")]
     {
-        if std::env::var_os("WAYLAND_DISPLAY").is_some() {
+        if !is_x11 && std::env::var_os("WAYLAND_DISPLAY").is_some() {
             match apply_layer_shell(win) {
                 Ok(()) => {
                     log::debug!("linux: gtk-layer-shell Background applied");
@@ -26,7 +30,7 @@ pub fn pin_widget_window<R: Runtime>(win: &WebviewWindow<R>, skip_taskbar: bool)
         }
     }
 
-    if std::env::var_os("WAYLAND_DISPLAY").is_none() {
+    if is_x11 {
         if let Err(e) = apply_x11_desktop_hints(win, skip_taskbar) {
             log::warn!("linux: X11 desktop hints failed: {e}");
         }

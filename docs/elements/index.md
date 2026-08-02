@@ -26,14 +26,14 @@ Generated from the JSON schema. Prefer the thematic pages for choosing between s
 | [`divider`](/elements/spacing#el-divider) | core | ![divider](/shots/desktop/calculator.small.png) |
 | [`gauge`](/elements/data#el-gauge) | extended | ![gauge](/shots/desktop/fitness.medium.png) |
 | [`grid`](/elements/layout#el-grid) | core | ![grid](/shots/desktop/calculator.small.png) |
-| [`hstack`](/elements/layout#el-hstack) | core | ![hstack](/shots/desktop/chart-mix.medium.png) |
+| [`hstack`](/elements/layout#el-hstack) | core | ![hstack](/shots/desktop/calculator.small.png) |
 | [`image`](/elements/media#el-image) | core | ![image](/shots/desktop/image-sources.medium.png) |
 | [`label`](/elements/text#el-label) | extended | ![label](/shots/desktop/upcoming-payments-empty.large.png) |
 | [`link`](/elements/interactive#el-link) | core | ![link](/shots/desktop/link-chip.small.png) |
 | [`list`](/elements/data#el-list) | extended | ![list](/shots/desktop/android-list.large.png) |
 | [`progress`](/elements/data#el-progress) | core | ![progress](/shots/desktop/fitness.medium.png) |
 | [`shape`](/elements/media#el-shape) | core | ![shape](/shots/desktop/container-card.small.png) |
-| [`spacer`](/elements/spacing#el-spacer) | core | ![spacer](/shots/desktop/layout.small.png) |
+| [`spacer`](/elements/spacing#el-spacer) | core | ![spacer](/shots/desktop/calculator.small.png) |
 | [`text`](/elements/text#el-text) | core | ![text](/shots/desktop/calculator.small.png) |
 | [`timer`](/elements/text#el-timer) | extended | ![timer](/shots/desktop/date-timer.medium.png) |
 | [`toggle`](/elements/interactive#el-toggle) | extended | ![toggle](/shots/desktop/toggle-row.small.png) |

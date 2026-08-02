@@ -719,12 +719,8 @@ export async function startWidgetUpdater(
     }
   }
 
-  if (immediate) {
-    await tick();
-  }
-
-  const id = !cancelled && intervalMs > 0 ? setInterval(tick, intervalMs) : null;
-
+  // Register the event listener BEFORE the immediate tick so a macOS
+  // background poller / host emit cannot win the race and drop actions.
   let actionUnsub: (() => void) | null = null;
   if (!cancelled && options?.onAction) {
     const handler = options.onAction;
@@ -735,6 +731,12 @@ export async function startWidgetUpdater(
       handler(data.action, data.payload);
     });
   }
+
+  if (immediate) {
+    await tick();
+  }
+
+  const id = !cancelled && intervalMs > 0 ? setInterval(tick, intervalMs) : null;
 
   return () => {
     cancelled = true;

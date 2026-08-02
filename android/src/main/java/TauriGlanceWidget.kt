@@ -79,8 +79,8 @@ private val CONFIG_STATE_KEY = stringPreferencesKey(CONFIG_STATE_KEY_NAME)
 private val NONCE_STATE_KEY = stringPreferencesKey(NONCE_STATE_KEY_NAME)
 @Volatile private var LAST_ROOT_HASH: String = ""
 @Volatile private var LAST_ROOT_SOURCE: String = ""
-/** When non-null, ink/track colors follow widget background luminance instead of system night mode. */
-@Volatile private var WIDGET_SURFACE_DARK: Boolean? = null
+/** Per-render luminance override — ThreadLocal so concurrent Glance paints don't cross-contaminate. */
+private val WIDGET_SURFACE_DARK = ThreadLocal<Boolean?>()
 private const val GLANCE_LIST_CHUNK = 9
 
 /** Collect rendered / skipped element types for receipts (thread-local per compose pass). */
@@ -114,6 +114,13 @@ internal object RenderTrace {
 
 class TauriGlanceWidgetReceiver : GlanceAppWidgetReceiver() {
     override val glanceAppWidget: GlanceAppWidget = TauriGlanceWidget()
+
+    override fun onDeleted(context: Context, appWidgetIds: IntArray) {
+        for (id in appWidgetIds) {
+            WidgetStoreKeys.clearInstance(context, id)
+        }
+        super.onDeleted(context, appWidgetIds)
+    }
 }
 
 class TauriGlanceWidget : GlanceAppWidget() {
@@ -128,7 +135,10 @@ class TauriGlanceWidget : GlanceAppWidget() {
         val size = resolveSize(context, id)
         val nonce = prefs.getString(WidgetStoreKeys.META_NONCE, "0")?.toLongOrNull() ?: 0L
         Log.d(TAG, "provideGlance appWidgetId=$appWidgetId size=$size group=$group widgetId=$logicalWidgetId prefCfgHash=${cfgHash(configRaw)}")
-        if (appWidgetId >= 0) {
+        // Only bind when this instance already has a mapping or a real config —
+        // otherwise a fresh tile would permanently latch onto fallback "default".
+        val alreadyMapped = WidgetStoreKeys.mappedWidgetId(context, appWidgetId) != null
+        if (appWidgetId >= 0 && (alreadyMapped || configRaw != null)) {
             WidgetStoreKeys.bindInstance(context, appWidgetId, logicalWidgetId, group)
         }
         provideContent {
@@ -364,12 +374,12 @@ private fun WidgetRootBody(
         }
         return
     }
-    WIDGET_SURFACE_DARK = inferSurfaceDark(context, element.opt("background"))
+    WIDGET_SURFACE_DARK.set(inferSurfaceDark(context, element.opt("background")))
     // Adaptive {light,dark} backgrounds must keep null override so isDarkMode wins.
     if (element.opt("background") is JSONObject) {
         val bg = element.optJSONObject("background")
         if (bg != null && bg.has("light") && bg.has("dark")) {
-            WIDGET_SURFACE_DARK = null
+            WIDGET_SURFACE_DARK.set(null)
         }
     }
     // fillMaxSize on Column often collapses later siblings in Glance RemoteViews —
@@ -377,7 +387,7 @@ private fun WidgetRootBody(
     Box(modifier = GlanceModifier.fillMaxSize()) {
         RenderElement(context, element, GlanceModifier.fillMaxWidth().fillMaxHeight(), size)
     }
-    WIDGET_SURFACE_DARK = null
+    WIDGET_SURFACE_DARK.remove()
 
     if (appWidgetId >= 0 && group.isNotBlank()) {
         val mapNonce = nonce
@@ -1324,7 +1334,7 @@ private fun isDarkMode(context: Context): Boolean {
 
 /** Prefer widget background luminance; fall back to system night mode. */
 private fun surfaceIsDark(context: Context): Boolean {
-    return WIDGET_SURFACE_DARK ?: isDarkMode(context)
+    return WIDGET_SURFACE_DARK.get() ?: isDarkMode(context)
 }
 
 private fun inferSurfaceDark(context: Context, background: Any?): Boolean? {
@@ -1962,9 +1972,11 @@ private fun drawGaugeBitmap(context: Context, el: JSONObject, percent: Int): Bit
         if (dark) Color(0xFFF2F2F7).toArgb() else Color(0xFF111111).toArgb()
     )
     val label = el.widgetString("label", "")
-    val valueLabel = el.widgetString("currentValueLabel", "").ifBlank {
-        if (el.has("currentValueLabel") || el.has("value")) "$percent%" else ""
-    }.ifBlank { "$percent%" }
+    val valueLabel = when {
+        el.has("currentValueLabel") -> el.widgetString("currentValueLabel", "")
+        el.has("value") -> "$percent%"
+        else -> ""
+    }
 
     if (gaugeStyle == "linear") {
         val frame = el.optJSONObject("frame")

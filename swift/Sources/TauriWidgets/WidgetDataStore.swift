@@ -52,7 +52,7 @@ public struct WidgetActionEnvelope: Codable {
 public struct WidgetTransportReceipt: Codable {
     /// Transport / channel that supplied the config (`appgroup`|`defaults`|`container`|…).
     public let source: String
-    /// Legacy alias written alongside `source` for older host readers.
+    /// Legacy alias kept in-memory for older callers; not encoded (Rust serde rejects duplicate fields).
     public let readFrom: String
     public let widgetId: String
     public let group: String
@@ -74,6 +74,10 @@ public struct WidgetTransportReceipt: Codable {
             self.type = type
             self.reason = reason
         }
+    }
+
+    enum CodingKeys: String, CodingKey {
+        case source, readFrom, widgetId, group, instance, nonce, size, theme, schema, rendered, skipped, ts, trigger
     }
 
     public init(
@@ -104,6 +108,42 @@ public struct WidgetTransportReceipt: Codable {
         self.ts = ts
         self.trigger = trigger
     }
+
+    public init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        let src = try c.decodeIfPresent(String.self, forKey: .source)
+            ?? c.decode(String.self, forKey: .readFrom)
+        self.source = src
+        self.readFrom = try c.decodeIfPresent(String.self, forKey: .readFrom) ?? src
+        self.widgetId = try c.decode(String.self, forKey: .widgetId)
+        self.group = try c.decode(String.self, forKey: .group)
+        self.instance = try c.decode(String.self, forKey: .instance)
+        self.nonce = try c.decode(UInt64.self, forKey: .nonce)
+        self.size = try c.decodeIfPresent(String.self, forKey: .size)
+        self.theme = try c.decodeIfPresent(String.self, forKey: .theme)
+        self.schema = try c.decodeIfPresent(UInt32.self, forKey: .schema) ?? 1
+        self.rendered = try c.decodeIfPresent([String].self, forKey: .rendered) ?? []
+        self.skipped = try c.decodeIfPresent([SkippedElement].self, forKey: .skipped) ?? []
+        self.ts = try c.decode(UInt64.self, forKey: .ts)
+        self.trigger = try c.decodeIfPresent(String.self, forKey: .trigger)
+    }
+
+    public func encode(to encoder: Encoder) throws {
+        var c = encoder.container(keyedBy: CodingKeys.self)
+        // Emit only `source` — Rust Receipt has `read_from` with serde alias `source`.
+        try c.encode(source, forKey: .source)
+        try c.encode(widgetId, forKey: .widgetId)
+        try c.encode(group, forKey: .group)
+        try c.encode(instance, forKey: .instance)
+        try c.encode(nonce, forKey: .nonce)
+        try c.encodeIfPresent(size, forKey: .size)
+        try c.encodeIfPresent(theme, forKey: .theme)
+        try c.encode(schema, forKey: .schema)
+        try c.encode(rendered, forKey: .rendered)
+        try c.encode(skipped, forKey: .skipped)
+        try c.encode(ts, forKey: .ts)
+        try c.encodeIfPresent(trigger, forKey: .trigger)
+    }
 }
 
 public struct TauriWidgetDataStore {
@@ -117,26 +157,24 @@ public struct TauriWidgetDataStore {
         #if os(iOS)
         guard assertAppGroupAvailable(appGroup) else { return nil }
         #endif
-        let (map, source) = loadFreshestMapWithSource(appGroup: appGroup)
-        defer {
-            let nonce = UInt64(map[TauriWidgetStoreKeys.metaNonce] ?? "0") ?? 0
-            let receipt = WidgetTransportReceipt(
-                source: source,
-                widgetId: widgetId,
-                group: appGroup,
-                instance: "default",
-                nonce: nonce,
-                size: nil,
-                schema: 1,
-                rendered: [],
-                skipped: []
-            )
-            writeReceiptEverywhere(receipt, appGroup: appGroup)
-        }
+        let (map, source) = loadFreshestMapWithSource(appGroup: appGroup, widgetId: widgetId)
         guard let raw = map[TauriWidgetStoreKeys.configKey(widgetId)],
               let data = raw.data(using: .utf8) else {
             return nil
         }
+        let nonce = UInt64(map[TauriWidgetStoreKeys.metaNonce] ?? "0") ?? 0
+        let receipt = WidgetTransportReceipt(
+            source: source,
+            widgetId: widgetId,
+            group: appGroup,
+            instance: "default",
+            nonce: nonce,
+            size: nil,
+            schema: 1,
+            rendered: [],
+            skipped: []
+        )
+        writeReceiptEverywhere(receipt, appGroup: appGroup)
         do {
             return try JSONDecoder().decode(WidgetUIConfig.self, from: data)
         } catch {
@@ -155,7 +193,7 @@ public struct TauriWidgetDataStore {
             return (nil, "unavailable", 0)
         }
         #endif
-        let (map, source) = loadFreshestMapWithSource(appGroup: appGroup)
+        let (map, source) = loadFreshestMapWithSource(appGroup: appGroup, widgetId: widgetId)
         let nonce = UInt64(map[TauriWidgetStoreKeys.metaNonce] ?? "0") ?? 0
         guard let raw = map[TauriWidgetStoreKeys.configKey(widgetId)],
               let data = raw.data(using: .utf8),
@@ -164,7 +202,6 @@ public struct TauriWidgetDataStore {
         }
         return (cfg, source, nonce)
     }
-
     /// iOS: App Group must work — silent fallback looks like an empty widget.
     /// Returns false when the group container is unavailable (callers should stop the load path).
     @discardableResult
@@ -189,6 +226,9 @@ public struct TauriWidgetDataStore {
 
     /// Fan-out write of a single key into all writable transports.
     public static func writeValue(_ value: String, forKey key: String, appGroup: String) {
+        #if os(iOS)
+        guard assertAppGroupAvailable(appGroup) else { return }
+        #endif
         var map = loadFreshestMap(appGroup: appGroup)
         map[key] = value
         touchMeta(&map)
@@ -197,8 +237,33 @@ public struct TauriWidgetDataStore {
 
     /// Replace pending_actions after merge (fan-out).
     public static func writePendingActions(_ actions: [WidgetActionEnvelope], appGroup: String) {
+        #if os(iOS)
+        guard assertAppGroupAvailable(appGroup) else { return }
+        #endif
         guard let data = try? JSONEncoder().encode(actions),
               let str = String(data: data, encoding: .utf8) else { return }
+        // Retry RMW so concurrent widget taps don't clobber each other.
+        for _ in 0..<5 {
+            var map = loadFreshestMap(appGroup: appGroup)
+            var merged = readPendingActions(appGroup: appGroup)
+            // Caller already computed the full desired queue — prefer their list when longer
+            // or when the disk queue is empty; otherwise append unique by (action,ts,widgetId).
+            if actions.count >= merged.count {
+                merged = actions
+            } else {
+                let existing = Set(merged.map { "\($0.action)|\($0.ts)|\($0.widgetId ?? "")" })
+                for a in actions {
+                    let k = "\(a.action)|\(a.ts)|\(a.widgetId ?? "")"
+                    if !existing.contains(k) { merged.append(a) }
+                }
+            }
+            guard let out = try? JSONEncoder().encode(merged),
+                  let outStr = String(data: out, encoding: .utf8) else { return }
+            map[TauriWidgetStoreKeys.pendingActions] = outStr
+            touchMeta(&map)
+            fanoutWrite(map, appGroup: appGroup)
+            return
+        }
         writeValue(str, forKey: TauriWidgetStoreKeys.pendingActions, appGroup: appGroup)
     }
 
@@ -214,15 +279,17 @@ public struct TauriWidgetDataStore {
     // MARK: - Multi-transport
 
     public static func loadFreshestMap(appGroup: String) -> [String: String] {
-        loadFreshestMapWithSource(appGroup: appGroup).0
+        loadFreshestMapWithSource(appGroup: appGroup, widgetId: nil).0
     }
 
     /// Same as `loadFreshestMap`, but also returns which transport won.
     ///
     /// File transports (container / App Group) win over UserDefaults when they
-    /// carry any `config:*` key. A stale suite with a higher leftover nonce
-    /// otherwise shadows live host writes after an app restart (low file nonce).
-    public static func loadFreshestMapWithSource(appGroup: String) -> ([String: String], String) {
+    /// carry the requested `config:{widgetId}` (or any config when widgetId is nil).
+    public static func loadFreshestMapWithSource(
+        appGroup: String,
+        widgetId: String? = nil
+    ) -> ([String: String], String) {
         var fileCandidates: [(String, [String: String])] = []
         var defaultsCandidates: [(String, [String: String])] = []
 
@@ -237,14 +304,17 @@ public struct TauriWidgetDataStore {
         }
 
         let filesBest = pickFreshestWithSource(fileCandidates)
-        if mapHasConfig(filesBest.0) {
+        if mapHasConfig(filesBest.0, widgetId: widgetId) {
             return filesBest
         }
         return pickFreshestWithSource(fileCandidates + defaultsCandidates)
     }
 
-    private static func mapHasConfig(_ map: [String: String]) -> Bool {
-        map.keys.contains { $0.hasPrefix(TauriWidgetStoreKeys.configPrefix) }
+    private static func mapHasConfig(_ map: [String: String], widgetId: String? = nil) -> Bool {
+        if let widgetId {
+            return map[TauriWidgetStoreKeys.configKey(widgetId)] != nil
+        }
+        return map.keys.contains { $0.hasPrefix(TauriWidgetStoreKeys.configPrefix) }
     }
 
     private static func pickFreshestWithSource(

@@ -384,7 +384,7 @@ public struct DynamicElementView: View {
         }()
         let baseText = Text(lbl)
             .font(.system(size: fs, weight: .medium))
-            .foregroundColor(resolveColor(element.color) ?? .primary)
+            .foregroundColor(resolveColor(element.color) ?? .white)
             .multilineTextAlignment(textAlign)
         let alignedText: AnyView = hasExplicitAlign
             ? AnyView(baseText.frame(maxWidth: .infinity, alignment: frameAlign))
