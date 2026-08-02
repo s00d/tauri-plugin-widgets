@@ -1,0 +1,64 @@
+{
+  "kind": "FrameLayout",
+  "rect": [
+    0,
+    0,
+    510,
+    510
+  ],
+  "children": [
+    {
+      "kind": "FrameLayout",
+      "rect": [
+        0,
+        0,
+        510,
+        510
+      ],
+      "children": [
+        {
+          "kind": "FrameLayout",
+          "rect": [
+            0,
+            0,
+            510,
+            510
+          ],
+          "children": [
+            {
+              "kind": "LinearLayout",
+              "rect": [
+                0,
+                0,
+                510,
+                510
+              ],
+              "children": [
+                {
+                  "kind": "LinearLayout",
+                  "rect": [
+                    24,
+                    24,
+                    462,
+                    267
+                  ],
+                  "children": [
+                    {
+                      "kind": "ImageView",
+                      "rect": [
+                        123,
+                        0,
+                        216,
+                        267
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

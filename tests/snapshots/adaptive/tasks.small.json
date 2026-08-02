@@ -1,0 +1,110 @@
+{
+  "$schema": "http://adaptivecards.io/schemas/adaptive-card.json",
+  "body": [
+    {
+      "id": "gap:6",
+      "items": [
+        {
+          "size": "Medium",
+          "text": "Tasks",
+          "type": "TextBlock",
+          "weight": "Bolder",
+          "wrap": true
+        },
+        {
+          "horizontalAlignment": "Left",
+          "items": [
+            {
+              "items": [
+                {
+                  "columns": [
+                    {
+                      "id": "mark:col",
+                      "items": [
+                        {
+                          "color": "Light",
+                          "horizontalAlignment": "Center",
+                          "size": "Small",
+                          "text": "○",
+                          "type": "TextBlock",
+                          "wrap": false
+                        }
+                      ],
+                      "type": "Column",
+                      "width": "auto"
+                    },
+                    {
+                      "items": [
+                        {
+                          "color": "Light",
+                          "horizontalAlignment": "Left",
+                          "size": "Small",
+                          "text": "Buy milk",
+                          "type": "TextBlock",
+                          "wrap": true
+                        }
+                      ],
+                      "type": "Column",
+                      "width": "stretch"
+                    }
+                  ],
+                  "type": "ColumnSet"
+                }
+              ],
+              "selectAction": {
+                "data": {
+                  "payload": null
+                },
+                "type": "Action.Execute",
+                "verb": "toggle"
+              },
+              "type": "Container"
+            },
+            {
+              "columns": [
+                {
+                  "id": "mark:col",
+                  "items": [
+                    {
+                      "color": "Good",
+                      "horizontalAlignment": "Center",
+                      "size": "Small",
+                      "text": "✓",
+                      "type": "TextBlock",
+                      "wrap": false
+                    }
+                  ],
+                  "type": "Column",
+                  "width": "auto"
+                },
+                {
+                  "items": [
+                    {
+                      "color": "Light",
+                      "horizontalAlignment": "Left",
+                      "size": "Small",
+                      "text": "Ship 0.4",
+                      "type": "TextBlock",
+                      "wrap": true
+                    }
+                  ],
+                  "type": "Column",
+                  "width": "stretch"
+                }
+              ],
+              "id": "gap:4",
+              "spacing": "Default",
+              "type": "ColumnSet"
+            }
+          ],
+          "spacing": "None",
+          "type": "Container"
+        }
+      ],
+      "spacing": "Default",
+      "type": "Container"
+    }
+  ],
+  "type": "AdaptiveCard",
+  "version": "1.5"
+}

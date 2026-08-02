@@ -1,0 +1,156 @@
+{
+  "kind": "div",
+  "rect": [
+    0,
+    0,
+    360,
+    170
+  ],
+  "children": [
+    {
+      "kind": "div",
+      "rect": [
+        0,
+        0,
+        360,
+        170
+      ],
+      "children": [
+        {
+          "kind": "div",
+          "rect": [
+            14,
+            14,
+            56,
+            56
+          ]
+        },
+        {
+          "kind": "div",
+          "rect": [
+            84,
+            14,
+            165,
+            142
+          ],
+          "children": [
+            {
+              "kind": "span",
+              "rect": [
+                84,
+                14,
+                165,
+                20
+              ],
+              "text": "Bohemian Rhapsody",
+              "px": 17,
+              "color": "#FFFFFF"
+            },
+            {
+              "kind": "span",
+              "rect": [
+                84,
+                40,
+                165,
+                15
+              ],
+              "text": "Queen • A Night at the Opera",
+              "px": 12,
+              "color": "#94A3B8"
+            },
+            {
+              "kind": "div",
+              "rect": [
+                84,
+                61,
+                165,
+                58
+              ],
+              "children": [
+                {
+                  "kind": "div",
+                  "rect": [
+                    84,
+                    61,
+                    165,
+                    12
+                  ],
+                  "text": "3:42 / 5:55",
+                  "px": 10,
+                  "color": "#94A3B8"
+                },
+                {
+                  "kind": "div",
+                  "rect": [
+                    84,
+                    75,
+                    165,
+                    6
+                  ],
+                  "children": [
+                    {
+                      "kind": "div",
+                      "rect": [
+                        84,
+                        75,
+                        103,
+                        6
+                      ]
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "kind": "div",
+              "rect": [
+                84,
+                125,
+                148,
+                31
+              ],
+              "children": [
+                {
+                  "kind": "div",
+                  "rect": [
+                    84,
+                    125,
+                    38,
+                    31
+                  ],
+                  "text": "⏮",
+                  "px": 14,
+                  "color": "#E2E8F0"
+                },
+                {
+                  "kind": "div",
+                  "rect": [
+                    142,
+                    125,
+                    32,
+                    31
+                  ],
+                  "text": "⏸",
+                  "px": 14,
+                  "color": "#FFFFFF"
+                },
+                {
+                  "kind": "div",
+                  "rect": [
+                    194,
+                    125,
+                    38,
+                    31
+                  ],
+                  "text": "⏭",
+                  "px": 14,
+                  "color": "#E2E8F0"
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

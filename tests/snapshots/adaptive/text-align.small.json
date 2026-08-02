@@ -1,0 +1,45 @@
+{
+  "$schema": "http://adaptivecards.io/schemas/adaptive-card.json",
+  "body": [
+    {
+      "id": "card:#111",
+      "items": [
+        {
+          "color": "Light",
+          "horizontalAlignment": "Left",
+          "id": "fg:#fff",
+          "size": "Default",
+          "text": "Leading",
+          "type": "TextBlock",
+          "weight": "Default",
+          "wrap": true
+        },
+        {
+          "color": "Light",
+          "horizontalAlignment": "Center",
+          "id": "fg:#fff",
+          "size": "Default",
+          "text": "Center",
+          "type": "TextBlock",
+          "weight": "Default",
+          "wrap": true
+        },
+        {
+          "color": "Light",
+          "horizontalAlignment": "Right",
+          "id": "fg:#fff",
+          "size": "Default",
+          "text": "Trailing",
+          "type": "TextBlock",
+          "weight": "Default",
+          "wrap": true
+        }
+      ],
+      "spacing": "None",
+      "style": "emphasis",
+      "type": "Container"
+    }
+  ],
+  "type": "AdaptiveCard",
+  "version": "1.5"
+}

@@ -1,0 +1,52 @@
+name: CI
+
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+  workflow_dispatch:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Linux Tauri deps
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            libwebkit2gtk-4.1-dev libgtk-3-dev libglib2.0-dev \
+            libsoup-3.0-dev libayatana-appindicator3-dev \
+            librsvg2-dev patchelf pkg-config
+
+      - uses: dtolnay/rust-toolchain@stable
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Install JS deps
+        run: pnpm install --frozen-lockfile
+
+      - name: Rust lib tests
+        run: cargo test --lib
+
+      - name: Codegen drift
+        run: |
+          cargo run --bin gen-schema --features codegen
+          cargo run --bin gen-ts --features codegen
+          cargo test --lib capabilities::write_docs::capability_matrix_doc_matches
+          git diff --exit-code schemas/widget-config.v1.json guest-js/generated/widget-types.ts docs/guide/_generated/capability-matrix.md
+
+      - name: JS build
+        run: pnpm build

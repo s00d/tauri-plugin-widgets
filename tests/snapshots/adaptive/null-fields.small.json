@@ -1,0 +1,57 @@
+{
+  "$schema": "http://adaptivecards.io/schemas/adaptive-card.json",
+  "body": [
+    {
+      "id": "card:#000",
+      "items": [
+        {
+          "actions": [
+            {
+              "id": "bg:#2563eb;fg:#fff",
+              "title": "Tap",
+              "type": "Action.Execute",
+              "verb": "go"
+            }
+          ],
+          "type": "ActionSet"
+        },
+        {
+          "color": "Light",
+          "id": "fg:#fff",
+          "size": "Small",
+          "text": "ok",
+          "type": "TextBlock",
+          "weight": "Default",
+          "wrap": true
+        },
+        {
+          "items": [
+            {
+              "columns": [
+                {
+                  "id": "fill:#22c55e",
+                  "items": [],
+                  "style": "good",
+                  "type": "Column",
+                  "width": 30
+                },
+                {
+                  "items": [],
+                  "type": "Column",
+                  "width": 70
+                }
+              ],
+              "type": "ColumnSet"
+            }
+          ],
+          "type": "Container"
+        }
+      ],
+      "spacing": "None",
+      "style": "emphasis",
+      "type": "Container"
+    }
+  ],
+  "type": "AdaptiveCard",
+  "version": "1.5"
+}

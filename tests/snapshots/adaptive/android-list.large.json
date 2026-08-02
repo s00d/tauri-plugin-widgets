@@ -1,0 +1,144 @@
+{
+  "$schema": "http://adaptivecards.io/schemas/adaptive-card.json",
+  "body": [
+    {
+      "horizontalAlignment": "Left",
+      "items": [
+        {
+          "items": [
+            {
+              "columns": [
+                {
+                  "id": "mark:col",
+                  "items": [
+                    {
+                      "color": "Good",
+                      "horizontalAlignment": "Center",
+                      "size": "Small",
+                      "text": "✓",
+                      "type": "TextBlock",
+                      "wrap": false
+                    }
+                  ],
+                  "type": "Column",
+                  "width": "auto"
+                },
+                {
+                  "items": [
+                    {
+                      "color": "Light",
+                      "horizontalAlignment": "Left",
+                      "size": "Small",
+                      "text": "Alpha",
+                      "type": "TextBlock",
+                      "wrap": true
+                    }
+                  ],
+                  "type": "Column",
+                  "width": "stretch"
+                }
+              ],
+              "type": "ColumnSet"
+            }
+          ],
+          "selectAction": {
+            "data": {
+              "payload": "a"
+            },
+            "type": "Action.Execute",
+            "verb": "row"
+          },
+          "type": "Container"
+        },
+        {
+          "id": "gap:2",
+          "items": [
+            {
+              "columns": [
+                {
+                  "id": "mark:col",
+                  "items": [
+                    {
+                      "color": "Light",
+                      "horizontalAlignment": "Center",
+                      "size": "Small",
+                      "text": "○",
+                      "type": "TextBlock",
+                      "wrap": false
+                    }
+                  ],
+                  "type": "Column",
+                  "width": "auto"
+                },
+                {
+                  "items": [
+                    {
+                      "color": "Light",
+                      "horizontalAlignment": "Left",
+                      "size": "Small",
+                      "text": "Beta",
+                      "type": "TextBlock",
+                      "wrap": true
+                    }
+                  ],
+                  "type": "Column",
+                  "width": "stretch"
+                }
+              ],
+              "type": "ColumnSet"
+            }
+          ],
+          "selectAction": {
+            "data": {
+              "payload": "b"
+            },
+            "type": "Action.Execute",
+            "verb": "row"
+          },
+          "spacing": "Small",
+          "type": "Container"
+        },
+        {
+          "columns": [
+            {
+              "id": "mark:col",
+              "items": [
+                {
+                  "color": "Light",
+                  "horizontalAlignment": "Center",
+                  "size": "Small",
+                  "text": " ",
+                  "type": "TextBlock",
+                  "wrap": false
+                }
+              ],
+              "type": "Column",
+              "width": "auto"
+            },
+            {
+              "items": [
+                {
+                  "color": "Light",
+                  "horizontalAlignment": "Left",
+                  "size": "Small",
+                  "text": "Gamma",
+                  "type": "TextBlock",
+                  "wrap": true
+                }
+              ],
+              "type": "Column",
+              "width": "stretch"
+            }
+          ],
+          "id": "gap:2",
+          "spacing": "Small",
+          "type": "ColumnSet"
+        }
+      ],
+      "spacing": "None",
+      "type": "Container"
+    }
+  ],
+  "type": "AdaptiveCard",
+  "version": "1.5"
+}

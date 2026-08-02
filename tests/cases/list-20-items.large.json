@@ -1,0 +1,10 @@
+{
+  "fixture": "bugs/list-20-items",
+  "size": "large",
+  "theme": "dark",
+  "locale": "en_US",
+  "macos": {
+    "width": 338,
+    "height": 354
+  }
+}

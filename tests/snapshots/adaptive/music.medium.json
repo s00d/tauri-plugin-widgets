@@ -1,0 +1,143 @@
+{
+  "$schema": "http://adaptivecards.io/schemas/adaptive-card.json",
+  "body": [
+    {
+      "columns": [
+        {
+          "items": [
+            {
+              "spacing": "None",
+              "text": "",
+              "type": "TextBlock"
+            }
+          ],
+          "type": "Column",
+          "width": "auto"
+        },
+        {
+          "items": [
+            {
+              "id": "gap:6",
+              "items": [
+                {
+                  "color": "Light",
+                  "id": "fg:#fff",
+                  "size": "Medium",
+                  "text": "Bohemian Rhapsody",
+                  "type": "TextBlock",
+                  "weight": "Bolder",
+                  "wrap": false
+                },
+                {
+                  "color": "Light",
+                  "id": "fg:#94a3b8",
+                  "size": "Small",
+                  "text": "Queen • A Night at the Opera",
+                  "type": "TextBlock",
+                  "weight": "Default",
+                  "wrap": true
+                },
+                {
+                  "items": [
+                    {
+                      "color": "Light",
+                      "size": "Small",
+                      "text": "3:42 / 5:55",
+                      "type": "TextBlock",
+                      "wrap": true
+                    },
+                    {
+                      "columns": [
+                        {
+                          "id": "fill:#e94560",
+                          "items": [],
+                          "style": "attention",
+                          "type": "Column",
+                          "width": 62
+                        },
+                        {
+                          "items": [],
+                          "type": "Column",
+                          "width": 38
+                        }
+                      ],
+                      "type": "ColumnSet"
+                    }
+                  ],
+                  "type": "Container"
+                },
+                {
+                  "columns": [
+                    {
+                      "items": [
+                        {
+                          "actions": [
+                            {
+                              "id": "bg:#1a2744;fg:#e2e8f0",
+                              "title": "Prev",
+                              "type": "Action.Execute",
+                              "verb": "music_prev"
+                            }
+                          ],
+                          "type": "ActionSet"
+                        }
+                      ],
+                      "type": "Column",
+                      "width": "auto"
+                    },
+                    {
+                      "items": [
+                        {
+                          "actions": [
+                            {
+                              "id": "bg:#e94560;fg:#ffffff",
+                              "title": "Pause",
+                              "type": "Action.Execute",
+                              "verb": "music_toggle"
+                            }
+                          ],
+                          "type": "ActionSet"
+                        }
+                      ],
+                      "type": "Column",
+                      "width": "auto"
+                    },
+                    {
+                      "items": [
+                        {
+                          "actions": [
+                            {
+                              "id": "bg:#1a2744;fg:#e2e8f0",
+                              "title": "Next",
+                              "type": "Action.Execute",
+                              "verb": "music_next"
+                            }
+                          ],
+                          "type": "ActionSet"
+                        }
+                      ],
+                      "type": "Column",
+                      "width": "auto"
+                    }
+                  ],
+                  "id": "gap:20",
+                  "spacing": "Large",
+                  "type": "ColumnSet"
+                }
+              ],
+              "spacing": "Default",
+              "type": "Container"
+            }
+          ],
+          "type": "Column",
+          "width": "auto"
+        }
+      ],
+      "id": "gap:14",
+      "spacing": "Medium",
+      "type": "ColumnSet"
+    }
+  ],
+  "type": "AdaptiveCard",
+  "version": "1.5"
+}

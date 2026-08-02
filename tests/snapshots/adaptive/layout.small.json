@@ -1,0 +1,107 @@
+{
+  "$schema": "http://adaptivecards.io/schemas/adaptive-card.json",
+  "body": [
+    {
+      "id": "card:#1a1a2e;gap:8",
+      "items": [
+        {
+          "color": "Light",
+          "horizontalAlignment": "Center",
+          "id": "fg:#fff",
+          "size": "Medium",
+          "text": "Hello",
+          "type": "TextBlock",
+          "weight": "Bolder",
+          "wrap": true
+        },
+        {
+          "columns": [
+            {
+              "items": [
+                {
+                  "spacing": "None",
+                  "text": "",
+                  "type": "TextBlock"
+                }
+              ],
+              "type": "Column",
+              "width": "auto"
+            },
+            {
+              "items": [
+                {
+                  "id": "rule:#334155",
+                  "items": [],
+                  "separator": true,
+                  "spacing": "Medium",
+                  "type": "Container"
+                }
+              ],
+              "type": "Column",
+              "width": "stretch"
+            },
+            {
+              "items": [],
+              "type": "Column",
+              "width": "stretch"
+            },
+            {
+              "items": [
+                {
+                  "items": [
+                    {
+                      "color": "Good",
+                      "size": "Small",
+                      "text": "OK",
+                      "type": "TextBlock",
+                      "wrap": true
+                    },
+                    {
+                      "columns": [
+                        {
+                          "id": "fill:#4caf50",
+                          "items": [],
+                          "style": "good",
+                          "type": "Column",
+                          "width": 50
+                        },
+                        {
+                          "items": [],
+                          "type": "Column",
+                          "width": 50
+                        }
+                      ],
+                      "type": "ColumnSet"
+                    }
+                  ],
+                  "type": "Container"
+                }
+              ],
+              "type": "Column",
+              "width": "auto"
+            }
+          ],
+          "id": "gap:4",
+          "spacing": "Default",
+          "type": "ColumnSet"
+        },
+        {
+          "actions": [
+            {
+              "id": "bg:#2196f3;fg:#fff",
+              "title": "Go",
+              "type": "Action.Execute",
+              "verb": "go"
+            }
+          ],
+          "type": "ActionSet"
+        }
+      ],
+      "spacing": "Default",
+      "style": "emphasis",
+      "type": "Container"
+    }
+  ],
+  "type": "AdaptiveCard",
+  "version": "1.5"
+}

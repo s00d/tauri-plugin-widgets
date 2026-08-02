@@ -1,0 +1,732 @@
+{
+  "$schema": "http://adaptivecards.io/schemas/adaptive-card.json",
+  "body": [
+    {
+      "horizontalAlignment": "Left",
+      "items": [
+        {
+          "columns": [
+            {
+              "id": "mark:col",
+              "items": [
+                {
+                  "color": "Light",
+                  "horizontalAlignment": "Center",
+                  "size": "Small",
+                  "text": "○",
+                  "type": "TextBlock",
+                  "wrap": false
+                }
+              ],
+              "type": "Column",
+              "width": "auto"
+            },
+            {
+              "items": [
+                {
+                  "color": "Light",
+                  "horizontalAlignment": "Left",
+                  "size": "Small",
+                  "text": "Item 01",
+                  "type": "TextBlock",
+                  "wrap": true
+                }
+              ],
+              "type": "Column",
+              "width": "stretch"
+            }
+          ],
+          "type": "ColumnSet"
+        },
+        {
+          "columns": [
+            {
+              "id": "mark:col",
+              "items": [
+                {
+                  "color": "Good",
+                  "horizontalAlignment": "Center",
+                  "size": "Small",
+                  "text": "✓",
+                  "type": "TextBlock",
+                  "wrap": false
+                }
+              ],
+              "type": "Column",
+              "width": "auto"
+            },
+            {
+              "items": [
+                {
+                  "color": "Light",
+                  "horizontalAlignment": "Left",
+                  "size": "Small",
+                  "text": "Item 02",
+                  "type": "TextBlock",
+                  "wrap": true
+                }
+              ],
+              "type": "Column",
+              "width": "stretch"
+            }
+          ],
+          "id": "gap:2",
+          "spacing": "Small",
+          "type": "ColumnSet"
+        },
+        {
+          "columns": [
+            {
+              "id": "mark:col",
+              "items": [
+                {
+                  "color": "Light",
+                  "horizontalAlignment": "Center",
+                  "size": "Small",
+                  "text": " ",
+                  "type": "TextBlock",
+                  "wrap": false
+                }
+              ],
+              "type": "Column",
+              "width": "auto"
+            },
+            {
+              "items": [
+                {
+                  "color": "Light",
+                  "horizontalAlignment": "Left",
+                  "size": "Small",
+                  "text": "Item 03",
+                  "type": "TextBlock",
+                  "wrap": true
+                }
+              ],
+              "type": "Column",
+              "width": "stretch"
+            }
+          ],
+          "id": "gap:2",
+          "spacing": "Small",
+          "type": "ColumnSet"
+        },
+        {
+          "columns": [
+            {
+              "id": "mark:col",
+              "items": [
+                {
+                  "color": "Light",
+                  "horizontalAlignment": "Center",
+                  "size": "Small",
+                  "text": " ",
+                  "type": "TextBlock",
+                  "wrap": false
+                }
+              ],
+              "type": "Column",
+              "width": "auto"
+            },
+            {
+              "items": [
+                {
+                  "color": "Light",
+                  "horizontalAlignment": "Left",
+                  "size": "Small",
+                  "text": "Item 04",
+                  "type": "TextBlock",
+                  "wrap": true
+                }
+              ],
+              "type": "Column",
+              "width": "stretch"
+            }
+          ],
+          "id": "gap:2",
+          "spacing": "Small",
+          "type": "ColumnSet"
+        },
+        {
+          "columns": [
+            {
+              "id": "mark:col",
+              "items": [
+                {
+                  "color": "Light",
+                  "horizontalAlignment": "Center",
+                  "size": "Small",
+                  "text": " ",
+                  "type": "TextBlock",
+                  "wrap": false
+                }
+              ],
+              "type": "Column",
+              "width": "auto"
+            },
+            {
+              "items": [
+                {
+                  "color": "Light",
+                  "horizontalAlignment": "Left",
+                  "size": "Small",
+                  "text": "Item 05",
+                  "type": "TextBlock",
+                  "wrap": true
+                }
+              ],
+              "type": "Column",
+              "width": "stretch"
+            }
+          ],
+          "id": "gap:2",
+          "spacing": "Small",
+          "type": "ColumnSet"
+        },
+        {
+          "columns": [
+            {
+              "id": "mark:col",
+              "items": [
+                {
+                  "color": "Light",
+                  "horizontalAlignment": "Center",
+                  "size": "Small",
+                  "text": " ",
+                  "type": "TextBlock",
+                  "wrap": false
+                }
+              ],
+              "type": "Column",
+              "width": "auto"
+            },
+            {
+              "items": [
+                {
+                  "color": "Light",
+                  "horizontalAlignment": "Left",
+                  "size": "Small",
+                  "text": "Item 06",
+                  "type": "TextBlock",
+                  "wrap": true
+                }
+              ],
+              "type": "Column",
+              "width": "stretch"
+            }
+          ],
+          "id": "gap:2",
+          "spacing": "Small",
+          "type": "ColumnSet"
+        },
+        {
+          "columns": [
+            {
+              "id": "mark:col",
+              "items": [
+                {
+                  "color": "Light",
+                  "horizontalAlignment": "Center",
+                  "size": "Small",
+                  "text": " ",
+                  "type": "TextBlock",
+                  "wrap": false
+                }
+              ],
+              "type": "Column",
+              "width": "auto"
+            },
+            {
+              "items": [
+                {
+                  "color": "Light",
+                  "horizontalAlignment": "Left",
+                  "size": "Small",
+                  "text": "Item 07",
+                  "type": "TextBlock",
+                  "wrap": true
+                }
+              ],
+              "type": "Column",
+              "width": "stretch"
+            }
+          ],
+          "id": "gap:2",
+          "spacing": "Small",
+          "type": "ColumnSet"
+        },
+        {
+          "columns": [
+            {
+              "id": "mark:col",
+              "items": [
+                {
+                  "color": "Light",
+                  "horizontalAlignment": "Center",
+                  "size": "Small",
+                  "text": " ",
+                  "type": "TextBlock",
+                  "wrap": false
+                }
+              ],
+              "type": "Column",
+              "width": "auto"
+            },
+            {
+              "items": [
+                {
+                  "color": "Light",
+                  "horizontalAlignment": "Left",
+                  "size": "Small",
+                  "text": "Item 08",
+                  "type": "TextBlock",
+                  "wrap": true
+                }
+              ],
+              "type": "Column",
+              "width": "stretch"
+            }
+          ],
+          "id": "gap:2",
+          "spacing": "Small",
+          "type": "ColumnSet"
+        },
+        {
+          "columns": [
+            {
+              "id": "mark:col",
+              "items": [
+                {
+                  "color": "Light",
+                  "horizontalAlignment": "Center",
+                  "size": "Small",
+                  "text": " ",
+                  "type": "TextBlock",
+                  "wrap": false
+                }
+              ],
+              "type": "Column",
+              "width": "auto"
+            },
+            {
+              "items": [
+                {
+                  "color": "Light",
+                  "horizontalAlignment": "Left",
+                  "size": "Small",
+                  "text": "Item 09",
+                  "type": "TextBlock",
+                  "wrap": true
+                }
+              ],
+              "type": "Column",
+              "width": "stretch"
+            }
+          ],
+          "id": "gap:2",
+          "spacing": "Small",
+          "type": "ColumnSet"
+        },
+        {
+          "columns": [
+            {
+              "id": "mark:col",
+              "items": [
+                {
+                  "color": "Light",
+                  "horizontalAlignment": "Center",
+                  "size": "Small",
+                  "text": " ",
+                  "type": "TextBlock",
+                  "wrap": false
+                }
+              ],
+              "type": "Column",
+              "width": "auto"
+            },
+            {
+              "items": [
+                {
+                  "color": "Light",
+                  "horizontalAlignment": "Left",
+                  "size": "Small",
+                  "text": "Item 10",
+                  "type": "TextBlock",
+                  "wrap": true
+                }
+              ],
+              "type": "Column",
+              "width": "stretch"
+            }
+          ],
+          "id": "gap:2",
+          "spacing": "Small",
+          "type": "ColumnSet"
+        },
+        {
+          "columns": [
+            {
+              "id": "mark:col",
+              "items": [
+                {
+                  "color": "Light",
+                  "horizontalAlignment": "Center",
+                  "size": "Small",
+                  "text": " ",
+                  "type": "TextBlock",
+                  "wrap": false
+                }
+              ],
+              "type": "Column",
+              "width": "auto"
+            },
+            {
+              "items": [
+                {
+                  "color": "Light",
+                  "horizontalAlignment": "Left",
+                  "size": "Small",
+                  "text": "Item 11",
+                  "type": "TextBlock",
+                  "wrap": true
+                }
+              ],
+              "type": "Column",
+              "width": "stretch"
+            }
+          ],
+          "id": "gap:2",
+          "spacing": "Small",
+          "type": "ColumnSet"
+        },
+        {
+          "columns": [
+            {
+              "id": "mark:col",
+              "items": [
+                {
+                  "color": "Light",
+                  "horizontalAlignment": "Center",
+                  "size": "Small",
+                  "text": " ",
+                  "type": "TextBlock",
+                  "wrap": false
+                }
+              ],
+              "type": "Column",
+              "width": "auto"
+            },
+            {
+              "items": [
+                {
+                  "color": "Light",
+                  "horizontalAlignment": "Left",
+                  "size": "Small",
+                  "text": "Item 12",
+                  "type": "TextBlock",
+                  "wrap": true
+                }
+              ],
+              "type": "Column",
+              "width": "stretch"
+            }
+          ],
+          "id": "gap:2",
+          "spacing": "Small",
+          "type": "ColumnSet"
+        },
+        {
+          "columns": [
+            {
+              "id": "mark:col",
+              "items": [
+                {
+                  "color": "Light",
+                  "horizontalAlignment": "Center",
+                  "size": "Small",
+                  "text": " ",
+                  "type": "TextBlock",
+                  "wrap": false
+                }
+              ],
+              "type": "Column",
+              "width": "auto"
+            },
+            {
+              "items": [
+                {
+                  "color": "Light",
+                  "horizontalAlignment": "Left",
+                  "size": "Small",
+                  "text": "Item 13",
+                  "type": "TextBlock",
+                  "wrap": true
+                }
+              ],
+              "type": "Column",
+              "width": "stretch"
+            }
+          ],
+          "id": "gap:2",
+          "spacing": "Small",
+          "type": "ColumnSet"
+        },
+        {
+          "columns": [
+            {
+              "id": "mark:col",
+              "items": [
+                {
+                  "color": "Light",
+                  "horizontalAlignment": "Center",
+                  "size": "Small",
+                  "text": " ",
+                  "type": "TextBlock",
+                  "wrap": false
+                }
+              ],
+              "type": "Column",
+              "width": "auto"
+            },
+            {
+              "items": [
+                {
+                  "color": "Light",
+                  "horizontalAlignment": "Left",
+                  "size": "Small",
+                  "text": "Item 14",
+                  "type": "TextBlock",
+                  "wrap": true
+                }
+              ],
+              "type": "Column",
+              "width": "stretch"
+            }
+          ],
+          "id": "gap:2",
+          "spacing": "Small",
+          "type": "ColumnSet"
+        },
+        {
+          "columns": [
+            {
+              "id": "mark:col",
+              "items": [
+                {
+                  "color": "Light",
+                  "horizontalAlignment": "Center",
+                  "size": "Small",
+                  "text": " ",
+                  "type": "TextBlock",
+                  "wrap": false
+                }
+              ],
+              "type": "Column",
+              "width": "auto"
+            },
+            {
+              "items": [
+                {
+                  "color": "Light",
+                  "horizontalAlignment": "Left",
+                  "size": "Small",
+                  "text": "Item 15",
+                  "type": "TextBlock",
+                  "wrap": true
+                }
+              ],
+              "type": "Column",
+              "width": "stretch"
+            }
+          ],
+          "id": "gap:2",
+          "spacing": "Small",
+          "type": "ColumnSet"
+        },
+        {
+          "columns": [
+            {
+              "id": "mark:col",
+              "items": [
+                {
+                  "color": "Light",
+                  "horizontalAlignment": "Center",
+                  "size": "Small",
+                  "text": " ",
+                  "type": "TextBlock",
+                  "wrap": false
+                }
+              ],
+              "type": "Column",
+              "width": "auto"
+            },
+            {
+              "items": [
+                {
+                  "color": "Light",
+                  "horizontalAlignment": "Left",
+                  "size": "Small",
+                  "text": "Item 16",
+                  "type": "TextBlock",
+                  "wrap": true
+                }
+              ],
+              "type": "Column",
+              "width": "stretch"
+            }
+          ],
+          "id": "gap:2",
+          "spacing": "Small",
+          "type": "ColumnSet"
+        },
+        {
+          "columns": [
+            {
+              "id": "mark:col",
+              "items": [
+                {
+                  "color": "Light",
+                  "horizontalAlignment": "Center",
+                  "size": "Small",
+                  "text": " ",
+                  "type": "TextBlock",
+                  "wrap": false
+                }
+              ],
+              "type": "Column",
+              "width": "auto"
+            },
+            {
+              "items": [
+                {
+                  "color": "Light",
+                  "horizontalAlignment": "Left",
+                  "size": "Small",
+                  "text": "Item 17",
+                  "type": "TextBlock",
+                  "wrap": true
+                }
+              ],
+              "type": "Column",
+              "width": "stretch"
+            }
+          ],
+          "id": "gap:2",
+          "spacing": "Small",
+          "type": "ColumnSet"
+        },
+        {
+          "columns": [
+            {
+              "id": "mark:col",
+              "items": [
+                {
+                  "color": "Light",
+                  "horizontalAlignment": "Center",
+                  "size": "Small",
+                  "text": " ",
+                  "type": "TextBlock",
+                  "wrap": false
+                }
+              ],
+              "type": "Column",
+              "width": "auto"
+            },
+            {
+              "items": [
+                {
+                  "color": "Light",
+                  "horizontalAlignment": "Left",
+                  "size": "Small",
+                  "text": "Item 18",
+                  "type": "TextBlock",
+                  "wrap": true
+                }
+              ],
+              "type": "Column",
+              "width": "stretch"
+            }
+          ],
+          "id": "gap:2",
+          "spacing": "Small",
+          "type": "ColumnSet"
+        },
+        {
+          "columns": [
+            {
+              "id": "mark:col",
+              "items": [
+                {
+                  "color": "Light",
+                  "horizontalAlignment": "Center",
+                  "size": "Small",
+                  "text": " ",
+                  "type": "TextBlock",
+                  "wrap": false
+                }
+              ],
+              "type": "Column",
+              "width": "auto"
+            },
+            {
+              "items": [
+                {
+                  "color": "Light",
+                  "horizontalAlignment": "Left",
+                  "size": "Small",
+                  "text": "Item 19",
+                  "type": "TextBlock",
+                  "wrap": true
+                }
+              ],
+              "type": "Column",
+              "width": "stretch"
+            }
+          ],
+          "id": "gap:2",
+          "spacing": "Small",
+          "type": "ColumnSet"
+        },
+        {
+          "columns": [
+            {
+              "id": "mark:col",
+              "items": [
+                {
+                  "color": "Light",
+                  "horizontalAlignment": "Center",
+                  "size": "Small",
+                  "text": " ",
+                  "type": "TextBlock",
+                  "wrap": false
+                }
+              ],
+              "type": "Column",
+              "width": "auto"
+            },
+            {
+              "items": [
+                {
+                  "color": "Light",
+                  "horizontalAlignment": "Left",
+                  "size": "Small",
+                  "text": "Item 20",
+                  "type": "TextBlock",
+                  "wrap": true
+                }
+              ],
+              "type": "Column",
+              "width": "stretch"
+            }
+          ],
+          "id": "gap:2",
+          "spacing": "Small",
+          "type": "ColumnSet"
+        }
+      ],
+      "spacing": "None",
+      "type": "Container"
+    }
+  ],
+  "type": "AdaptiveCard",
+  "version": "1.5"
+}

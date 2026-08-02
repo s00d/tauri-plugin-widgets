@@ -1,0 +1,77 @@
+{
+  "kind": "div",
+  "rect": [
+    0,
+    0,
+    170,
+    170
+  ],
+  "children": [
+    {
+      "kind": "div",
+      "rect": [
+        0,
+        0,
+        170,
+        170
+      ],
+      "children": [
+        {
+          "kind": "span",
+          "rect": [
+            12,
+            12,
+            146,
+            43
+          ],
+          "text": "72°",
+          "px": 36,
+          "color": "#FFFFFF"
+        },
+        {
+          "kind": "div",
+          "rect": [
+            12,
+            63,
+            146,
+            95
+          ],
+          "children": [
+            {
+              "kind": "div",
+              "rect": [
+                12,
+                63,
+                146,
+                12
+              ],
+              "text": "Humidity",
+              "px": 10,
+              "color": "#4CAF50"
+            },
+            {
+              "kind": "div",
+              "rect": [
+                12,
+                77,
+                146,
+                6
+              ],
+              "children": [
+                {
+                  "kind": "div",
+                  "rect": [
+                    12,
+                    77,
+                    102,
+                    6
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,14 @@
+{
+  "version": 1,
+  "small": {
+    "type": "vstack",
+    "spacing": 4,
+    "padding": 8,
+    "background": "#111827",
+    "children": [
+      { "type": "text", "content": "Top", "fontSize": 14, "color": "#fff" },
+      { "type": "spacer" },
+      { "type": "text", "content": "Bottom", "fontSize": 14, "color": "#fff" }
+    ]
+  }
+}

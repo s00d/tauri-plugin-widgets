@@ -1,4 +1,31 @@
+import type { WidgetElement } from "tauri-plugin-widgets-api";
 import type { PresetDef } from "./types";
+
+/** Initials badge — container centers text inside the circle (text+clip alone sat top-leading). */
+function initialsAvatar(size: number, fontSize: number): WidgetElement {
+  return {
+    type: "container",
+    contentAlignment: "center",
+    frame: { width: size, height: size },
+    cornerRadius: size / 2,
+    clipShape: "circle",
+    background: {
+      gradientType: "linear",
+      colors: ["#667eea", "#764ba2"],
+      direction: "topLeadingToBottomTrailing",
+    },
+    children: [
+      {
+        type: "text",
+        content: "AK",
+        fontSize,
+        fontWeight: "bold",
+        color: "#ffffff",
+        alignment: "center",
+      },
+    ],
+  };
+}
 
 export const userProfile: PresetDef = {
   icon: "\u{1F464}",
@@ -15,10 +42,7 @@ export const userProfile: PresetDef = {
       background: { light: "#F8F9FA", dark: "#1C1C1E" },
       children: [
         { type: "hstack", spacing: 10, children: [
-          { type: "text", content: "AK", fontSize: 16, fontWeight: "bold", color: "#ffffff",
-            background: { gradientType: "linear", colors: ["#667eea", "#764ba2"], direction: "topLeadingToBottomTrailing" },
-            cornerRadius: 22, clipShape: "circle",
-            frame: { width: 44, height: 44 } },
+          initialsAvatar(44, 16),
           { type: "vstack", spacing: 2, alignment: "leading", flex: 1, children: [
             { type: "text", content: "Alex Kim", textStyle: "headline", color: { light: "#0f172a", dark: "#f1f5f9" } },
             { type: "text", content: "Developer", textStyle: "caption", color: { light: "#64748b", dark: "#94a3b8" } },
@@ -27,15 +51,15 @@ export const userProfile: PresetDef = {
         { type: "hstack", spacing: 16, children: [
           { type: "vstack", spacing: 0, alignment: "center", flex: 1, children: [
             { type: "text", content: "142", fontSize: 18, fontWeight: "bold", color: { light: "#0f172a", dark: "#f1f5f9" } },
-            { type: "text", content: "Posts", textStyle: "caption2", color: { light: "#64748b", dark: "#94a3b8" } },
+            { type: "text", content: "Posts", textStyle: "caption2", color: { light: "#64748b", dark: "#94a3b8" }, lineLimit: 1 },
           ]},
           { type: "vstack", spacing: 0, alignment: "center", flex: 1, children: [
             { type: "text", content: "8.2K", fontSize: 18, fontWeight: "bold", color: { light: "#0f172a", dark: "#f1f5f9" } },
-            { type: "text", content: "Followers", textStyle: "caption2", color: { light: "#64748b", dark: "#94a3b8" } },
+            { type: "text", content: "Followers", textStyle: "caption2", color: { light: "#64748b", dark: "#94a3b8" }, lineLimit: 1 },
           ]},
           { type: "vstack", spacing: 0, alignment: "center", flex: 1, children: [
             { type: "text", content: "523", fontSize: 18, fontWeight: "bold", color: { light: "#0f172a", dark: "#f1f5f9" } },
-            { type: "text", content: "Following", textStyle: "caption2", color: { light: "#64748b", dark: "#94a3b8" } },
+            { type: "text", content: "Following", textStyle: "caption2", color: { light: "#64748b", dark: "#94a3b8" }, lineLimit: 1 },
           ]},
         ]},
       ],
@@ -46,10 +70,7 @@ export const userProfile: PresetDef = {
       background: { light: "#F8F9FA", dark: "#1C1C1E" },
       children: [
         { type: "vstack", spacing: 8, alignment: "center", children: [
-          { type: "text", content: "AK", fontSize: 22, fontWeight: "bold", color: "#ffffff",
-            background: { gradientType: "linear", colors: ["#667eea", "#764ba2"], direction: "topLeadingToBottomTrailing" },
-            cornerRadius: 30, clipShape: "circle",
-            frame: { width: 60, height: 60 } },
+          initialsAvatar(60, 22),
           { type: "text", content: "Alex Kim", textStyle: "headline", color: { light: "#0f172a", dark: "#f1f5f9" } },
           { type: "text", content: "@alexkim", textStyle: "caption", color: { light: "#64748b", dark: "#94a3b8" } },
         ]},
@@ -58,15 +79,15 @@ export const userProfile: PresetDef = {
           { type: "hstack", spacing: 12, children: [
             { type: "vstack", spacing: 0, alignment: "center", flex: 1, children: [
               { type: "text", content: "142", fontSize: 20, fontWeight: "bold", color: { light: "#0f172a", dark: "#f1f5f9" } },
-              { type: "text", content: "Posts", textStyle: "caption2", color: { light: "#64748b", dark: "#94a3b8" } },
+              { type: "text", content: "Posts", textStyle: "caption2", color: { light: "#64748b", dark: "#94a3b8" }, lineLimit: 1 },
             ]},
             { type: "vstack", spacing: 0, alignment: "center", flex: 1, children: [
               { type: "text", content: "8.2K", fontSize: 20, fontWeight: "bold", color: { light: "#0f172a", dark: "#f1f5f9" } },
-              { type: "text", content: "Followers", textStyle: "caption2", color: { light: "#64748b", dark: "#94a3b8" } },
+              { type: "text", content: "Followers", textStyle: "caption2", color: { light: "#64748b", dark: "#94a3b8" }, lineLimit: 1 },
             ]},
             { type: "vstack", spacing: 0, alignment: "center", flex: 1, children: [
               { type: "text", content: "523", fontSize: 20, fontWeight: "bold", color: { light: "#0f172a", dark: "#f1f5f9" } },
-              { type: "text", content: "Following", textStyle: "caption2", color: { light: "#64748b", dark: "#94a3b8" } },
+              { type: "text", content: "Following", textStyle: "caption2", color: { light: "#64748b", dark: "#94a3b8" }, lineLimit: 1 },
             ]},
           ]},
           { type: "text", content: "Full-stack developer \u00B7 Open source contributor", textStyle: "caption", color: { light: "#64748b", dark: "#94a3b8" }, lineLimit: 1,
@@ -83,10 +104,7 @@ export const userProfile: PresetDef = {
       background: { light: "#F8F9FA", dark: "#1C1C1E" },
       children: [
         { type: "hstack", spacing: 14, children: [
-          { type: "text", content: "AK", fontSize: 26, fontWeight: "bold", color: "#ffffff",
-            background: { gradientType: "linear", colors: ["#667eea", "#764ba2"], direction: "topLeadingToBottomTrailing" },
-            cornerRadius: 35, clipShape: "circle",
-            frame: { width: 70, height: 70 } },
+          initialsAvatar(70, 26),
           { type: "vstack", spacing: 4, alignment: "leading", flex: 1, children: [
             { type: "text", content: "Alex Kim", textStyle: "title2", fontWeight: "bold", color: { light: "#0f172a", dark: "#f1f5f9" } },
             { type: "text", content: "@alexkim \u00B7 Developer", textStyle: "subheadline", color: { light: "#64748b", dark: "#94a3b8" } },

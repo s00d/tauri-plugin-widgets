@@ -1,0 +1,503 @@
+{
+  "$schema": "http://adaptivecards.io/schemas/adaptive-card.json",
+  "body": [
+    {
+      "id": "card:#0f172a;gap:8",
+      "items": [
+        {
+          "columns": [
+            {
+              "items": [
+                {
+                  "horizontalAlignment": "Center",
+                  "id": "badge:overlay",
+                  "items": [
+                    {
+                      "spacing": "None",
+                      "text": "",
+                      "type": "TextBlock"
+                    },
+                    {
+                      "color": "Light",
+                      "id": "fg:#fff",
+                      "size": "Default",
+                      "text": "42",
+                      "type": "TextBlock",
+                      "weight": "Bolder",
+                      "wrap": true
+                    }
+                  ],
+                  "spacing": "None",
+                  "type": "Container"
+                }
+              ],
+              "type": "Column",
+              "width": "auto"
+            },
+            {
+              "items": [
+                {
+                  "id": "gap:2",
+                  "items": [
+                    {
+                      "color": "Light",
+                      "id": "fg:#f8fafc",
+                      "size": "Default",
+                      "text": "Nested Dashboard",
+                      "type": "TextBlock",
+                      "weight": "Bolder",
+                      "wrap": false
+                    },
+                    {
+                      "color": "Light",
+                      "id": "fg:#94a3b8",
+                      "size": "Small",
+                      "text": "hstack → zstack + grid + list",
+                      "type": "TextBlock",
+                      "weight": "Default",
+                      "wrap": false
+                    }
+                  ],
+                  "spacing": "Small",
+                  "type": "Container"
+                }
+              ],
+              "type": "Column",
+              "width": "stretch"
+            },
+            {
+              "items": [],
+              "type": "Column",
+              "width": "stretch"
+            },
+            {
+              "items": [
+                {
+                  "actions": [
+                    {
+                      "id": "bg:#2563eb;fg:#fff",
+                      "title": "Sync",
+                      "type": "Action.Execute",
+                      "verb": "dash_sync"
+                    }
+                  ],
+                  "type": "ActionSet"
+                }
+              ],
+              "type": "Column",
+              "width": "auto"
+            }
+          ],
+          "id": "gap:10",
+          "spacing": "Medium",
+          "type": "ColumnSet"
+        },
+        {
+          "id": "rule:#334155",
+          "items": [],
+          "separator": true,
+          "spacing": "Medium",
+          "type": "Container"
+        },
+        {
+          "id": "gap:8",
+          "items": [
+            {
+              "columns": [
+                {
+                  "items": [
+                    {
+                      "id": "card:#1e293b;gap:4",
+                      "items": [
+                        {
+                          "color": "Light",
+                          "id": "fg:#94a3b8",
+                          "size": "Small",
+                          "text": "CPU",
+                          "type": "TextBlock",
+                          "weight": "Default",
+                          "wrap": true
+                        },
+                        {
+                          "color": "Good",
+                          "id": "fg:#22c55e",
+                          "size": "Medium",
+                          "text": "38%",
+                          "type": "TextBlock",
+                          "weight": "Bolder",
+                          "wrap": true
+                        },
+                        {
+                          "items": [
+                            {
+                              "columns": [
+                                {
+                                  "id": "fill:#22c55e",
+                                  "items": [],
+                                  "style": "good",
+                                  "type": "Column",
+                                  "width": 38
+                                },
+                                {
+                                  "items": [],
+                                  "type": "Column",
+                                  "width": 62
+                                }
+                              ],
+                              "type": "ColumnSet"
+                            }
+                          ],
+                          "type": "Container"
+                        }
+                      ],
+                      "spacing": "Default",
+                      "style": "emphasis",
+                      "type": "Container"
+                    }
+                  ],
+                  "type": "Column",
+                  "width": "stretch"
+                },
+                {
+                  "items": [
+                    {
+                      "id": "card:#1e293b;gap:4",
+                      "items": [
+                        {
+                          "color": "Light",
+                          "id": "fg:#94a3b8",
+                          "size": "Small",
+                          "text": "RAM",
+                          "type": "TextBlock",
+                          "weight": "Default",
+                          "wrap": true
+                        },
+                        {
+                          "color": "Attention",
+                          "id": "fg:#f59e0b",
+                          "size": "Medium",
+                          "text": "62%",
+                          "type": "TextBlock",
+                          "weight": "Bolder",
+                          "wrap": true
+                        },
+                        {
+                          "items": [
+                            {
+                              "columns": [
+                                {
+                                  "id": "fill:#f59e0b",
+                                  "items": [],
+                                  "style": "attention",
+                                  "type": "Column",
+                                  "width": 62
+                                },
+                                {
+                                  "items": [],
+                                  "type": "Column",
+                                  "width": 38
+                                }
+                              ],
+                              "type": "ColumnSet"
+                            }
+                          ],
+                          "type": "Container"
+                        }
+                      ],
+                      "spacing": "Default",
+                      "style": "emphasis",
+                      "type": "Container"
+                    }
+                  ],
+                  "type": "Column",
+                  "width": "stretch"
+                }
+              ],
+              "id": "gap:8",
+              "spacing": "Default",
+              "type": "ColumnSet"
+            },
+            {
+              "columns": [
+                {
+                  "items": [
+                    {
+                      "id": "card:#1e293b;gap:4",
+                      "items": [
+                        {
+                          "color": "Light",
+                          "id": "fg:#94a3b8",
+                          "size": "Small",
+                          "text": "Disk",
+                          "type": "TextBlock",
+                          "weight": "Default",
+                          "wrap": true
+                        },
+                        {
+                          "color": "Attention",
+                          "id": "fg:#ef4444",
+                          "size": "Medium",
+                          "text": "81%",
+                          "type": "TextBlock",
+                          "weight": "Bolder",
+                          "wrap": true
+                        },
+                        {
+                          "items": [
+                            {
+                              "columns": [
+                                {
+                                  "id": "fill:#ef4444",
+                                  "items": [],
+                                  "style": "attention",
+                                  "type": "Column",
+                                  "width": 81
+                                },
+                                {
+                                  "items": [],
+                                  "type": "Column",
+                                  "width": 19
+                                }
+                              ],
+                              "type": "ColumnSet"
+                            }
+                          ],
+                          "type": "Container"
+                        }
+                      ],
+                      "spacing": "Default",
+                      "style": "emphasis",
+                      "type": "Container"
+                    }
+                  ],
+                  "type": "Column",
+                  "width": "stretch"
+                },
+                {
+                  "items": [
+                    {
+                      "id": "card:#1e293b;gap:4",
+                      "items": [
+                        {
+                          "color": "Light",
+                          "id": "fg:#94a3b8",
+                          "size": "Small",
+                          "text": "Net",
+                          "type": "TextBlock",
+                          "weight": "Default",
+                          "wrap": true
+                        },
+                        {
+                          "color": "Accent",
+                          "id": "fg:#38bdf8",
+                          "size": "Medium",
+                          "text": "12MB/s",
+                          "type": "TextBlock",
+                          "weight": "Bolder",
+                          "wrap": true
+                        },
+                        {
+                          "items": [
+                            {
+                              "columns": [
+                                {
+                                  "id": "fill:#38bdf8",
+                                  "items": [],
+                                  "style": "accent",
+                                  "type": "Column",
+                                  "width": 24
+                                },
+                                {
+                                  "items": [],
+                                  "type": "Column",
+                                  "width": 76
+                                }
+                              ],
+                              "type": "ColumnSet"
+                            }
+                          ],
+                          "type": "Container"
+                        }
+                      ],
+                      "spacing": "Default",
+                      "style": "emphasis",
+                      "type": "Container"
+                    }
+                  ],
+                  "type": "Column",
+                  "width": "stretch"
+                }
+              ],
+              "id": "gap:8",
+              "spacing": "Default",
+              "type": "ColumnSet"
+            }
+          ],
+          "spacing": "Default",
+          "type": "Container"
+        },
+        {
+          "id": "rule:#334155",
+          "items": [],
+          "separator": true,
+          "spacing": "Medium",
+          "type": "Container"
+        },
+        {
+          "horizontalAlignment": "Left",
+          "items": [
+            {
+              "columns": [
+                {
+                  "id": "mark:col",
+                  "items": [
+                    {
+                      "color": "Good",
+                      "horizontalAlignment": "Center",
+                      "size": "Small",
+                      "text": "✓",
+                      "type": "TextBlock",
+                      "wrap": false
+                    }
+                  ],
+                  "type": "Column",
+                  "width": "auto"
+                },
+                {
+                  "items": [
+                    {
+                      "color": "Light",
+                      "horizontalAlignment": "Left",
+                      "size": "Small",
+                      "text": "api-gateway",
+                      "type": "TextBlock",
+                      "wrap": true
+                    }
+                  ],
+                  "type": "Column",
+                  "width": "stretch"
+                }
+              ],
+              "type": "ColumnSet"
+            },
+            {
+              "columns": [
+                {
+                  "id": "mark:col",
+                  "items": [
+                    {
+                      "color": "Good",
+                      "horizontalAlignment": "Center",
+                      "size": "Small",
+                      "text": "✓",
+                      "type": "TextBlock",
+                      "wrap": false
+                    }
+                  ],
+                  "type": "Column",
+                  "width": "auto"
+                },
+                {
+                  "items": [
+                    {
+                      "color": "Light",
+                      "horizontalAlignment": "Left",
+                      "size": "Small",
+                      "text": "worker-pool",
+                      "type": "TextBlock",
+                      "wrap": true
+                    }
+                  ],
+                  "type": "Column",
+                  "width": "stretch"
+                }
+              ],
+              "id": "gap:3",
+              "spacing": "Small",
+              "type": "ColumnSet"
+            },
+            {
+              "columns": [
+                {
+                  "id": "mark:col",
+                  "items": [
+                    {
+                      "color": "Light",
+                      "horizontalAlignment": "Center",
+                      "size": "Small",
+                      "text": "○",
+                      "type": "TextBlock",
+                      "wrap": false
+                    }
+                  ],
+                  "type": "Column",
+                  "width": "auto"
+                },
+                {
+                  "items": [
+                    {
+                      "color": "Light",
+                      "horizontalAlignment": "Left",
+                      "size": "Small",
+                      "text": "cache-redis",
+                      "type": "TextBlock",
+                      "wrap": true
+                    }
+                  ],
+                  "type": "Column",
+                  "width": "stretch"
+                }
+              ],
+              "id": "gap:3",
+              "spacing": "Small",
+              "type": "ColumnSet"
+            },
+            {
+              "columns": [
+                {
+                  "id": "mark:col",
+                  "items": [
+                    {
+                      "color": "Light",
+                      "horizontalAlignment": "Center",
+                      "size": "Small",
+                      "text": " ",
+                      "type": "TextBlock",
+                      "wrap": false
+                    }
+                  ],
+                  "type": "Column",
+                  "width": "auto"
+                },
+                {
+                  "items": [
+                    {
+                      "color": "Light",
+                      "horizontalAlignment": "Left",
+                      "size": "Small",
+                      "text": "queue-amqp",
+                      "type": "TextBlock",
+                      "wrap": true
+                    }
+                  ],
+                  "type": "Column",
+                  "width": "stretch"
+                }
+              ],
+              "id": "gap:3",
+              "spacing": "Small",
+              "type": "ColumnSet"
+            }
+          ],
+          "spacing": "None",
+          "type": "Container"
+        }
+      ],
+      "spacing": "Default",
+      "style": "emphasis",
+      "type": "Container"
+    }
+  ],
+  "type": "AdaptiveCard",
+  "version": "1.5"
+}

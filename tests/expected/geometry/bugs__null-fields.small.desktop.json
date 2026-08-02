@@ -1,0 +1,77 @@
+{
+  "kind": "div",
+  "rect": [
+    0,
+    0,
+    170,
+    170
+  ],
+  "children": [
+    {
+      "kind": "div",
+      "rect": [
+        0,
+        0,
+        170,
+        170
+      ],
+      "children": [
+        {
+          "kind": "div",
+          "rect": [
+            61,
+            8,
+            47,
+            29
+          ],
+          "text": "Tap",
+          "px": 14,
+          "color": "#FFFFFF"
+        },
+        {
+          "kind": "span",
+          "rect": [
+            8,
+            37,
+            154,
+            15
+          ],
+          "text": "ok",
+          "px": 12,
+          "color": "#FFFFFF"
+        },
+        {
+          "kind": "div",
+          "rect": [
+            8,
+            52,
+            154,
+            110
+          ],
+          "children": [
+            {
+              "kind": "div",
+              "rect": [
+                8,
+                52,
+                154,
+                6
+              ],
+              "children": [
+                {
+                  "kind": "div",
+                  "rect": [
+                    8,
+                    52,
+                    46,
+                    6
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

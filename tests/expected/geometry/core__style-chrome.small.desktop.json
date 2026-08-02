@@ -1,0 +1,57 @@
+{
+  "kind": "div",
+  "rect": [
+    0,
+    0,
+    170,
+    170
+  ],
+  "children": [
+    {
+      "kind": "div",
+      "rect": [
+        0,
+        0,
+        170,
+        170
+      ],
+      "children": [
+        {
+          "kind": "div",
+          "rect": [
+            14,
+            14,
+            142,
+            36
+          ],
+          "children": [
+            {
+              "kind": "span",
+              "rect": [
+                14,
+                14,
+                36,
+                36
+              ],
+              "text": "👤",
+              "px": 36,
+              "color": "#FFFFFF"
+            },
+            {
+              "kind": "span",
+              "rect": [
+                60,
+                14,
+                142,
+                36
+              ],
+              "text": "Chrome",
+              "px": 15,
+              "color": "#F8FAFC"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

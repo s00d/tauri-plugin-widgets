@@ -1,0 +1,269 @@
+{
+  "kind": "div",
+  "rect": [
+    0,
+    0,
+    360,
+    170
+  ],
+  "children": [
+    {
+      "kind": "div",
+      "rect": [
+        0,
+        0,
+        360,
+        170
+      ],
+      "children": [
+        {
+          "kind": "div",
+          "rect": [
+            14,
+            14,
+            56,
+            142
+          ],
+          "children": [
+            {
+              "kind": "div",
+              "rect": [
+                14,
+                14,
+                56,
+                70
+              ],
+              "children": [
+                {
+                  "kind": "div",
+                  "rect": [
+                    14,
+                    14,
+                    56,
+                    56
+                  ],
+                  "children": [
+                    {
+                      "kind": "svg",
+                      "rect": [
+                        14,
+                        14,
+                        56,
+                        56
+                      ],
+                      "children": [
+                        {
+                          "kind": "path",
+                          "rect": [
+                            17,
+                            17,
+                            49,
+                            49
+                          ]
+                        },
+                        {
+                          "kind": "path",
+                          "rect": [
+                            17,
+                            17,
+                            49,
+                            49
+                          ]
+                        }
+                      ]
+                    },
+                    {
+                      "kind": "div",
+                      "rect": [
+                        14,
+                        14,
+                        56,
+                        56
+                      ],
+                      "text": "72%",
+                      "px": 11,
+                      "color": "#FF6B6B"
+                    }
+                  ]
+                },
+                {
+                  "kind": "div",
+                  "rect": [
+                    14,
+                    72,
+                    56,
+                    12
+                  ],
+                  "text": "Steps",
+                  "px": 10,
+                  "color": "#FF6B6B"
+                }
+              ]
+            },
+            {
+              "kind": "span",
+              "rect": [
+                14,
+                90,
+                56,
+                13
+              ],
+              "text": "7,200 / 10k",
+              "px": 11,
+              "color": "#94A3B8"
+            }
+          ]
+        },
+        {
+          "kind": "hr",
+          "rect": [
+            86,
+            14,
+            1,
+            142
+          ]
+        },
+        {
+          "kind": "div",
+          "rect": [
+            103,
+            14,
+            48,
+            142
+          ],
+          "children": [
+            {
+              "kind": "div",
+              "rect": [
+                103,
+                14,
+                48,
+                43
+              ],
+              "children": [
+                {
+                  "kind": "div",
+                  "rect": [
+                    103,
+                    14,
+                    48,
+                    12
+                  ],
+                  "text": "Calories",
+                  "px": 10,
+                  "color": "#94A3B8"
+                },
+                {
+                  "kind": "div",
+                  "rect": [
+                    103,
+                    28,
+                    48,
+                    6
+                  ],
+                  "children": [
+                    {
+                      "kind": "div",
+                      "rect": [
+                        103,
+                        28,
+                        21,
+                        6
+                      ]
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "kind": "div",
+              "rect": [
+                103,
+                63,
+                48,
+                43
+              ],
+              "children": [
+                {
+                  "kind": "div",
+                  "rect": [
+                    103,
+                    63,
+                    48,
+                    12
+                  ],
+                  "text": "Water",
+                  "px": 10,
+                  "color": "#94A3B8"
+                },
+                {
+                  "kind": "div",
+                  "rect": [
+                    103,
+                    77,
+                    48,
+                    6
+                  ],
+                  "children": [
+                    {
+                      "kind": "div",
+                      "rect": [
+                        103,
+                        77,
+                        42,
+                        6
+                      ]
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "kind": "div",
+              "rect": [
+                103,
+                112,
+                48,
+                43
+              ],
+              "children": [
+                {
+                  "kind": "div",
+                  "rect": [
+                    103,
+                    112,
+                    48,
+                    12
+                  ],
+                  "text": "Exercise",
+                  "px": 10,
+                  "color": "#94A3B8"
+                },
+                {
+                  "kind": "div",
+                  "rect": [
+                    103,
+                    126,
+                    48,
+                    6
+                  ],
+                  "children": [
+                    {
+                      "kind": "div",
+                      "rect": [
+                        103,
+                        126,
+                        15,
+                        6
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

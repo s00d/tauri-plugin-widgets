@@ -1,0 +1,79 @@
+{
+  "version": 1,
+  "medium": {
+    "type": "vstack",
+    "padding": { "top": 10, "leading": 12, "bottom": 10, "trailing": 12 },
+    "spacing": 8,
+    "cornerRadius": 14,
+    "background": "#0f172a",
+    "children": [
+      {
+        "type": "text",
+        "content": "Flex + stroke",
+        "fontSize": 13,
+        "fontWeight": "semibold",
+        "color": "#f8fafc",
+        "frame": { "maxWidth": 200 }
+      },
+      {
+        "type": "grid",
+        "columns": 3,
+        "spacing": 8,
+        "children": [
+          {
+            "type": "shape",
+            "shapeType": "rectangle",
+            "size": 36,
+            "fill": "#1e293b",
+            "stroke": "#22c55e",
+            "strokeWidth": 2,
+            "cornerRadius": 8,
+            "flex": 1
+          },
+          {
+            "type": "shape",
+            "shapeType": "circle",
+            "size": 36,
+            "fill": "transparent",
+            "stroke": "#38bdf8",
+            "strokeWidth": 3,
+            "flex": 1
+          },
+          {
+            "type": "shape",
+            "shapeType": "capsule",
+            "size": 18,
+            "fill": "#312e81",
+            "stroke": "#a855f7",
+            "strokeWidth": 2,
+            "flex": 1
+          },
+          {
+            "type": "text",
+            "content": "A",
+            "fontSize": 12,
+            "color": "#94a3b8",
+            "alignment": "center",
+            "flex": 1
+          },
+          {
+            "type": "text",
+            "content": "B",
+            "fontSize": 12,
+            "color": "#94a3b8",
+            "alignment": "center",
+            "flex": 1
+          },
+          {
+            "type": "text",
+            "content": "C",
+            "fontSize": 12,
+            "color": "#94a3b8",
+            "alignment": "center",
+            "flex": 1
+          }
+        ]
+      }
+    ]
+  }
+}

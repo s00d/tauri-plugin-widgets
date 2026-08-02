@@ -14,6 +14,10 @@ const COMMANDS: &[&str] = &[
     "get_widget_config",
     "widget_action",
     "poll_pending_actions",
+    "report_receipt",
+    "get_widget_diagnostics",
+    "get_widget_trace",
+    "flush_widget_trace",
 ];
 
 fn main() {
@@ -28,7 +32,8 @@ fn main() {
         result.unwrap();
     }
 
-    if target.contains("apple-darwin") {
+    // Skip native Swift bridge when building codegen tooling (avoids duplicate `main`).
+    if target.contains("apple-darwin") && std::env::var("CARGO_FEATURE_CODEGEN").is_err() {
         let sdk = macos_sdk_path();
         let arch = if target.contains("aarch64") {
             "arm64"
@@ -51,6 +56,7 @@ fn compile_reload_bridge(sdk: &str, arch: &str) {
     assert!(
         Command::new("swiftc")
             .args([
+                "-parse-as-library",
                 "-emit-object",
                 "-o",
                 obj.to_str().unwrap(),

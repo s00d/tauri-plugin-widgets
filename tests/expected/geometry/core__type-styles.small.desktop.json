@@ -1,0 +1,70 @@
+{
+  "kind": "div",
+  "rect": [
+    0,
+    0,
+    170,
+    170
+  ],
+  "children": [
+    {
+      "kind": "div",
+      "rect": [
+        0,
+        0,
+        170,
+        170
+      ],
+      "children": [
+        {
+          "kind": "span",
+          "rect": [
+            10,
+            10,
+            150,
+            20
+          ],
+          "text": "Headline",
+          "px": 17,
+          "color": "#F8FAFC"
+        },
+        {
+          "kind": "span",
+          "rect": [
+            10,
+            36,
+            150,
+            15
+          ],
+          "text": "mono 0123",
+          "px": 13,
+          "color": "#38BDF8"
+        },
+        {
+          "kind": "span",
+          "rect": [
+            10,
+            57,
+            150,
+            17
+          ],
+          "text": "Serif body",
+          "px": 14,
+          "color": "#E2E8F0"
+        },
+        {
+          "kind": "span",
+          "rect": [
+            10,
+            80,
+            150,
+            15
+          ],
+          "text": "Caption line",
+          "px": 12,
+          "color": "#94A3B8"
+        }
+      ]
+    }
+  ]
+}

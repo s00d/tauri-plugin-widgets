@@ -1,0 +1,106 @@
+{
+  "$schema": "http://adaptivecards.io/schemas/adaptive-card.json",
+  "body": [
+    {
+      "id": "card:#0d1117;gap:8",
+      "items": [
+        {
+          "color": "Light",
+          "id": "fg:#fff",
+          "size": "Default",
+          "text": "Activity",
+          "type": "TextBlock",
+          "weight": "Bolder",
+          "wrap": true
+        },
+        {
+          "spacing": "None",
+          "text": "",
+          "type": "TextBlock"
+        },
+        {
+          "columns": [
+            {
+              "items": [
+                {
+                  "items": [
+                    {
+                      "color": "Light",
+                      "size": "Small",
+                      "text": "Cal",
+                      "type": "TextBlock",
+                      "wrap": true
+                    },
+                    {
+                      "columns": [
+                        {
+                          "id": "fill:#4ecdc4",
+                          "items": [],
+                          "style": "default",
+                          "type": "Column",
+                          "width": 45
+                        },
+                        {
+                          "items": [],
+                          "type": "Column",
+                          "width": 55
+                        }
+                      ],
+                      "type": "ColumnSet"
+                    }
+                  ],
+                  "type": "Container"
+                }
+              ],
+              "type": "Column",
+              "width": "auto"
+            },
+            {
+              "items": [
+                {
+                  "items": [
+                    {
+                      "color": "Light",
+                      "size": "Small",
+                      "text": "H2O",
+                      "type": "TextBlock",
+                      "wrap": true
+                    },
+                    {
+                      "columns": [
+                        {
+                          "id": "fill:#ffe66d",
+                          "items": [],
+                          "style": "default",
+                          "type": "Column",
+                          "width": 88
+                        },
+                        {
+                          "items": [],
+                          "type": "Column",
+                          "width": 12
+                        }
+                      ],
+                      "type": "ColumnSet"
+                    }
+                  ],
+                  "type": "Container"
+                }
+              ],
+              "type": "Column",
+              "width": "auto"
+            }
+          ],
+          "id": "gap:8",
+          "spacing": "Default",
+          "type": "ColumnSet"
+        }
+      ],
+      "spacing": "Default",
+      "style": "emphasis",
+      "type": "Container"
+    }
+  ],
+  "type": "AdaptiveCard",
+  "version": "1.5"
+}

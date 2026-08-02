@@ -1,0 +1,51 @@
+{
+  "$schema": "http://adaptivecards.io/schemas/adaptive-card.json",
+  "body": [
+    {
+      "id": "card:#1c1c1e;gap:10",
+      "items": [
+        {
+          "items": [
+            {
+              "size": "Default",
+              "text": "✓ Wi-Fi",
+              "type": "TextBlock",
+              "wrap": true
+            }
+          ],
+          "selectAction": {
+            "data": {
+              "payload": "false"
+            },
+            "type": "Action.Execute",
+            "verb": "toggle_wifi"
+          },
+          "type": "Container"
+        },
+        {
+          "items": [
+            {
+              "size": "Default",
+              "text": "○ Bluetooth",
+              "type": "TextBlock",
+              "wrap": true
+            }
+          ],
+          "selectAction": {
+            "data": {
+              "payload": "true"
+            },
+            "type": "Action.Execute",
+            "verb": "toggle_bt"
+          },
+          "type": "Container"
+        }
+      ],
+      "spacing": "Medium",
+      "style": "emphasis",
+      "type": "Container"
+    }
+  ],
+  "type": "AdaptiveCard",
+  "version": "1.5"
+}

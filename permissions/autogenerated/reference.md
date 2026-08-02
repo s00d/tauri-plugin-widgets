@@ -16,6 +16,10 @@ Default permissions for the widgets plugin — enables all commands.
 - `allow-get-widget-config`
 - `allow-widget-action`
 - `allow-poll-pending-actions`
+- `allow-report-receipt`
+- `allow-get-widget-diagnostics`
+- `allow-get-widget-trace`
+- `allow-flush-widget-trace`
 
 ## Permission Table
 
@@ -81,6 +85,32 @@ Denies the create_widget_window command without any pre-configured scope.
 <tr>
 <td>
 
+`widgets:allow-flush-widget-trace`
+
+</td>
+<td>
+
+Enables the flush_widget_trace command without any pre-configured scope.
+
+</td>
+</tr>
+
+<tr>
+<td>
+
+`widgets:deny-flush-widget-trace`
+
+</td>
+<td>
+
+Denies the flush_widget_trace command without any pre-configured scope.
+
+</td>
+</tr>
+
+<tr>
+<td>
+
 `widgets:allow-get-items`
 
 </td>
@@ -126,6 +156,58 @@ Enables the get_widget_config command without any pre-configured scope.
 <td>
 
 Denies the get_widget_config command without any pre-configured scope.
+
+</td>
+</tr>
+
+<tr>
+<td>
+
+`widgets:allow-get-widget-diagnostics`
+
+</td>
+<td>
+
+Enables the get_widget_diagnostics command without any pre-configured scope.
+
+</td>
+</tr>
+
+<tr>
+<td>
+
+`widgets:deny-get-widget-diagnostics`
+
+</td>
+<td>
+
+Denies the get_widget_diagnostics command without any pre-configured scope.
+
+</td>
+</tr>
+
+<tr>
+<td>
+
+`widgets:allow-get-widget-trace`
+
+</td>
+<td>
+
+Enables the get_widget_trace command without any pre-configured scope.
+
+</td>
+</tr>
+
+<tr>
+<td>
+
+`widgets:deny-get-widget-trace`
+
+</td>
+<td>
+
+Denies the get_widget_trace command without any pre-configured scope.
 
 </td>
 </tr>
@@ -204,6 +286,32 @@ Enables the reload_timelines command without any pre-configured scope.
 <td>
 
 Denies the reload_timelines command without any pre-configured scope.
+
+</td>
+</tr>
+
+<tr>
+<td>
+
+`widgets:allow-report-receipt`
+
+</td>
+<td>
+
+Enables the report_receipt command without any pre-configured scope.
+
+</td>
+</tr>
+
+<tr>
+<td>
+
+`widgets:deny-report-receipt`
+
+</td>
+<td>
+
+Denies the report_receipt command without any pre-configured scope.
 
 </td>
 </tr>

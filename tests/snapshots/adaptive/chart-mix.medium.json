@@ -1,0 +1,96 @@
+{
+  "$schema": "http://adaptivecards.io/schemas/adaptive-card.json",
+  "body": [
+    {
+      "columns": [
+        {
+          "items": [
+            {
+              "id": "gap:4",
+              "items": [
+                {
+                  "color": "Light",
+                  "id": "fg:#94a3b8",
+                  "size": "Small",
+                  "text": "Bar",
+                  "type": "TextBlock",
+                  "weight": "Default",
+                  "wrap": true
+                },
+                {
+                  "spacing": "None",
+                  "text": "",
+                  "type": "TextBlock"
+                }
+              ],
+              "spacing": "Default",
+              "type": "Container"
+            }
+          ],
+          "type": "Column",
+          "width": 100
+        },
+        {
+          "items": [
+            {
+              "id": "gap:4",
+              "items": [
+                {
+                  "color": "Light",
+                  "id": "fg:#94a3b8",
+                  "size": "Small",
+                  "text": "Line",
+                  "type": "TextBlock",
+                  "weight": "Default",
+                  "wrap": true
+                },
+                {
+                  "spacing": "None",
+                  "text": "",
+                  "type": "TextBlock"
+                }
+              ],
+              "spacing": "Default",
+              "type": "Container"
+            }
+          ],
+          "type": "Column",
+          "width": 100
+        },
+        {
+          "items": [
+            {
+              "horizontalAlignment": "Center",
+              "id": "gap:4",
+              "items": [
+                {
+                  "color": "Light",
+                  "id": "fg:#94a3b8",
+                  "size": "Small",
+                  "text": "Pie",
+                  "type": "TextBlock",
+                  "weight": "Default",
+                  "wrap": true
+                },
+                {
+                  "spacing": "None",
+                  "text": "",
+                  "type": "TextBlock"
+                }
+              ],
+              "spacing": "Default",
+              "type": "Container"
+            }
+          ],
+          "type": "Column",
+          "width": 100
+        }
+      ],
+      "id": "gap:10",
+      "spacing": "Medium",
+      "type": "ColumnSet"
+    }
+  ],
+  "type": "AdaptiveCard",
+  "version": "1.5"
+}

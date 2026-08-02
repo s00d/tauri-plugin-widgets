@@ -6,14 +6,17 @@ import {
   closeWidgetWindow,
   startWidgetUpdater,
   setWidgetConfig,
-  pollPendingWidgetActions,
+  onWidgetAction,
+  getWidgetTrace,
   type WidgetConfig,
+  type WidgetTrace,
 } from "tauri-plugin-widgets-api";
 import { PRESETS } from "./presets";
 import "./App.css";
 
 const WIDGET_KIND = "ExampleWidget";
 const APP_GROUP = "group.com.s00d.tauri-plugin-widgets-example";
+const WIDGET_ID = "example";
 const WIDGET_LABEL = "desktop-widget";
 
 type WidgetSize = "small" | "medium" | "large";
@@ -32,15 +35,23 @@ function App() {
   const [tab, setTab] = useState<"presets" | "editor" | "controls">("presets");
   const [jsonText, setJsonText] = useState("");
   const [jsonError, setJsonError] = useState<string | null>(null);
-  const [updaterStop, setUpdaterStop] = useState<(() => void) | null>(null);
   const [widgetSize, setWidgetSize] = useState<WidgetSize>("small");
-  const recentActionRef = useRef<Map<string, number>>(new Map());
+  const [liveIntervalMs, setLiveIntervalMs] = useState(0);
+  const [trace, setTrace] = useState<WidgetTrace | null>(null);
+  const activePresetRef = useRef<string | null>(null);
+  const updaterBuilderRef = useRef<(() => WidgetConfig | Promise<WidgetConfig>) | null>(null);
+  const updaterStopRef = useRef<(() => void) | null>(null);
+  const applyGenRef = useRef(0);
 
   const addLog = useCallback((message: string, isError = false) => {
     const prefix = isError ? "[ERR]" : "[OK]";
     const time = new Date().toLocaleTimeString();
     setLogs((prev) => [`${time} ${prefix} ${message}`, ...prev].slice(0, 50));
   }, []);
+
+  useEffect(() => {
+    activePresetRef.current = activePreset;
+  }, [activePreset]);
 
   useEffect(() => {
     (async () => {
@@ -54,95 +65,118 @@ function App() {
     })();
   }, [addLog]);
 
-  function stopUpdater() {
-    if (updaterStop) {
-      updaterStop();
-      setUpdaterStop(null);
+  // Single action path: live events + slow poll fallback (no dedup hack).
+  useEffect(() => {
+    let stopped = false;
+    let unlisten: (() => void) | null = null;
+
+    async function handleAction(action: string, payload?: string) {
+      const name = activePresetRef.current;
+      const preset = name ? PRESETS[name] : null;
+      addLog(`Action: "${action}"${payload ? ` payload=${payload}` : ""}`);
+      preset?.onAction?.(action, payload, addLog);
+      const builder = updaterBuilderRef.current ?? (preset ? (preset.builder ?? (() => preset.config)) : null);
+      if (!builder) return;
+      const next = await builder();
+      await setWidgetConfig(next, APP_GROUP, WIDGET_ID);
+      setJsonText(JSON.stringify(next, null, 2));
     }
+
+    void (async () => {
+      unlisten = await onWidgetAction((data) => {
+        if (stopped) return;
+        if (data.widgetId && data.widgetId !== WIDGET_ID) return;
+        if (data.group && data.group !== APP_GROUP) return;
+        void handleAction(data.action, data.payload);
+      });
+    })();
+
+    return () => {
+      stopped = true;
+      unlisten?.();
+    };
+  }, [addLog]);
+
+  function stopUpdater() {
+    updaterStopRef.current?.();
+    updaterStopRef.current = null;
+    updaterBuilderRef.current = null;
+    setLiveIntervalMs(0);
   }
 
   async function handleApplyPreset(name: string) {
+    const gen = ++applyGenRef.current;
     stopUpdater();
     const preset = PRESETS[name];
     if (!preset) return;
     try {
       const builder = preset.builder ?? (() => preset.config);
-      const intervalMs = preset.builder ? (preset.intervalMs ?? 1000) : 0;
+      updaterBuilderRef.current = builder;
+      // Live tick only when intervalMs is explicitly > 0.
+      // A bare `builder` is for action rebuilds (tasks/payments), not auto-poll.
+      const intervalMs =
+        typeof preset.intervalMs === "number" && preset.intervalMs > 0
+          ? preset.intervalMs
+          : 0;
 
-      const stop = await startWidgetUpdater(builder, APP_GROUP, {
+      const stop = await startWidgetUpdater(builder, APP_GROUP, WIDGET_ID, {
         intervalMs,
         immediate: true,
-        onAction: (action, payload) => {
-          const actionKey = `${action}::${payload ?? ""}`;
-          recentActionRef.current.set(actionKey, Date.now());
-          addLog(`Action: "${action}"${payload ? ` payload=${payload}` : ""}`);
-          preset.onAction?.(action, payload, addLog);
-          void (async () => {
-            const next = await builder();
-            await setWidgetConfig(next, APP_GROUP);
-            if (intervalMs === 0) {
-              setJsonText(JSON.stringify(next, null, 2));
-            }
-          })();
-        },
       });
 
-      setUpdaterStop(() => stop);
+      // A newer click won the race — drop this updater.
+      if (gen !== applyGenRef.current) {
+        stop();
+        return;
+      }
+
+      updaterStopRef.current = stop;
+      setLiveIntervalMs(intervalMs);
       setActivePreset(name);
       const snap = await builder();
+      if (gen !== applyGenRef.current) return;
       if (intervalMs > 0) {
-        setJsonText(`// Auto-updating every ${intervalMs / 1000}s via startWidgetUpdater\n` + JSON.stringify(snap, null, 2));
+        setJsonText(
+          `// Auto-updating every ${intervalMs / 1000}s via startWidgetUpdater\n` +
+            JSON.stringify(snap, null, 2),
+        );
       } else {
         setJsonText(JSON.stringify(snap, null, 2));
       }
       setJsonError(null);
       addLog(`Applied "${preset.name}"${intervalMs > 0 ? ` (live ${intervalMs / 1000}s)` : ""}`);
     } catch (e) {
+      if (gen !== applyGenRef.current) return;
       addLog(`Failed: ${String(e)}`, true);
     }
   }
 
-  useEffect(() => {
-    if (!activePreset) return;
-    const timer = setInterval(() => {
-      void (async () => {
-        try {
-          const actions = await pollPendingWidgetActions(APP_GROUP);
-          if (!actions.length) return;
-          const preset = PRESETS[activePreset];
-          if (!preset) return;
-          const builder = preset.builder ?? (() => preset.config);
-          for (const item of actions) {
-            const actionKey = `${item.action}::${item.payload ?? ""}`;
-            const seenAt = recentActionRef.current.get(actionKey) ?? 0;
-            if (Date.now() - seenAt < 1200) continue;
-            recentActionRef.current.set(actionKey, Date.now());
-            addLog(`Action(poll): "${item.action}"${item.payload ? ` payload=${item.payload}` : ""}`);
-            preset.onAction?.(item.action, item.payload, addLog);
-            const next = await builder();
-            await setWidgetConfig(next, APP_GROUP);
-          }
-        } catch (e) {
-          console.debug("[example-app] pollPendingWidgetActions skipped/failed", e);
-        }
-      })();
-    }, 500);
-    return () => clearInterval(timer);
-  }, [activePreset, addLog]);
-
   async function handleApplyJson() {
+    const gen = ++applyGenRef.current;
     stopUpdater();
     try {
-      const config: WidgetConfig = JSON.parse(jsonText);
-      const stop = await startWidgetUpdater(() => config, APP_GROUP, {
+      // Strip // comment lines so live-preset snapshots still parse.
+      const cleaned = jsonText
+        .split("\n")
+        .filter((line) => !/^\s*\/\//.test(line))
+        .join("\n");
+      const config: WidgetConfig = JSON.parse(cleaned);
+      updaterBuilderRef.current = () => config;
+      const stop = await startWidgetUpdater(() => config, APP_GROUP, WIDGET_ID, {
         intervalMs: 0,
         immediate: true,
       });
-      setUpdaterStop(() => stop);
+      if (gen !== applyGenRef.current) {
+        stop();
+        return;
+      }
+      updaterStopRef.current = stop;
+      setLiveIntervalMs(0);
       setActivePreset(null);
       setJsonError(null);
       addLog("Applied custom config");
     } catch (e) {
+      if (gen !== applyGenRef.current) return;
       setJsonError(String(e));
       addLog(`JSON error: ${String(e)}`, true);
     }
@@ -150,11 +184,36 @@ function App() {
 
   function handleFormat() {
     try {
-      const parsed = JSON.parse(jsonText);
+      const cleaned = jsonText
+        .split("\n")
+        .filter((line) => !/^\s*\/\//.test(line))
+        .join("\n");
+      const parsed = JSON.parse(cleaned);
       setJsonText(JSON.stringify(parsed, null, 2));
       setJsonError(null);
     } catch (e) {
       setJsonError(String(e));
+    }
+  }
+
+  useEffect(() => {
+    return () => {
+      updaterStopRef.current?.();
+      updaterStopRef.current = null;
+    };
+  }, []);
+
+  async function handleRefreshTrace() {
+    try {
+      const t = await getWidgetTrace(APP_GROUP, { since: Date.now() - 3_600_000 });
+      setTrace(t);
+      addLog(
+        t.enabled
+          ? `Trace: ${t.events.length} events, ${t.receipts.length} receipts`
+          : "Trace disabled (set WIDGET_DEBUG=1 in release)",
+      );
+    } catch (e) {
+      addLog("Trace failed: " + String(e), true);
     }
   }
 
@@ -172,6 +231,7 @@ function App() {
         y: 80,
         skipTaskbar: true,
         group: APP_GROUP,
+        widgetId: WIDGET_ID,
         size: widgetSize,
       });
       setWidgetOpen(true);
@@ -228,7 +288,7 @@ function App() {
               >
                 <span className="preset-icon">{p.icon}</span>
                 {p.name}
-                {activePreset === key && updaterStop && (
+                {activePreset === key && liveIntervalMs > 0 && (
                   <span style={{ fontSize: 10, color: "#4ade80", marginLeft: 4 }}> LIVE</span>
                 )}
               </div>
@@ -248,85 +308,67 @@ function App() {
               placeholder="Paste or edit widget config JSON..."
               spellCheck={false}
             />
-            {jsonError && <div style={{ color: "#dc2626", fontSize: 11, marginBottom: 6 }}>{jsonError}</div>}
-            <div className="button-group">
-              <button className="btn btn-primary" onClick={handleApplyJson}>Apply Config</button>
-              <button className="btn" onClick={handleFormat}>Format</button>
-              <button className="btn" onClick={() => { navigator.clipboard.writeText(jsonText); addLog("Copied to clipboard"); }}>
-                Copy
-              </button>
+            {jsonError && <div className="json-error">{jsonError}</div>}
+            <div className="btn-row">
+              <button onClick={handleApplyJson}>Apply JSON</button>
+              <button className="btn-secondary" onClick={handleFormat}>Format</button>
             </div>
           </>
         )}
 
         {tab === "controls" && (
-          <>
-            <h3>Reload</h3>
-            <div className="button-group">
-              <button
-                className="btn"
-                onClick={() => reloadAllTimelines().then(() => addLog("Reloaded all")).catch((e) => addLog(String(e), true))}
-              >
-                Reload All
+          <div className="controls">
+            <div className="btn-row">
+              <label>
+                Size{" "}
+                <select value={widgetSize} onChange={(e) => setWidgetSize(e.target.value as WidgetSize)}>
+                  <option value="small">small</option>
+                  <option value="medium">medium</option>
+                  <option value="large">large</option>
+                </select>
+              </label>
+              <button onClick={handleOpenWidget}>{widgetOpen ? "Reopen" : "Open"} desktop widget</button>
+              <button className="btn-secondary" onClick={handleCloseWidget} disabled={!widgetOpen}>
+                Close
+              </button>
+              <button className="btn-secondary" onClick={() => reloadAllTimelines().then(() => addLog("Reloaded"))}>
+                Reload timelines
+              </button>
+              <button className="btn-secondary" onClick={handleRefreshTrace}>
+                Refresh trace
               </button>
             </div>
-            <h3>Desktop Widget Window</h3>
-            <div style={{ marginBottom: 8 }}>
-              <label style={{ fontSize: 13, marginRight: 8 }}>Size:</label>
-              {(["small", "medium", "large"] as WidgetSize[]).map((s) => (
-                <button
-                  key={s}
-                  className={`btn btn-small ${widgetSize === s ? "active" : ""}`}
-                  style={{
-                    marginRight: 4,
-                    background: widgetSize === s ? "#6366f1" : undefined,
-                    color: widgetSize === s ? "#fff" : undefined,
-                  }}
-                  onClick={() => setWidgetSize(s)}
-                >
-                  {s} ({SIZE_DIMS[s].width}\u00D7{SIZE_DIMS[s].height})
-                </button>
-              ))}
-            </div>
-            <div className="button-group">
-              {!widgetOpen ? (
-                <button className="btn btn-primary" onClick={handleOpenWidget}>Open Widget Window</button>
-              ) : (
-                <>
-                  <button className="btn btn-primary" onClick={handleOpenWidget}>Reopen ({widgetSize})</button>
-                  <button className="btn btn-danger" onClick={handleCloseWidget}>Close</button>
-                </>
-              )}
-            </div>
-          </>
+            {trace && (
+              <div className="trace-panel">
+                <h3>Delivery trace {trace.enabled ? "" : "(off)"}</h3>
+                <pre className="trace-pre">
+                  {trace.events
+                    .slice(-40)
+                    .map((e) => {
+                      const kind = String(e.kind ?? "?");
+                      const extra =
+                        kind === "reload"
+                          ? ` performed=${String(e.performed)} ${JSON.stringify(e.reason)}`
+                          : kind === "configSet"
+                            ? ` id=${e.widgetId} changed=${String(e.changed)} bytes=${e.bytes}`
+                            : kind === "render"
+                              ? ` ${e.trigger}@${e.source} nonce=${e.nonce} lag=${e.lagMs}ms`
+                              : kind === "write"
+                                ? ` ${e.transport} ok=${String(e.ok)} ${e.durationMs}ms`
+                                : "";
+                      return `${new Date(Number(e.ts)).toLocaleTimeString()}  ${kind}${extra}`;
+                    })
+                    .join("\n") || "(empty)"}
+                </pre>
+              </div>
+            )}
+          </div>
         )}
-      </div>
 
-      <div className="card log-card">
-        <div className="log-header">
-          <h3 style={{ margin: 0 }}>Log</h3>
-          <button className="btn btn-small" onClick={() => setLogs([])}>Clear</button>
-        </div>
-        <div className="log-list">
-          {logs.length === 0 && <p className="log-empty">No logs yet</p>}
-          {logs.map((log, i) => (
-            <div key={i} className={`log-entry ${log.includes("[ERR]") ? "log-err" : "log-ok"}`}>
-              <button
-                type="button"
-                style={{
-                  all: "unset",
-                  display: "block",
-                  width: "100%",
-                  cursor: "pointer",
-                }}
-                title="Click to copy"
-                onClick={() => {
-                  void navigator.clipboard.writeText(log);
-                  addLog("Log entry copied");
-                }}
-              >
-                {log}
-              </button>
+        <div className="log-panel">
+          {logs.map((l, i) => (
+            <div key={i} className={l.includes("[ERR]") ? "log-err" : "log-ok"}>
+              {l}
             </div>
           ))}
         </div>

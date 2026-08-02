@@ -1,0 +1,281 @@
+{
+  "kind": "FrameLayout",
+  "rect": [
+    0,
+    0,
+    1080,
+    510
+  ],
+  "children": [
+    {
+      "kind": "FrameLayout",
+      "rect": [
+        0,
+        0,
+        1080,
+        510
+      ],
+      "children": [
+        {
+          "kind": "FrameLayout",
+          "rect": [
+            0,
+            0,
+            1080,
+            510
+          ],
+          "children": [
+            {
+              "kind": "LinearLayout",
+              "rect": [
+                0,
+                0,
+                1080,
+                510
+              ],
+              "children": [
+                {
+                  "kind": "FrameLayout",
+                  "rect": [
+                    42,
+                    90,
+                    216,
+                    329
+                  ],
+                  "children": [
+                    {
+                      "kind": "LinearLayout",
+                      "rect": [
+                        0,
+                        0,
+                        216,
+                        329
+                      ],
+                      "children": [
+                        {
+                          "kind": "LinearLayout",
+                          "rect": [
+                            0,
+                            0,
+                            216,
+                            267
+                          ],
+                          "children": [
+                            {
+                              "kind": "ImageView",
+                              "rect": [
+                                0,
+                                0,
+                                216,
+                                267
+                              ]
+                            }
+                          ]
+                        },
+                        {
+                          "kind": "FrameLayout",
+                          "rect": [
+                            0,
+                            267,
+                            216,
+                            18
+                          ]
+                        },
+                        {
+                          "kind": "TextView",
+                          "rect": [
+                            24,
+                            285,
+                            168,
+                            44
+                          ],
+                          "text": "7,200 \/ 10k",
+                          "px": 33,
+                          "color": "#FF94A3B8"
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "kind": "FrameLayout",
+                  "rect": [
+                    258,
+                    42,
+                    48,
+                    426
+                  ]
+                },
+                {
+                  "kind": "FrameLayout",
+                  "rect": [
+                    306,
+                    183,
+                    6,
+                    144
+                  ],
+                  "children": [
+                    {
+                      "kind": "FrameLayout",
+                      "rect": [
+                        0,
+                        0,
+                        6,
+                        144
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "kind": "FrameLayout",
+                  "rect": [
+                    312,
+                    42,
+                    48,
+                    426
+                  ]
+                },
+                {
+                  "kind": "FrameLayout",
+                  "rect": [
+                    360,
+                    97,
+                    678,
+                    315
+                  ],
+                  "children": [
+                    {
+                      "kind": "LinearLayout",
+                      "rect": [
+                        0,
+                        0,
+                        678,
+                        315
+                      ],
+                      "children": [
+                        {
+                          "kind": "LinearLayout",
+                          "rect": [
+                            0,
+                            0,
+                            678,
+                            93
+                          ],
+                          "children": [
+                            {
+                              "kind": "TextView",
+                              "rect": [
+                                263,
+                                0,
+                                152,
+                                57
+                              ],
+                              "text": "Calories",
+                              "px": 42,
+                              "color": "#FF94A3B8"
+                            },
+                            {
+                              "kind": "ImageView",
+                              "rect": [
+                                0,
+                                57,
+                                678,
+                                36
+                              ]
+                            }
+                          ]
+                        },
+                        {
+                          "kind": "FrameLayout",
+                          "rect": [
+                            0,
+                            93,
+                            678,
+                            18
+                          ]
+                        },
+                        {
+                          "kind": "LinearLayout",
+                          "rect": [
+                            0,
+                            111,
+                            678,
+                            93
+                          ],
+                          "children": [
+                            {
+                              "kind": "TextView",
+                              "rect": [
+                                284,
+                                0,
+                                110,
+                                57
+                              ],
+                              "text": "Water",
+                              "px": 42,
+                              "color": "#FF94A3B8"
+                            },
+                            {
+                              "kind": "ImageView",
+                              "rect": [
+                                0,
+                                57,
+                                678,
+                                36
+                              ]
+                            }
+                          ]
+                        },
+                        {
+                          "kind": "FrameLayout",
+                          "rect": [
+                            0,
+                            204,
+                            678,
+                            18
+                          ]
+                        },
+                        {
+                          "kind": "LinearLayout",
+                          "rect": [
+                            0,
+                            222,
+                            678,
+                            93
+                          ],
+                          "children": [
+                            {
+                              "kind": "TextView",
+                              "rect": [
+                                260,
+                                0,
+                                157,
+                                57
+                              ],
+                              "text": "Exercise",
+                              "px": 42,
+                              "color": "#FF94A3B8"
+                            },
+                            {
+                              "kind": "ImageView",
+                              "rect": [
+                                0,
+                                57,
+                                678,
+                                36
+                              ]
+                            }
+                          ]
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

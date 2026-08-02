@@ -1,0 +1,10 @@
+{
+  "fixture": "presets/android-list",
+  "size": "large",
+  "theme": "dark",
+  "locale": "en_US",
+  "macos": {
+    "width": 338,
+    "height": 354
+  }
+}

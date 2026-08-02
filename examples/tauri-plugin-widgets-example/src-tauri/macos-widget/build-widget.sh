@@ -4,15 +4,14 @@ set -euo pipefail
 # ─── macOS Widget Extension Builder ──────────────────────────────────────────
 # Called automatically via tauri.conf.json → build.beforeBundleCommand.
 #
-# Builds the .appex WITHOUT code-signing (signing is deferred to
-# embed-widget.sh so the whole bundle is signed once, correctly).
-#
-# After `tauri build` finishes, run embed-widget.sh to inject the .appex
-# into the .app bundle and re-sign everything.
+# Builds and signs the .appex so `bundle.macOS.files` can copy it into
+# Contents/PlugIns/ during the normal `tauri build` (Tauri nested-codesigns PlugIns).
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 CONFIGURATION="${1:-Release}"
 DERIVED_DATA="$SCRIPT_DIR/build"
+ENTITLEMENTS="$SCRIPT_DIR/TauriWidgetExtension.entitlements"
+IDENTITY="${WIDGET_SIGN_IDENTITY:-${APPLE_SIGNING_IDENTITY:--}}"
 
 # ─── Generate Xcode project ─────────────────────────────────────────────────
 
@@ -32,7 +31,7 @@ if [ ! -d "$XCODEPROJ" ]; then
     exit 1
 fi
 
-# ─── Build (no code signing — deferred to embed step) ────────────────────────
+# ─── Build (unsigned; we sign below with extension entitlements) ─────────────
 
 echo "[widget] Building TauriWidgetExtension ($CONFIGURATION)..."
 
@@ -54,4 +53,20 @@ if [ ! -d "$APPEX_PATH" ]; then
     exit 1
 fi
 
+# Strip accidental nested Frameworks (SwiftPM copy) — host app should not ship them twice.
+rm -rf "$APPEX_PATH/Contents/Frameworks"
+
+# ─── Sign .appex with WidgetKit entitlements ─────────────────────────────────
+
+if [ -f "$ENTITLEMENTS" ]; then
+    codesign --force --options runtime --sign "$IDENTITY" \
+        --entitlements "$ENTITLEMENTS" \
+        "$APPEX_PATH"
+    echo "[widget] Signed .appex with entitlements ($IDENTITY)"
+else
+    echo "WARNING: Entitlements not found at $ENTITLEMENTS — signing without them"
+    codesign --force --options runtime --sign "$IDENTITY" "$APPEX_PATH"
+fi
+
 echo "[widget] Built: $APPEX_PATH"
+echo "[widget] Ready for bundle.macOS.files → Contents/PlugIns/"

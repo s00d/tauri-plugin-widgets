@@ -7,7 +7,7 @@
     "beforeDevCommand": "pnpm dev",
     "devUrl": "http://localhost:1420",
     "beforeBuildCommand": "pnpm build",
-    "beforeBundleCommand": "./src-tauri/macos-widget/build-widget.sh || true",
+    "beforeBundleCommand": "./src-tauri/macos-widget/build-widget.sh",
     "frontendDist": "../dist"
   },
   "app": {
@@ -22,15 +22,32 @@
       "csp": null
     }
   },
+  "plugins": {
+    "widgets": {
+      "appGroup": "group.com.s00d.tauri-plugin-widgets-example",
+      "transport": "auto",
+      "extensionBundleId": "com.s00d.tauri-plugin-widgets-example.widgetkit"
+    }
+  },
   "bundle": {
     "active": true,
-    "targets": ["app"],
+    "targets": "all",
     "icon": [
       "icons/32x32.png",
       "icons/128x128.png",
       "icons/128x128@2x.png",
       "icons/icon.icns",
       "icons/icon.ico"
-    ]
+    ],
+    "iOS": {
+      "developmentTeam": "R6VC7JTLE8"
+    },
+    "macOS": {
+      "signingIdentity": "Developer ID Application: Pavel Kuzmin (R6VC7JTLE8)",
+      "entitlements": "./macos-widget/App.entitlements",
+      "files": {
+        "PlugIns/TauriWidgetExtension.appex": "./macos-widget/build/Build/Products/Release/TauriWidgetExtension.appex"
+      }
+    }
   }
 }

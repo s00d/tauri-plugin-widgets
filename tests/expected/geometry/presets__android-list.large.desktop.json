@@ -1,0 +1,127 @@
+{
+  "kind": "div",
+  "rect": [
+    0,
+    0,
+    360,
+    380
+  ],
+  "children": [
+    {
+      "kind": "div",
+      "rect": [
+        0,
+        0,
+        360,
+        380
+      ],
+      "children": [
+        {
+          "kind": "div",
+          "rect": [
+            0,
+            0,
+            360,
+            17
+          ],
+          "children": [
+            {
+              "kind": "span",
+              "rect": [
+                0,
+                1,
+                14,
+                15
+              ],
+              "text": "✓",
+              "px": 12,
+              "color": "#22C55E"
+            },
+            {
+              "kind": "span",
+              "rect": [
+                20,
+                0,
+                340,
+                17
+              ],
+              "text": "Alpha",
+              "px": 14,
+              "color": "#000000"
+            }
+          ]
+        },
+        {
+          "kind": "div",
+          "rect": [
+            0,
+            19,
+            360,
+            17
+          ],
+          "children": [
+            {
+              "kind": "span",
+              "rect": [
+                0,
+                20,
+                14,
+                15
+              ],
+              "text": "○",
+              "px": 12,
+              "color": "#9CA3AF"
+            },
+            {
+              "kind": "span",
+              "rect": [
+                20,
+                19,
+                340,
+                17
+              ],
+              "text": "Beta",
+              "px": 14,
+              "color": "#000000"
+            }
+          ]
+        },
+        {
+          "kind": "div",
+          "rect": [
+            0,
+            38,
+            360,
+            17
+          ],
+          "children": [
+            {
+              "kind": "span",
+              "rect": [
+                0,
+                39,
+                14,
+                15
+              ],
+              "text": "○",
+              "px": 12,
+              "color": "#9CA3AF"
+            },
+            {
+              "kind": "span",
+              "rect": [
+                20,
+                38,
+                340,
+                17
+              ],
+              "text": "Gamma",
+              "px": 14,
+              "color": "#000000"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

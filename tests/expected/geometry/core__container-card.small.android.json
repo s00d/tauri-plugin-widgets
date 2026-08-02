@@ -1,0 +1,96 @@
+{
+  "kind": "FrameLayout",
+  "rect": [
+    0,
+    0,
+    510,
+    510
+  ],
+  "children": [
+    {
+      "kind": "FrameLayout",
+      "rect": [
+        0,
+        0,
+        510,
+        510
+      ],
+      "children": [
+        {
+          "kind": "FrameLayout",
+          "rect": [
+            0,
+            0,
+            510,
+            510
+          ],
+          "children": [
+            {
+              "kind": "FrameLayout",
+              "rect": [
+                0,
+                0,
+                438,
+                438
+              ],
+              "children": [
+                {
+                  "kind": "LinearLayout",
+                  "rect": [
+                    36,
+                    122,
+                    366,
+                    193
+                  ],
+                  "children": [
+                    {
+                      "kind": "LinearLayout",
+                      "rect": [
+                        0,
+                        0,
+                        366,
+                        193
+                      ],
+                      "children": [
+                        {
+                          "kind": "ImageView",
+                          "rect": [
+                            129,
+                            0,
+                            108,
+                            108
+                          ]
+                        },
+                        {
+                          "kind": "FrameLayout",
+                          "rect": [
+                            0,
+                            108,
+                            366,
+                            24
+                          ]
+                        },
+                        {
+                          "kind": "TextView",
+                          "rect": [
+                            0,
+                            132,
+                            366,
+                            61
+                          ],
+                          "text": "Card",
+                          "px": 45,
+                          "color": "#FFFFFFFF"
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,181 @@
+{
+  "kind": "FrameLayout",
+  "rect": [
+    0,
+    0,
+    510,
+    510
+  ],
+  "children": [
+    {
+      "kind": "FrameLayout",
+      "rect": [
+        0,
+        0,
+        510,
+        510
+      ],
+      "children": [
+        {
+          "kind": "FrameLayout",
+          "rect": [
+            0,
+            0,
+            510,
+            510
+          ],
+          "children": [
+            {
+              "kind": "LinearLayout",
+              "rect": [
+                0,
+                0,
+                510,
+                510
+              ],
+              "children": [
+                {
+                  "kind": "FrameLayout",
+                  "rect": [
+                    36,
+                    36,
+                    438,
+                    79
+                  ],
+                  "children": [
+                    {
+                      "kind": "LinearLayout",
+                      "rect": [
+                        0,
+                        0,
+                        438,
+                        79
+                      ],
+                      "children": [
+                        {
+                          "kind": "TextView",
+                          "rect": [
+                            0,
+                            6,
+                            40,
+                            67
+                          ],
+                          "text": "✓",
+                          "px": 48,
+                          "color": "#FF22C55E"
+                        },
+                        {
+                          "kind": "FrameLayout",
+                          "rect": [
+                            40,
+                            6,
+                            18,
+                            67
+                          ]
+                        },
+                        {
+                          "kind": "TextView",
+                          "rect": [
+                            58,
+                            11,
+                            92,
+                            57
+                          ],
+                          "text": "Wi-Fi",
+                          "px": 42,
+                          "color": "#FFE2E8F0"
+                        }
+                      ]
+                    },
+                    {
+                      "kind": "ImageView",
+                      "rect": [
+                        0,
+                        0,
+                        438,
+                        79
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "kind": "FrameLayout",
+                  "rect": [
+                    36,
+                    115,
+                    438,
+                    30
+                  ]
+                },
+                {
+                  "kind": "FrameLayout",
+                  "rect": [
+                    36,
+                    145,
+                    438,
+                    79
+                  ],
+                  "children": [
+                    {
+                      "kind": "LinearLayout",
+                      "rect": [
+                        0,
+                        0,
+                        438,
+                        79
+                      ],
+                      "children": [
+                        {
+                          "kind": "TextView",
+                          "rect": [
+                            0,
+                            6,
+                            29,
+                            67
+                          ],
+                          "text": "○",
+                          "px": 48,
+                          "color": "#FF999999"
+                        },
+                        {
+                          "kind": "FrameLayout",
+                          "rect": [
+                            29,
+                            6,
+                            18,
+                            67
+                          ]
+                        },
+                        {
+                          "kind": "TextView",
+                          "rect": [
+                            47,
+                            11,
+                            180,
+                            57
+                          ],
+                          "text": "Bluetooth",
+                          "px": 42,
+                          "color": "#FFE2E8F0"
+                        }
+                      ]
+                    },
+                    {
+                      "kind": "ImageView",
+                      "rect": [
+                        0,
+                        0,
+                        438,
+                        79
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

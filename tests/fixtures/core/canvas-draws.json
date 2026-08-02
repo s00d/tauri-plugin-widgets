@@ -1,0 +1,58 @@
+{
+  "version": 1,
+  "small": {
+    "type": "canvas",
+    "width": 146,
+    "height": 146,
+    "background": "#0b1220",
+    "cornerRadius": 12,
+    "elements": [
+      {
+        "draw": "rect",
+        "x": 12,
+        "y": 12,
+        "width": 48,
+        "height": 32,
+        "fill": "#1e293b",
+        "stroke": "#38bdf8",
+        "strokeWidth": 2,
+        "cornerRadius": 6
+      },
+      {
+        "draw": "circle",
+        "cx": 110,
+        "cy": 36,
+        "r": 18,
+        "fill": "#22c55e",
+        "stroke": "#86efac",
+        "strokeWidth": 2
+      },
+      {
+        "draw": "arc",
+        "cx": 48,
+        "cy": 90,
+        "r": 28,
+        "startAngle": -90,
+        "endAngle": 120,
+        "stroke": "#f59e0b",
+        "strokeWidth": 4
+      },
+      {
+        "draw": "path",
+        "d": "M90 70 L130 110 L90 110 Z",
+        "fill": "#a855f7",
+        "stroke": "#e9d5ff",
+        "strokeWidth": 1
+      },
+      {
+        "draw": "text",
+        "x": 73,
+        "y": 136,
+        "content": "draw",
+        "fontSize": 12,
+        "color": "#e2e8f0",
+        "anchor": "middle"
+      }
+    ]
+  }
+}

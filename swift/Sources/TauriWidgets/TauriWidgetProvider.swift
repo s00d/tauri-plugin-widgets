@@ -18,10 +18,16 @@ public struct TauriWidgetEntry: TimelineEntry {
 
 public struct TauriWidgetProvider: TimelineProvider {
     public let appGroup: String
+    public let widgetId: String
+    /// Timeline refresh interval in minutes (default 15 to respect WidgetKit budget).
+    public let refreshMinutes: Int
 
-    public init(appGroup: String) {
+    public init(appGroup: String, widgetId: String = "default", refreshMinutes: Int = 15) {
         self.appGroup = appGroup
+        self.widgetId = widgetId
+        self.refreshMinutes = max(1, refreshMinutes)
         TauriWidgetsConfig.appGroup = appGroup
+        TauriWidgetsConfig.widgetId = widgetId
     }
 
     public func placeholder(in context: Context) -> TauriWidgetEntry {
@@ -29,15 +35,66 @@ public struct TauriWidgetProvider: TimelineProvider {
     }
 
     public func getSnapshot(in context: Context, completion: @escaping (TauriWidgetEntry) -> Void) {
-        let cfg = context.isPreview ? nil : TauriWidgetDataStore.loadConfig(appGroup: appGroup)
+        let cfg: WidgetUIConfig?
+        if context.isPreview {
+            cfg = nil
+        } else {
+            let (loaded, source, nonce) = TauriWidgetDataStore.loadConfigWithSource(
+                appGroup: appGroup, widgetId: widgetId
+            )
+            cfg = loaded
+            writeProviderReceipt(context: context, source: source, nonce: nonce, config: loaded, trigger: context.isPreview ? "added" : "snapshot")
+        }
         completion(TauriWidgetEntry(date: Date(), config: cfg, family: context.family))
     }
 
     public func getTimeline(in context: Context, completion: @escaping (Timeline<TauriWidgetEntry>) -> Void) {
-        let cfg = TauriWidgetDataStore.loadConfig(appGroup: appGroup)
+        let (cfg, source, nonce) = TauriWidgetDataStore.loadConfigWithSource(
+            appGroup: appGroup, widgetId: widgetId
+        )
+        writeProviderReceipt(context: context, source: source, nonce: nonce, config: cfg, trigger: "timeline")
         let entry = TauriWidgetEntry(date: Date(), config: cfg, family: context.family)
-        let nextUpdate = Calendar.current.date(byAdding: .minute, value: 5, to: Date()) ?? Date()
+        let nextUpdate = Calendar.current.date(byAdding: .minute, value: refreshMinutes, to: Date()) ?? Date()
         completion(Timeline(entries: [entry], policy: .after(nextUpdate)))
+    }
+
+    private func writeProviderReceipt(
+        context: Context,
+        source: String,
+        nonce: UInt64,
+        config: WidgetUIConfig?,
+        trigger: String
+    ) {
+        let size: String = {
+            switch context.family {
+            case .systemSmall: return "small"
+            case .systemMedium: return "medium"
+            case .systemLarge: return "large"
+            default: return "medium"
+            }
+        }()
+        var rendered: [String] = []
+        if let el = config?.small ?? config?.medium ?? config?.large {
+            collectTypes(el, into: &rendered)
+        }
+        let receipt = WidgetTransportReceipt(
+            source: source,
+            widgetId: widgetId,
+            group: appGroup,
+            instance: "\(context.family)",
+            nonce: nonce,
+            size: size,
+            schema: 1,
+            rendered: rendered,
+            skipped: [],
+            trigger: trigger
+        )
+        TauriWidgetDataStore.writeReceiptEverywhere(receipt, appGroup: appGroup)
+    }
+
+    private func collectTypes(_ el: WidgetElement, into out: inout [String]) {
+        out.append(el.type)
+        el.children?.forEach { collectTypes($0, into: &out) }
     }
 }
 
@@ -50,9 +107,10 @@ public struct TauriWidgetView: View {
 
     public var body: some View {
         if let el = layoutForFamily() {
-            DynamicElementView(element: el)
-                .frame(maxWidth: .infinity, maxHeight: .infinity)
-                .containerBackground(for: .widget) { backgroundView(for: el) }
+            DynamicElementView(element: el, isWidgetRoot: true)
+                // Pin to top — default center left a fake “top padding” when content is shorter than the canvas.
+                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+                .containerBackground(for: .widget) { WidgetChrome.background(for: el) }
         } else {
             placeholderView()
                 .containerBackground(for: .widget) {
@@ -69,35 +127,6 @@ public struct TauriWidgetView: View {
         case .systemMedium: return cfg.medium ?? cfg.large ?? cfg.small
         case .systemLarge:  return cfg.large ?? cfg.medium ?? cfg.small
         default:            return cfg.medium ?? cfg.small ?? cfg.large
-        }
-    }
-
-    @ViewBuilder
-    private func backgroundView(for el: WidgetElement) -> some View {
-        switch el.background {
-        case .solid(let hex):
-            if let sem = Color.semantic(hex) { sem } else { Color(hex: hex) }
-        case .gradient(let g):
-            let colors = g.colors.map { Color(hex: $0) }
-            let (s, e): (UnitPoint, UnitPoint) = {
-                switch g.direction {
-                case "bottomToTop": return (.bottom, .top)
-                case "leadingToTrailing": return (.leading, .trailing)
-                case "trailingToLeading": return (.trailing, .leading)
-                case "topLeadingToBottomTrailing": return (.topLeading, .bottomTrailing)
-                case "topTrailingToBottomLeading": return (.topTrailing, .bottomLeading)
-                default: return (.top, .bottom)
-                }
-            }()
-            LinearGradient(colors: colors, startPoint: s, endPoint: e)
-        case .adaptive(let light, let dark):
-            Color.adaptive(light: light, dark: dark)
-        case nil:
-            #if os(macOS)
-            Color(.windowBackgroundColor)
-            #else
-            Color(.systemBackground)
-            #endif
         }
     }
 

@@ -1,0 +1,64 @@
+{
+  "version": 1,
+  "small": {
+    "type": "vstack",
+    "padding": 10,
+    "spacing": 8,
+    "cornerRadius": 14,
+    "background": "#111827",
+    "children": [
+      {
+        "type": "hstack",
+        "spacing": 12,
+        "alignment": "center",
+        "children": [
+          {
+            "type": "progress",
+            "value": 0.65,
+            "barStyle": "circular",
+            "tint": "#22c55e"
+          },
+          {
+            "type": "progress",
+            "value": 0.4,
+            "barStyle": "linear",
+            "tint": "#38bdf8",
+            "label": "Linear",
+            "color": "#94a3b8",
+            "flex": 1
+          }
+        ]
+      },
+      {
+        "type": "hstack",
+        "spacing": 16,
+        "alignment": "center",
+        "children": [
+          {
+            "type": "gauge",
+            "value": 0.72,
+            "min": 0,
+            "max": 1,
+            "currentValueLabel": "72%",
+            "label": "Circ",
+            "gaugeStyle": "circular",
+            "tint": "#f59e0b",
+            "color": "#e2e8f0"
+          },
+          {
+            "type": "gauge",
+            "value": 0.45,
+            "min": 0,
+            "max": 1,
+            "currentValueLabel": "45%",
+            "label": "Lin",
+            "gaugeStyle": "linear",
+            "tint": "#a855f7",
+            "color": "#e2e8f0",
+            "flex": 1
+          }
+        ]
+      }
+    ]
+  }
+}

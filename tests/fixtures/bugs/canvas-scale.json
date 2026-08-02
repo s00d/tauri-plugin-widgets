@@ -1,0 +1,20 @@
+{
+  "version": 1,
+  "small": {
+    "type": "vstack",
+    "padding": 4,
+    "background": "#111",
+    "alignment": "center",
+    "children": [
+      {
+        "type": "canvas",
+        "width": 60,
+        "height": 60,
+        "elements": [
+          { "draw": "circle", "cx": 30, "cy": 30, "r": 25, "fill": "#1e40af", "stroke": "#fff", "strokeWidth": 2 },
+          { "draw": "line", "x1": 30, "y1": 30, "x2": 30, "y2": 10, "stroke": "#fff", "strokeWidth": 2 }
+        ]
+      }
+    ]
+  }
+}

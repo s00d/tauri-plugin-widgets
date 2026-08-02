@@ -7,6 +7,27 @@ dist
 .r2x
 output.md
 swift/.build
+swift/.swiftpm
+
 *.xcarchive
 DerivedData
 GUIDE.md
+android/local.properties
+android/.gradle/
+android/.idea/
+android/build/
+android/.cxx/
+
+test-results/
+out/
+artifacts/*
+!artifacts/README.md
+!artifacts/STATUS.md
+tools/hosts.env
+
+# VitePress docs — generated trees (rebuilt by `pnpm docs:generate`)
+docs/.vitepress/dist
+docs/.vitepress/cache
+docs/public/shots
+docs/public/gallery-data
+docs/public/widget-sandbox.html

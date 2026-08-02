@@ -1,0 +1,55 @@
+{
+  "kind": "div",
+  "rect": [
+    0,
+    0,
+    360,
+    170
+  ],
+  "children": [
+    {
+      "kind": "div",
+      "rect": [
+        0,
+        0,
+        360,
+        170
+      ],
+      "children": [
+        {
+          "kind": "span",
+          "rect": [
+            12,
+            12,
+            336,
+            146
+          ],
+          "text": "L",
+          "px": 16,
+          "color": "#FFFFFF"
+        },
+        {
+          "kind": "hr",
+          "rect": [
+            356,
+            12,
+            2,
+            146
+          ]
+        },
+        {
+          "kind": "span",
+          "rect": [
+            366,
+            12,
+            336,
+            146
+          ],
+          "text": "R",
+          "px": 16,
+          "color": "#FFFFFF"
+        }
+      ]
+    }
+  ]
+}

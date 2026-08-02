@@ -1,0 +1,73 @@
+{
+  "id": "music-toggle",
+  "size": "medium",
+  "action": "music_toggle",
+  "clickText": "⏸",
+  "assertBeforeTexts": ["Bohemian Rhapsody", "⏸"],
+  "assertAfterTexts": ["Bohemian Rhapsody", "▶"],
+  "assertGoneAfter": ["⏸"],
+  "before": {
+    "version": 1,
+    "medium": {
+      "type": "hstack",
+      "padding": 14,
+      "spacing": 14,
+      "cornerRadius": 16,
+      "background": "#16213e",
+      "children": [
+        { "type": "shape", "shapeType": "circle", "fill": "#e94560", "size": 56 },
+        {
+          "type": "vstack",
+          "spacing": 6,
+          "alignment": "leading",
+          "children": [
+            { "type": "text", "content": "Bohemian Rhapsody", "fontSize": 17, "fontWeight": "semibold", "color": "#fff", "lineLimit": 1 },
+            { "type": "text", "content": "Queen", "fontSize": 12, "color": "#94a3b8" },
+            { "type": "progress", "value": 0.625, "tint": "#e94560", "label": "3:42 / 5:55", "color": "#94a3b8" },
+            {
+              "type": "hstack",
+              "spacing": 20,
+              "children": [
+                { "type": "button", "label": "⏮", "action": "music_prev", "backgroundColor": "#1a2744", "color": "#e2e8f0", "fontSize": 14 },
+                { "type": "button", "label": "⏸", "action": "music_toggle", "backgroundColor": "#e94560", "color": "#ffffff", "fontSize": 14 },
+                { "type": "button", "label": "⏭", "action": "music_next", "backgroundColor": "#1a2744", "color": "#e2e8f0", "fontSize": 14 }
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  },
+  "after": {
+    "version": 1,
+    "medium": {
+      "type": "hstack",
+      "padding": 14,
+      "spacing": 14,
+      "cornerRadius": 16,
+      "background": "#16213e",
+      "children": [
+        { "type": "shape", "shapeType": "circle", "fill": "#e94560", "size": 56 },
+        {
+          "type": "vstack",
+          "spacing": 6,
+          "alignment": "leading",
+          "children": [
+            { "type": "text", "content": "Bohemian Rhapsody", "fontSize": 17, "fontWeight": "semibold", "color": "#fff", "lineLimit": 1 },
+            { "type": "text", "content": "Queen", "fontSize": 12, "color": "#94a3b8" },
+            { "type": "progress", "value": 0.625, "tint": "#e94560", "label": "3:42 / 5:55", "color": "#94a3b8" },
+            {
+              "type": "hstack",
+              "spacing": 20,
+              "children": [
+                { "type": "button", "label": "⏮", "action": "music_prev", "backgroundColor": "#1a2744", "color": "#e2e8f0", "fontSize": 14 },
+                { "type": "button", "label": "▶", "action": "music_toggle", "backgroundColor": "#e94560", "color": "#ffffff", "fontSize": 14 },
+                { "type": "button", "label": "⏭", "action": "music_next", "backgroundColor": "#1a2744", "color": "#e2e8f0", "fontSize": 14 }
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  }
+}

@@ -1,0 +1,10 @@
+{
+  "fixture": "core/zstack-align",
+  "size": "small",
+  "theme": "dark",
+  "locale": "en_US",
+  "macos": {
+    "width": 158,
+    "height": 158
+  }
+}

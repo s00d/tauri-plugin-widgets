@@ -1,8 +1,8 @@
 [package]
 name = "tauri-plugin-widgets"
-version = "0.3.0"
+version = "0.4.1"
 authors = ["s00d"]
-description = "A Tauri plugin to interact with App Widgets on Android, iOS, and macOS (WidgetKit). On Windows/Linux a desktop-widget window approach is supported."
+description = "Tauri plugin for App Widgets on Android, iOS, and macOS (WidgetKit); Windows Widgets Board (Adaptive Cards) + desktop webview; Linux desktop webview with X11 DESKTOP pin."
 edition = "2021"
 rust-version = "1.70"
 exclude = ["/examples", "/dist-js", "/guest-js", "/node_modules", "demo.gif"]
@@ -11,6 +11,7 @@ license = "MIT"
 repository = "https://github.com/s00d/tauri-plugin-widgets"
 
 [package.metadata.docs.rs]
+all-features = true
 rustc-args = ["--cfg", "docsrs"]
 rustdoc-args = ["--cfg", "docsrs"]
 
@@ -18,21 +19,55 @@ rustdoc-args = ["--cfg", "docsrs"]
 android = { level = "full", notes = "Full AppWidgetManager + SharedPreferences support" }
 ios = { level = "full", notes = "WidgetKit (iOS 17+) + App Groups shared container" }
 macos = { level = "full", notes = "WidgetKit (macOS 14+) + App Groups shared container" }
-windows = { level = "partial", notes = "JSON file storage + Tauri event-based desktop widget windows" }
-linux = { level = "partial", notes = "JSON file storage + Tauri event-based desktop widget windows" }
+windows = { level = "partial", notes = "Widgets Board Adaptive Cards + desktop webview fallback; optional workerw wallpaper" }
+linux = { level = "partial", notes = "Desktop webview + X11 _NET_WM_WINDOW_TYPE_DESKTOP; optional gtk-layer-shell on Wayland" }
 
 [dependencies]
 tauri = { version = "2" }
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 log = "0.4"
+schemars = { version = "0.8", optional = true }
+resvg = { version = "0.45", optional = true }
+base64 = { version = "0.22", optional = true }
+
+[target.'cfg(target_os = "linux")'.dependencies]
+gtk = { version = "0.18", optional = true }
+x11rb = { version = "0.13", optional = true }
+raw-window-handle = { version = "0.6", optional = true }
+gtk-layer-shell = { version = "0.8", optional = true }
+
+[dev-dependencies]
+tempfile = "3"
+
+[features]
+# `linux` pulls gtk + x11rb for DESKTOP pin. Other OS backends follow `target_os` only.
+# `rasterize` is opt-in (resvg) for Adaptive Cards chart/canvas/gauge → PNG data-URI.
+default = ["linux"]
+linux = ["dep:x11rb", "dep:raw-window-handle", "dep:gtk"]
+schema = ["dep:schemars"]
+codegen = ["schema"]
+rasterize = ["dep:resvg", "dep:base64"]
+# Transparent desktop widget windows on macOS (requires host `tauri.conf` macosPrivateApi).
+macos-private-api = ["tauri/macos-private-api"]
+# Windows wallpaper WorkerW parenting (not Widgets Board).
+workerw = []
+# Wayland: remap widget windows onto gtk-layer-shell Background (requires `linux`).
+layer-shell = ["linux", "dep:gtk-layer-shell"]
+
+[[bin]]
+name = "gen-schema"
+path = "src/bin/gen_schema.rs"
+required-features = ["codegen"]
+
+[[bin]]
+name = "gen-ts"
+path = "src/bin/gen_ts.rs"
+required-features = ["codegen"]
+
+[[bin]]
+name = "gen-adaptive-snapshots"
+path = "src/bin/gen_adaptive_snapshots.rs"
 
 [build-dependencies]
 tauri-plugin = { version = "2", features = ["build"] }
-
-[profile.release]
-panic = "abort"
-codegen-units = 1
-lto = true
-incremental = false
-opt-level = "s"

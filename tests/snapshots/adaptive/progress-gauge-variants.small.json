@@ -1,0 +1,114 @@
+{
+  "$schema": "http://adaptivecards.io/schemas/adaptive-card.json",
+  "body": [
+    {
+      "id": "card:#111827;gap:8",
+      "items": [
+        {
+          "columns": [
+            {
+              "items": [
+                {
+                  "items": [
+                    {
+                      "columns": [
+                        {
+                          "id": "fill:#22c55e",
+                          "items": [],
+                          "style": "good",
+                          "type": "Column",
+                          "width": 65
+                        },
+                        {
+                          "items": [],
+                          "type": "Column",
+                          "width": 35
+                        }
+                      ],
+                      "type": "ColumnSet"
+                    }
+                  ],
+                  "type": "Container"
+                }
+              ],
+              "type": "Column",
+              "width": "auto"
+            },
+            {
+              "items": [
+                {
+                  "items": [
+                    {
+                      "color": "Light",
+                      "size": "Small",
+                      "text": "Linear",
+                      "type": "TextBlock",
+                      "wrap": true
+                    },
+                    {
+                      "columns": [
+                        {
+                          "id": "fill:#38bdf8",
+                          "items": [],
+                          "style": "accent",
+                          "type": "Column",
+                          "width": 40
+                        },
+                        {
+                          "items": [],
+                          "type": "Column",
+                          "width": 60
+                        }
+                      ],
+                      "type": "ColumnSet"
+                    }
+                  ],
+                  "type": "Container"
+                }
+              ],
+              "type": "Column",
+              "width": 100
+            }
+          ],
+          "id": "gap:12",
+          "spacing": "Medium",
+          "type": "ColumnSet"
+        },
+        {
+          "columns": [
+            {
+              "items": [
+                {
+                  "spacing": "None",
+                  "text": "",
+                  "type": "TextBlock"
+                }
+              ],
+              "type": "Column",
+              "width": "auto"
+            },
+            {
+              "items": [
+                {
+                  "spacing": "None",
+                  "text": "",
+                  "type": "TextBlock"
+                }
+              ],
+              "type": "Column",
+              "width": 100
+            }
+          ],
+          "id": "gap:16",
+          "spacing": "Large",
+          "type": "ColumnSet"
+        }
+      ],
+      "spacing": "Default",
+      "style": "emphasis",
+      "type": "Container"
+    }
+  ],
+  "type": "AdaptiveCard",
+  "version": "1.5"
+}

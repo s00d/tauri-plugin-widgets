@@ -1,0 +1,31 @@
+{
+  "$schema": "http://adaptivecards.io/schemas/adaptive-card.json",
+  "body": [
+    {
+      "horizontalAlignment": "Center",
+      "id": "badge:overlay",
+      "items": [
+        {
+          "spacing": "None",
+          "text": "",
+          "type": "TextBlock"
+        },
+        {
+          "color": "Light",
+          "horizontalAlignment": "Center",
+          "id": "fg:#fff",
+          "size": "Medium",
+          "text": "Z",
+          "type": "TextBlock",
+          "weight": "Default",
+          "wrap": true
+        }
+      ],
+      "spacing": "None",
+      "style": "emphasis",
+      "type": "Container"
+    }
+  ],
+  "type": "AdaptiveCard",
+  "version": "1.5"
+}

@@ -1,0 +1,584 @@
+{
+  "kind": "div",
+  "rect": [
+    0,
+    0,
+    360,
+    380
+  ],
+  "children": [
+    {
+      "kind": "div",
+      "rect": [
+        0,
+        0,
+        360,
+        380
+      ],
+      "children": [
+        {
+          "kind": "div",
+          "rect": [
+            12,
+            12,
+            336,
+            44
+          ],
+          "children": [
+            {
+              "kind": "div",
+              "rect": [
+                12,
+                12,
+                44,
+                44
+              ],
+              "children": [
+                {
+                  "kind": "div",
+                  "rect": [
+                    12,
+                    12,
+                    44,
+                    44
+                  ],
+                  "children": [
+                    {
+                      "kind": "div",
+                      "rect": [
+                        12,
+                        12,
+                        44,
+                        44
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "kind": "div",
+                  "rect": [
+                    23,
+                    25,
+                    20,
+                    18
+                  ],
+                  "children": [
+                    {
+                      "kind": "span",
+                      "rect": [
+                        23,
+                        25,
+                        20,
+                        18
+                      ],
+                      "text": "42",
+                      "px": 16,
+                      "color": "#FFFFFF"
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "kind": "div",
+              "rect": [
+                66,
+                17,
+                148,
+                33
+              ],
+              "children": [
+                {
+                  "kind": "span",
+                  "rect": [
+                    66,
+                    17,
+                    148,
+                    18
+                  ],
+                  "text": "Nested Dashboard",
+                  "px": 16,
+                  "color": "#F8FAFC"
+                },
+                {
+                  "kind": "span",
+                  "rect": [
+                    66,
+                    37,
+                    148,
+                    13
+                  ],
+                  "text": "hstack → zstack + grid + list",
+                  "px": 11,
+                  "color": "#94A3B8"
+                }
+              ]
+            },
+            {
+              "kind": "div",
+              "rect": [
+                224,
+                34,
+                61,
+                0
+              ]
+            },
+            {
+              "kind": "div",
+              "rect": [
+                295,
+                20,
+                52,
+                27
+              ],
+              "text": "Sync",
+              "px": 12,
+              "color": "#FFFFFF"
+            }
+          ]
+        },
+        {
+          "kind": "hr",
+          "rect": [
+            12,
+            68,
+            336,
+            1
+          ]
+        },
+        {
+          "kind": "div",
+          "rect": [
+            12,
+            81,
+            336,
+            146
+          ],
+          "children": [
+            {
+              "kind": "div",
+              "rect": [
+                12,
+                81,
+                164,
+                69
+              ],
+              "children": [
+                {
+                  "kind": "span",
+                  "rect": [
+                    20,
+                    89,
+                    148,
+                    13
+                  ],
+                  "text": "CPU",
+                  "px": 11,
+                  "color": "#94A3B8"
+                },
+                {
+                  "kind": "span",
+                  "rect": [
+                    20,
+                    106,
+                    148,
+                    26
+                  ],
+                  "text": "38%",
+                  "px": 22,
+                  "color": "#22C55E"
+                },
+                {
+                  "kind": "div",
+                  "rect": [
+                    20,
+                    136,
+                    148,
+                    6
+                  ],
+                  "children": [
+                    {
+                      "kind": "div",
+                      "rect": [
+                        20,
+                        136,
+                        148,
+                        6
+                      ],
+                      "children": [
+                        {
+                          "kind": "div",
+                          "rect": [
+                            20,
+                            136,
+                            56,
+                            6
+                          ]
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "kind": "div",
+              "rect": [
+                184,
+                81,
+                164,
+                69
+              ],
+              "children": [
+                {
+                  "kind": "span",
+                  "rect": [
+                    192,
+                    89,
+                    148,
+                    13
+                  ],
+                  "text": "RAM",
+                  "px": 11,
+                  "color": "#94A3B8"
+                },
+                {
+                  "kind": "span",
+                  "rect": [
+                    192,
+                    106,
+                    148,
+                    26
+                  ],
+                  "text": "62%",
+                  "px": 22,
+                  "color": "#F59E0B"
+                },
+                {
+                  "kind": "div",
+                  "rect": [
+                    192,
+                    136,
+                    148,
+                    6
+                  ],
+                  "children": [
+                    {
+                      "kind": "div",
+                      "rect": [
+                        192,
+                        136,
+                        148,
+                        6
+                      ],
+                      "children": [
+                        {
+                          "kind": "div",
+                          "rect": [
+                            192,
+                            136,
+                            91,
+                            6
+                          ]
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "kind": "div",
+              "rect": [
+                12,
+                158,
+                164,
+                69
+              ],
+              "children": [
+                {
+                  "kind": "span",
+                  "rect": [
+                    20,
+                    166,
+                    148,
+                    13
+                  ],
+                  "text": "Disk",
+                  "px": 11,
+                  "color": "#94A3B8"
+                },
+                {
+                  "kind": "span",
+                  "rect": [
+                    20,
+                    183,
+                    148,
+                    26
+                  ],
+                  "text": "81%",
+                  "px": 22,
+                  "color": "#EF4444"
+                },
+                {
+                  "kind": "div",
+                  "rect": [
+                    20,
+                    213,
+                    148,
+                    6
+                  ],
+                  "children": [
+                    {
+                      "kind": "div",
+                      "rect": [
+                        20,
+                        213,
+                        148,
+                        6
+                      ],
+                      "children": [
+                        {
+                          "kind": "div",
+                          "rect": [
+                            20,
+                            213,
+                            119,
+                            6
+                          ]
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "kind": "div",
+              "rect": [
+                184,
+                158,
+                164,
+                69
+              ],
+              "children": [
+                {
+                  "kind": "span",
+                  "rect": [
+                    192,
+                    166,
+                    148,
+                    13
+                  ],
+                  "text": "Net",
+                  "px": 11,
+                  "color": "#94A3B8"
+                },
+                {
+                  "kind": "span",
+                  "rect": [
+                    192,
+                    183,
+                    148,
+                    21
+                  ],
+                  "text": "12MB/s",
+                  "px": 18,
+                  "color": "#38BDF8"
+                },
+                {
+                  "kind": "div",
+                  "rect": [
+                    192,
+                    208,
+                    148,
+                    11
+                  ],
+                  "children": [
+                    {
+                      "kind": "div",
+                      "rect": [
+                        192,
+                        208,
+                        148,
+                        6
+                      ],
+                      "children": [
+                        {
+                          "kind": "div",
+                          "rect": [
+                            192,
+                            208,
+                            35,
+                            6
+                          ]
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "kind": "hr",
+          "rect": [
+            12,
+            239,
+            336,
+            1
+          ]
+        },
+        {
+          "kind": "div",
+          "rect": [
+            12,
+            252,
+            336,
+            69
+          ],
+          "children": [
+            {
+              "kind": "div",
+              "rect": [
+                12,
+                252,
+                336,
+                15
+              ],
+              "children": [
+                {
+                  "kind": "span",
+                  "rect": [
+                    12,
+                    252,
+                    14,
+                    15
+                  ],
+                  "text": "✓",
+                  "px": 12,
+                  "color": "#22C55E"
+                },
+                {
+                  "kind": "span",
+                  "rect": [
+                    32,
+                    252,
+                    316,
+                    15
+                  ],
+                  "text": "api-gateway",
+                  "px": 12,
+                  "color": "#E2E8F0"
+                }
+              ]
+            },
+            {
+              "kind": "div",
+              "rect": [
+                12,
+                270,
+                336,
+                15
+              ],
+              "children": [
+                {
+                  "kind": "span",
+                  "rect": [
+                    12,
+                    270,
+                    14,
+                    15
+                  ],
+                  "text": "✓",
+                  "px": 12,
+                  "color": "#22C55E"
+                },
+                {
+                  "kind": "span",
+                  "rect": [
+                    32,
+                    270,
+                    316,
+                    15
+                  ],
+                  "text": "worker-pool",
+                  "px": 12,
+                  "color": "#E2E8F0"
+                }
+              ]
+            },
+            {
+              "kind": "div",
+              "rect": [
+                12,
+                288,
+                336,
+                15
+              ],
+              "children": [
+                {
+                  "kind": "span",
+                  "rect": [
+                    12,
+                    288,
+                    14,
+                    15
+                  ],
+                  "text": "○",
+                  "px": 12,
+                  "color": "#9CA3AF"
+                },
+                {
+                  "kind": "span",
+                  "rect": [
+                    32,
+                    288,
+                    316,
+                    15
+                  ],
+                  "text": "cache-redis",
+                  "px": 12,
+                  "color": "#E2E8F0"
+                }
+              ]
+            },
+            {
+              "kind": "div",
+              "rect": [
+                12,
+                306,
+                336,
+                15
+              ],
+              "children": [
+                {
+                  "kind": "span",
+                  "rect": [
+                    12,
+                    306,
+                    14,
+                    15
+                  ]
+                },
+                {
+                  "kind": "span",
+                  "rect": [
+                    32,
+                    306,
+                    316,
+                    15
+                  ],
+                  "text": "queue-amqp",
+                  "px": 12,
+                  "color": "#E2E8F0"
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

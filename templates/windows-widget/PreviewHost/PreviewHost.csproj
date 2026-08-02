@@ -1,0 +1,31 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net8.0-windows</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <UseWindowsForms>true</UseWindowsForms>
+    <RootNamespace>TauriWidgets.PreviewHost</RootNamespace>
+    <AssemblyName>AcPreviewHost</AssemblyName>
+    <Platforms>x64;ARM64</Platforms>
+    <!-- Smoke=true: System.Drawing walker only. Smoke=false: AdaptiveCards.Rendering.Wpf → PNG. -->
+    <Smoke Condition="'$(Smoke)' == ''">true</Smoke>
+  </PropertyGroup>
+
+  <PropertyGroup Condition="'$(Smoke)' == 'true'">
+    <DefineConstants>$(DefineConstants);WIDGET_SMOKE</DefineConstants>
+  </PropertyGroup>
+
+  <PropertyGroup Condition="'$(Smoke)' != 'true'">
+    <UseWPF>true</UseWPF>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="System.Drawing.Common" Version="8.0.11" />
+  </ItemGroup>
+
+  <ItemGroup Condition="'$(Smoke)' != 'true'">
+    <PackageReference Include="AdaptiveCards" Version="3.1.0" />
+    <PackageReference Include="AdaptiveCards.Rendering.Wpf" Version="2.8.0" />
+  </ItemGroup>
+</Project>

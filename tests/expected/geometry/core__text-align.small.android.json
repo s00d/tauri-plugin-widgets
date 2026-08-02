@@ -1,0 +1,80 @@
+{
+  "kind": "FrameLayout",
+  "rect": [
+    0,
+    0,
+    510,
+    510
+  ],
+  "children": [
+    {
+      "kind": "FrameLayout",
+      "rect": [
+        0,
+        0,
+        510,
+        510
+      ],
+      "children": [
+        {
+          "kind": "FrameLayout",
+          "rect": [
+            0,
+            0,
+            510,
+            510
+          ],
+          "children": [
+            {
+              "kind": "LinearLayout",
+              "rect": [
+                0,
+                0,
+                510,
+                510
+              ],
+              "children": [
+                {
+                  "kind": "TextView",
+                  "rect": [
+                    24,
+                    24,
+                    462,
+                    57
+                  ],
+                  "text": "Leading",
+                  "px": 42,
+                  "color": "#FFFFFFFF"
+                },
+                {
+                  "kind": "TextView",
+                  "rect": [
+                    24,
+                    81,
+                    462,
+                    57
+                  ],
+                  "text": "Center",
+                  "px": 42,
+                  "color": "#FFFFFFFF"
+                },
+                {
+                  "kind": "TextView",
+                  "rect": [
+                    24,
+                    138,
+                    462,
+                    57
+                  ],
+                  "text": "Trailing",
+                  "px": 42,
+                  "color": "#FFFFFFFF"
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

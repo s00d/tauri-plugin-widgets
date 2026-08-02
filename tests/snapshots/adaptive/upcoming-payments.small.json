@@ -1,0 +1,101 @@
+{
+  "$schema": "http://adaptivecards.io/schemas/adaptive-card.json",
+  "body": [
+    {
+      "id": "card:#1c1c1e;gap:10",
+      "items": [
+        {
+          "id": "rule:#3878fa",
+          "items": [],
+          "separator": true,
+          "spacing": "Medium",
+          "type": "Container"
+        },
+        {
+          "columns": [
+            {
+              "items": [
+                {
+                  "horizontalAlignment": "Center",
+                  "id": "badge:overlay",
+                  "items": [
+                    {
+                      "spacing": "None",
+                      "text": "",
+                      "type": "TextBlock"
+                    },
+                    {
+                      "color": "Light",
+                      "id": "fg:#ffffff",
+                      "size": "Medium",
+                      "text": "S",
+                      "type": "TextBlock",
+                      "weight": "Bolder",
+                      "wrap": true
+                    }
+                  ],
+                  "spacing": "None",
+                  "type": "Container"
+                }
+              ],
+              "type": "Column",
+              "width": "auto"
+            },
+            {
+              "items": [
+                {
+                  "id": "gap:2",
+                  "items": [
+                    {
+                      "color": "Default",
+                      "size": "Default",
+                      "text": "Streaming",
+                      "type": "TextBlock",
+                      "weight": "Bolder",
+                      "wrap": false
+                    },
+                    {
+                      "color": "Light",
+                      "size": "Small",
+                      "text": "Jun 1",
+                      "type": "TextBlock",
+                      "weight": "Bolder",
+                      "wrap": false
+                    }
+                  ],
+                  "spacing": "Small",
+                  "type": "Container"
+                }
+              ],
+              "type": "Column",
+              "width": 100
+            }
+          ],
+          "id": "gap:10",
+          "spacing": "Medium",
+          "type": "ColumnSet"
+        },
+        {
+          "spacing": "Medium",
+          "text": " ",
+          "type": "TextBlock"
+        },
+        {
+          "color": "Accent",
+          "horizontalAlignment": "Left",
+          "id": "fg:#3878fa",
+          "size": "Medium",
+          "text": "$12.50",
+          "type": "TextBlock",
+          "weight": "Bolder",
+          "wrap": false
+        }
+      ],
+      "spacing": "Medium",
+      "style": "emphasis",
+      "type": "Container"
+    }
+  ],
+  "type": "AdaptiveCard",
+  "version": "1.5"
+}

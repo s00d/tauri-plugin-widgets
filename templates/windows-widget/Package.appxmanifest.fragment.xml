@@ -1,0 +1,73 @@
+<!--
+  Fragment to merge into your MSIX Package.appxmanifest.
+  Replace {{WIDGET_PROVIDER_CLSID}} with a fresh GUID (lowercase, no braces).
+  Display name / package identity come from init-windows placeholders.
+-->
+<Extensions>
+  <com:Extension Category="windows.comServer">
+    <com:ComServer>
+      <com:ExeServer
+          Executable="WidgetProvider.exe"
+          DisplayName="{{WIDGET_DISPLAY_NAME}} Provider"
+          LaunchAndActivationPermission="O:SYG:SYD:(A;;11;;;WD)">
+        <com:Class Id="{{WIDGET_PROVIDER_CLSID}}" DisplayName="{{WIDGET_DISPLAY_NAME}} Provider" />
+      </com:ExeServer>
+    </com:ComServer>
+  </com:Extension>
+
+  <uap3:Extension Category="windows.appExtension">
+    <uap3:AppExtension
+        Name="com.microsoft.windows.widgets"
+        DisplayName="{{WIDGET_DISPLAY_NAME}}"
+        Id="{{WIDGET_EXTENSION_ID}}"
+        PublicFolder="Assets">
+      <uap3:Properties>
+        <WidgetProvider>
+          <ProviderIcons>
+            <Icon Path="Assets\StoreLogo.png" />
+          </ProviderIcons>
+          <Activation>
+            <CreateInstance ClassId="{{WIDGET_PROVIDER_CLSID}}" />
+          </Activation>
+          <Definitions>
+            <Definition
+                Id="{{WIDGET_DEFINITION_ID}}"
+                DisplayName="{{WIDGET_DISPLAY_NAME}}"
+                Description="Tauri Adaptive Cards widget"
+                AllowMultiple="true">
+              <Capabilities>
+                <Capability>
+                  <Size Name="small" />
+                </Capability>
+                <Capability>
+                  <Size Name="medium" />
+                </Capability>
+                <Capability>
+                  <Size Name="large" />
+                </Capability>
+              </Capabilities>
+              <ThemeResources>
+                <Icons>
+                  <Icon Path="Assets\StoreLogo.png" />
+                </Icons>
+                <Screenshots>
+                  <Screenshot Path="Assets\StoreLogo.png" DisplayAltText="Widget preview" />
+                </Screenshots>
+                <DarkMode>
+                  <Icons>
+                    <Icon Path="Assets\StoreLogo.png" />
+                  </Icons>
+                </DarkMode>
+                <LightMode>
+                  <Icons>
+                    <Icon Path="Assets\StoreLogo.png" />
+                  </Icons>
+                </LightMode>
+              </ThemeResources>
+            </Definition>
+          </Definitions>
+        </WidgetProvider>
+      </uap3:Properties>
+    </uap3:AppExtension>
+  </uap3:Extension>
+</Extensions>

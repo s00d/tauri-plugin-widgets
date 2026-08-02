@@ -1,0 +1,30 @@
+{
+  "version": 1,
+  "small": {
+    "type": "canvas",
+    "width": 120.0,
+    "height": 120.0,
+    "elements": [
+      {
+        "draw": "circle",
+        "cx": 60.0,
+        "cy": 60.0,
+        "r": 40.0,
+        "fill": "#1a1a2e",
+        "stroke": "#fff",
+        "strokeWidth": 2.0
+      }
+    ],
+    "padding": null,
+    "background": null,
+    "cornerRadius": null,
+    "opacity": null,
+    "frame": null,
+    "border": null,
+    "shadow": null,
+    "clipShape": null,
+    "flex": null
+  },
+  "medium": null,
+  "large": null
+}
