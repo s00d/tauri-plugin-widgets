@@ -7,7 +7,9 @@ use crate::config::{effective_transport, TransportKind, WidgetsPluginConfig};
 use crate::error::Error;
 use crate::store::{self, DataMap};
 #[cfg(any(target_os = "macos", test))]
-use crate::store::{map_nonce, touch_meta};
+use crate::store::map_nonce;
+#[cfg(test)]
+use crate::store::touch_meta;
 use serde::{Deserialize, Serialize};
 use std::sync::atomic::{AtomicBool, AtomicU64, Ordering};
 use std::sync::{Arc, Mutex};
