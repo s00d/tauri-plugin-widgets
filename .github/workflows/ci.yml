@@ -26,6 +26,11 @@ jobs:
 
       - uses: dtolnay/rust-toolchain@stable
 
+      - uses: Swatinem/rust-cache@v2
+        with:
+          shared-key: ci-test
+          cache-on-failure: true
+
       - uses: pnpm/action-setup@v4
         with:
           version: 9
