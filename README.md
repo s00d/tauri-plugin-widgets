@@ -1,7 +1,13 @@
+[![Platform](https://img.shields.io/badge/platform-Android%20%7C%20iOS%20%7C%20macOS%20%7C%20Windows%20%7C%20Linux-blue?style=for-the-badge)](https://s00d.github.io/tauri-plugin-widgets/)
 [![npm version](https://img.shields.io/npm/v/tauri-plugin-widgets-api/latest?style=for-the-badge)](https://www.npmjs.com/package/tauri-plugin-widgets-api)
 [![Crates.io](https://img.shields.io/crates/v/tauri-plugin-widgets?style=for-the-badge)](https://crates.io/crates/tauri-plugin-widgets)
 [![Documentation](https://img.shields.io/badge/docs-s00d.github.io-blue?style=for-the-badge)](https://s00d.github.io/tauri-plugin-widgets/)
+[![License](https://img.shields.io/badge/license-MIT-green?style=for-the-badge)](https://github.com/s00d/tauri-plugin-widgets/blob/main/LICENSE)
+[![GitHub release](https://img.shields.io/github/v/release/s00d/tauri-plugin-widgets?style=for-the-badge)](https://github.com/s00d/tauri-plugin-widgets/releases)
+[![GitHub downloads](https://img.shields.io/github/downloads/s00d/tauri-plugin-widgets/total?style=for-the-badge)](https://github.com/s00d/tauri-plugin-widgets/releases)
 [![GitHub issues](https://img.shields.io/badge/github-issues-orange?style=for-the-badge)](https://github.com/s00d/tauri-plugin-widgets/issues)
+[![GitHub stars](https://img.shields.io/badge/github-stars-yellow?style=for-the-badge)](https://github.com/s00d/tauri-plugin-widgets/stargazers)
+[![Donate](https://img.shields.io/badge/Donate-Donationalerts-ff4081?style=for-the-badge)](https://www.donationalerts.com/r/s00d88)
 
 <p align="center">
   <img src="assets/readme-banner.jpg" alt="tauri-plugin-widgets — one JSON config, five native surfaces" width="100%" />
