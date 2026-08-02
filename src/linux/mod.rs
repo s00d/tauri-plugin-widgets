@@ -67,8 +67,7 @@ fn apply_x11_desktop_hints<R: Runtime>(
         .map_err(|e| format!("change_property STATE: {e}"))?;
     }
 
-    conn.flush()
-        .map_err(|e| format!("x11 flush: {e}"))?;
+    conn.flush().map_err(|e| format!("x11 flush: {e}"))?;
     log::debug!("linux: X11 DESKTOP hints set on xid={xid}");
     Ok(())
 }
@@ -100,9 +99,7 @@ fn apply_layer_shell<R: Runtime>(win: &WebviewWindow<R>) -> Result<(), String> {
     // Window must not be mapped when init_layer_shell runs — hide first.
     let _ = win.hide();
 
-    let old = win
-        .gtk_window()
-        .map_err(|e| format!("gtk_window: {e}"))?;
+    let old = win.gtk_window().map_err(|e| format!("gtk_window: {e}"))?;
     let app = old
         .application()
         .ok_or_else(|| "gtk window has no application".to_string())?;

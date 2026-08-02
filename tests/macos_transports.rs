@@ -66,10 +66,7 @@ fn freshest_pick_across_transports() {
             "WIDGET_CONTAINER_ROOT",
             tmp.path().to_string_lossy().into_owned(),
         ),
-        (
-            "WIDGET_EXTENSION_BUNDLE",
-            "test.app.widgetkit".into(),
-        ),
+        ("WIDGET_EXTENSION_BUNDLE", "test.app.widgetkit".into()),
         (
             "WIDGET_APP_GROUP_DATA_FILE",
             app_group_file.to_string_lossy().into_owned(),
@@ -107,10 +104,7 @@ fn action_roundtrip() {
             "WIDGET_CONTAINER_ROOT",
             tmp.path().to_string_lossy().into_owned(),
         ),
-        (
-            "WIDGET_EXTENSION_BUNDLE",
-            "test.app.widgetkit".into(),
-        ),
+        ("WIDGET_EXTENSION_BUNDLE", "test.app.widgetkit".into()),
     ]);
 
     const GROUP: &str = "group.test.app";
@@ -135,10 +129,7 @@ fn container_root_override_not_home() {
             "WIDGET_CONTAINER_ROOT",
             tmp.path().to_string_lossy().into_owned(),
         ),
-        (
-            "WIDGET_EXTENSION_BUNDLE",
-            "custom.bundle.widgetkit".into(),
-        ),
+        ("WIDGET_EXTENSION_BUNDLE", "custom.bundle.widgetkit".into()),
     ]);
     let path = mt::sandbox_widget_data_path("group.test.app");
     assert!(

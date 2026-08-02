@@ -5,8 +5,19 @@ use serde_json::{json, Value};
 
 /// Core elements with a strict cross-platform snapshot contract.
 pub const CORE_ELEMENTS: &[&str] = &[
-    "vstack", "hstack", "zstack", "container", "grid", "text", "image", "spacer", "divider",
-    "progress", "button", "link", "shape",
+    "vstack",
+    "hstack",
+    "zstack",
+    "container",
+    "grid",
+    "text",
+    "image",
+    "spacer",
+    "divider",
+    "progress",
+    "button",
+    "link",
+    "shape",
 ];
 
 /// Extended / best-effort elements (platform-dependent).
@@ -46,7 +57,14 @@ fn dump_element(el: &WidgetElement, parent: ParentAxis) -> Value {
     let ty = el.type_name();
     let mut obj = serde_json::Map::new();
     obj.insert("type".into(), json!(ty));
-    obj.insert("tier".into(), json!(if is_core_element(ty) { "core" } else { "extended" }));
+    obj.insert(
+        "tier".into(),
+        json!(if is_core_element(ty) {
+            "core"
+        } else {
+            "extended"
+        }),
+    );
 
     match el {
         WidgetElement::VStack {
@@ -289,12 +307,7 @@ fn dump_element(el: &WidgetElement, parent: ParentAxis) -> Value {
             dump_style(&mut obj, style);
             obj.insert(
                 "children".into(),
-                Value::Array(
-                    children
-                        .iter()
-                        .map(|c| dump_element(c, parent))
-                        .collect(),
-                ),
+                Value::Array(children.iter().map(|c| dump_element(c, parent)).collect()),
             );
         }
         WidgetElement::Shape {
@@ -348,7 +361,9 @@ fn put_opt_f64(obj: &mut serde_json::Map<String, Value>, key: &str, v: Option<f6
 fn color_json(c: &crate::models::ColorValue) -> Value {
     match c {
         crate::models::ColorValue::Solid(s) => json!(s),
-        crate::models::ColorValue::Adaptive { light, dark } => json!({ "light": light, "dark": dark }),
+        crate::models::ColorValue::Adaptive { light, dark } => {
+            json!({ "light": light, "dark": dark })
+        }
     }
 }
 
@@ -393,7 +408,11 @@ mod tests {
     #[test]
     fn core_and_extended_partition_element_types() {
         use crate::capabilities::ELEMENT_TYPES;
-        let mut all: Vec<&str> = CORE_ELEMENTS.iter().chain(EXTENDED_ELEMENTS.iter()).copied().collect();
+        let mut all: Vec<&str> = CORE_ELEMENTS
+            .iter()
+            .chain(EXTENDED_ELEMENTS.iter())
+            .copied()
+            .collect();
         all.sort();
         let mut expected: Vec<&str> = ELEMENT_TYPES.to_vec();
         expected.sort();

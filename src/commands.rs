@@ -90,12 +90,7 @@ pub fn set_widget_config<R: Runtime>(
     widget_id: String,
     skip_reload: Option<bool>,
 ) -> Result<bool, Error> {
-    widget.set_widget_config(
-        &config,
-        &group,
-        &widget_id,
-        skip_reload.unwrap_or(false),
-    )
+    widget.set_widget_config(&config, &group, &widget_id, skip_reload.unwrap_or(false))
 }
 
 #[tauri::command]

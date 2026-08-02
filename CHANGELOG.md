@@ -2,6 +2,13 @@
 
 ## 0.4.1
 
+### Breaking (Apple host transport)
+- macOS host no longer fan-outs writes across three channels at runtime
+- Choose one driver in `plugins.widgets.transport`: `appGroup` | `userDefaults` | `widgetContainer` | `auto`
+- Require `plugins.widgets.appGroup`; wrong/missing config fails plugin init (loud)
+- Override with `WIDGET_TRANSPORT`; iOS accepts `appGroup` only
+- Unchanged `setItems` values skip disk write / nonce bump
+
 ### Cleanup
 - Removed Mac-side SVG Adaptive Cards compositor (`gen-windows-goldens`) and fake `tests/golden/windows/*.png`; keep `tests/snapshots/adaptive/` + PreviewHost for real WinUI3 pixels
 - `rasterize` no longer in default features (opt-in resvg)

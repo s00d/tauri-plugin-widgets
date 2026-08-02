@@ -18,7 +18,18 @@ The plugin is a **library**, not a widget builder. You own the extension / provi
 
 **Data flow:** `setWidgetConfig(json, group, widgetId)` → platform storage (`nonce`) → reload / Glance / Widgets Board → native UI for that `widgetId`.
 
-On Apple the host **fan-outs** writes (App Group file, UserDefaults suite, macOS sandbox file); the extension picks the freshest map by `nonce` / `updatedAt`. Render **receipts** narrow fan-out after paint.
+### Apple transport drivers
+
+Host writes use **one** driver from `plugins.widgets.transport` (`appGroup` | `userDefaults` | `widgetContainer` | `auto`). See README → *Apple data transport*.
+
+| Piece | Role |
+|-------|------|
+| [`src/config.rs`](../src/config.rs) | `WidgetsPluginConfig` / `TransportKind` |
+| [`src/transport.rs`](../src/transport.rs) | `Transport` trait, `build_driver`, `probe_once` |
+| [`src/macos_transport.rs`](../src/macos_transport.rs) | Concrete file / UserDefaults drivers |
+| Swift `WidgetDataStore` | Extension still multi-reads + freshest pick |
+
+Receipts are diagnostics (`getWidgetDiagnostics`), not a runtime selector. Unit tests: `cargo test -p tauri-plugin-widgets transport::`.
 
 Storage keys (0.4+): `config:{widgetId}`, `pending_actions`, `__meta_nonce__`, `__meta_updated_at__`. Windows also `ac:template:{widgetId}` / `ac:data:{widgetId}`.
 

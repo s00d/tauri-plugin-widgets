@@ -110,9 +110,7 @@ fn el(e: &WidgetElement, skipped: &mut Vec<SkippedElement>) -> Value {
         }
 
         WidgetElement::HStack {
-            children,
-            spacing,
-            ..
+            children, spacing, ..
         } => {
             let n = children.len();
             let mut obj = json!({
@@ -210,10 +208,7 @@ fn el(e: &WidgetElement, skipped: &mut Vec<SkippedElement>) -> Value {
             line_limit,
             ..
         } => {
-            let wrap = match line_limit {
-                Some(n) if *n <= 1 => false,
-                _ => true,
-            };
+            let wrap = !matches!(line_limit, Some(n) if *n <= 1);
             let mut obj = json!({
                 "type": "TextBlock",
                 "text": content,
@@ -221,7 +216,9 @@ fn el(e: &WidgetElement, skipped: &mut Vec<SkippedElement>) -> Value {
                 "size": size_bucket(*font_size),
                 "weight": weight_token(font_weight.as_ref()),
             });
-            if let Some(c) = ac_color(color.as_ref()).or_else(|| approx_hex_semantic(color.as_ref())) {
+            if let Some(c) =
+                ac_color(color.as_ref()).or_else(|| approx_hex_semantic(color.as_ref()))
+            {
                 obj["color"] = json!(c);
             }
             // Preserve exact hex for composite (muted slates stay slate, not AC "Light").
@@ -254,10 +251,7 @@ fn el(e: &WidgetElement, skipped: &mut Vec<SkippedElement>) -> Value {
             });
             if url_str.is_empty() {
                 // SF Symbol / Material name without bitmap → emoji TextBlock for AC/goldens.
-                let glyph = system_name
-                    .as_deref()
-                    .map(sf_symbol_glyph)
-                    .unwrap_or("•");
+                let glyph = system_name.as_deref().map(sf_symbol_glyph).unwrap_or("•");
                 let mut obj = json!({
                     "type": "TextBlock",
                     "text": glyph,
@@ -265,7 +259,8 @@ fn el(e: &WidgetElement, skipped: &mut Vec<SkippedElement>) -> Value {
                     "size": size_bucket(size.map(|s| s * 0.75)),
                     "weight": "Bolder",
                 });
-                if let Some(c) = ac_color(color.as_ref()).or_else(|| approx_hex_semantic(color.as_ref()))
+                if let Some(c) =
+                    ac_color(color.as_ref()).or_else(|| approx_hex_semantic(color.as_ref()))
                 {
                     obj["color"] = json!(c);
                 }
@@ -317,16 +312,16 @@ fn el(e: &WidgetElement, skipped: &mut Vec<SkippedElement>) -> Value {
         }
 
         WidgetElement::Toggle {
-            is_on, label, action, ..
+            is_on,
+            label,
+            action,
+            ..
         } => {
             // Prefer readable TextBlock for Adaptive Cards / goldens (ActionSet is clickable but low-fidelity).
-            let title = label.clone().unwrap_or_else(|| {
-                if *is_on {
-                    "On".into()
-                } else {
-                    "Off".into()
-                }
-            });
+            let title =
+                label
+                    .clone()
+                    .unwrap_or_else(|| if *is_on { "On".into() } else { "Off".into() });
             let mark = if *is_on { "✓" } else { "○" };
             let _ = action;
             json!({
@@ -338,7 +333,12 @@ fn el(e: &WidgetElement, skipped: &mut Vec<SkippedElement>) -> Value {
         }
 
         WidgetElement::Progress {
-            value, total, label, tint, color, ..
+            value,
+            total,
+            label,
+            tint,
+            color,
+            ..
         } => {
             let total = if *total <= 0.0 { 1.0 } else { *total };
             let pct = ((*value / total) * 100.0).clamp(0.0, 100.0) as u32;
@@ -425,7 +425,12 @@ fn el(e: &WidgetElement, skipped: &mut Vec<SkippedElement>) -> Value {
             "size": "Default",
         }),
 
-        WidgetElement::Label { text, system_name, color, .. } => {
+        WidgetElement::Label {
+            text,
+            system_name,
+            color,
+            ..
+        } => {
             let prefix = if system_name.is_empty() {
                 String::new()
             } else {
@@ -438,7 +443,9 @@ fn el(e: &WidgetElement, skipped: &mut Vec<SkippedElement>) -> Value {
                 "weight": "Bolder",
                 "size": "Small",
             });
-            if let Some(c) = ac_color(color.as_ref()).or_else(|| approx_hex_semantic(color.as_ref())) {
+            if let Some(c) =
+                ac_color(color.as_ref()).or_else(|| approx_hex_semantic(color.as_ref()))
+            {
                 obj["color"] = json!(c);
             } else {
                 obj["color"] = json!("Light");
@@ -719,9 +726,9 @@ fn weight_token(w: Option<&FontWeight>) -> &'static str {
         | Some(FontWeight::Semibold)
         | Some(FontWeight::Heavy)
         | Some(FontWeight::Black) => "Bolder",
-        Some(FontWeight::Light)
-        | Some(FontWeight::Thin)
-        | Some(FontWeight::Ultralight) => "Lighter",
+        Some(FontWeight::Light) | Some(FontWeight::Thin) | Some(FontWeight::Ultralight) => {
+            "Lighter"
+        }
         _ => "Default",
     }
 }
@@ -892,7 +899,8 @@ mod tests {
 
     fn load_config(rel: &str) -> WidgetConfig {
         let path = fixtures_dir().join(rel);
-        let raw = fs::read_to_string(&path).unwrap_or_else(|e| panic!("read {}: {e}", path.display()));
+        let raw =
+            fs::read_to_string(&path).unwrap_or_else(|e| panic!("read {}: {e}", path.display()));
         // Fixtures may contain explicit nulls — strip via Value first.
         let v: Value = serde_json::from_str(&raw).expect("json");
         serde_json::from_value(v).unwrap_or_else(|e| panic!("parse {rel}: {e}"))

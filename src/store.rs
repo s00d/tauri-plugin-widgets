@@ -62,9 +62,7 @@ pub fn pick_freshest(maps: impl IntoIterator<Item = DataMap>) -> DataMap {
     for map in maps {
         let n = map_nonce(&map);
         let t = map_updated_at(&map);
-        let better = best.is_none()
-            || n > best_nonce
-            || (n == best_nonce && t > best_ts);
+        let better = best.is_none() || n > best_nonce || (n == best_nonce && t > best_ts);
         if better {
             best_nonce = n;
             best_ts = t;

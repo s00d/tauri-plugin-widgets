@@ -45,10 +45,20 @@ struct EnumState {
 unsafe extern "system" fn enum_windows_proc(hwnd: HWND, lparam: isize) -> BOOL {
     let state = &mut *(lparam as *mut EnumState);
     let shelldll = wide("SHELLDLL_DefView");
-    let def = FindWindowExW(hwnd, std::ptr::null_mut(), shelldll.as_ptr(), std::ptr::null());
+    let def = FindWindowExW(
+        hwnd,
+        std::ptr::null_mut(),
+        shelldll.as_ptr(),
+        std::ptr::null(),
+    );
     if !def.is_null() {
         let worker = wide("WorkerW");
-        state.workerw = FindWindowExW(std::ptr::null_mut(), hwnd, worker.as_ptr(), std::ptr::null());
+        state.workerw = FindWindowExW(
+            std::ptr::null_mut(),
+            hwnd,
+            worker.as_ptr(),
+            std::ptr::null(),
+        );
     }
     1
 }

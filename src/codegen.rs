@@ -184,12 +184,20 @@ const IR_ELEMENTS: &[ElementSpec] = &[
     ElementSpec {
         wire: "vstack",
         ts_name: "VStackElement",
-        fields: &["children: WidgetElement[]", "spacing?: number", "alignment?: HorizontalAlignment"],
+        fields: &[
+            "children: WidgetElement[]",
+            "spacing?: number",
+            "alignment?: HorizontalAlignment",
+        ],
     },
     ElementSpec {
         wire: "hstack",
         ts_name: "HStackElement",
-        fields: &["children: WidgetElement[]", "spacing?: number", "alignment?: VerticalAlignment"],
+        fields: &[
+            "children: WidgetElement[]",
+            "spacing?: number",
+            "alignment?: VerticalAlignment",
+        ],
     },
     ElementSpec {
         wire: "zstack",
@@ -304,7 +312,11 @@ const IR_ELEMENTS: &[ElementSpec] = &[
     ElementSpec {
         wire: "chart",
         ts_name: "ChartElement",
-        fields: &["chartType: ChartType", "chartData: ChartDataPoint[]", "tint?: ColorValue"],
+        fields: &[
+            "chartType: ChartType",
+            "chartData: ChartDataPoint[]",
+            "tint?: ColorValue",
+        ],
     },
     ElementSpec {
         wire: "list",
@@ -319,7 +331,11 @@ const IR_ELEMENTS: &[ElementSpec] = &[
     ElementSpec {
         wire: "link",
         ts_name: "LinkElement",
-        fields: &["children: WidgetElement[]", "url?: string", "action?: string"],
+        fields: &[
+            "children: WidgetElement[]",
+            "url?: string",
+            "action?: string",
+        ],
     },
     ElementSpec {
         wire: "shape",
@@ -346,7 +362,11 @@ const IR_ELEMENTS: &[ElementSpec] = &[
     ElementSpec {
         wire: "canvas",
         ts_name: "CanvasElement",
-        fields: &["width: number", "height: number", "elements: CanvasDrawCommand[]"],
+        fields: &[
+            "width: number",
+            "height: number",
+            "elements: CanvasDrawCommand[]",
+        ],
     },
     ElementSpec {
         wire: "label",
@@ -371,12 +391,13 @@ mod tests {
 
     #[test]
     fn ir_spec_covers_all_element_types() {
-        let wires: Vec<&str> = IR_ELEMENTS.iter().map(|e| e.wire).chain(["spacer"]).collect();
+        let wires: Vec<&str> = IR_ELEMENTS
+            .iter()
+            .map(|e| e.wire)
+            .chain(["spacer"])
+            .collect();
         for ty in ELEMENT_TYPES {
-            assert!(
-                wires.contains(ty),
-                "IR_ELEMENTS missing wire type `{ty}`"
-            );
+            assert!(wires.contains(ty), "IR_ELEMENTS missing wire type `{ty}`");
         }
         assert_eq!(wires.len(), ELEMENT_TYPES.len());
     }

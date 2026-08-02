@@ -34,10 +34,7 @@ impl Error {
     /// Create an [`Error::Unsupported`] indicating that the operation is
     /// unavailable on the current platform.
     pub fn unsupported(operation: &str) -> Self {
-        Error::Unsupported(format!(
-            "`{}` is not supported on this platform",
-            operation
-        ))
+        Error::Unsupported(format!("`{}` is not supported on this platform", operation))
     }
 }
 

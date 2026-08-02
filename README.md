@@ -164,8 +164,8 @@ Capability warnings (degraded / unsupported) are logged when a config **changes*
 | Platform | Surface | UI | Storage | Reload / update |
 |----------|---------|----|---------|-----------------|
 | **Android** | AppWidget | Jetpack Glance from JSON | SharedPreferences + Glance state | Glance `updateAll()` |
-| **iOS** | WidgetKit (17+) | SwiftUI from JSON | App Group (JSON + suite fan-out) | WidgetCenter |
-| **macOS** | WidgetKit (14+) | SwiftUI from JSON | App Group + sandbox fan-out | WidgetCenter |
+| **iOS** | WidgetKit (17+) | SwiftUI from JSON | App Group (`transport=appGroup`) | WidgetCenter |
+| **macOS** | WidgetKit (14+) | SwiftUI from JSON | Config-chosen transport (see below) | WidgetCenter |
 | **Windows** | Widgets Board **+** desktop webview | Adaptive Cards 1.5 **and** HTML/CSS | JSON file + `ac:template` / `ac:data` | Provider / Tauri |
 | **Linux** | Desktop webview (X11 DESKTOP pin; optional layer-shell) | HTML/CSS from JSON | JSON file | Tauri |
 
@@ -356,6 +356,7 @@ If a Widget Extension target already exists in `src-tauri/gen/apple/*`, the CLI 
 
 | Variable | Scope | Default | Description |
 |----------|-------|---------|-------------|
+| `WIDGET_TRANSPORT` | Apple host | `plugins.widgets.transport` | Override: `appGroup` \| `userDefaults` \| `widgetContainer` \| `auto`. |
 | `WIDGET_SIGN_IDENTITY` | macOS (`build-widget.sh`) | `APPLE_SIGNING_IDENTITY` or ad-hoc (`-`) | Signing identity for the `.appex` before bundling. |
 | `TAURI_WIDGET_MIN_RELOAD_SECS` | iOS/macOS runtime (plugin) | Debug: `0`, Release: `900` | Minimum seconds between plugin-triggered `reloadAllTimelines()`. Use `0` to disable plugin-side throttle. |
 | `TAURI_DEV_HOST` | Example app dev (`vite.config.ts`) | — | Dev host used by Tauri/Vite during `tauri dev` (usually set automatically). |
@@ -365,6 +366,9 @@ Examples:
 ```bash
 # iOS dev without plugin-side reload throttle
 TAURI_WIDGET_MIN_RELOAD_SECS=0 pnpm tauri ios dev
+
+# Force widget-container transport without editing tauri.conf.json
+WIDGET_TRANSPORT=widgetContainer pnpm tauri dev
 
 # macOS build with explicit signing identity for the .appex
 WIDGET_SIGN_IDENTITY="Apple Development: you@example.com (TEAMID)" \
@@ -546,6 +550,45 @@ Pipeline:
 
 > **Tip:** `{ "scripts": { "build:macos": "tauri build" } }` then `pnpm build:macos`.
 
+#### Apple data transport
+
+The host writes widget data through **one** transport you choose in config. You know your signing setup — do not rely on runtime fan-out.
+
+```json
+{
+  "plugins": {
+    "widgets": {
+      "appGroup": "group.com.example.myapp",
+      "transport": "appGroup",
+      "extensionBundleId": "com.example.myapp.widgetkit"
+    }
+  }
+}
+```
+
+| Situation | `transport` |
+|-----------|-------------|
+| Release / Team ID + App Groups enabled | `appGroup` |
+| Mac App Store | `appGroup` |
+| Local ad-hoc signing (no shared App Group container) | `widgetContainer` |
+| iOS (device and simulator) | `appGroup` only — other values fail at plugin init |
+| Not sure yet | `auto` once at startup (dev only) — read the log, then pin the winner in conf |
+
+| `transport` | Host write path | Requirements |
+|-------------|-----------------|--------------|
+| `appGroup` | `containerURL(group)/widget_data.json` | Real Team ID + App Groups on App + Extension |
+| `userDefaults` | App Group `UserDefaults` suite | Same as `appGroup` |
+| `widgetContainer` | `~/Library/Containers/<appex>/Data/widget_data.json` | macOS host **not** sandboxed; works with ad-hoc |
+| `auto` | One-shot probe, then latch | Development only — never ship this |
+
+Wrong `transport` / missing `appGroup` **fails plugin init** with a concrete message (empty widgets from a silent fallback are not a thing).
+
+Override without editing conf: `WIDGET_TRANSPORT=widgetContainer`.
+
+The **widget extension** still reads all channels and picks the freshest map (so it can find data wherever the host wrote). Host-side writes use only the configured driver. Render receipts feed `getWidgetDiagnostics`, not transport selection.
+
+`setItems` skips disk I/O when the value is unchanged (no nonce bump).
+
 #### Code Signing
 
 `build-widget.sh` signs the `.appex` before bundling. Identity resolution:
@@ -554,33 +597,17 @@ Pipeline:
 2. `APPLE_SIGNING_IDENTITY`
 3. Fallback: `-` (ad-hoc)
 
-**Finding your signing identity:**
-
 ```bash
 security find-identity -v -p codesigning
 ```
 
-**Ad-hoc signing (`-`)** works for local testing but has limitations:
-- Widgets appear in the gallery and render correctly
-- **App Groups / UserDefaults sharing won't work** — macOS requires a real Team ID for inter-process data sharing via `UserDefaults(suiteName:)` or `containerURL(forSecurityApplicationGroupIdentifier:)`
+| Signing | Widget visible | Recommended `transport` | Distribution |
+|---------|---------------|-------------------------|--------------|
+| Ad-hoc (`-`) | Yes | `widgetContainer` | Local only |
+| Apple Development | Yes | `appGroup` | Local + TestFlight |
+| Developer ID | Yes | `appGroup` | Direct distribution |
 
-The plugin keeps **three Apple transports** on purpose (fan-out write / freshest read):
-
-| Transport | Path | When it works |
-|-----------|------|----------------|
-| AppGroupFile | `containerURL(group)/widget_data.json` | Real Team ID + App Groups entitlements |
-| AppGroupUserDefaults | `UserDefaults(suiteName:)` | Same + suite actually shared |
-| WidgetSandboxFile | `~/Library/Containers/<appex>/Data/widget_data.json` ↔ `NSHomeDirectory()` | macOS host **not** sandboxed; required for ad-hoc |
-
-**Apple Development certificate** (free Apple Developer account) enables App Group sharing. WidgetSandboxFile still works as a fallback.
-
-**Important:** The main app's `App.entitlements` should **not** include `com.apple.security.app-sandbox`. The Tauri app must remain non-sandboxed so it can write into the widget's container. The widget extension is always sandboxed (required by macOS for WidgetKit).
-
-| Signing | Widget visible | Data sharing | Distribution |
-|---------|---------------|-------------|-------------|
-| Ad-hoc (`-`) | Yes | WidgetSandboxFile only | Local only |
-| Apple Development | Yes | All three transports | Local + TestFlight |
-| Developer ID | Yes | All three transports | Direct distribution |
+**Important:** The main app's `App.entitlements` should **not** include `com.apple.security.app-sandbox` when using `widgetContainer` (host must write into the extension container). The widget extension is always sandboxed (required by WidgetKit).
 
 #### Debugging the widget separately
 

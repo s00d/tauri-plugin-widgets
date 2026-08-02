@@ -105,27 +105,27 @@ const live = await getWidgetDiagnostics("group.com.example.app");
 // [{ widgetId, instance, size, nonce, source, rendered, skipped, ts }]
 ```
 
-- **macOS only:** `source` + `nonce` drive transport narrowing (fan-out → confirm → narrow → stale reopen).
-- **iOS:** no narrowing — loud log if App Group `containerURL` is nil.
+- **macOS:** host uses one config-chosen transport; receipts are diagnostics only (`getWidgetDiagnostics`).
+- **iOS:** `transport=appGroup` only — other values fail at plugin init.
 - **Android:** receipts list live `appWidgetId`s so `syncConfigToGlanceState` targets confirmed instances.
 - **Desktop:** register listeners **before** `loadConfig()`; `widget.html` reports `source: push|pull` after render.
 
 ## Level C — macOS transports + packaging (no pixels)
 
-Real host bugs live here: freshest pick, **async receipts → write narrowing**, action queue, App Group entitlements, `.appex` embed.
+Real host bugs live here: single-driver write/read, action queue, App Group entitlements, `.appex` embed.
 
-**Model:** fan-out write → widget plants receipt `{readFrom,nonce,ts}` (sibling file/key, not config map) → host `reconcile()` → after `CONFIRM_STREAK` confirmations narrow config writes to that transport → `STALE_AFTER_MS` silence re-opens fan-out. Availability ≠ delivery.
+**Model:** developer sets `plugins.widgets.transport` (`appGroup` | `userDefaults` | `widgetContainer` | `auto`). Host writes that channel only. Extension multi-reads and picks freshest by nonce. Availability ≠ delivery — pick the transport from signing knowledge, do not fan-out at runtime.
 
 **C1 — transports** (seconds; override root, never mutate process `HOME`):
 
 ```bash
 just test-macos-transports
-# Rust unit (fake TransportSet): cargo test -p tauri-plugin-widgets transport::
+# Rust unit (config driver / fakes): cargo test -p tauri-plugin-widgets transport::
 # Rust file IO: cargo test --test macos_transports
 # Swift: cd swift && swift test --filter TransportTests
 ```
 
-Env knobs: `WIDGET_CONTAINER_ROOT`, `WIDGET_EXTENSION_BUNDLE`, `WIDGET_APP_GROUP_DATA_FILE` (and Swift `WIDGET_SANDBOX_DATA_FILE`). Install identity reset: `WIDGET_BUNDLE_VERSION` / `WIDGET_TEAM_ID_HASH`.
+Env knobs: `WIDGET_TRANSPORT`, `WIDGET_CONTAINER_ROOT`, `WIDGET_EXTENSION_BUNDLE`, `WIDGET_APP_GROUP_DATA_FILE` (and Swift `WIDGET_SANDBOX_DATA_FILE`).
 
 **C2 — build pipeline** (slow; needs `xcodegen` + Xcode):
 

@@ -22,6 +22,13 @@
       "csp": null
     }
   },
+  "plugins": {
+    "widgets": {
+      "appGroup": "group.com.s00d.tauri-plugin-widgets-example",
+      "transport": "appGroup",
+      "extensionBundleId": "com.s00d.tauri-plugin-widgets-example.widgetkit"
+    }
+  },
   "bundle": {
     "active": true,
     "targets": "all",

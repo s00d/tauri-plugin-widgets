@@ -78,7 +78,8 @@ pub fn svg_to_data_uri(svg: &str) -> Result<String, String> {
 
 /// Convenience: element → PNG data URI.
 pub fn element_to_png_data_uri(el: &WidgetElement) -> Result<String, String> {
-    let svg = element_to_svg(el).ok_or_else(|| "element is not chart/canvas/gauge/shape".to_string())?;
+    let svg =
+        element_to_svg(el).ok_or_else(|| "element is not chart/canvas/gauge/shape".to_string())?;
     svg_to_data_uri(&svg)
 }
 
@@ -314,9 +315,7 @@ fn canvas_svg(width: f64, height: f64, elements: &[CanvasDrawCommand]) -> String
                 let lf = if (ea - sa).abs() > PI { 1 } else { 0 };
                 let fill_s = color_str(fill.as_ref(), "none");
                 let d = if fill_s != "none" {
-                    format!(
-                        "M{cx},{cy} L{sx:.2},{sy:.2} A{r},{r} 0 {lf} 1 {ex:.2},{ey:.2} Z"
-                    )
+                    format!("M{cx},{cy} L{sx:.2},{sy:.2} A{r},{r} 0 {lf} 1 {ex:.2},{ey:.2} Z")
                 } else {
                     format!("M{sx:.2},{sy:.2} A{r},{r} 0 {lf} 1 {ex:.2},{ey:.2}")
                 };

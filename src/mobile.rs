@@ -1,4 +1,3 @@
-use serde::de::DeserializeOwned;
 use serde::Serialize;
 use serde_json::Value;
 use std::collections::hash_map::DefaultHasher;
@@ -9,9 +8,11 @@ use std::sync::Mutex;
 use std::time::Instant;
 use tauri::{plugin::PluginApi, AppHandle, Emitter, Runtime};
 
+use crate::config::WidgetsPluginConfig;
 use crate::models::{WidgetConfig, WidgetWindowConfig};
 use crate::receipt::{ReceiptStore, WidgetRenderReceipt};
 use crate::store::config_key;
+use crate::transport::validate_mobile_transport;
 
 /// Default minimum interval between WidgetKit reload calls.
 /// Can be overridden with `TAURI_WIDGET_MIN_RELOAD_SECS`.
@@ -36,10 +37,13 @@ const PLUGIN_IDENTIFIER: &str = "git.s00d.widgets";
 #[cfg(target_os = "ios")]
 tauri::ios_plugin_binding!(init_plugin_widgets);
 
-pub fn init<R: Runtime, C: DeserializeOwned>(
+pub fn init<R: Runtime>(
     app: &AppHandle<R>,
-    api: PluginApi<R, C>,
+    api: PluginApi<R, Option<WidgetsPluginConfig>>,
 ) -> crate::Result<Widget<R>> {
+    let cfg = api.config().clone().unwrap_or_default();
+    let _ = validate_mobile_transport(&cfg)?;
+
     #[cfg(target_os = "android")]
     let handle = api.register_android_plugin(PLUGIN_IDENTIFIER, "WidgetBridgePlugin")?;
     #[cfg(target_os = "ios")]
@@ -340,18 +344,15 @@ impl<R: Runtime> Widget<R> {
         struct Payload {
             receipt_json: String,
         }
-        let receipt_json = serde_json::to_string(&receipt)
-            .map_err(|e| crate::Error::new(e.to_string()))?;
+        let receipt_json =
+            serde_json::to_string(&receipt).map_err(|e| crate::Error::new(e.to_string()))?;
         let _: Result<Value, _> = self
             .handle
             .run_mobile_plugin("reportReceipt", Payload { receipt_json });
         Ok(true)
     }
 
-    pub fn get_widget_diagnostics(
-        &self,
-        group: &str,
-    ) -> crate::Result<Vec<WidgetRenderReceipt>> {
+    pub fn get_widget_diagnostics(&self, group: &str) -> crate::Result<Vec<WidgetRenderReceipt>> {
         self.remember_group(group);
         #[derive(Serialize)]
         struct Group<'a> {

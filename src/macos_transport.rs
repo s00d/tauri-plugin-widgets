@@ -11,9 +11,7 @@ use crate::store::{
     self, config_key, encode_pending_actions, parse_pending_actions, touch_meta, DataMap,
     WidgetActionEnvelope, META_NONCE_KEY, META_UPDATED_AT_KEY, PENDING_ACTIONS_KEY,
 };
-use crate::transport::{
-    Receipt, Transport, TransportSet, NAME_APPGROUP, NAME_CONTAINER, NAME_DEFAULTS,
-};
+use crate::transport::{Receipt, Transport, NAME_APPGROUP, NAME_CONTAINER, NAME_DEFAULTS};
 use std::ffi::{CStr, CString};
 use std::fs;
 use std::path::{Path, PathBuf};
@@ -134,9 +132,8 @@ fn shared_container_dir(group: &str) -> Option<PathBuf> {
 }
 
 fn resolve_app_group_data_file(group: &str) -> Option<PathBuf> {
-    app_group_data_override().or_else(|| {
-        shared_container_dir(group).map(|d| d.join("widget_data.json"))
-    })
+    app_group_data_override()
+        .or_else(|| shared_container_dir(group).map(|d| d.join("widget_data.json")))
 }
 
 // ─── Transports ───────────────────────────────────────────────────────────────
@@ -204,8 +201,7 @@ impl Transport for UserDefaultsTransport {
 
     fn write(&self, map: &DataMap) -> crate::Result<()> {
         let compact = serde_json::to_string(map).map_err(|e| Error::new(e.to_string()))?;
-        let c_group =
-            CString::new(self.group.as_str()).map_err(|e| Error::new(e.to_string()))?;
+        let c_group = CString::new(self.group.as_str()).map_err(|e| Error::new(e.to_string()))?;
         let c_json = CString::new(compact).map_err(|e| Error::new(e.to_string()))?;
         let ok = unsafe { macos_widget_set_defaults_map(c_group.as_ptr(), c_json.as_ptr()) };
         if ok {
@@ -231,8 +227,7 @@ impl Transport for UserDefaultsTransport {
 
     fn write_receipt(&self, receipt: &Receipt) -> crate::Result<()> {
         let json = serde_json::to_string(receipt).map_err(|e| Error::new(e.to_string()))?;
-        let c_group =
-            CString::new(self.group.as_str()).map_err(|e| Error::new(e.to_string()))?;
+        let c_group = CString::new(self.group.as_str()).map_err(|e| Error::new(e.to_string()))?;
         let c_key = CString::new("widget_receipt").map_err(|e| Error::new(e.to_string()))?;
         let c_val = CString::new(json).map_err(|e| Error::new(e.to_string()))?;
         let ok = unsafe {
@@ -246,44 +241,46 @@ impl Transport for UserDefaultsTransport {
     }
 }
 
-/// Build the three Apple transports for a group (paths overridable via env).
-pub fn apple_transport_set(group: &str) -> TransportSet {
-    let mut transports: Vec<Arc<dyn Transport>> = Vec::new();
+/// App Group shared-container file transport.
+///
+/// Fails loud when the OS does not return a container URL (typical for ad-hoc
+/// signing). Set `transport = "widgetContainer"` for local ad-hoc builds, or
+/// `WIDGET_APP_GROUP_DATA_FILE` in tests.
+pub fn app_group_transport(group: &str) -> crate::Result<Arc<dyn Transport>> {
+    let path = resolve_app_group_data_file(group).ok_or_else(|| {
+        Error::new(format!(
+            "App Group '{group}' is unavailable (containerURL returned nil).\n\
+             • Enable App Groups on App + Widget Extension targets\n\
+             • Sign with a real Team ID — ad-hoc does not share the App Group container\n\
+             • For local/ad-hoc development set plugins.widgets.transport = \"widgetContainer\"\n\
+             • Tests may set WIDGET_APP_GROUP_DATA_FILE to a writable path"
+        ))
+    })?;
+    let receipt = app_group_receipt_path(&path);
+    Ok(Arc::new(FileTransport {
+        name: NAME_APPGROUP,
+        data_path: path,
+        receipt_path: receipt,
+        available: true,
+    }))
+}
 
-    let app_group_file = resolve_app_group_data_file(group);
-    let appgroup_available = app_group_file.is_some();
-    if let Some(path) = app_group_file {
-        let receipt = app_group_receipt_path(&path);
-        transports.push(Arc::new(FileTransport {
-            name: NAME_APPGROUP,
-            data_path: path,
-            receipt_path: receipt,
-            available: appgroup_available,
-        }));
-    } else {
-        // Still register as unavailable so health map can track name if needed later.
-        transports.push(Arc::new(FileTransport {
-            name: NAME_APPGROUP,
-            data_path: PathBuf::from("/dev/null/widget_data.json"),
-            receipt_path: PathBuf::from("/dev/null/widget_receipt.json"),
-            available: false,
-        }));
-    }
-
-    transports.push(Arc::new(UserDefaultsTransport {
+/// App Group UserDefaults suite transport (same Team ID requirements as App Group file).
+pub fn user_defaults_transport(group: &str) -> Arc<dyn Transport> {
+    Arc::new(UserDefaultsTransport {
         group: group.to_string(),
-    }));
+    })
+}
 
+/// Widget extension sandbox container file (ad-hoc friendly; host must not be sandboxed).
+pub fn widget_container_transport(group: &str) -> Arc<dyn Transport> {
     let sandbox = sandbox_widget_data_path(group);
-    transports.push(Arc::new(FileTransport {
+    Arc::new(FileTransport {
         name: NAME_CONTAINER,
         receipt_path: sandbox_receipt_path(group),
-        // Always "available" locally — wrong bundle simply never gets receipts.
         available: true,
         data_path: sandbox,
-    }));
-
-    TransportSet::new(transports)
+    })
 }
 
 // ─── Helpers used by integration tests ────────────────────────────────────────

@@ -63,6 +63,8 @@
 //! 4. `build-widget.sh` runs via `beforeBundleCommand` (builds + signs `.appex`)
 //! 5. `bundle.macOS.files` copies the `.appex` into `Contents/PlugIns/`
 //!    during a normal `tauri build` (Tauri nested-codesigns PlugIns)
+//! 6. Set `plugins.widgets.transport` (`appGroup` with Team ID, or
+//!    `widgetContainer` for ad-hoc) and `plugins.widgets.appGroup`
 //!
 //! ## Rust API
 //!
@@ -79,12 +81,12 @@
 //! }
 //! ```
 
+#[cfg(mobile)]
+use tauri::RunEvent;
 use tauri::{
     plugin::{Builder, TauriPlugin},
     Manager, Runtime,
 };
-#[cfg(mobile)]
-use tauri::RunEvent;
 
 #[cfg(desktop)]
 use std::borrow::Cow;
@@ -94,17 +96,18 @@ pub mod desktop;
 #[cfg(mobile)]
 pub mod mobile;
 
-mod commands;
+pub mod adaptive_card;
 pub mod capabilities;
 pub mod codegen;
+mod commands;
+pub mod config;
 pub mod error;
 pub mod models;
-pub mod adaptive_card;
 pub mod rasterize;
+pub mod receipt;
 pub mod snapshot;
 pub mod store;
 pub mod transport;
-pub mod receipt;
 
 #[cfg(target_os = "windows")]
 pub mod windows;
@@ -116,10 +119,11 @@ pub mod linux;
 pub mod macos_transport;
 
 pub use adaptive_card::{to_adaptive_card, to_adaptive_card_for_size, TranspileResult};
+pub use config::{TransportKind, WidgetsPluginConfig};
 pub use error::{Error, Result};
 pub use receipt::{SkippedElement, WidgetRenderReceipt};
 pub use store::WidgetActionEnvelope;
-pub use transport::{Health, Receipt, Transport, TransportSet};
+pub use transport::{Receipt, Transport};
 
 #[cfg(desktop)]
 pub use desktop::Widget;
@@ -138,8 +142,8 @@ impl<R: Runtime, T: Manager<R>> WidgetExt<R> for T {
 }
 
 /// Initialize the widgets plugin. Register it with `tauri::Builder::plugin()`.
-pub fn init<R: Runtime>() -> TauriPlugin<R> {
-    let builder = Builder::new("widgets")
+pub fn init<R: Runtime>() -> TauriPlugin<R, Option<WidgetsPluginConfig>> {
+    let builder = Builder::<R, Option<WidgetsPluginConfig>>::new("widgets")
         .invoke_handler(tauri::generate_handler![
             commands::set_items,
             commands::get_items,
@@ -166,28 +170,24 @@ pub fn init<R: Runtime>() -> TauriPlugin<R> {
         });
 
     #[cfg(mobile)]
-    let builder = builder.on_event(|app, event| {
-        match event {
-            RunEvent::Ready | RunEvent::Resumed => {
-                if let Some(widget) = app.try_state::<Widget<R>>() {
-                    widget.inner().drain_pending_actions_to_events();
-                }
+    let builder = builder.on_event(|app, event| match event {
+        RunEvent::Ready | RunEvent::Resumed => {
+            if let Some(widget) = app.try_state::<Widget<R>>() {
+                widget.inner().drain_pending_actions_to_events();
             }
-            _ => {}
         }
+        _ => {}
     });
 
     #[cfg(desktop)]
-    let builder = builder.register_uri_scheme_protocol(
-        desktop::BUILTIN_PROTOCOL,
-        |_app, _request| {
+    let builder =
+        builder.register_uri_scheme_protocol(desktop::BUILTIN_PROTOCOL, |_app, _request| {
             const HTML: &[u8] = include_bytes!("../widget.html");
             tauri::http::Response::builder()
                 .header("content-type", "text/html; charset=utf-8")
                 .body(Cow::Borrowed(HTML))
                 .unwrap()
-        },
-    );
+        });
 
     builder.build()
 }

@@ -155,8 +155,19 @@ pub fn capability_table() -> Vec<CapabilityEntry> {
     let mut out = Vec::with_capacity(ELEMENT_TYPES.len() * 5 + FEATURE_KEYS.len() * 5);
 
     let layout = [
-        "vstack", "hstack", "grid", "container", "text", "spacer", "divider", "label",
-        "progress", "button", "toggle", "date", "link",
+        "vstack",
+        "hstack",
+        "grid",
+        "container",
+        "text",
+        "spacer",
+        "divider",
+        "label",
+        "progress",
+        "button",
+        "toggle",
+        "date",
+        "link",
     ];
     for el in layout {
         out.extend_from_slice(&apple_full(el));
@@ -169,7 +180,12 @@ pub fn capability_table() -> Vec<CapabilityEntry> {
     out.extend_from_slice(&apple_full("zstack"));
     out.push(cell("zstack", Android, Full, ""));
     out.push(cell("zstack", Desktop, Full, ""));
-    out.push(cell("zstack", Windows, Degraded, "flattened Container, no overlay"));
+    out.push(cell(
+        "zstack",
+        Windows,
+        Degraded,
+        "flattened Container, no overlay",
+    ));
 
     out.extend_from_slice(&apple_full("shape"));
     out.push(cell("shape", Android, Full, ""));
@@ -183,58 +199,158 @@ pub fn capability_table() -> Vec<CapabilityEntry> {
 
     // image: systemName / url differ
     out.extend_from_slice(&apple_full("image"));
-    out.push(cell("image", Android, Degraded, "systemName via glyph map; url via localPath preprocess"));
+    out.push(cell(
+        "image",
+        Android,
+        Degraded,
+        "systemName via glyph map; url via localPath preprocess",
+    ));
     out.push(cell("image", Desktop, Full, ""));
-    out.push(cell("image", Windows, Degraded, "url/data URI; systemName unsupported"));
+    out.push(cell(
+        "image",
+        Windows,
+        Degraded,
+        "url/data URI; systemName unsupported",
+    ));
 
     out.extend_from_slice(&apple_full("chart"));
-    out.push(cell("chart", Android, Degraded, "simplified bar/line rendering"));
+    out.push(cell(
+        "chart",
+        Android,
+        Degraded,
+        "simplified bar/line rendering",
+    ));
     out.push(cell("chart", Desktop, Full, "SVG"));
     out.push(cell("chart", Windows, Degraded, "rasterized PNG"));
 
     out.extend_from_slice(&apple_full("list"));
-    out.push(cell("list", Android, Full, "Glance LazyColumn; depth/children limited"));
+    out.push(cell(
+        "list",
+        Android,
+        Full,
+        "Glance LazyColumn; depth/children limited",
+    ));
     out.push(cell("list", Desktop, Full, ""));
     out.push(cell("list", Windows, Degraded, "flattened TextBlocks"));
 
     out.extend_from_slice(&apple_full("timer"));
-    out.push(cell("timer", Android, Degraded, "static snapshot, not live Chronometer in all hosts"));
+    out.push(cell(
+        "timer",
+        Android,
+        Degraded,
+        "static snapshot, not live Chronometer in all hosts",
+    ));
     out.push(cell("timer", Desktop, Full, "setInterval"));
-    out.push(cell("timer", Windows, Degraded, "static TextBlock of targetDate"));
+    out.push(cell(
+        "timer",
+        Windows,
+        Degraded,
+        "static TextBlock of targetDate",
+    ));
 
     out.extend_from_slice(&apple_full("canvas"));
-    out.push(cell("canvas", Android, Degraded, "bitmap canvas; path support limited"));
+    out.push(cell(
+        "canvas",
+        Android,
+        Degraded,
+        "bitmap canvas; path support limited",
+    ));
     out.push(cell("canvas", Desktop, Full, "SVG"));
     out.push(cell("canvas", Windows, Degraded, "rasterized PNG"));
 
     // Feature rows
-    out.push(cell("image.url", Ios, Unsupported, "prefetch into shared container not wired"));
-    out.push(cell("image.url", Macos, Unsupported, "prefetch into shared container not wired"));
-    out.push(cell("image.url", Android, Full, "preprocess to localPath on setWidgetConfig"));
+    out.push(cell(
+        "image.url",
+        Ios,
+        Unsupported,
+        "prefetch into shared container not wired",
+    ));
+    out.push(cell(
+        "image.url",
+        Macos,
+        Unsupported,
+        "prefetch into shared container not wired",
+    ));
+    out.push(cell(
+        "image.url",
+        Android,
+        Full,
+        "preprocess to localPath on setWidgetConfig",
+    ));
     out.push(cell("image.url", Desktop, Full, ""));
     out.push(cell("image.url", Windows, Full, "Adaptive Cards Image.url"));
 
     out.push(cell("image.systemName", Ios, Full, "SF Symbols"));
     out.push(cell("image.systemName", Macos, Full, "SF Symbols"));
-    out.push(cell("image.systemName", Android, Degraded, "glyph / drawable name map"));
-    out.push(cell("image.systemName", Desktop, Degraded, "placeholder glyph"));
-    out.push(cell("image.systemName", Windows, Unsupported, "no SF Symbols on Adaptive Cards"));
+    out.push(cell(
+        "image.systemName",
+        Android,
+        Degraded,
+        "glyph / drawable name map",
+    ));
+    out.push(cell(
+        "image.systemName",
+        Desktop,
+        Degraded,
+        "placeholder glyph",
+    ));
+    out.push(cell(
+        "image.systemName",
+        Windows,
+        Unsupported,
+        "no SF Symbols on Adaptive Cards",
+    ));
 
-    out.push(cell("background.gradient", Ios, Degraded, "linear primary; radial/angular limited"));
-    out.push(cell("background.gradient", Macos, Degraded, "linear primary; radial/angular limited"));
-    out.push(cell("background.gradient", Android, Degraded, "first color stop only (Glance)"));
-    out.push(cell("background.gradient", Desktop, Full, "linear/radial/angular CSS/SVG"));
-    out.push(cell("background.gradient", Windows, Unsupported, "Container style=emphasis only"));
+    out.push(cell(
+        "background.gradient",
+        Ios,
+        Degraded,
+        "linear primary; radial/angular limited",
+    ));
+    out.push(cell(
+        "background.gradient",
+        Macos,
+        Degraded,
+        "linear primary; radial/angular limited",
+    ));
+    out.push(cell(
+        "background.gradient",
+        Android,
+        Degraded,
+        "first color stop only (Glance)",
+    ));
+    out.push(cell(
+        "background.gradient",
+        Desktop,
+        Full,
+        "linear/radial/angular CSS/SVG",
+    ));
+    out.push(cell(
+        "background.gradient",
+        Windows,
+        Unsupported,
+        "Container style=emphasis only",
+    ));
 
     out.push(cell("canvas.path", Ios, Degraded, "M/L/H/V/Z subset"));
     out.push(cell("canvas.path", Macos, Degraded, "M/L/H/V/Z subset"));
-    out.push(cell("canvas.path", Android, Degraded, "limited path commands"));
+    out.push(cell(
+        "canvas.path",
+        Android,
+        Degraded,
+        "limited path commands",
+    ));
     out.push(cell("canvas.path", Desktop, Full, "SVG path"));
     out.push(cell("canvas.path", Windows, Degraded, "rasterized via SVG"));
 
     out.push(cell("timer.live", Ios, Full, "Text(..., .timer)"));
     out.push(cell("timer.live", Macos, Full, "Text(..., .timer)"));
-    out.push(cell("timer.live", Android, Unsupported, "no live timer in Glance snapshot"));
+    out.push(cell(
+        "timer.live",
+        Android,
+        Unsupported,
+        "no live timer in Glance snapshot",
+    ));
     out.push(cell("timer.live", Desktop, Full, "JS interval"));
     out.push(cell("timer.live", Windows, Unsupported, "static only"));
 
@@ -324,7 +440,10 @@ impl WidgetElement {
             | WidgetElement::Label { style, .. } => Some(style),
             WidgetElement::Spacer { .. } => None,
         };
-        matches!(style.and_then(|s| s.background.as_ref()), Some(BackgroundValue::Gradient(_)))
+        matches!(
+            style.and_then(|s| s.background.as_ref()),
+            Some(BackgroundValue::Gradient(_))
+        )
     }
 }
 
@@ -347,7 +466,12 @@ fn push_warn(
     });
 }
 
-fn walk_element(el: &WidgetElement, path: &str, platform: WidgetPlatform, out: &mut Vec<CapabilityWarning>) {
+fn walk_element(
+    el: &WidgetElement,
+    path: &str,
+    platform: WidgetPlatform,
+    out: &mut Vec<CapabilityWarning>,
+) {
     let ty = el.type_name();
     push_warn(out, path, ty, platform);
 
@@ -355,7 +479,10 @@ fn walk_element(el: &WidgetElement, path: &str, platform: WidgetPlatform, out: &
         push_warn(out, path, "background.gradient", platform);
     }
 
-    if let WidgetElement::Image { url, system_name, .. } = el {
+    if let WidgetElement::Image {
+        url, system_name, ..
+    } = el
+    {
         if url.as_ref().map(|s| !s.is_empty()).unwrap_or(false) {
             push_warn(out, path, "image.url", platform);
         }
@@ -369,7 +496,10 @@ fn walk_element(el: &WidgetElement, path: &str, platform: WidgetPlatform, out: &
     }
 
     if let WidgetElement::Canvas { elements, .. } = el {
-        if elements.iter().any(|c| matches!(c, crate::models::CanvasDrawCommand::Path { .. })) {
+        if elements
+            .iter()
+            .any(|c| matches!(c, crate::models::CanvasDrawCommand::Path { .. }))
+        {
             push_warn(out, path, "canvas.path", platform);
         }
     }
@@ -519,7 +649,9 @@ mod tests {
         };
         let warns = validate_config(&cfg, WidgetPlatform::Ios);
         assert!(
-            warns.iter().any(|w| w.element == "image.url" && w.support == Support::Unsupported),
+            warns
+                .iter()
+                .any(|w| w.element == "image.url" && w.support == Support::Unsupported),
             "{warns:?}"
         );
     }

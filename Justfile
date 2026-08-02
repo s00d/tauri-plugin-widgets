@@ -30,7 +30,7 @@ test-ios-visual:
 test-macos-visual:
     cd {{repo}}/swift && swift test --filter MacRenderTests
 
-# Level C1 — Rust + Swift multi-transport (fake TransportSet + file IO).
+# Level C1 — Rust + Swift transports (config driver + file IO).
 test-macos-transports:
     cargo test --lib transport::
     cargo test --test macos_transports -- --nocapture

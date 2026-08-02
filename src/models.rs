@@ -111,7 +111,11 @@ pub enum WidgetElement {
         columns: u32,
         #[serde(default, skip_serializing_if = "Option::is_none")]
         spacing: Option<f64>,
-        #[serde(rename = "rowSpacing", default, skip_serializing_if = "Option::is_none")]
+        #[serde(
+            rename = "rowSpacing",
+            default,
+            skip_serializing_if = "Option::is_none"
+        )]
         row_spacing: Option<f64>,
         #[serde(flatten)]
         style: ElementStyle,
@@ -122,7 +126,11 @@ pub enum WidgetElement {
     Container {
         #[serde(default, skip_serializing_if = "Vec::is_empty")]
         children: Vec<WidgetElement>,
-        #[serde(rename = "contentAlignment", default, skip_serializing_if = "Option::is_none")]
+        #[serde(
+            rename = "contentAlignment",
+            default,
+            skip_serializing_if = "Option::is_none"
+        )]
         content_alignment: Option<String>,
         #[serde(flatten)]
         style: ElementStyle,
@@ -134,9 +142,17 @@ pub enum WidgetElement {
         content: String,
         #[serde(rename = "fontSize", default, skip_serializing_if = "Option::is_none")]
         font_size: Option<f64>,
-        #[serde(rename = "fontWeight", default, skip_serializing_if = "Option::is_none")]
+        #[serde(
+            rename = "fontWeight",
+            default,
+            skip_serializing_if = "Option::is_none"
+        )]
         font_weight: Option<FontWeight>,
-        #[serde(rename = "fontDesign", default, skip_serializing_if = "Option::is_none")]
+        #[serde(
+            rename = "fontDesign",
+            default,
+            skip_serializing_if = "Option::is_none"
+        )]
         font_design: Option<FontDesign>,
         /// Semantic text style (uses Dynamic Type on Apple, sp on Android).
         /// Overrides `fontSize` when set.
@@ -154,7 +170,11 @@ pub enum WidgetElement {
     #[serde(rename = "image")]
     Image {
         /// SF Symbol name (Apple) or Material icon name (Android)
-        #[serde(rename = "systemName", default, skip_serializing_if = "Option::is_none")]
+        #[serde(
+            rename = "systemName",
+            default,
+            skip_serializing_if = "Option::is_none"
+        )]
         system_name: Option<String>,
         /// Base64-encoded image data
         #[serde(default, skip_serializing_if = "Option::is_none")]
@@ -165,7 +185,11 @@ pub enum WidgetElement {
         size: Option<f64>,
         #[serde(default, skip_serializing_if = "Option::is_none")]
         color: Option<ColorValue>,
-        #[serde(rename = "contentMode", default, skip_serializing_if = "Option::is_none")]
+        #[serde(
+            rename = "contentMode",
+            default,
+            skip_serializing_if = "Option::is_none"
+        )]
         content_mode: Option<ContentMode>,
         #[serde(flatten)]
         style: ElementStyle,
@@ -195,13 +219,21 @@ pub enum WidgetElement {
         max: Option<f64>,
         #[serde(default, skip_serializing_if = "Option::is_none")]
         label: Option<String>,
-        #[serde(rename = "currentValueLabel", default, skip_serializing_if = "Option::is_none")]
+        #[serde(
+            rename = "currentValueLabel",
+            default,
+            skip_serializing_if = "Option::is_none"
+        )]
         current_value_label: Option<String>,
         #[serde(default, skip_serializing_if = "Option::is_none")]
         tint: Option<ColorValue>,
         #[serde(default, skip_serializing_if = "Option::is_none")]
         color: Option<ColorValue>,
-        #[serde(rename = "gaugeStyle", default, skip_serializing_if = "Option::is_none")]
+        #[serde(
+            rename = "gaugeStyle",
+            default,
+            skip_serializing_if = "Option::is_none"
+        )]
         gauge_style: Option<GaugeStyle>,
         #[serde(flatten)]
         style: ElementStyle,
@@ -217,11 +249,19 @@ pub enum WidgetElement {
         action: Option<String>,
         #[serde(default, skip_serializing_if = "Option::is_none")]
         color: Option<ColorValue>,
-        #[serde(rename = "backgroundColor", default, skip_serializing_if = "Option::is_none")]
+        #[serde(
+            rename = "backgroundColor",
+            default,
+            skip_serializing_if = "Option::is_none"
+        )]
         background_color: Option<ColorValue>,
         #[serde(rename = "fontSize", default, skip_serializing_if = "Option::is_none")]
         font_size: Option<f64>,
-        #[serde(rename = "textAlignment", default, skip_serializing_if = "Option::is_none")]
+        #[serde(
+            rename = "textAlignment",
+            default,
+            skip_serializing_if = "Option::is_none"
+        )]
         text_alignment: Option<TextAlignment>,
         #[serde(flatten)]
         style: ElementStyle,
@@ -294,7 +334,6 @@ pub enum WidgetElement {
     },
 
     // ── New elements ──
-
     /// Tappable wrapper — makes nested content clickable.
     #[serde(rename = "link")]
     Link {
@@ -319,7 +358,11 @@ pub enum WidgetElement {
         fill: Option<ColorValue>,
         #[serde(default, skip_serializing_if = "Option::is_none")]
         stroke: Option<ColorValue>,
-        #[serde(rename = "strokeWidth", default, skip_serializing_if = "Option::is_none")]
+        #[serde(
+            rename = "strokeWidth",
+            default,
+            skip_serializing_if = "Option::is_none"
+        )]
         stroke_width: Option<f64>,
         #[serde(default, skip_serializing_if = "Option::is_none")]
         size: Option<f64>,
@@ -338,7 +381,11 @@ pub enum WidgetElement {
         counting: Option<TimerCounting>,
         #[serde(rename = "fontSize", default, skip_serializing_if = "Option::is_none")]
         font_size: Option<f64>,
-        #[serde(rename = "fontWeight", default, skip_serializing_if = "Option::is_none")]
+        #[serde(
+            rename = "fontWeight",
+            default,
+            skip_serializing_if = "Option::is_none"
+        )]
         font_weight: Option<FontWeight>,
         #[serde(default, skip_serializing_if = "Option::is_none")]
         color: Option<ColorValue>,
@@ -367,7 +414,11 @@ pub enum WidgetElement {
         icon_color: Option<ColorValue>,
         #[serde(rename = "fontSize", default, skip_serializing_if = "Option::is_none")]
         font_size: Option<f64>,
-        #[serde(rename = "fontWeight", default, skip_serializing_if = "Option::is_none")]
+        #[serde(
+            rename = "fontWeight",
+            default,
+            skip_serializing_if = "Option::is_none"
+        )]
         font_weight: Option<FontWeight>,
         #[serde(default, skip_serializing_if = "Option::is_none")]
         color: Option<ColorValue>,
@@ -395,7 +446,11 @@ pub struct ElementStyle {
     pub padding: Option<PaddingValue>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub background: Option<BackgroundValue>,
-    #[serde(rename = "cornerRadius", default, skip_serializing_if = "Option::is_none")]
+    #[serde(
+        rename = "cornerRadius",
+        default,
+        skip_serializing_if = "Option::is_none"
+    )]
     pub corner_radius: Option<f64>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub opacity: Option<f64>,
@@ -717,7 +772,11 @@ pub enum CanvasDrawCommand {
         fill: Option<ColorValue>,
         #[serde(default, skip_serializing_if = "Option::is_none")]
         stroke: Option<ColorValue>,
-        #[serde(rename = "strokeWidth", default, skip_serializing_if = "Option::is_none")]
+        #[serde(
+            rename = "strokeWidth",
+            default,
+            skip_serializing_if = "Option::is_none"
+        )]
         stroke_width: Option<f64>,
     },
     #[serde(rename = "line")]
@@ -728,7 +787,11 @@ pub enum CanvasDrawCommand {
         y2: f64,
         #[serde(default, skip_serializing_if = "Option::is_none")]
         stroke: Option<ColorValue>,
-        #[serde(rename = "strokeWidth", default, skip_serializing_if = "Option::is_none")]
+        #[serde(
+            rename = "strokeWidth",
+            default,
+            skip_serializing_if = "Option::is_none"
+        )]
         stroke_width: Option<f64>,
         #[serde(rename = "lineCap", default, skip_serializing_if = "Option::is_none")]
         line_cap: Option<String>,
@@ -743,9 +806,17 @@ pub enum CanvasDrawCommand {
         fill: Option<ColorValue>,
         #[serde(default, skip_serializing_if = "Option::is_none")]
         stroke: Option<ColorValue>,
-        #[serde(rename = "strokeWidth", default, skip_serializing_if = "Option::is_none")]
+        #[serde(
+            rename = "strokeWidth",
+            default,
+            skip_serializing_if = "Option::is_none"
+        )]
         stroke_width: Option<f64>,
-        #[serde(rename = "cornerRadius", default, skip_serializing_if = "Option::is_none")]
+        #[serde(
+            rename = "cornerRadius",
+            default,
+            skip_serializing_if = "Option::is_none"
+        )]
         corner_radius: Option<f64>,
     },
     #[serde(rename = "arc")]
@@ -761,7 +832,11 @@ pub enum CanvasDrawCommand {
         fill: Option<ColorValue>,
         #[serde(default, skip_serializing_if = "Option::is_none")]
         stroke: Option<ColorValue>,
-        #[serde(rename = "strokeWidth", default, skip_serializing_if = "Option::is_none")]
+        #[serde(
+            rename = "strokeWidth",
+            default,
+            skip_serializing_if = "Option::is_none"
+        )]
         stroke_width: Option<f64>,
     },
     #[serde(rename = "text")]
@@ -784,7 +859,11 @@ pub enum CanvasDrawCommand {
         fill: Option<ColorValue>,
         #[serde(default, skip_serializing_if = "Option::is_none")]
         stroke: Option<ColorValue>,
-        #[serde(rename = "strokeWidth", default, skip_serializing_if = "Option::is_none")]
+        #[serde(
+            rename = "strokeWidth",
+            default,
+            skip_serializing_if = "Option::is_none"
+        )]
         stroke_width: Option<f64>,
     },
 }
@@ -819,7 +898,9 @@ mod tests {
         assert!(back.medium.is_none());
         match back.small.unwrap() {
             WidgetElement::Text {
-                font_weight, content, ..
+                font_weight,
+                content,
+                ..
             } => {
                 assert!(font_weight.is_none());
                 assert_eq!(content, "hi");
@@ -831,7 +912,12 @@ mod tests {
     #[test]
     fn fixtures_roundtrip_without_nulls() {
         let dir = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/fixtures");
-        for name in ["weather.json", "tasks.json", "canvas.json", "android-list.json"] {
+        for name in [
+            "weather.json",
+            "tasks.json",
+            "canvas.json",
+            "android-list.json",
+        ] {
             let path = dir.join(name);
             if !path.exists() {
                 continue;

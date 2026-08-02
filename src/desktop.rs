@@ -1,16 +1,16 @@
-use serde::de::DeserializeOwned;
 use std::collections::hash_map::DefaultHasher;
 use std::collections::HashMap;
 use std::fs;
 use std::hash::{Hash, Hasher};
 use std::path::PathBuf;
-use std::sync::Mutex;
 #[cfg(target_os = "macos")]
 use std::sync::Arc;
+use std::sync::Mutex;
 use tauri::{
     plugin::PluginApi, AppHandle, Emitter, Manager, Runtime, WebviewUrl, WebviewWindowBuilder,
 };
 
+use crate::config::WidgetsPluginConfig;
 use crate::error::Error;
 use crate::models::{WidgetConfig, WidgetWindowConfig};
 use crate::receipt::{receipts_path, ReceiptStore, WidgetRenderReceipt};
@@ -19,9 +19,9 @@ use crate::store::{
 };
 
 #[cfg(target_os = "macos")]
-use std::ffi::CString;
+use crate::transport::Transport;
 #[cfg(target_os = "macos")]
-use crate::transport::TransportSet;
+use std::ffi::CString;
 
 /// Protocol name registered by the plugin for the built-in widget renderer.
 pub(crate) const BUILTIN_PROTOCOL: &str = "widgetview";
@@ -40,16 +40,29 @@ fn builtin_widget_url(group: &str, size: &str, widget_id: &str) -> WebviewUrl {
     WebviewUrl::External(url_str.parse().expect("invalid built-in widget URL"))
 }
 
-pub fn init<R: Runtime, C: DeserializeOwned>(
+pub fn init<R: Runtime>(
     app: &AppHandle<R>,
-    _api: PluginApi<R, C>,
+    api: PluginApi<R, Option<WidgetsPluginConfig>>,
+) -> crate::Result<Widget<R>> {
+    let cfg = api.config().clone().unwrap_or_default();
+    init_with_config(app, cfg)
+}
+
+pub(crate) fn init_with_config<R: Runtime>(
+    app: &AppHandle<R>,
+    cfg: WidgetsPluginConfig,
 ) -> crate::Result<Widget<R>> {
     let receipts = ReceiptStore::new();
     if let Ok(dir) = app.path().app_data_dir() {
         receipts.load_from_path(&receipts_path(&dir));
     }
+
+    #[cfg(target_os = "macos")]
+    let macos_driver = crate::transport::resolve_driver(&cfg)?;
+
     Ok(Widget {
         app: app.clone(),
+        cfg,
         last_config_hash: Mutex::new(HashMap::new()),
         store: Mutex::new(HashMap::new()),
         known_groups: Mutex::new(Vec::new()),
@@ -57,24 +70,26 @@ pub fn init<R: Runtime, C: DeserializeOwned>(
         #[cfg(target_os = "macos")]
         poller_started: Mutex::new(false),
         #[cfg(target_os = "macos")]
-        transport_sets: Mutex::new(HashMap::new()),
+        macos_driver,
     })
 }
 
 pub struct Widget<R: Runtime> {
     app: AppHandle<R>,
+    #[allow(dead_code)]
+    cfg: WidgetsPluginConfig,
     /// Content hash per (group, widget_id).
     last_config_hash: Mutex<HashMap<(String, String), u64>>,
     /// In-memory data store keyed by group.
     store: Mutex<HashMap<String, DataMap>>,
     known_groups: Mutex<Vec<String>>,
-    /// Cross-platform render receipts (outside config nonce space).
+    /// Cross-platform render receipts (diagnostics only).
     receipts: ReceiptStore,
     #[cfg(target_os = "macos")]
     poller_started: Mutex<bool>,
-    /// Per-group Apple transport health (fan-out → receipt → narrow).
+    /// Single Apple host transport (config-chosen).
     #[cfg(target_os = "macos")]
-    transport_sets: Mutex<HashMap<String, Arc<TransportSet>>>,
+    macos_driver: Arc<dyn Transport>,
 }
 
 impl<R: Runtime> Widget<R> {
@@ -96,51 +111,38 @@ impl<R: Runtime> Widget<R> {
                 }
                 return Ok(path);
             }
-            // Prefer App Group file when the OS returns a container URL.
-            // Note: URL presence ≠ delivery — TransportSet receipts gate narrowing.
             if let Some(dir) = macos_shared_container(group) {
                 if !dir.exists() {
                     fs::create_dir_all(&dir)?;
                 }
                 return Ok(dir.join("widget_data.json"));
             }
+            Ok(crate::macos_transport::sandbox_widget_data_path(group))
         }
 
-        let base = self
-            .app
-            .path()
-            .app_data_dir()
-            .map_err(|e| Error::Io(e.to_string()))?;
-        let dir = base.join("widgets");
-        if !dir.exists() {
-            fs::create_dir_all(&dir)?;
+        #[cfg(not(target_os = "macos"))]
+        {
+            let base = self
+                .app
+                .path()
+                .app_data_dir()
+                .map_err(|e| Error::Io(e.to_string()))?;
+            let dir = base.join("widgets");
+            if !dir.exists() {
+                fs::create_dir_all(&dir)?;
+            }
+            let safe: String = group
+                .chars()
+                .map(|c| {
+                    if c.is_alphanumeric() || c == '.' {
+                        c
+                    } else {
+                        '_'
+                    }
+                })
+                .collect();
+            Ok(dir.join(format!("{safe}.json")))
         }
-        let safe: String = group
-            .chars()
-            .map(|c| {
-                if c.is_alphanumeric() || c == '.' {
-                    c
-                } else {
-                    '_'
-                }
-            })
-            .collect();
-        Ok(dir.join(format!("{safe}.json")))
-    }
-
-    #[cfg(target_os = "macos")]
-    fn transport_set(&self, group: &str) -> Arc<TransportSet> {
-        let mut sets = self.transport_sets.lock().unwrap();
-        sets.entry(group.to_string())
-            .or_insert_with(|| {
-                let set = Arc::new(crate::macos_transport::apple_transport_set(group));
-                if let Ok(ver) = std::env::var("WIDGET_BUNDLE_VERSION") {
-                    let team = std::env::var("WIDGET_TEAM_ID_HASH").unwrap_or_default();
-                    set.invalidate_if_install_changed(&ver, &team);
-                }
-                set
-            })
-            .clone()
     }
 
     fn load_map_locked<'a>(
@@ -160,13 +162,12 @@ impl<R: Runtime> Widget<R> {
         })
     }
 
-    /// Persist map: Apple TransportSet (fan-out or narrowed) / single file elsewhere.
+    /// Persist map: one Apple driver on macOS / single file elsewhere.
     fn persist_map(&self, group: &str, map: &DataMap) -> crate::Result<()> {
         #[cfg(target_os = "macos")]
         {
-            let set = self.transport_set(group);
-            set.reconcile();
-            set.write(map)?;
+            let _ = group;
+            self.macos_driver.write(map)?;
         }
         #[cfg(not(target_os = "macos"))]
         {
@@ -184,6 +185,9 @@ impl<R: Runtime> Widget<R> {
         let path = self.storage_path(group)?;
         let mut store = self.store.lock().unwrap();
         let map = Self::load_map_locked(&mut store, &path, group);
+        if map.get(key).map(String::as_str) == Some(value) {
+            return Ok(true);
+        }
         map.insert(key.into(), value.into());
         touch_meta(map);
         let snapshot = map.clone();
@@ -195,8 +199,8 @@ impl<R: Runtime> Widget<R> {
     pub fn get_items(&self, key: &str, group: &str) -> crate::Result<Option<String>> {
         #[cfg(target_os = "macos")]
         {
-            let freshest = self.macos_freshest_map(group)?;
-            return Ok(freshest.get(key).cloned());
+            let freshest = self.macos_driver_map(group)?;
+            Ok(freshest.get(key).cloned())
         }
         #[cfg(not(target_os = "macos"))]
         {
@@ -229,9 +233,9 @@ impl<R: Runtime> Widget<R> {
             Ok(result) => result,
             // Setup on non-Linux (or before the loop pumps): task is queued.
             Err(std::sync::mpsc::RecvTimeoutError::Timeout) => Ok(true),
-            Err(std::sync::mpsc::RecvTimeoutError::Disconnected) => Err(Error::new(
-                "create_widget_window: main thread dropped",
-            )),
+            Err(std::sync::mpsc::RecvTimeoutError::Disconnected) => {
+                Err(Error::new("create_widget_window: main thread dropped"))
+            }
         }
     }
 
@@ -273,9 +277,9 @@ impl<R: Runtime> Widget<R> {
             builder = builder.position(x, y);
         }
 
-        let win = builder.build().map_err(|e| {
-            Error::new(format!("create_widget_window '{}': {e}", config.label))
-        })?;
+        let win = builder
+            .build()
+            .map_err(|e| Error::new(format!("create_widget_window '{}': {e}", config.label)))?;
         #[cfg(all(target_os = "linux", feature = "linux"))]
         crate::linux::pin_widget_window(&win, skip_taskbar);
         #[cfg(not(all(target_os = "linux", feature = "linux")))]
@@ -311,10 +315,7 @@ impl<R: Runtime> Widget<R> {
         }
     }
 
-    fn close_widget_window_on_main(
-        app: &AppHandle<R>,
-        label: &str,
-    ) -> crate::Result<bool> {
+    fn close_widget_window_on_main(app: &AppHandle<R>, label: &str) -> crate::Result<bool> {
         if let Some(win) = app.get_webview_window(label) {
             win.close().map_err(|e| Error::new(e.to_string()))?;
             Ok(true)
@@ -397,19 +398,14 @@ impl<R: Runtime> Widget<R> {
                 if let Some(result) =
                     crate::adaptive_card::to_adaptive_card_for_size(config, "medium")
                 {
-                    let template = serde_json::to_string(&result.card).map_err(|e| {
-                        Error::new(format!("serialize adaptive card: {e}"))
-                    })?;
+                    let template = serde_json::to_string(&result.card)
+                        .map_err(|e| Error::new(format!("serialize adaptive card: {e}")))?;
                     self.set_items(
                         &crate::adaptive_card::ac_template_key(widget_id),
                         &template,
                         group,
                     )?;
-                    self.set_items(
-                        &crate::adaptive_card::ac_data_key(widget_id),
-                        "{}",
-                        group,
-                    )?;
+                    self.set_items(&crate::adaptive_card::ac_data_key(widget_id), "{}", group)?;
                 }
             }
         }
@@ -452,12 +448,13 @@ impl<R: Runtime> Widget<R> {
         }
     }
 
-    /// Merge disk transports + in-memory, pick freshest, refresh store if disk wins.
+    /// Read configured driver + merge with in-memory if newer.
     #[cfg(target_os = "macos")]
-    fn macos_freshest_map(&self, group: &str) -> crate::Result<DataMap> {
-        let set = self.transport_set(group);
-        set.reconcile();
-        let mut maps = set.read_all();
+    fn macos_driver_map(&self, group: &str) -> crate::Result<DataMap> {
+        let mut maps = Vec::new();
+        if let Some(disk) = self.macos_driver.read() {
+            maps.push(disk);
+        }
         let path = self.storage_path(group)?;
         let mut store = self.store.lock().unwrap();
         let map = Self::load_map_locked(&mut store, &path, group);
@@ -474,11 +471,7 @@ impl<R: Runtime> Widget<R> {
         self.remember_group(group);
 
         #[cfg(target_os = "macos")]
-        let disk_maps = {
-            let set = self.transport_set(group);
-            set.reconcile();
-            set.read_all()
-        };
+        let disk_maps: Vec<DataMap> = self.macos_driver.read().into_iter().collect();
         #[cfg(not(target_os = "macos"))]
         let disk_maps: Vec<DataMap> = {
             let path = self.storage_path(group)?;
@@ -499,7 +492,6 @@ impl<R: Runtime> Widget<R> {
         let path = self.storage_path(group)?;
         let map = Self::load_map_locked(&mut store, &path, group);
 
-        // Merge freshest disk state if newer than in-memory.
         if store::map_nonce(&freshest) > store::map_nonce(map) {
             *map = freshest;
         }
@@ -528,18 +520,10 @@ impl<R: Runtime> Widget<R> {
         if let Ok(dir) = self.app.path().app_data_dir() {
             let _ = self.receipts.save_to_path(&receipts_path(&dir));
         }
-        // Feed macOS transport reconcile from render receipts that name a transport.
-        #[cfg(target_os = "macos")]
-        {
-            // Extension still writes transport files; host-side push receipts use source=push/pull.
-        }
         Ok(true)
     }
 
-    pub fn get_widget_diagnostics(
-        &self,
-        group: &str,
-    ) -> crate::Result<Vec<WidgetRenderReceipt>> {
+    pub fn get_widget_diagnostics(&self, group: &str) -> crate::Result<Vec<WidgetRenderReceipt>> {
         Ok(self.receipts.list(group))
     }
 
