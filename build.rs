@@ -28,7 +28,10 @@ fn main() {
         .ios_path("ios")
         .try_build();
 
-    if !(cfg!(docsrs) && target.contains("android")) {
+    // docs.rs sets DOCS_RS=1; prefer env over `--cfg docsrs` (rustc-args
+    // would infect dependency crates and break docs builds — see Cargo.toml).
+    let docs_rs = std::env::var_os("DOCS_RS").is_some();
+    if !(docs_rs && target.contains("android")) {
         result.unwrap();
     }
 

@@ -1,6 +1,6 @@
 [package]
 name = "tauri-plugin-widgets"
-version = "0.4.2"
+version = "0.4.3"
 authors = ["s00d"]
 description = "Tauri plugin for App Widgets on Android, iOS, and macOS (WidgetKit); Windows Widgets Board (Adaptive Cards) + desktop webview; Linux desktop webview with X11 DESKTOP pin."
 edition = "2021"
@@ -11,8 +11,11 @@ license = "MIT"
 repository = "https://github.com/s00d/tauri-plugin-widgets"
 
 [package.metadata.docs.rs]
-all-features = true
-rustc-args = ["--cfg", "docsrs"]
+# Do not pass `--cfg docsrs` via rustc-args: docs.rs applies those flags to
+# *dependencies* too, and old crates (e.g. winnow 0.5) still gate on removed
+# nightly features like `doc_auto_cfg` → E0557. Use rustdoc-args only.
+# Skip `all-features`: `layer-shell` needs gtk-layer-shell sys libs.
+features = ["schema", "rasterize", "codegen", "workerw", "macos-private-api"]
 rustdoc-args = ["--cfg", "docsrs"]
 
 [package.metadata.platforms.support]

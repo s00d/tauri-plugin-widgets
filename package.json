@@ -1,6 +1,6 @@
 {
   "name": "tauri-plugin-widgets-api",
-  "version": "0.4.2",
+  "version": "0.4.3",
   "author": "s00d",
   "description": "A Tauri v2 plugin to interact with App Widgets on Android and iOS, with desktop fallback. SharedPreferences / UserDefaults / WidgetKit / AppWidgetManager.",
   "license": "MIT",

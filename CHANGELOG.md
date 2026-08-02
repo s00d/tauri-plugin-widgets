@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.4.3
+
+### Fixes
+- docs.rs build: stop passing `--cfg docsrs` via `rustc-args` (it infected dependencies and broke `winnow` on current nightly); detect docs.rs via `DOCS_RS` in `build.rs`
+
 ## 0.4.1
 
 ### Breaking (Apple host transport)
