@@ -65,6 +65,11 @@ jobs:
 
       - uses: dtolnay/rust-toolchain@stable
 
+      - name: Install GTK/glib (default `linux` feature)
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libgtk-3-dev libglib2.0-dev pkg-config
+
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
