@@ -1,0 +1,1 @@
+const s="/tauri-plugin-widgets/shots/desktop/fitness.medium.png",t="/tauri-plugin-widgets/shots/desktop/chart-mix.medium.png",i="/tauri-plugin-widgets/shots/desktop/android-list.large.png";export{s as _,t as a,i as b};

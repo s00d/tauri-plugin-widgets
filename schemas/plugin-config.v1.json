@@ -1,0 +1,65 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "WidgetsPluginConfig",
+  "description": "`plugins.widgets` object from `tauri.conf.json`.",
+  "type": "object",
+  "properties": {
+    "appGroup": {
+      "description": "App Group id, e.g. `group.com.example.app`.",
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "extensionBundleId": {
+      "description": "Widget extension bundle id (macOS container path). Default: `{app_id}.widgetkit`.",
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "transport": {
+      "description": "Host→widget transport driver.",
+      "allOf": [
+        {
+          "$ref": "#/definitions/TransportKind"
+        }
+      ]
+    }
+  },
+  "definitions": {
+    "TransportKind": {
+      "description": "Which Apple host→widget channel to use.\n\nPick this at build time (you know your signing). Do not rely on runtime fan-out.",
+      "oneOf": [
+        {
+          "description": "App Group shared container file (`widget_data.json`). Needs a real Team ID. Production-safe default; use `auto` explicitly for ad-hoc probing.",
+          "type": "string",
+          "enum": [
+            "appGroup"
+          ]
+        },
+        {
+          "description": "App Group `UserDefaults` suite. Same signing requirements as [`AppGroup`].",
+          "type": "string",
+          "enum": [
+            "userDefaults"
+          ]
+        },
+        {
+          "description": "Widget extension container file. Works with ad-hoc signing; macOS host must not be sandboxed.",
+          "type": "string",
+          "enum": [
+            "widgetContainer"
+          ]
+        },
+        {
+          "description": "One-shot probe at startup (dev only). Prefer pinning an explicit driver in conf.",
+          "type": "string",
+          "enum": [
+            "auto"
+          ]
+        }
+      ]
+    }
+  }
+}

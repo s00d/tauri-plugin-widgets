@@ -1,0 +1,71 @@
+{
+  "$schema": "https://s00d.github.io/tauri-plugin-widgets/schemas/widget-config.v1.json",
+  "version": 1,
+  "small": {
+    "type": "vstack",
+    "children": [
+      {
+        "type": "text",
+        "content": "Tasks",
+        "fontSize": 18,
+        "fontWeight": "bold",
+        "fontDesign": null,
+        "textStyle": null,
+        "color": null,
+        "alignment": null,
+        "lineLimit": null,
+        "padding": null,
+        "background": null,
+        "cornerRadius": null,
+        "opacity": null,
+        "frame": null,
+        "border": null,
+        "shadow": null,
+        "clipShape": null,
+        "flex": null
+      },
+      {
+        "type": "list",
+        "items": [
+          {
+            "text": "Buy milk",
+            "checked": false,
+            "action": "toggle",
+            "payload": null
+          },
+          {
+            "text": "Ship 0.4",
+            "checked": true,
+            "action": null,
+            "payload": null
+          }
+        ],
+        "spacing": 4,
+        "fontSize": null,
+        "color": null,
+        "padding": null,
+        "background": null,
+        "cornerRadius": null,
+        "opacity": null,
+        "frame": null,
+        "border": null,
+        "shadow": null,
+        "clipShape": null,
+        "flex": null
+      }
+    ],
+    "spacing": 6,
+    "alignment": null,
+    "padding": 10,
+    "background": null,
+    "cornerRadius": null,
+    "opacity": null,
+    "frame": null,
+    "border": null,
+    "shadow": null,
+    "clipShape": null,
+    "flex": null
+  },
+  "medium": null,
+  "large": null
+}

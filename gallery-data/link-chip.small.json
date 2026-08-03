@@ -1,0 +1,43 @@
+{
+  "$schema": "https://s00d.github.io/tauri-plugin-widgets/schemas/widget-config.v1.json",
+  "version": 1,
+  "small": {
+    "type": "vstack",
+    "padding": 14,
+    "spacing": 8,
+    "cornerRadius": 14,
+    "background": "#0b1220",
+    "alignment": "center",
+    "children": [
+      {
+        "type": "link",
+        "action": "open_settings",
+        "padding": 8,
+        "cornerRadius": 999,
+        "background": "#1e293b",
+        "children": [
+          {
+            "type": "hstack",
+            "spacing": 6,
+            "alignment": "center",
+            "children": [
+              {
+                "type": "image",
+                "systemName": "gear",
+                "size": 14,
+                "color": "#38bdf8"
+              },
+              {
+                "type": "text",
+                "content": "Settings",
+                "fontSize": 13,
+                "fontWeight": "medium",
+                "color": "#e2e8f0"
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  }
+}

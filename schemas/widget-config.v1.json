@@ -1,0 +1,4189 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "WidgetConfig",
+  "description": "Top-level widget config with layouts per size family.",
+  "type": "object",
+  "properties": {
+    "large": {
+      "description": "Layout for the large size family.",
+      "anyOf": [
+        {
+          "$ref": "#/definitions/WidgetElement"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "medium": {
+      "description": "Layout for the medium size family.",
+      "anyOf": [
+        {
+          "$ref": "#/definitions/WidgetElement"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "small": {
+      "description": "Layout for the small size family.",
+      "anyOf": [
+        {
+          "$ref": "#/definitions/WidgetElement"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "version": {
+      "description": "Schema version. Defaults to `1`.",
+      "default": 1,
+      "type": "integer",
+      "format": "uint32",
+      "minimum": 0.0
+    }
+  },
+  "definitions": {
+    "BackgroundValue": {
+      "description": "Background: solid color string, adaptive pair, gradient, or material blur.",
+      "anyOf": [
+        {
+          "description": "Hex string or semantic color name.",
+          "type": "string"
+        },
+        {
+          "description": "Linear, radial, or angular gradient.",
+          "allOf": [
+            {
+              "$ref": "#/definitions/GradientConfig"
+            }
+          ]
+        },
+        {
+          "description": "Distinct colors for light and dark appearance.",
+          "type": "object",
+          "required": [
+            "dark",
+            "light"
+          ],
+          "properties": {
+            "dark": {
+              "description": "Color used in dark appearance.",
+              "type": "string"
+            },
+            "light": {
+              "description": "Color used in light appearance.",
+              "type": "string"
+            }
+          }
+        }
+      ]
+    },
+    "BorderConfig": {
+      "description": "Border color and width.",
+      "type": "object",
+      "required": [
+        "color"
+      ],
+      "properties": {
+        "color": {
+          "description": "Border color (hex string or semantic name).",
+          "type": "string"
+        },
+        "width": {
+          "description": "Border width in points. Default `1.0`.",
+          "default": 1.0,
+          "type": "number",
+          "format": "double"
+        }
+      }
+    },
+    "CanvasDrawCommand": {
+      "description": "A single declarative draw command for [`crate::models::CanvasElement`].",
+      "oneOf": [
+        {
+          "description": "Filled / stroked circle.",
+          "type": "object",
+          "required": [
+            "cx",
+            "cy",
+            "draw",
+            "r"
+          ],
+          "properties": {
+            "cx": {
+              "description": "Center x-coordinate.",
+              "type": "number",
+              "format": "double"
+            },
+            "cy": {
+              "description": "Center y-coordinate.",
+              "type": "number",
+              "format": "double"
+            },
+            "draw": {
+              "type": "string",
+              "enum": [
+                "circle"
+              ]
+            },
+            "fill": {
+              "description": "Fill color.",
+              "anyOf": [
+                {
+                  "$ref": "#/definitions/ColorValue"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "r": {
+              "description": "Radius.",
+              "type": "number",
+              "format": "double"
+            },
+            "stroke": {
+              "description": "Stroke color.",
+              "anyOf": [
+                {
+                  "$ref": "#/definitions/ColorValue"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "strokeWidth": {
+              "description": "Stroke width in points.",
+              "type": [
+                "number",
+                "null"
+              ],
+              "format": "double"
+            }
+          }
+        },
+        {
+          "description": "Straight line segment.",
+          "type": "object",
+          "required": [
+            "draw",
+            "x1",
+            "x2",
+            "y1",
+            "y2"
+          ],
+          "properties": {
+            "draw": {
+              "type": "string",
+              "enum": [
+                "line"
+              ]
+            },
+            "lineCap": {
+              "description": "Line cap style (`\"butt\"`, `\"round\"`, or `\"square\"`).",
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "stroke": {
+              "description": "Stroke color.",
+              "anyOf": [
+                {
+                  "$ref": "#/definitions/ColorValue"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "strokeWidth": {
+              "description": "Stroke width in points.",
+              "type": [
+                "number",
+                "null"
+              ],
+              "format": "double"
+            },
+            "x1": {
+              "description": "Start x-coordinate.",
+              "type": "number",
+              "format": "double"
+            },
+            "x2": {
+              "description": "End x-coordinate.",
+              "type": "number",
+              "format": "double"
+            },
+            "y1": {
+              "description": "Start y-coordinate.",
+              "type": "number",
+              "format": "double"
+            },
+            "y2": {
+              "description": "End y-coordinate.",
+              "type": "number",
+              "format": "double"
+            }
+          }
+        },
+        {
+          "description": "Filled / stroked rectangle, optionally rounded.",
+          "type": "object",
+          "required": [
+            "draw",
+            "height",
+            "width",
+            "x",
+            "y"
+          ],
+          "properties": {
+            "cornerRadius": {
+              "description": "Corner radius in points.",
+              "type": [
+                "number",
+                "null"
+              ],
+              "format": "double"
+            },
+            "draw": {
+              "type": "string",
+              "enum": [
+                "rect"
+              ]
+            },
+            "fill": {
+              "description": "Fill color.",
+              "anyOf": [
+                {
+                  "$ref": "#/definitions/ColorValue"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "height": {
+              "description": "Rectangle height.",
+              "type": "number",
+              "format": "double"
+            },
+            "stroke": {
+              "description": "Stroke color.",
+              "anyOf": [
+                {
+                  "$ref": "#/definitions/ColorValue"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "strokeWidth": {
+              "description": "Stroke width in points.",
+              "type": [
+                "number",
+                "null"
+              ],
+              "format": "double"
+            },
+            "width": {
+              "description": "Rectangle width.",
+              "type": "number",
+              "format": "double"
+            },
+            "x": {
+              "description": "Top-left x-coordinate.",
+              "type": "number",
+              "format": "double"
+            },
+            "y": {
+              "description": "Top-left y-coordinate.",
+              "type": "number",
+              "format": "double"
+            }
+          }
+        },
+        {
+          "description": "Filled / stroked arc.",
+          "type": "object",
+          "required": [
+            "cx",
+            "cy",
+            "draw",
+            "endAngle",
+            "r",
+            "startAngle"
+          ],
+          "properties": {
+            "cx": {
+              "description": "Center x-coordinate.",
+              "type": "number",
+              "format": "double"
+            },
+            "cy": {
+              "description": "Center y-coordinate.",
+              "type": "number",
+              "format": "double"
+            },
+            "draw": {
+              "type": "string",
+              "enum": [
+                "arc"
+              ]
+            },
+            "endAngle": {
+              "description": "End angle in degrees.",
+              "type": "number",
+              "format": "double"
+            },
+            "fill": {
+              "description": "Fill color.",
+              "anyOf": [
+                {
+                  "$ref": "#/definitions/ColorValue"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "r": {
+              "description": "Radius.",
+              "type": "number",
+              "format": "double"
+            },
+            "startAngle": {
+              "description": "Start angle in degrees.",
+              "type": "number",
+              "format": "double"
+            },
+            "stroke": {
+              "description": "Stroke color.",
+              "anyOf": [
+                {
+                  "$ref": "#/definitions/ColorValue"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "strokeWidth": {
+              "description": "Stroke width in points.",
+              "type": [
+                "number",
+                "null"
+              ],
+              "format": "double"
+            }
+          }
+        },
+        {
+          "description": "Text label drawn at a point.",
+          "type": "object",
+          "required": [
+            "content",
+            "draw",
+            "x",
+            "y"
+          ],
+          "properties": {
+            "anchor": {
+              "description": "Text anchor (`\"start\"`, `\"middle\"`, or `\"end\"`).",
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "color": {
+              "description": "Text color.",
+              "anyOf": [
+                {
+                  "$ref": "#/definitions/ColorValue"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "content": {
+              "description": "Text to draw.",
+              "type": "string"
+            },
+            "draw": {
+              "type": "string",
+              "enum": [
+                "text"
+              ]
+            },
+            "fontSize": {
+              "description": "Font size in points.",
+              "type": [
+                "number",
+                "null"
+              ],
+              "format": "double"
+            },
+            "x": {
+              "description": "x-coordinate of the anchor point.",
+              "type": "number",
+              "format": "double"
+            },
+            "y": {
+              "description": "y-coordinate of the anchor point.",
+              "type": "number",
+              "format": "double"
+            }
+          }
+        },
+        {
+          "description": "Arbitrary vector path.",
+          "type": "object",
+          "required": [
+            "d",
+            "draw"
+          ],
+          "properties": {
+            "d": {
+              "description": "SVG path data (e.g. `\"M10 10 L90 90\"`)",
+              "type": "string"
+            },
+            "draw": {
+              "type": "string",
+              "enum": [
+                "path"
+              ]
+            },
+            "fill": {
+              "description": "Fill color.",
+              "anyOf": [
+                {
+                  "$ref": "#/definitions/ColorValue"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "stroke": {
+              "description": "Stroke color.",
+              "anyOf": [
+                {
+                  "$ref": "#/definitions/ColorValue"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "strokeWidth": {
+              "description": "Stroke width in points.",
+              "type": [
+                "number",
+                "null"
+              ],
+              "format": "double"
+            }
+          }
+        }
+      ]
+    },
+    "ChartDataPoint": {
+      "description": "A single labeled data point for [`crate::models::ChartElement`].",
+      "type": "object",
+      "required": [
+        "label",
+        "value"
+      ],
+      "properties": {
+        "color": {
+          "description": "Optional per-point color override.",
+          "anyOf": [
+            {
+              "$ref": "#/definitions/ColorValue"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "label": {
+          "description": "Category / x-axis label.",
+          "type": "string"
+        },
+        "value": {
+          "description": "Value plotted for this point.",
+          "type": "number",
+          "format": "double"
+        }
+      }
+    },
+    "ChartType": {
+      "description": "Chart kind.",
+      "oneOf": [
+        {
+          "description": "`bar`.",
+          "type": "string",
+          "enum": [
+            "bar"
+          ]
+        },
+        {
+          "description": "`line`.",
+          "type": "string",
+          "enum": [
+            "line"
+          ]
+        },
+        {
+          "description": "`area`.",
+          "type": "string",
+          "enum": [
+            "area"
+          ]
+        },
+        {
+          "description": "`pie`.",
+          "type": "string",
+          "enum": [
+            "pie"
+          ]
+        }
+      ]
+    },
+    "ClipShape": {
+      "description": "Clip shape for content masking.",
+      "oneOf": [
+        {
+          "description": "`circle`.",
+          "type": "string",
+          "enum": [
+            "circle"
+          ]
+        },
+        {
+          "description": "`capsule`.",
+          "type": "string",
+          "enum": [
+            "capsule"
+          ]
+        },
+        {
+          "description": "`rectangle`.",
+          "type": "string",
+          "enum": [
+            "rectangle"
+          ]
+        }
+      ]
+    },
+    "ColorValue": {
+      "description": "Color value — hex string, semantic name, or adaptive `{ light, dark }` pair.\n\nSemantic names: `\"label\"`, `\"secondaryLabel\"`, `\"systemBackground\"`, `\"secondarySystemBackground\"`, `\"accent\"`, `\"separator\"`.",
+      "anyOf": [
+        {
+          "description": "Hex string or semantic color name.",
+          "type": "string"
+        },
+        {
+          "description": "Distinct colors for light and dark appearance.",
+          "type": "object",
+          "required": [
+            "dark",
+            "light"
+          ],
+          "properties": {
+            "dark": {
+              "description": "Color used in dark appearance.",
+              "type": "string"
+            },
+            "light": {
+              "description": "Color used in light appearance.",
+              "type": "string"
+            }
+          }
+        }
+      ]
+    },
+    "ContentMode": {
+      "description": "How an image fills its frame.",
+      "oneOf": [
+        {
+          "description": "`fit`.",
+          "type": "string",
+          "enum": [
+            "fit"
+          ]
+        },
+        {
+          "description": "`fill`.",
+          "type": "string",
+          "enum": [
+            "fill"
+          ]
+        }
+      ]
+    },
+    "DateStyle": {
+      "description": "Date / relative-time display style.",
+      "oneOf": [
+        {
+          "description": "`time`.",
+          "type": "string",
+          "enum": [
+            "time"
+          ]
+        },
+        {
+          "description": "`date`.",
+          "type": "string",
+          "enum": [
+            "date"
+          ]
+        },
+        {
+          "description": "`relative`.",
+          "type": "string",
+          "enum": [
+            "relative"
+          ]
+        },
+        {
+          "description": "`offset`.",
+          "type": "string",
+          "enum": [
+            "offset"
+          ]
+        },
+        {
+          "description": "`timer`.",
+          "type": "string",
+          "enum": [
+            "timer"
+          ]
+        }
+      ]
+    },
+    "FontDesign": {
+      "description": "Font design (default, monospaced, rounded, serif).",
+      "oneOf": [
+        {
+          "description": "`default`.",
+          "type": "string",
+          "enum": [
+            "default"
+          ]
+        },
+        {
+          "description": "`monospaced`.",
+          "type": "string",
+          "enum": [
+            "monospaced"
+          ]
+        },
+        {
+          "description": "`rounded`.",
+          "type": "string",
+          "enum": [
+            "rounded"
+          ]
+        },
+        {
+          "description": "`serif`.",
+          "type": "string",
+          "enum": [
+            "serif"
+          ]
+        }
+      ]
+    },
+    "FontWeight": {
+      "description": "Font weight.",
+      "oneOf": [
+        {
+          "description": "`ultralight`.",
+          "type": "string",
+          "enum": [
+            "ultralight"
+          ]
+        },
+        {
+          "description": "`thin`.",
+          "type": "string",
+          "enum": [
+            "thin"
+          ]
+        },
+        {
+          "description": "`light`.",
+          "type": "string",
+          "enum": [
+            "light"
+          ]
+        },
+        {
+          "description": "`regular`.",
+          "type": "string",
+          "enum": [
+            "regular"
+          ]
+        },
+        {
+          "description": "`medium`.",
+          "type": "string",
+          "enum": [
+            "medium"
+          ]
+        },
+        {
+          "description": "`semibold`.",
+          "type": "string",
+          "enum": [
+            "semibold"
+          ]
+        },
+        {
+          "description": "`bold`.",
+          "type": "string",
+          "enum": [
+            "bold"
+          ]
+        },
+        {
+          "description": "`heavy`.",
+          "type": "string",
+          "enum": [
+            "heavy"
+          ]
+        },
+        {
+          "description": "`black`.",
+          "type": "string",
+          "enum": [
+            "black"
+          ]
+        }
+      ]
+    },
+    "FrameConfig": {
+      "description": "Explicit width / height / max-size constraints for an element.",
+      "type": "object",
+      "properties": {
+        "height": {
+          "description": "Fixed height in points.",
+          "type": [
+            "number",
+            "null"
+          ],
+          "format": "double"
+        },
+        "maxHeight": {
+          "description": "Maximum height — a fixed point value or `\"infinity\"`.",
+          "anyOf": [
+            {
+              "$ref": "#/definitions/FrameDimension"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "maxWidth": {
+          "description": "Maximum width — a fixed point value or `\"infinity\"`.",
+          "anyOf": [
+            {
+              "$ref": "#/definitions/FrameDimension"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "width": {
+          "description": "Fixed width in points.",
+          "type": [
+            "number",
+            "null"
+          ],
+          "format": "double"
+        }
+      }
+    },
+    "FrameDimension": {
+      "description": "A frame dimension — either a fixed point value or `\"infinity\"`.",
+      "anyOf": [
+        {
+          "description": "Fixed point value.",
+          "type": "number",
+          "format": "double"
+        },
+        {
+          "description": "Keyword `\"infinity\"`.",
+          "type": "string",
+          "enum": [
+            "infinity"
+          ]
+        }
+      ]
+    },
+    "GaugeStyle": {
+      "description": "Gauge visual style.",
+      "oneOf": [
+        {
+          "description": "`circular`.",
+          "type": "string",
+          "enum": [
+            "circular"
+          ]
+        },
+        {
+          "description": "`linear`.",
+          "type": "string",
+          "enum": [
+            "linear"
+          ]
+        }
+      ]
+    },
+    "GradientConfig": {
+      "description": "Linear, radial, or angular gradient background.",
+      "type": "object",
+      "required": [
+        "colors",
+        "gradientType"
+      ],
+      "properties": {
+        "colors": {
+          "description": "Stop colors, in order.",
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "direction": {
+          "description": "Direction for linear gradients",
+          "anyOf": [
+            {
+              "$ref": "#/definitions/GradientDirection"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "gradientType": {
+          "description": "`\"linear\"`, `\"radial\"`, or `\"angular\"`",
+          "allOf": [
+            {
+              "$ref": "#/definitions/GradientType"
+            }
+          ]
+        }
+      }
+    },
+    "GradientDirection": {
+      "description": "Direction for linear gradients.",
+      "oneOf": [
+        {
+          "description": "`top to bottom`.",
+          "type": "string",
+          "enum": [
+            "topToBottom"
+          ]
+        },
+        {
+          "description": "`bottom to top`.",
+          "type": "string",
+          "enum": [
+            "bottomToTop"
+          ]
+        },
+        {
+          "description": "`leading to trailing`.",
+          "type": "string",
+          "enum": [
+            "leadingToTrailing"
+          ]
+        },
+        {
+          "description": "`trailing to leading`.",
+          "type": "string",
+          "enum": [
+            "trailingToLeading"
+          ]
+        },
+        {
+          "description": "`top leading to bottom trailing`.",
+          "type": "string",
+          "enum": [
+            "topLeadingToBottomTrailing"
+          ]
+        },
+        {
+          "description": "`top trailing to bottom leading`.",
+          "type": "string",
+          "enum": [
+            "topTrailingToBottomLeading"
+          ]
+        }
+      ]
+    },
+    "GradientType": {
+      "description": "Gradient shape.",
+      "oneOf": [
+        {
+          "description": "`linear`.",
+          "type": "string",
+          "enum": [
+            "linear"
+          ]
+        },
+        {
+          "description": "`radial`.",
+          "type": "string",
+          "enum": [
+            "radial"
+          ]
+        },
+        {
+          "description": "`angular`.",
+          "type": "string",
+          "enum": [
+            "angular"
+          ]
+        }
+      ]
+    },
+    "HorizontalAlignment": {
+      "description": "Horizontal alignment of children within a stack.",
+      "oneOf": [
+        {
+          "description": "`leading`.",
+          "type": "string",
+          "enum": [
+            "leading"
+          ]
+        },
+        {
+          "description": "`center`.",
+          "type": "string",
+          "enum": [
+            "center"
+          ]
+        },
+        {
+          "description": "`trailing`.",
+          "type": "string",
+          "enum": [
+            "trailing"
+          ]
+        }
+      ]
+    },
+    "ListItem": {
+      "description": "A single row for [`crate::models::ListElement`].",
+      "type": "object",
+      "required": [
+        "text"
+      ],
+      "properties": {
+        "action": {
+          "description": "Action identifier — emits a `widget-action` event when tapped.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "checked": {
+          "description": "Optional checked/checkbox marker.",
+          "type": [
+            "boolean",
+            "null"
+          ]
+        },
+        "payload": {
+          "description": "Opaque payload forwarded alongside the action event.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "text": {
+          "description": "Row text.",
+          "type": "string"
+        }
+      }
+    },
+    "PaddingValue": {
+      "description": "Inset padding — a single uniform value or per-edge overrides.",
+      "anyOf": [
+        {
+          "description": "Same padding on every edge.",
+          "type": "number",
+          "format": "double"
+        },
+        {
+          "description": "Independent padding per edge.",
+          "type": "object",
+          "properties": {
+            "bottom": {
+              "description": "Bottom edge padding.",
+              "type": [
+                "number",
+                "null"
+              ],
+              "format": "double"
+            },
+            "leading": {
+              "description": "Leading (left in LTR) edge padding.",
+              "type": [
+                "number",
+                "null"
+              ],
+              "format": "double"
+            },
+            "top": {
+              "description": "Top edge padding.",
+              "type": [
+                "number",
+                "null"
+              ],
+              "format": "double"
+            },
+            "trailing": {
+              "description": "Trailing (right in LTR) edge padding.",
+              "type": [
+                "number",
+                "null"
+              ],
+              "format": "double"
+            }
+          }
+        }
+      ]
+    },
+    "ProgressStyle": {
+      "description": "Progress indicator style.",
+      "oneOf": [
+        {
+          "description": "`linear`.",
+          "type": "string",
+          "enum": [
+            "linear"
+          ]
+        },
+        {
+          "description": "`circular`.",
+          "type": "string",
+          "enum": [
+            "circular"
+          ]
+        }
+      ]
+    },
+    "ShadowConfig": {
+      "description": "Drop shadow configuration.",
+      "type": "object",
+      "properties": {
+        "color": {
+          "description": "Shadow color (hex string or semantic name).",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "radius": {
+          "description": "Blur radius in points.",
+          "type": [
+            "number",
+            "null"
+          ],
+          "format": "double"
+        },
+        "x": {
+          "description": "Horizontal offset in points.",
+          "type": [
+            "number",
+            "null"
+          ],
+          "format": "double"
+        },
+        "y": {
+          "description": "Vertical offset in points.",
+          "type": [
+            "number",
+            "null"
+          ],
+          "format": "double"
+        }
+      }
+    },
+    "ShapeType": {
+      "description": "Shape kind for [`crate::models::ShapeElement`].",
+      "oneOf": [
+        {
+          "description": "`circle`.",
+          "type": "string",
+          "enum": [
+            "circle"
+          ]
+        },
+        {
+          "description": "`capsule`.",
+          "type": "string",
+          "enum": [
+            "capsule"
+          ]
+        },
+        {
+          "description": "`rectangle`.",
+          "type": "string",
+          "enum": [
+            "rectangle"
+          ]
+        }
+      ]
+    },
+    "TextAlignment": {
+      "description": "Text alignment within the line.",
+      "oneOf": [
+        {
+          "description": "`leading`.",
+          "type": "string",
+          "enum": [
+            "leading"
+          ]
+        },
+        {
+          "description": "`center`.",
+          "type": "string",
+          "enum": [
+            "center"
+          ]
+        },
+        {
+          "description": "`trailing`.",
+          "type": "string",
+          "enum": [
+            "trailing"
+          ]
+        }
+      ]
+    },
+    "TextStyle": {
+      "description": "Semantic text style — respects Dynamic Type / accessibility settings.",
+      "oneOf": [
+        {
+          "description": "`large title`.",
+          "type": "string",
+          "enum": [
+            "largeTitle"
+          ]
+        },
+        {
+          "description": "`title`.",
+          "type": "string",
+          "enum": [
+            "title"
+          ]
+        },
+        {
+          "description": "`title2`.",
+          "type": "string",
+          "enum": [
+            "title2"
+          ]
+        },
+        {
+          "description": "`title3`.",
+          "type": "string",
+          "enum": [
+            "title3"
+          ]
+        },
+        {
+          "description": "`headline`.",
+          "type": "string",
+          "enum": [
+            "headline"
+          ]
+        },
+        {
+          "description": "`subheadline`.",
+          "type": "string",
+          "enum": [
+            "subheadline"
+          ]
+        },
+        {
+          "description": "`body`.",
+          "type": "string",
+          "enum": [
+            "body"
+          ]
+        },
+        {
+          "description": "`callout`.",
+          "type": "string",
+          "enum": [
+            "callout"
+          ]
+        },
+        {
+          "description": "`footnote`.",
+          "type": "string",
+          "enum": [
+            "footnote"
+          ]
+        },
+        {
+          "description": "`caption`.",
+          "type": "string",
+          "enum": [
+            "caption"
+          ]
+        },
+        {
+          "description": "`caption2`.",
+          "type": "string",
+          "enum": [
+            "caption2"
+          ]
+        }
+      ]
+    },
+    "TimerCounting": {
+      "description": "Countdown/countup direction for [`crate::models::TimerElement`].",
+      "oneOf": [
+        {
+          "description": "`up`.",
+          "type": "string",
+          "enum": [
+            "up"
+          ]
+        },
+        {
+          "description": "`down`.",
+          "type": "string",
+          "enum": [
+            "down"
+          ]
+        }
+      ]
+    },
+    "VerticalAlignment": {
+      "description": "Vertical alignment of children within a stack.",
+      "oneOf": [
+        {
+          "description": "`top`.",
+          "type": "string",
+          "enum": [
+            "top"
+          ]
+        },
+        {
+          "description": "`center`.",
+          "type": "string",
+          "enum": [
+            "center"
+          ]
+        },
+        {
+          "description": "`bottom`.",
+          "type": "string",
+          "enum": [
+            "bottom"
+          ]
+        }
+      ]
+    },
+    "WidgetElement": {
+      "description": "A UI element that can be a layout container or a leaf widget.",
+      "oneOf": [
+        {
+          "description": "Vertical stack of children.",
+          "type": "object",
+          "required": [
+            "type"
+          ],
+          "properties": {
+            "alignment": {
+              "description": "Horizontal alignment of children.",
+              "anyOf": [
+                {
+                  "$ref": "#/definitions/HorizontalAlignment"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "background": {
+              "description": "Solid, adaptive, or gradient background.",
+              "anyOf": [
+                {
+                  "$ref": "#/definitions/BackgroundValue"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "border": {
+              "description": "Border color and width.",
+              "anyOf": [
+                {
+                  "$ref": "#/definitions/BorderConfig"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "children": {
+              "description": "Child elements, top to bottom.",
+              "type": "array",
+              "items": {
+                "$ref": "#/definitions/WidgetElement"
+              }
+            },
+            "clipShape": {
+              "description": "Clip content to a shape (e.g. circle avatar from square image).",
+              "anyOf": [
+                {
+                  "$ref": "#/definitions/ClipShape"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "cornerRadius": {
+              "description": "Corner radius in points.",
+              "type": [
+                "number",
+                "null"
+              ],
+              "format": "double"
+            },
+            "flex": {
+              "description": "Layout weight for flexible sizing inside stacks (like Android `layout_weight`).",
+              "type": [
+                "number",
+                "null"
+              ],
+              "format": "double"
+            },
+            "frame": {
+              "description": "Explicit width / height / max constraints.",
+              "anyOf": [
+                {
+                  "$ref": "#/definitions/FrameConfig"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "opacity": {
+              "description": "Opacity from `0` (invisible) to `1` (opaque).",
+              "type": [
+                "number",
+                "null"
+              ],
+              "format": "double"
+            },
+            "padding": {
+              "description": "Inset padding (number or per-edge object).",
+              "anyOf": [
+                {
+                  "$ref": "#/definitions/PaddingValue"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "shadow": {
+              "description": "Drop shadow.",
+              "anyOf": [
+                {
+                  "$ref": "#/definitions/ShadowConfig"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "spacing": {
+              "description": "Space between children (points).",
+              "type": [
+                "number",
+                "null"
+              ],
+              "format": "double"
+            },
+            "type": {
+              "type": "string",
+              "enum": [
+                "vstack"
+              ]
+            }
+          }
+        },
+        {
+          "description": "Horizontal stack of children.",
+          "type": "object",
+          "required": [
+            "type"
+          ],
+          "properties": {
+            "alignment": {
+              "description": "Vertical alignment of children.",
+              "anyOf": [
+                {
+                  "$ref": "#/definitions/VerticalAlignment"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "background": {
+              "description": "Solid, adaptive, or gradient background.",
+              "anyOf": [
+                {
+                  "$ref": "#/definitions/BackgroundValue"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "border": {
+              "description": "Border color and width.",
+              "anyOf": [
+                {
+                  "$ref": "#/definitions/BorderConfig"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "children": {
+              "description": "Child elements, leading to trailing.",
+              "type": "array",
+              "items": {
+                "$ref": "#/definitions/WidgetElement"
+              }
+            },
+            "clipShape": {
+              "description": "Clip content to a shape (e.g. circle avatar from square image).",
+              "anyOf": [
+                {
+                  "$ref": "#/definitions/ClipShape"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "cornerRadius": {
+              "description": "Corner radius in points.",
+              "type": [
+                "number",
+                "null"
+              ],
+              "format": "double"
+            },
+            "flex": {
+              "description": "Layout weight for flexible sizing inside stacks (like Android `layout_weight`).",
+              "type": [
+                "number",
+                "null"
+              ],
+              "format": "double"
+            },
+            "frame": {
+              "description": "Explicit width / height / max constraints.",
+              "anyOf": [
+                {
+                  "$ref": "#/definitions/FrameConfig"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "opacity": {
+              "description": "Opacity from `0` (invisible) to `1` (opaque).",
+              "type": [
+                "number",
+                "null"
+              ],
+              "format": "double"
+            },
+            "padding": {
+              "description": "Inset padding (number or per-edge object).",
+              "anyOf": [
+                {
+                  "$ref": "#/definitions/PaddingValue"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "shadow": {
+              "description": "Drop shadow.",
+              "anyOf": [
+                {
+                  "$ref": "#/definitions/ShadowConfig"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "spacing": {
+              "description": "Space between children (points).",
+              "type": [
+                "number",
+                "null"
+              ],
+              "format": "double"
+            },
+            "type": {
+              "type": "string",
+              "enum": [
+                "hstack"
+              ]
+            }
+          }
+        },
+        {
+          "description": "Overlay stack — children layered on top of each other.",
+          "type": "object",
+          "required": [
+            "type"
+          ],
+          "properties": {
+            "alignment": {
+              "description": "Alignment of layers within the stack (e.g. `center`, `topLeading`).",
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "background": {
+              "description": "Solid, adaptive, or gradient background.",
+              "anyOf": [
+                {
+                  "$ref": "#/definitions/BackgroundValue"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "border": {
+              "description": "Border color and width.",
+              "anyOf": [
+                {
+                  "$ref": "#/definitions/BorderConfig"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "children": {
+              "description": "Layered children (later draw on top).",
+              "type": "array",
+              "items": {
+                "$ref": "#/definitions/WidgetElement"
+              }
+            },
+            "clipShape": {
+              "description": "Clip content to a shape (e.g. circle avatar from square image).",
+              "anyOf": [
+                {
+                  "$ref": "#/definitions/ClipShape"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "cornerRadius": {
+              "description": "Corner radius in points.",
+              "type": [
+                "number",
+                "null"
+              ],
+              "format": "double"
+            },
+            "flex": {
+              "description": "Layout weight for flexible sizing inside stacks (like Android `layout_weight`).",
+              "type": [
+                "number",
+                "null"
+              ],
+              "format": "double"
+            },
+            "frame": {
+              "description": "Explicit width / height / max constraints.",
+              "anyOf": [
+                {
+                  "$ref": "#/definitions/FrameConfig"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "opacity": {
+              "description": "Opacity from `0` (invisible) to `1` (opaque).",
+              "type": [
+                "number",
+                "null"
+              ],
+              "format": "double"
+            },
+            "padding": {
+              "description": "Inset padding (number or per-edge object).",
+              "anyOf": [
+                {
+                  "$ref": "#/definitions/PaddingValue"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "shadow": {
+              "description": "Drop shadow.",
+              "anyOf": [
+                {
+                  "$ref": "#/definitions/ShadowConfig"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "type": {
+              "type": "string",
+              "enum": [
+                "zstack"
+              ]
+            }
+          }
+        },
+        {
+          "description": "Fixed-column grid of children.",
+          "type": "object",
+          "required": [
+            "type"
+          ],
+          "properties": {
+            "background": {
+              "description": "Solid, adaptive, or gradient background.",
+              "anyOf": [
+                {
+                  "$ref": "#/definitions/BackgroundValue"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "border": {
+              "description": "Border color and width.",
+              "anyOf": [
+                {
+                  "$ref": "#/definitions/BorderConfig"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "children": {
+              "description": "Grid cells in row-major order.",
+              "type": "array",
+              "items": {
+                "$ref": "#/definitions/WidgetElement"
+              }
+            },
+            "clipShape": {
+              "description": "Clip content to a shape (e.g. circle avatar from square image).",
+              "anyOf": [
+                {
+                  "$ref": "#/definitions/ClipShape"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "columns": {
+              "description": "Number of columns. Default `2`.",
+              "default": 2,
+              "type": "integer",
+              "format": "uint32",
+              "minimum": 0.0
+            },
+            "cornerRadius": {
+              "description": "Corner radius in points.",
+              "type": [
+                "number",
+                "null"
+              ],
+              "format": "double"
+            },
+            "flex": {
+              "description": "Layout weight for flexible sizing inside stacks (like Android `layout_weight`).",
+              "type": [
+                "number",
+                "null"
+              ],
+              "format": "double"
+            },
+            "frame": {
+              "description": "Explicit width / height / max constraints.",
+              "anyOf": [
+                {
+                  "$ref": "#/definitions/FrameConfig"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "opacity": {
+              "description": "Opacity from `0` (invisible) to `1` (opaque).",
+              "type": [
+                "number",
+                "null"
+              ],
+              "format": "double"
+            },
+            "padding": {
+              "description": "Inset padding (number or per-edge object).",
+              "anyOf": [
+                {
+                  "$ref": "#/definitions/PaddingValue"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "rowSpacing": {
+              "description": "Row spacing (points).",
+              "type": [
+                "number",
+                "null"
+              ],
+              "format": "double"
+            },
+            "shadow": {
+              "description": "Drop shadow.",
+              "anyOf": [
+                {
+                  "$ref": "#/definitions/ShadowConfig"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "spacing": {
+              "description": "Column spacing (points).",
+              "type": [
+                "number",
+                "null"
+              ],
+              "format": "double"
+            },
+            "type": {
+              "type": "string",
+              "enum": [
+                "grid"
+              ]
+            }
+          }
+        },
+        {
+          "description": "Single-child wrapper for cards, badges, and overlays.",
+          "type": "object",
+          "required": [
+            "type"
+          ],
+          "properties": {
+            "background": {
+              "description": "Solid, adaptive, or gradient background.",
+              "anyOf": [
+                {
+                  "$ref": "#/definitions/BackgroundValue"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "border": {
+              "description": "Border color and width.",
+              "anyOf": [
+                {
+                  "$ref": "#/definitions/BorderConfig"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "children": {
+              "description": "Nested content (typically one child).",
+              "type": "array",
+              "items": {
+                "$ref": "#/definitions/WidgetElement"
+              }
+            },
+            "clipShape": {
+              "description": "Clip content to a shape (e.g. circle avatar from square image).",
+              "anyOf": [
+                {
+                  "$ref": "#/definitions/ClipShape"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "contentAlignment": {
+              "description": "Content alignment inside the box (e.g. `center`, `topLeading`).",
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "cornerRadius": {
+              "description": "Corner radius in points.",
+              "type": [
+                "number",
+                "null"
+              ],
+              "format": "double"
+            },
+            "flex": {
+              "description": "Layout weight for flexible sizing inside stacks (like Android `layout_weight`).",
+              "type": [
+                "number",
+                "null"
+              ],
+              "format": "double"
+            },
+            "frame": {
+              "description": "Explicit width / height / max constraints.",
+              "anyOf": [
+                {
+                  "$ref": "#/definitions/FrameConfig"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "opacity": {
+              "description": "Opacity from `0` (invisible) to `1` (opaque).",
+              "type": [
+                "number",
+                "null"
+              ],
+              "format": "double"
+            },
+            "padding": {
+              "description": "Inset padding (number or per-edge object).",
+              "anyOf": [
+                {
+                  "$ref": "#/definitions/PaddingValue"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "shadow": {
+              "description": "Drop shadow.",
+              "anyOf": [
+                {
+                  "$ref": "#/definitions/ShadowConfig"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "type": {
+              "type": "string",
+              "enum": [
+                "container"
+              ]
+            }
+          }
+        },
+        {
+          "description": "Text label with optional semantic typography.",
+          "type": "object",
+          "required": [
+            "content",
+            "type"
+          ],
+          "properties": {
+            "alignment": {
+              "description": "Text alignment within the line.",
+              "anyOf": [
+                {
+                  "$ref": "#/definitions/TextAlignment"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "background": {
+              "description": "Solid, adaptive, or gradient background.",
+              "anyOf": [
+                {
+                  "$ref": "#/definitions/BackgroundValue"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "border": {
+              "description": "Border color and width.",
+              "anyOf": [
+                {
+                  "$ref": "#/definitions/BorderConfig"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "clipShape": {
+              "description": "Clip content to a shape (e.g. circle avatar from square image).",
+              "anyOf": [
+                {
+                  "$ref": "#/definitions/ClipShape"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "color": {
+              "description": "Text color.",
+              "anyOf": [
+                {
+                  "$ref": "#/definitions/ColorValue"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "content": {
+              "description": "String to display.",
+              "type": "string"
+            },
+            "cornerRadius": {
+              "description": "Corner radius in points.",
+              "type": [
+                "number",
+                "null"
+              ],
+              "format": "double"
+            },
+            "flex": {
+              "description": "Layout weight for flexible sizing inside stacks (like Android `layout_weight`).",
+              "type": [
+                "number",
+                "null"
+              ],
+              "format": "double"
+            },
+            "fontDesign": {
+              "description": "Font design (default, monospaced, rounded, serif).",
+              "anyOf": [
+                {
+                  "$ref": "#/definitions/FontDesign"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "fontSize": {
+              "description": "Font size in points (overridden by `textStyle` when set).",
+              "type": [
+                "number",
+                "null"
+              ],
+              "format": "double"
+            },
+            "fontWeight": {
+              "description": "Font weight.",
+              "anyOf": [
+                {
+                  "$ref": "#/definitions/FontWeight"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "frame": {
+              "description": "Explicit width / height / max constraints.",
+              "anyOf": [
+                {
+                  "$ref": "#/definitions/FrameConfig"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "lineLimit": {
+              "description": "Maximum number of lines before truncation.",
+              "type": [
+                "integer",
+                "null"
+              ],
+              "format": "uint32",
+              "minimum": 0.0
+            },
+            "opacity": {
+              "description": "Opacity from `0` (invisible) to `1` (opaque).",
+              "type": [
+                "number",
+                "null"
+              ],
+              "format": "double"
+            },
+            "padding": {
+              "description": "Inset padding (number or per-edge object).",
+              "anyOf": [
+                {
+                  "$ref": "#/definitions/PaddingValue"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "shadow": {
+              "description": "Drop shadow.",
+              "anyOf": [
+                {
+                  "$ref": "#/definitions/ShadowConfig"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "textStyle": {
+              "description": "Semantic text style (uses Dynamic Type on Apple, sp on Android). Overrides `fontSize` when set.",
+              "anyOf": [
+                {
+                  "$ref": "#/definitions/TextStyle"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "type": {
+              "type": "string",
+              "enum": [
+                "text"
+              ]
+            }
+          }
+        },
+        {
+          "description": "Image from SF Symbol / drawable name, base64 data, or URL.",
+          "type": "object",
+          "required": [
+            "type"
+          ],
+          "properties": {
+            "background": {
+              "description": "Solid, adaptive, or gradient background.",
+              "anyOf": [
+                {
+                  "$ref": "#/definitions/BackgroundValue"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "border": {
+              "description": "Border color and width.",
+              "anyOf": [
+                {
+                  "$ref": "#/definitions/BorderConfig"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "clipShape": {
+              "description": "Clip content to a shape (e.g. circle avatar from square image).",
+              "anyOf": [
+                {
+                  "$ref": "#/definitions/ClipShape"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "color": {
+              "description": "Tint color for template / symbol images.",
+              "anyOf": [
+                {
+                  "$ref": "#/definitions/ColorValue"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "contentMode": {
+              "description": "How the image fills its frame (`fit` or `fill`).",
+              "anyOf": [
+                {
+                  "$ref": "#/definitions/ContentMode"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "cornerRadius": {
+              "description": "Corner radius in points.",
+              "type": [
+                "number",
+                "null"
+              ],
+              "format": "double"
+            },
+            "data": {
+              "description": "Base64-encoded image data (with or without `data:image/...;base64,` prefix).",
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "flex": {
+              "description": "Layout weight for flexible sizing inside stacks (like Android `layout_weight`).",
+              "type": [
+                "number",
+                "null"
+              ],
+              "format": "double"
+            },
+            "frame": {
+              "description": "Explicit width / height / max constraints.",
+              "anyOf": [
+                {
+                  "$ref": "#/definitions/FrameConfig"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "opacity": {
+              "description": "Opacity from `0` (invisible) to `1` (opaque).",
+              "type": [
+                "number",
+                "null"
+              ],
+              "format": "double"
+            },
+            "padding": {
+              "description": "Inset padding (number or per-edge object).",
+              "anyOf": [
+                {
+                  "$ref": "#/definitions/PaddingValue"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "shadow": {
+              "description": "Drop shadow.",
+              "anyOf": [
+                {
+                  "$ref": "#/definitions/ShadowConfig"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "size": {
+              "description": "Display size in points.",
+              "type": [
+                "number",
+                "null"
+              ],
+              "format": "double"
+            },
+            "systemName": {
+              "description": "SF Symbol name (Apple) or Material / drawable name (Android).",
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "type": {
+              "type": "string",
+              "enum": [
+                "image"
+              ]
+            },
+            "url": {
+              "description": "Remote image URL (platform support varies — see capability matrix).",
+              "type": [
+                "string",
+                "null"
+              ]
+            }
+          }
+        },
+        {
+          "description": "Linear or circular progress indicator.",
+          "type": "object",
+          "required": [
+            "type",
+            "value"
+          ],
+          "properties": {
+            "background": {
+              "description": "Solid, adaptive, or gradient background.",
+              "anyOf": [
+                {
+                  "$ref": "#/definitions/BackgroundValue"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "barStyle": {
+              "description": "`linear` (default) or `circular`.",
+              "anyOf": [
+                {
+                  "$ref": "#/definitions/ProgressStyle"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "border": {
+              "description": "Border color and width.",
+              "anyOf": [
+                {
+                  "$ref": "#/definitions/BorderConfig"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "clipShape": {
+              "description": "Clip content to a shape (e.g. circle avatar from square image).",
+              "anyOf": [
+                {
+                  "$ref": "#/definitions/ClipShape"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "color": {
+              "description": "Track / label color.",
+              "anyOf": [
+                {
+                  "$ref": "#/definitions/ColorValue"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "cornerRadius": {
+              "description": "Corner radius in points.",
+              "type": [
+                "number",
+                "null"
+              ],
+              "format": "double"
+            },
+            "flex": {
+              "description": "Layout weight for flexible sizing inside stacks (like Android `layout_weight`).",
+              "type": [
+                "number",
+                "null"
+              ],
+              "format": "double"
+            },
+            "frame": {
+              "description": "Explicit width / height / max constraints.",
+              "anyOf": [
+                {
+                  "$ref": "#/definitions/FrameConfig"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "label": {
+              "description": "Caption above the bar. Always set on Android so hosts never show null.",
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "opacity": {
+              "description": "Opacity from `0` (invisible) to `1` (opaque).",
+              "type": [
+                "number",
+                "null"
+              ],
+              "format": "double"
+            },
+            "padding": {
+              "description": "Inset padding (number or per-edge object).",
+              "anyOf": [
+                {
+                  "$ref": "#/definitions/PaddingValue"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "shadow": {
+              "description": "Drop shadow.",
+              "anyOf": [
+                {
+                  "$ref": "#/definitions/ShadowConfig"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "tint": {
+              "description": "Accent / fill color for the completed portion.",
+              "anyOf": [
+                {
+                  "$ref": "#/definitions/ColorValue"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "total": {
+              "description": "Denominator for the ratio. Default `1.0`.",
+              "default": 1.0,
+              "type": "number",
+              "format": "double"
+            },
+            "type": {
+              "type": "string",
+              "enum": [
+                "progress"
+              ]
+            },
+            "value": {
+              "description": "Current value. Clamped to `0..=total` by renderers.",
+              "type": "number",
+              "format": "double"
+            }
+          }
+        },
+        {
+          "description": "Circular or capacity-style gauge.",
+          "type": "object",
+          "required": [
+            "type",
+            "value"
+          ],
+          "properties": {
+            "background": {
+              "description": "Solid, adaptive, or gradient background.",
+              "anyOf": [
+                {
+                  "$ref": "#/definitions/BackgroundValue"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "border": {
+              "description": "Border color and width.",
+              "anyOf": [
+                {
+                  "$ref": "#/definitions/BorderConfig"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "clipShape": {
+              "description": "Clip content to a shape (e.g. circle avatar from square image).",
+              "anyOf": [
+                {
+                  "$ref": "#/definitions/ClipShape"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "color": {
+              "description": "Secondary / track color.",
+              "anyOf": [
+                {
+                  "$ref": "#/definitions/ColorValue"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "cornerRadius": {
+              "description": "Corner radius in points.",
+              "type": [
+                "number",
+                "null"
+              ],
+              "format": "double"
+            },
+            "currentValueLabel": {
+              "description": "Text shown for the current value (e.g. `\"72%\"`).",
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "flex": {
+              "description": "Layout weight for flexible sizing inside stacks (like Android `layout_weight`).",
+              "type": [
+                "number",
+                "null"
+              ],
+              "format": "double"
+            },
+            "frame": {
+              "description": "Explicit width / height / max constraints.",
+              "anyOf": [
+                {
+                  "$ref": "#/definitions/FrameConfig"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "gaugeStyle": {
+              "description": "Visual style (e.g. `circular`).",
+              "anyOf": [
+                {
+                  "$ref": "#/definitions/GaugeStyle"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "label": {
+              "description": "Optional caption.",
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "max": {
+              "description": "Upper bound. Default `1`.",
+              "type": [
+                "number",
+                "null"
+              ],
+              "format": "double"
+            },
+            "min": {
+              "description": "Lower bound. Default `0`.",
+              "type": [
+                "number",
+                "null"
+              ],
+              "format": "double"
+            },
+            "opacity": {
+              "description": "Opacity from `0` (invisible) to `1` (opaque).",
+              "type": [
+                "number",
+                "null"
+              ],
+              "format": "double"
+            },
+            "padding": {
+              "description": "Inset padding (number or per-edge object).",
+              "anyOf": [
+                {
+                  "$ref": "#/definitions/PaddingValue"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "shadow": {
+              "description": "Drop shadow.",
+              "anyOf": [
+                {
+                  "$ref": "#/definitions/ShadowConfig"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "tint": {
+              "description": "Accent color.",
+              "anyOf": [
+                {
+                  "$ref": "#/definitions/ColorValue"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "type": {
+              "type": "string",
+              "enum": [
+                "gauge"
+              ]
+            },
+            "value": {
+              "description": "Current value within `[min, max]`.",
+              "type": "number",
+              "format": "double"
+            }
+          }
+        },
+        {
+          "description": "Tappable button that opens a URL or emits `widget-action`.",
+          "type": "object",
+          "required": [
+            "label",
+            "type"
+          ],
+          "properties": {
+            "action": {
+              "description": "Action identifier — emits a `widget-action` Tauri event when tapped.",
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "background": {
+              "description": "Solid, adaptive, or gradient background.",
+              "anyOf": [
+                {
+                  "$ref": "#/definitions/BackgroundValue"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "backgroundColor": {
+              "description": "Button background color.",
+              "anyOf": [
+                {
+                  "$ref": "#/definitions/ColorValue"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "border": {
+              "description": "Border color and width.",
+              "anyOf": [
+                {
+                  "$ref": "#/definitions/BorderConfig"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "clipShape": {
+              "description": "Clip content to a shape (e.g. circle avatar from square image).",
+              "anyOf": [
+                {
+                  "$ref": "#/definitions/ClipShape"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "color": {
+              "description": "Label text color.",
+              "anyOf": [
+                {
+                  "$ref": "#/definitions/ColorValue"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "cornerRadius": {
+              "description": "Corner radius in points.",
+              "type": [
+                "number",
+                "null"
+              ],
+              "format": "double"
+            },
+            "flex": {
+              "description": "Layout weight for flexible sizing inside stacks (like Android `layout_weight`).",
+              "type": [
+                "number",
+                "null"
+              ],
+              "format": "double"
+            },
+            "fontSize": {
+              "description": "Label font size in points.",
+              "type": [
+                "number",
+                "null"
+              ],
+              "format": "double"
+            },
+            "frame": {
+              "description": "Explicit width / height / max constraints.",
+              "anyOf": [
+                {
+                  "$ref": "#/definitions/FrameConfig"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "label": {
+              "description": "Button label text.",
+              "type": "string"
+            },
+            "opacity": {
+              "description": "Opacity from `0` (invisible) to `1` (opaque).",
+              "type": [
+                "number",
+                "null"
+              ],
+              "format": "double"
+            },
+            "padding": {
+              "description": "Inset padding (number or per-edge object).",
+              "anyOf": [
+                {
+                  "$ref": "#/definitions/PaddingValue"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "shadow": {
+              "description": "Drop shadow.",
+              "anyOf": [
+                {
+                  "$ref": "#/definitions/ShadowConfig"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "textAlignment": {
+              "description": "Label text alignment.",
+              "anyOf": [
+                {
+                  "$ref": "#/definitions/TextAlignment"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "type": {
+              "type": "string",
+              "enum": [
+                "button"
+              ]
+            },
+            "url": {
+              "description": "Deep link URL to open the app (used when no action is set).",
+              "type": [
+                "string",
+                "null"
+              ]
+            }
+          }
+        },
+        {
+          "description": "On/off toggle control.",
+          "type": "object",
+          "required": [
+            "isOn",
+            "type"
+          ],
+          "properties": {
+            "action": {
+              "description": "Action identifier sent back to the app.",
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "background": {
+              "description": "Solid, adaptive, or gradient background.",
+              "anyOf": [
+                {
+                  "$ref": "#/definitions/BackgroundValue"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "border": {
+              "description": "Border color and width.",
+              "anyOf": [
+                {
+                  "$ref": "#/definitions/BorderConfig"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "clipShape": {
+              "description": "Clip content to a shape (e.g. circle avatar from square image).",
+              "anyOf": [
+                {
+                  "$ref": "#/definitions/ClipShape"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "cornerRadius": {
+              "description": "Corner radius in points.",
+              "type": [
+                "number",
+                "null"
+              ],
+              "format": "double"
+            },
+            "flex": {
+              "description": "Layout weight for flexible sizing inside stacks (like Android `layout_weight`).",
+              "type": [
+                "number",
+                "null"
+              ],
+              "format": "double"
+            },
+            "frame": {
+              "description": "Explicit width / height / max constraints.",
+              "anyOf": [
+                {
+                  "$ref": "#/definitions/FrameConfig"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "isOn": {
+              "description": "Whether the toggle is on.",
+              "type": "boolean"
+            },
+            "label": {
+              "description": "Optional label beside the control.",
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "opacity": {
+              "description": "Opacity from `0` (invisible) to `1` (opaque).",
+              "type": [
+                "number",
+                "null"
+              ],
+              "format": "double"
+            },
+            "padding": {
+              "description": "Inset padding (number or per-edge object).",
+              "anyOf": [
+                {
+                  "$ref": "#/definitions/PaddingValue"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "shadow": {
+              "description": "Drop shadow.",
+              "anyOf": [
+                {
+                  "$ref": "#/definitions/ShadowConfig"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "tint": {
+              "description": "Accent color when on.",
+              "anyOf": [
+                {
+                  "$ref": "#/definitions/ColorValue"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "type": {
+              "type": "string",
+              "enum": [
+                "toggle"
+              ]
+            }
+          }
+        },
+        {
+          "description": "Horizontal or vertical rule.",
+          "type": "object",
+          "required": [
+            "type"
+          ],
+          "properties": {
+            "background": {
+              "description": "Solid, adaptive, or gradient background.",
+              "anyOf": [
+                {
+                  "$ref": "#/definitions/BackgroundValue"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "border": {
+              "description": "Border color and width.",
+              "anyOf": [
+                {
+                  "$ref": "#/definitions/BorderConfig"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "clipShape": {
+              "description": "Clip content to a shape (e.g. circle avatar from square image).",
+              "anyOf": [
+                {
+                  "$ref": "#/definitions/ClipShape"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "color": {
+              "description": "Line color.",
+              "anyOf": [
+                {
+                  "$ref": "#/definitions/ColorValue"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "cornerRadius": {
+              "description": "Corner radius in points.",
+              "type": [
+                "number",
+                "null"
+              ],
+              "format": "double"
+            },
+            "flex": {
+              "description": "Layout weight for flexible sizing inside stacks (like Android `layout_weight`).",
+              "type": [
+                "number",
+                "null"
+              ],
+              "format": "double"
+            },
+            "frame": {
+              "description": "Explicit width / height / max constraints.",
+              "anyOf": [
+                {
+                  "$ref": "#/definitions/FrameConfig"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "opacity": {
+              "description": "Opacity from `0` (invisible) to `1` (opaque).",
+              "type": [
+                "number",
+                "null"
+              ],
+              "format": "double"
+            },
+            "padding": {
+              "description": "Inset padding (number or per-edge object).",
+              "anyOf": [
+                {
+                  "$ref": "#/definitions/PaddingValue"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "shadow": {
+              "description": "Drop shadow.",
+              "anyOf": [
+                {
+                  "$ref": "#/definitions/ShadowConfig"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "thickness": {
+              "description": "Line thickness in points.",
+              "type": [
+                "number",
+                "null"
+              ],
+              "format": "double"
+            },
+            "type": {
+              "type": "string",
+              "enum": [
+                "divider"
+              ]
+            }
+          }
+        },
+        {
+          "description": "Flexible empty space.",
+          "type": "object",
+          "required": [
+            "type"
+          ],
+          "properties": {
+            "minLength": {
+              "description": "Minimum length along the parent axis (points).",
+              "type": [
+                "number",
+                "null"
+              ],
+              "format": "double"
+            },
+            "type": {
+              "type": "string",
+              "enum": [
+                "spacer"
+              ]
+            }
+          }
+        },
+        {
+          "description": "Formatted date / relative time display.",
+          "type": "object",
+          "required": [
+            "date",
+            "type"
+          ],
+          "properties": {
+            "background": {
+              "description": "Solid, adaptive, or gradient background.",
+              "anyOf": [
+                {
+                  "$ref": "#/definitions/BackgroundValue"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "border": {
+              "description": "Border color and width.",
+              "anyOf": [
+                {
+                  "$ref": "#/definitions/BorderConfig"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "clipShape": {
+              "description": "Clip content to a shape (e.g. circle avatar from square image).",
+              "anyOf": [
+                {
+                  "$ref": "#/definitions/ClipShape"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "color": {
+              "description": "Text color.",
+              "anyOf": [
+                {
+                  "$ref": "#/definitions/ColorValue"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "cornerRadius": {
+              "description": "Corner radius in points.",
+              "type": [
+                "number",
+                "null"
+              ],
+              "format": "double"
+            },
+            "date": {
+              "description": "ISO 8601 date string.",
+              "type": "string"
+            },
+            "dateStyle": {
+              "description": "Display style (`time`, `date`, `relative`, `offset`, `timer`).",
+              "anyOf": [
+                {
+                  "$ref": "#/definitions/DateStyle"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "flex": {
+              "description": "Layout weight for flexible sizing inside stacks (like Android `layout_weight`).",
+              "type": [
+                "number",
+                "null"
+              ],
+              "format": "double"
+            },
+            "fontSize": {
+              "description": "Font size in points.",
+              "type": [
+                "number",
+                "null"
+              ],
+              "format": "double"
+            },
+            "frame": {
+              "description": "Explicit width / height / max constraints.",
+              "anyOf": [
+                {
+                  "$ref": "#/definitions/FrameConfig"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "opacity": {
+              "description": "Opacity from `0` (invisible) to `1` (opaque).",
+              "type": [
+                "number",
+                "null"
+              ],
+              "format": "double"
+            },
+            "padding": {
+              "description": "Inset padding (number or per-edge object).",
+              "anyOf": [
+                {
+                  "$ref": "#/definitions/PaddingValue"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "shadow": {
+              "description": "Drop shadow.",
+              "anyOf": [
+                {
+                  "$ref": "#/definitions/ShadowConfig"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "type": {
+              "type": "string",
+              "enum": [
+                "date"
+              ]
+            }
+          }
+        },
+        {
+          "description": "Bar, line, area, or pie chart.",
+          "type": "object",
+          "required": [
+            "chartType",
+            "type"
+          ],
+          "properties": {
+            "background": {
+              "description": "Solid, adaptive, or gradient background.",
+              "anyOf": [
+                {
+                  "$ref": "#/definitions/BackgroundValue"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "border": {
+              "description": "Border color and width.",
+              "anyOf": [
+                {
+                  "$ref": "#/definitions/BorderConfig"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "chartData": {
+              "description": "Data points (`label` + `value`, optional per-point `color`).",
+              "type": "array",
+              "items": {
+                "$ref": "#/definitions/ChartDataPoint"
+              }
+            },
+            "chartType": {
+              "description": "Chart kind: `bar`, `line`, `area`, or `pie`.",
+              "allOf": [
+                {
+                  "$ref": "#/definitions/ChartType"
+                }
+              ]
+            },
+            "clipShape": {
+              "description": "Clip content to a shape (e.g. circle avatar from square image).",
+              "anyOf": [
+                {
+                  "$ref": "#/definitions/ClipShape"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "cornerRadius": {
+              "description": "Corner radius in points.",
+              "type": [
+                "number",
+                "null"
+              ],
+              "format": "double"
+            },
+            "flex": {
+              "description": "Layout weight for flexible sizing inside stacks (like Android `layout_weight`).",
+              "type": [
+                "number",
+                "null"
+              ],
+              "format": "double"
+            },
+            "frame": {
+              "description": "Explicit width / height / max constraints.",
+              "anyOf": [
+                {
+                  "$ref": "#/definitions/FrameConfig"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "opacity": {
+              "description": "Opacity from `0` (invisible) to `1` (opaque).",
+              "type": [
+                "number",
+                "null"
+              ],
+              "format": "double"
+            },
+            "padding": {
+              "description": "Inset padding (number or per-edge object).",
+              "anyOf": [
+                {
+                  "$ref": "#/definitions/PaddingValue"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "shadow": {
+              "description": "Drop shadow.",
+              "anyOf": [
+                {
+                  "$ref": "#/definitions/ShadowConfig"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "tint": {
+              "description": "Default series tint.",
+              "anyOf": [
+                {
+                  "$ref": "#/definitions/ColorValue"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "type": {
+              "type": "string",
+              "enum": [
+                "chart"
+              ]
+            }
+          }
+        },
+        {
+          "description": "Collection list of rows (text, optional checked marker and action).",
+          "type": "object",
+          "required": [
+            "type"
+          ],
+          "properties": {
+            "background": {
+              "description": "Solid, adaptive, or gradient background.",
+              "anyOf": [
+                {
+                  "$ref": "#/definitions/BackgroundValue"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "border": {
+              "description": "Border color and width.",
+              "anyOf": [
+                {
+                  "$ref": "#/definitions/BorderConfig"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "clipShape": {
+              "description": "Clip content to a shape (e.g. circle avatar from square image).",
+              "anyOf": [
+                {
+                  "$ref": "#/definitions/ClipShape"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "color": {
+              "description": "Row text color.",
+              "anyOf": [
+                {
+                  "$ref": "#/definitions/ColorValue"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "cornerRadius": {
+              "description": "Corner radius in points.",
+              "type": [
+                "number",
+                "null"
+              ],
+              "format": "double"
+            },
+            "flex": {
+              "description": "Layout weight for flexible sizing inside stacks (like Android `layout_weight`).",
+              "type": [
+                "number",
+                "null"
+              ],
+              "format": "double"
+            },
+            "fontSize": {
+              "description": "Row text font size.",
+              "type": [
+                "number",
+                "null"
+              ],
+              "format": "double"
+            },
+            "frame": {
+              "description": "Explicit width / height / max constraints.",
+              "anyOf": [
+                {
+                  "$ref": "#/definitions/FrameConfig"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "items": {
+              "description": "Row items.",
+              "type": "array",
+              "items": {
+                "$ref": "#/definitions/ListItem"
+              }
+            },
+            "opacity": {
+              "description": "Opacity from `0` (invisible) to `1` (opaque).",
+              "type": [
+                "number",
+                "null"
+              ],
+              "format": "double"
+            },
+            "padding": {
+              "description": "Inset padding (number or per-edge object).",
+              "anyOf": [
+                {
+                  "$ref": "#/definitions/PaddingValue"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "shadow": {
+              "description": "Drop shadow.",
+              "anyOf": [
+                {
+                  "$ref": "#/definitions/ShadowConfig"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "spacing": {
+              "description": "Space between rows (points).",
+              "type": [
+                "number",
+                "null"
+              ],
+              "format": "double"
+            },
+            "type": {
+              "type": "string",
+              "enum": [
+                "list"
+              ]
+            }
+          }
+        },
+        {
+          "description": "Tappable wrapper — makes nested content clickable.",
+          "type": "object",
+          "required": [
+            "type"
+          ],
+          "properties": {
+            "action": {
+              "description": "Action identifier — emits `widget-action` event.",
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "background": {
+              "description": "Solid, adaptive, or gradient background.",
+              "anyOf": [
+                {
+                  "$ref": "#/definitions/BackgroundValue"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "border": {
+              "description": "Border color and width.",
+              "anyOf": [
+                {
+                  "$ref": "#/definitions/BorderConfig"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "children": {
+              "description": "Nested content to wrap.",
+              "type": "array",
+              "items": {
+                "$ref": "#/definitions/WidgetElement"
+              }
+            },
+            "clipShape": {
+              "description": "Clip content to a shape (e.g. circle avatar from square image).",
+              "anyOf": [
+                {
+                  "$ref": "#/definitions/ClipShape"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "cornerRadius": {
+              "description": "Corner radius in points.",
+              "type": [
+                "number",
+                "null"
+              ],
+              "format": "double"
+            },
+            "flex": {
+              "description": "Layout weight for flexible sizing inside stacks (like Android `layout_weight`).",
+              "type": [
+                "number",
+                "null"
+              ],
+              "format": "double"
+            },
+            "frame": {
+              "description": "Explicit width / height / max constraints.",
+              "anyOf": [
+                {
+                  "$ref": "#/definitions/FrameConfig"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "opacity": {
+              "description": "Opacity from `0` (invisible) to `1` (opaque).",
+              "type": [
+                "number",
+                "null"
+              ],
+              "format": "double"
+            },
+            "padding": {
+              "description": "Inset padding (number or per-edge object).",
+              "anyOf": [
+                {
+                  "$ref": "#/definitions/PaddingValue"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "shadow": {
+              "description": "Drop shadow.",
+              "anyOf": [
+                {
+                  "$ref": "#/definitions/ShadowConfig"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "type": {
+              "type": "string",
+              "enum": [
+                "link"
+              ]
+            },
+            "url": {
+              "description": "Deep-link URL to open.",
+              "type": [
+                "string",
+                "null"
+              ]
+            }
+          }
+        },
+        {
+          "description": "Colored shape — circle, capsule, or rectangle.",
+          "type": "object",
+          "required": [
+            "shapeType",
+            "type"
+          ],
+          "properties": {
+            "background": {
+              "description": "Solid, adaptive, or gradient background.",
+              "anyOf": [
+                {
+                  "$ref": "#/definitions/BackgroundValue"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "border": {
+              "description": "Border color and width.",
+              "anyOf": [
+                {
+                  "$ref": "#/definitions/BorderConfig"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "clipShape": {
+              "description": "Clip content to a shape (e.g. circle avatar from square image).",
+              "anyOf": [
+                {
+                  "$ref": "#/definitions/ClipShape"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "cornerRadius": {
+              "description": "Corner radius in points.",
+              "type": [
+                "number",
+                "null"
+              ],
+              "format": "double"
+            },
+            "fill": {
+              "description": "Fill color.",
+              "anyOf": [
+                {
+                  "$ref": "#/definitions/ColorValue"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "flex": {
+              "description": "Layout weight for flexible sizing inside stacks (like Android `layout_weight`).",
+              "type": [
+                "number",
+                "null"
+              ],
+              "format": "double"
+            },
+            "frame": {
+              "description": "Explicit width / height / max constraints.",
+              "anyOf": [
+                {
+                  "$ref": "#/definitions/FrameConfig"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "opacity": {
+              "description": "Opacity from `0` (invisible) to `1` (opaque).",
+              "type": [
+                "number",
+                "null"
+              ],
+              "format": "double"
+            },
+            "padding": {
+              "description": "Inset padding (number or per-edge object).",
+              "anyOf": [
+                {
+                  "$ref": "#/definitions/PaddingValue"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "shadow": {
+              "description": "Drop shadow.",
+              "anyOf": [
+                {
+                  "$ref": "#/definitions/ShadowConfig"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "shapeType": {
+              "description": "Shape kind.",
+              "allOf": [
+                {
+                  "$ref": "#/definitions/ShapeType"
+                }
+              ]
+            },
+            "size": {
+              "description": "Bounding size in points.",
+              "type": [
+                "number",
+                "null"
+              ],
+              "format": "double"
+            },
+            "stroke": {
+              "description": "Stroke color.",
+              "anyOf": [
+                {
+                  "$ref": "#/definitions/ColorValue"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "strokeWidth": {
+              "description": "Stroke width in points.",
+              "type": [
+                "number",
+                "null"
+              ],
+              "format": "double"
+            },
+            "type": {
+              "type": "string",
+              "enum": [
+                "shape"
+              ]
+            }
+          }
+        },
+        {
+          "description": "Live countdown/countup timer that updates without timeline refresh.",
+          "type": "object",
+          "required": [
+            "targetDate",
+            "type"
+          ],
+          "properties": {
+            "background": {
+              "description": "Solid, adaptive, or gradient background.",
+              "anyOf": [
+                {
+                  "$ref": "#/definitions/BackgroundValue"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "border": {
+              "description": "Border color and width.",
+              "anyOf": [
+                {
+                  "$ref": "#/definitions/BorderConfig"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "clipShape": {
+              "description": "Clip content to a shape (e.g. circle avatar from square image).",
+              "anyOf": [
+                {
+                  "$ref": "#/definitions/ClipShape"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "color": {
+              "description": "Text color.",
+              "anyOf": [
+                {
+                  "$ref": "#/definitions/ColorValue"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "cornerRadius": {
+              "description": "Corner radius in points.",
+              "type": [
+                "number",
+                "null"
+              ],
+              "format": "double"
+            },
+            "counting": {
+              "description": "Count direction. Default: `down`.",
+              "anyOf": [
+                {
+                  "$ref": "#/definitions/TimerCounting"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "flex": {
+              "description": "Layout weight for flexible sizing inside stacks (like Android `layout_weight`).",
+              "type": [
+                "number",
+                "null"
+              ],
+              "format": "double"
+            },
+            "fontSize": {
+              "description": "Font size in points.",
+              "type": [
+                "number",
+                "null"
+              ],
+              "format": "double"
+            },
+            "fontWeight": {
+              "description": "Font weight.",
+              "anyOf": [
+                {
+                  "$ref": "#/definitions/FontWeight"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "frame": {
+              "description": "Explicit width / height / max constraints.",
+              "anyOf": [
+                {
+                  "$ref": "#/definitions/FrameConfig"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "opacity": {
+              "description": "Opacity from `0` (invisible) to `1` (opaque).",
+              "type": [
+                "number",
+                "null"
+              ],
+              "format": "double"
+            },
+            "padding": {
+              "description": "Inset padding (number or per-edge object).",
+              "anyOf": [
+                {
+                  "$ref": "#/definitions/PaddingValue"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "shadow": {
+              "description": "Drop shadow.",
+              "anyOf": [
+                {
+                  "$ref": "#/definitions/ShadowConfig"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "targetDate": {
+              "description": "ISO 8601 target date.",
+              "type": "string"
+            },
+            "type": {
+              "type": "string",
+              "enum": [
+                "timer"
+              ]
+            }
+          }
+        },
+        {
+          "description": "Declarative canvas — draw arbitrary shapes via JSON commands.",
+          "type": "object",
+          "required": [
+            "height",
+            "type",
+            "width"
+          ],
+          "properties": {
+            "background": {
+              "description": "Solid, adaptive, or gradient background.",
+              "anyOf": [
+                {
+                  "$ref": "#/definitions/BackgroundValue"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "border": {
+              "description": "Border color and width.",
+              "anyOf": [
+                {
+                  "$ref": "#/definitions/BorderConfig"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "clipShape": {
+              "description": "Clip content to a shape (e.g. circle avatar from square image).",
+              "anyOf": [
+                {
+                  "$ref": "#/definitions/ClipShape"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "cornerRadius": {
+              "description": "Corner radius in points.",
+              "type": [
+                "number",
+                "null"
+              ],
+              "format": "double"
+            },
+            "elements": {
+              "description": "Draw commands (`circle`, `line`, `rect`, `arc`, `text`, `path`).",
+              "type": "array",
+              "items": {
+                "$ref": "#/definitions/CanvasDrawCommand"
+              }
+            },
+            "flex": {
+              "description": "Layout weight for flexible sizing inside stacks (like Android `layout_weight`).",
+              "type": [
+                "number",
+                "null"
+              ],
+              "format": "double"
+            },
+            "frame": {
+              "description": "Explicit width / height / max constraints.",
+              "anyOf": [
+                {
+                  "$ref": "#/definitions/FrameConfig"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "height": {
+              "description": "Canvas height in points.",
+              "type": "number",
+              "format": "double"
+            },
+            "opacity": {
+              "description": "Opacity from `0` (invisible) to `1` (opaque).",
+              "type": [
+                "number",
+                "null"
+              ],
+              "format": "double"
+            },
+            "padding": {
+              "description": "Inset padding (number or per-edge object).",
+              "anyOf": [
+                {
+                  "$ref": "#/definitions/PaddingValue"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "shadow": {
+              "description": "Drop shadow.",
+              "anyOf": [
+                {
+                  "$ref": "#/definitions/ShadowConfig"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "type": {
+              "type": "string",
+              "enum": [
+                "canvas"
+              ]
+            },
+            "width": {
+              "description": "Canvas width in points.",
+              "type": "number",
+              "format": "double"
+            }
+          }
+        },
+        {
+          "description": "Convenience element combining an SF Symbol / icon with text.",
+          "type": "object",
+          "required": [
+            "systemName",
+            "text",
+            "type"
+          ],
+          "properties": {
+            "background": {
+              "description": "Solid, adaptive, or gradient background.",
+              "anyOf": [
+                {
+                  "$ref": "#/definitions/BackgroundValue"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "border": {
+              "description": "Border color and width.",
+              "anyOf": [
+                {
+                  "$ref": "#/definitions/BorderConfig"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "clipShape": {
+              "description": "Clip content to a shape (e.g. circle avatar from square image).",
+              "anyOf": [
+                {
+                  "$ref": "#/definitions/ClipShape"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "color": {
+              "description": "Text color.",
+              "anyOf": [
+                {
+                  "$ref": "#/definitions/ColorValue"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "cornerRadius": {
+              "description": "Corner radius in points.",
+              "type": [
+                "number",
+                "null"
+              ],
+              "format": "double"
+            },
+            "flex": {
+              "description": "Layout weight for flexible sizing inside stacks (like Android `layout_weight`).",
+              "type": [
+                "number",
+                "null"
+              ],
+              "format": "double"
+            },
+            "fontSize": {
+              "description": "Text font size.",
+              "type": [
+                "number",
+                "null"
+              ],
+              "format": "double"
+            },
+            "fontWeight": {
+              "description": "Text font weight.",
+              "anyOf": [
+                {
+                  "$ref": "#/definitions/FontWeight"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "frame": {
+              "description": "Explicit width / height / max constraints.",
+              "anyOf": [
+                {
+                  "$ref": "#/definitions/FrameConfig"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "iconColor": {
+              "description": "Icon tint color.",
+              "anyOf": [
+                {
+                  "$ref": "#/definitions/ColorValue"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "opacity": {
+              "description": "Opacity from `0` (invisible) to `1` (opaque).",
+              "type": [
+                "number",
+                "null"
+              ],
+              "format": "double"
+            },
+            "padding": {
+              "description": "Inset padding (number or per-edge object).",
+              "anyOf": [
+                {
+                  "$ref": "#/definitions/PaddingValue"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "shadow": {
+              "description": "Drop shadow.",
+              "anyOf": [
+                {
+                  "$ref": "#/definitions/ShadowConfig"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "spacing": {
+              "description": "Space between icon and text.",
+              "type": [
+                "number",
+                "null"
+              ],
+              "format": "double"
+            },
+            "systemName": {
+              "description": "SF Symbol or platform icon name.",
+              "type": "string"
+            },
+            "text": {
+              "description": "Label text.",
+              "type": "string"
+            },
+            "type": {
+              "type": "string",
+              "enum": [
+                "label"
+              ]
+            }
+          }
+        }
+      ]
+    }
+  }
+}
