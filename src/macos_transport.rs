@@ -330,39 +330,39 @@ pub fn all_transports(group: &str) -> Vec<Arc<dyn Transport>> {
 /// `pick_freshest` by nonce. The configured driver is never wiped here — a
 /// failed follow-up write must not erase the last good primary map.
 ///
-/// For each sibling, pending actions are merged into `into` immediately before
-/// the wipe (with a short re-read retry) so a tap between an earlier harvest and
-/// this clear is not dropped.
+/// Each wipe is `read → merge pending into `into` → write empty → re-read`.
+/// A nonempty re-read always folds pending again and retries — never a final
+/// blind empty write that could clobber a tap that arrived after the re-read.
 pub fn clear_sibling_transports(group: &str, keep: &str, into: &mut DataMap) {
-    use crate::store::PENDING_ACTIONS_KEY;
-
     for t in all_transports(group) {
         if t.name() == keep || !t.available() {
             continue;
         }
-        for attempt in 0..3 {
+        for _ in 0..5 {
             let Some(existing) = t.read() else { break };
             if existing.is_empty() {
                 break;
             }
             merge_pending_from_map(into, &existing);
-            let pending_snapshot = existing.get(PENDING_ACTIONS_KEY).cloned();
             if let Err(e) = t.write(&DataMap::new()) {
                 log::debug!("clear_sibling_transports({}): {e}", t.name());
                 break;
             }
-            // Tap landed during wipe — fold it in and clear again.
-            let Some(after) = t.read() else { break };
-            if after.is_empty() {
-                break;
+            match t.read() {
+                None => break,
+                Some(after) if after.is_empty() => break,
+                Some(after) => {
+                    // Something reappeared (likely a tap) — fold in and retry wipe.
+                    merge_pending_from_map(into, &after);
+                }
             }
-            merge_pending_from_map(into, &after);
-            let again = after.get(PENDING_ACTIONS_KEY).cloned();
-            if again != pending_snapshot && attempt + 1 < 3 {
-                continue;
+        }
+        // Attempts exhausted: preserve any residual pending in `into`, do not
+        // blind-wipe (that race is what drops taps).
+        if let Some(left) = t.read() {
+            if !left.is_empty() {
+                merge_pending_from_map(into, &left);
             }
-            let _ = t.write(&DataMap::new());
-            break;
         }
     }
 }
