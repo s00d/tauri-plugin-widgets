@@ -90,18 +90,23 @@ struct MyWidget: Widget {
 
 Or copy from `node_modules/tauri-plugin-widgets-api/templates/ios-widget/MyWidget.swift` (plugin repo path: `templates/ios-widget/MyWidget.swift`).
 
-## Step 5: Configure App Groups
+## Step 5: App Groups (portal + entitlements)
 
-1. Select the **main app target** (your iOS app, e.g. `myapp_iOS`) → **Signing & Capabilities**.
-2. Click **+ Capability** → add **App Groups**.
-3. In the App Groups block click `+` and add your group (use the value printed by `init-ios`).
-4. Repeat the same for the **WidgetExtension** target.
-5. Verify the App Group value is **exactly the same** in both targets.
-6. If **+ Capability** is disabled, set a valid **Team** in Signing for that target first.
+> **Widgets on a physical iOS device require a paid Apple Developer account** — free provisioning cannot grant App Groups. The Simulator works without a paid seat.
+
+`init-ios` writes both `.entitlements` under `src-tauri/gen/apple/` and sets `CODE_SIGN_ENTITLEMENTS` on the app + widget targets. You still must register the group on the portal (Apple does not allow automating that):
+
+1. Open [Identifiers](https://developer.apple.com/account/resources/identifiers/list).
+2. Register App Group = the id printed by `init-ios` (e.g. `group.com.example.myapp`).
+3. Enable **App Groups** on **both** App IDs (main + `*.WidgetExtension`) and tick that group.
+
+Full checklist and “id not available” notes: [Apple data transport → App Groups & signing](/guide/transport#app-groups--signing-plugin-consumers).
+
+In Xcode you only need a valid **Team** on both targets (Automatic signing). Capability UI is optional once entitlements + portal match.
 
 ## Step 6: Plugin config (`tauri.conf.json`)
 
-Xcode App Groups alone are not enough. The **Rust host** must know the same id or plugin init fails:
+`init-ios` **writes** `plugins.widgets` with `transport: "appGroup"` (required on iOS):
 
 ```json
 {
@@ -114,9 +119,7 @@ Xcode App Groups alone are not enough. The **Rust host** must know the same id o
 }
 ```
 
-- `init-ios` does **not** patch this — add it yourself.
-- On iOS, `transport` must be `appGroup` (other values fail at init).
-- JS `setWidgetConfig(..., group, widgetId)` must use that same `group` string.
+JS `setWidgetConfig(..., group, widgetId)` must use that same `group` string.
 
 Also keep Swift `TauriWidgetProvider(..., widgetId:)` aligned with the JS `widgetId` (CLI default is `"default"`). If your app writes `widgetId: "weather"`, pass `widgetId: "weather"` into the provider or the extension reads `config:default` while the host wrote `config:weather`.
 

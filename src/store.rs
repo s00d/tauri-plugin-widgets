@@ -18,6 +18,7 @@ pub const META_NONCE_KEY: &str = "__meta_nonce__";
 /// Unix epoch milliseconds of last map write.
 pub const META_UPDATED_AT_KEY: &str = "__meta_updated_at__";
 
+/// String key/value bag persisted by transports.
 pub type DataMap = HashMap<String, String>;
 
 /// Build the storage key for a widget UI config.
@@ -67,16 +68,33 @@ pub fn touch_meta_above(map: &mut DataMap, floor: u64) {
     map.insert(META_UPDATED_AT_KEY.into(), now_ms().to_string());
 }
 
-/// Pick the freshest map among candidates (max nonce, then max updatedAt).
+/// Whether this map carries at least one `config:{widgetId}` payload.
+pub fn map_has_config(map: &DataMap) -> bool {
+    map.keys().any(|k| k.starts_with(CONFIG_KEY_PREFIX))
+}
+
+/// Pick the freshest map among candidates.
+///
+/// Maps that carry a `config:*` key always beat probe-only / empty siblings,
+/// even when the empty sibling has a higher nonce (pending-clear bumps).
+/// Among equals on that axis: max nonce, then max updatedAt.
 pub fn pick_freshest(maps: impl IntoIterator<Item = DataMap>) -> DataMap {
     let mut best: Option<DataMap> = None;
+    let mut best_has_config = false;
     let mut best_nonce = 0u64;
     let mut best_ts = 0u64;
     for map in maps {
+        let has_config = map_has_config(&map);
         let n = map_nonce(&map);
         let t = map_updated_at(&map);
-        let better = best.is_none() || n > best_nonce || (n == best_nonce && t > best_ts);
+        let better = match &best {
+            None => true,
+            Some(_) if has_config && !best_has_config => true,
+            Some(_) if !has_config && best_has_config => false,
+            Some(_) => n > best_nonce || (n == best_nonce && t > best_ts),
+        };
         if better {
+            best_has_config = has_config;
             best_nonce = n;
             best_ts = t;
             best = Some(map);
@@ -89,16 +107,21 @@ pub fn pick_freshest(maps: impl IntoIterator<Item = DataMap>) -> DataMap {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct WidgetActionEnvelope {
+    /// Action verb (button / toggle / list row).
     pub action: String,
+    /// Optional opaque payload string.
     #[serde(default)]
     pub payload: Option<String>,
     /// Unix epoch milliseconds when the action was enqueued.
     pub ts: u64,
+    /// Widget id that emitted the action.
     pub widget_id: String,
+    /// App Group / prefs group key.
     pub group: String,
 }
 
 impl WidgetActionEnvelope {
+    /// Build an envelope with `ts = now`.
     pub fn new(
         action: impl Into<String>,
         payload: Option<String>,
@@ -140,5 +163,25 @@ mod tests {
         map.insert(META_NONCE_KEY.into(), "9".into());
         touch_meta_above(&mut map, 65);
         assert_eq!(map_nonce(&map), 66);
+    }
+
+    #[test]
+    fn pick_freshest_prefers_config_over_higher_nonce_probe() {
+        let mut probe = DataMap::new();
+        probe.insert("__probe__".into(), "1".into());
+        probe.insert(META_NONCE_KEY.into(), "99".into());
+        probe.insert(META_UPDATED_AT_KEY.into(), "999".into());
+
+        let mut live = DataMap::new();
+        live.insert("config:example".into(), r#"{"version":1}"#.into());
+        live.insert(META_NONCE_KEY.into(), "4".into());
+        live.insert(META_UPDATED_AT_KEY.into(), "100".into());
+
+        let picked = pick_freshest([probe, live]);
+        assert!(
+            picked.contains_key("config:example"),
+            "probe-only sibling must not wipe live config"
+        );
+        assert_eq!(map_nonce(&picked), 4);
     }
 }

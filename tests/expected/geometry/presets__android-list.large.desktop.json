@@ -47,7 +47,7 @@
               ],
               "text": "Alpha",
               "px": 14,
-              "color": "#000000"
+              "color": "#E5E7EB"
             }
           ]
         },
@@ -82,7 +82,7 @@
               ],
               "text": "Beta",
               "px": 14,
-              "color": "#000000"
+              "color": "#E5E7EB"
             }
           ]
         },
@@ -117,7 +117,7 @@
               ],
               "text": "Gamma",
               "px": 14,
-              "color": "#000000"
+              "color": "#E5E7EB"
             }
           ]
         }

@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Widget</title>
+  <style>
+    *{margin:0;padding:0;box-sizing:border-box}
+    html,body{background:transparent;overflow:hidden;width:100%;height:100%;
+      font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;
+      user-select:none;-webkit-user-select:none}
+    #root{width:100%;height:100%;position:relative}
+    #drag-handle{position:absolute;top:0;left:0;right:24px;height:28px;z-index:9999}
+    #close-btn{position:absolute;top:4px;right:4px;width:20px;height:20px;border-radius:50%;
+      background:rgba(255,255,255,0.08);border:none;cursor:pointer;z-index:10000;
+      display:flex;align-items:center;justify-content:center;
+      color:rgba(255,255,255,0.4);font-size:11px;line-height:1;
+      opacity:0;transition:opacity .15s,background .15s}
+    #root:hover #close-btn{opacity:1}
+    #close-btn:hover{background:rgba(255,59,48,0.85);color:#fff}
+    .w-empty{width:100%;height:100%;display:flex;align-items:center;justify-content:center;
+      background:linear-gradient(135deg,#6366f1,#a855f7);color:#fff;text-align:center;
+      border-radius:12px}
+    .w-err{width:100%;height:100%;display:flex;align-items:center;justify-content:center;
+      background:#1a1a2e;color:#ff6b6b;font-size:12px;padding:16px;border-radius:12px}
+  </style>
+</head>
+<body>
+<div id="root">
+  <div class="w-empty">
+    <div><div style="font-size:28px;margin-bottom:4px">&#x1F4CC;</div>
+    <div style="font-size:14px;opacity:.7">Loading&#x2026;</div></div>
+  </div>
+</div>
+<!--WIDGET_JS-->
+</body>
+</html>

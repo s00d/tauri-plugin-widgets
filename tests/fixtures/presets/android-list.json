@@ -1,4 +1,5 @@
 {
+  "$schema": "https://s00d.github.io/tauri-plugin-widgets/schemas/widget-config.v1.json",
   "version": 1,
   "small": null,
   "medium": null,
@@ -24,8 +25,8 @@
         "payload": null
       }
     ],
-    "spacing": 2.0,
-    "fontSize": 14.0,
+    "spacing": 2,
+    "fontSize": 14,
     "color": null,
     "padding": null,
     "background": null,

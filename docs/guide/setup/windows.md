@@ -56,6 +56,24 @@ dotnet build src-tauri/windows-widget/WidgetProvider/WidgetProvider.csproj -c Re
 
 Pack / sideload helpers used in this repo: `just win-pack`, `just win-sideload` (see [Windows surfaces](/contributing/windows-surfaces)).
 
+### 5. Dev certificate (sideload)
+
+The MSIX **Publisher** string must match the certificate Subject exactly.
+
+```bash
+npx tauri-widgets signing --dev-cert
+# writes src-tauri/windows-widget/DevCert.ps1 and prints it
+```
+
+```powershell
+# elevated on Windows
+powershell -ExecutionPolicy Bypass -File src-tauri/windows-widget/DevCert.ps1
+# or sign in one shot:
+powershell -ExecutionPolicy Bypass -File src-tauri/windows-widget/DevCert.ps1 -MsixPath path\to\app.msix
+```
+
+`init-windows` also drops a starter `DevCert.ps1` into the scaffold.
+
 Optional wallpaper parenting (not Widgets Board): Cargo feature `workerw`.
 
 ---

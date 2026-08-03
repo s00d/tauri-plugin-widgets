@@ -1,11 +1,49 @@
 [package]
 name = "tauri-plugin-widgets"
-version = "0.4.3"
+version = "0.5.0"
 authors = ["s00d"]
 description = "Tauri plugin for App Widgets on Android, iOS, and macOS (WidgetKit); Windows Widgets Board (Adaptive Cards) + desktop webview; Linux desktop webview with X11 DESKTOP pin."
 edition = "2021"
 rust-version = "1.70"
-exclude = ["/examples", "/dist-js", "/guest-js", "/node_modules", "demo.gif"]
+exclude = [
+  # App / JS workspace (published via npm, not crates.io)
+  "/examples",
+  "/dist-js",
+  "/dist-cli",
+  "/guest-js",
+  "/src-cli",
+  "/widget-src",
+  "/templates",
+  "/swift",
+  "/node_modules",
+  "/docs",
+  "/scripts",
+  "/.github",
+  "/artifacts",
+  # Visual / platform harnesses (PNG goldens are bulk of the crate)
+  "/tests/golden",
+  "/tests/expected",
+  "/tests/desktop",
+  "/tests/windows",
+  "/tests/macos",
+  "/tests/linux",
+  "/tests/cli",
+  # Native test trees (not needed to compile the plugin)
+  "/android/src/test",
+  "/android/src/androidTest",
+  "/ios/Tests",
+  # Misc non-crate assets
+  "demo.gif",
+  "preview.png",
+  "package.json",
+  "pnpm-lock.yaml",
+  "pnpm-workspace.yaml",
+  "tsconfig.json",
+  "rollup.config.mjs",
+  "Justfile",
+  # Measured CI artifact (regenerated from goldens; not needed to build)
+  "schemas/capabilities.coverage.json",
+]
 links = "tauri-plugin-widgets"
 license = "MIT"
 repository = "https://github.com/s00d/tauri-plugin-widgets"
@@ -15,7 +53,7 @@ repository = "https://github.com/s00d/tauri-plugin-widgets"
 # *dependencies* too, and old crates (e.g. winnow 0.5) still gate on removed
 # nightly features like `doc_auto_cfg` → E0557. Use rustdoc-args only.
 # Skip `all-features`: `layer-shell` needs gtk-layer-shell sys libs.
-features = ["schema", "rasterize", "codegen", "workerw", "macos-private-api"]
+features = ["schema", "rasterize", "codegen", "workerw", "macos-private-api", "image-prefetch"]
 rustdoc-args = ["--cfg", "docsrs"]
 
 [package.metadata.platforms.support]
@@ -30,9 +68,14 @@ tauri = { version = "2" }
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 log = "0.4"
+base64 = "0.22"
 schemars = { version = "0.8", optional = true }
 resvg = { version = "0.45", optional = true }
-base64 = { version = "0.22", optional = true }
+
+# ureq → rustls → ring needs NDK C toolchain on Android; Rust prefetch is cfg'd
+# off there anyway (Kotlin localPath). Keep the crate off the Android graph.
+[target.'cfg(not(target_os = "android"))'.dependencies]
+ureq = { version = ">=2.0, <2.12", default-features = true, optional = true }
 
 [target.'cfg(target_os = "linux")'.dependencies]
 gtk = { version = "0.18", optional = true }
@@ -46,11 +89,13 @@ tempfile = "3"
 [features]
 # `linux` pulls gtk + x11rb for DESKTOP pin. Other OS backends follow `target_os` only.
 # `rasterize` is opt-in (resvg) for Adaptive Cards chart/canvas/gauge → PNG data-URI.
-default = ["linux"]
+# `image-prefetch` is default on non-Android (ureq target-gated off Android).
+default = ["linux", "image-prefetch"]
 linux = ["dep:x11rb", "dep:raw-window-handle", "dep:gtk"]
 schema = ["dep:schemars"]
 codegen = ["schema"]
-rasterize = ["dep:resvg", "dep:base64"]
+rasterize = ["dep:resvg"]
+image-prefetch = ["dep:ureq"]
 # Transparent desktop widget windows on macOS (requires host `tauri.conf` macosPrivateApi).
 macos-private-api = ["tauri/macos-private-api"]
 # Windows wallpaper WorkerW parenting (not Widgets Board).
@@ -66,6 +111,11 @@ required-features = ["codegen"]
 [[bin]]
 name = "gen-ts"
 path = "src/bin/gen_ts.rs"
+required-features = ["codegen"]
+
+[[bin]]
+name = "gen-native"
+path = "src/bin/gen_native.rs"
 required-features = ["codegen"]
 
 [[bin]]

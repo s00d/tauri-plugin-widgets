@@ -184,7 +184,7 @@ pub fn capability_table() -> Vec<CapabilityEntry> {
         "zstack",
         Windows,
         Degraded,
-        "flattened Container, no overlay",
+        "rasterized PNG overlay when possible; else flattened Container",
     ));
 
     out.extend_from_slice(&apple_full("shape"));
@@ -197,28 +197,28 @@ pub fn capability_table() -> Vec<CapabilityEntry> {
     out.push(cell("gauge", Desktop, Full, ""));
     out.push(cell("gauge", Windows, Degraded, "rasterized PNG"));
 
-    // image: systemName / url differ
+    // image (url/data): Full everywhere — systemName fidelity lives in feature row.
     out.extend_from_slice(&apple_full("image"));
     out.push(cell(
         "image",
         Android,
-        Degraded,
-        "systemName via glyph map; url via localPath preprocess",
+        Full,
+        "url via localPath preprocess; see image.systemName",
     ));
     out.push(cell("image", Desktop, Full, ""));
     out.push(cell(
         "image",
         Windows,
-        Degraded,
-        "url/data URI; systemName unsupported",
+        Full,
+        "url/data URI; see image.systemName",
     ));
 
     out.extend_from_slice(&apple_full("chart"));
     out.push(cell(
         "chart",
         Android,
-        Degraded,
-        "simplified bar/line rendering",
+        Full,
+        "bitmap bar/line/area/pie",
     ));
     out.push(cell("chart", Desktop, Full, "SVG"));
     out.push(cell("chart", Windows, Degraded, "rasterized PNG"));
@@ -228,24 +228,24 @@ pub fn capability_table() -> Vec<CapabilityEntry> {
         "list",
         Android,
         Full,
-        "Glance LazyColumn; depth/children limited",
+        "Column chunking; soft cap ~50 items",
     ));
     out.push(cell("list", Desktop, Full, ""));
-    out.push(cell("list", Windows, Degraded, "flattened TextBlocks"));
+    out.push(cell("list", Windows, Degraded, "Adaptive Cards Table"));
 
     out.extend_from_slice(&apple_full("timer"));
     out.push(cell(
         "timer",
         Android,
-        Degraded,
-        "static snapshot, not live Chronometer in all hosts",
+        Full,
+        "Chronometer via AndroidRemoteViews",
     ));
     out.push(cell("timer", Desktop, Full, "setInterval"));
     out.push(cell(
         "timer",
         Windows,
         Degraded,
-        "static TextBlock of targetDate",
+        "provider minute push + static TextBlock",
     ));
 
     out.extend_from_slice(&apple_full("canvas"));
@@ -253,7 +253,7 @@ pub fn capability_table() -> Vec<CapabilityEntry> {
         "canvas",
         Android,
         Degraded,
-        "bitmap canvas; path support limited",
+        "bitmap canvas (full SVG path via PathParser)",
     ));
     out.push(cell("canvas", Desktop, Full, "SVG"));
     out.push(cell("canvas", Windows, Degraded, "rasterized PNG"));
@@ -262,14 +262,14 @@ pub fn capability_table() -> Vec<CapabilityEntry> {
     out.push(cell(
         "image.url",
         Ios,
-        Unsupported,
-        "prefetch into shared container not wired",
+        Full,
+        "host prefetch to data URI on setWidgetConfig",
     ));
     out.push(cell(
         "image.url",
         Macos,
-        Unsupported,
-        "prefetch into shared container not wired",
+        Full,
+        "host prefetch to data URI on setWidgetConfig",
     ));
     out.push(cell(
         "image.url",
@@ -286,38 +286,38 @@ pub fn capability_table() -> Vec<CapabilityEntry> {
         "image.systemName",
         Android,
         Degraded,
-        "glyph / drawable name map",
+        "SF→Material / emoji map (not SF Symbols)",
     ));
     out.push(cell(
         "image.systemName",
         Desktop,
         Degraded,
-        "placeholder glyph",
+        "SF→Material / emoji map (not SF Symbols)",
     ));
     out.push(cell(
         "image.systemName",
         Windows,
-        Unsupported,
-        "no SF Symbols on Adaptive Cards",
+        Degraded,
+        "emoji TextBlock by default; glyph PNG Image with feature rasterize",
     ));
 
     out.push(cell(
         "background.gradient",
         Ios,
-        Degraded,
-        "linear primary; radial/angular limited",
+        Full,
+        "linear/radial/angular SwiftUI",
     ));
     out.push(cell(
         "background.gradient",
         Macos,
-        Degraded,
-        "linear primary; radial/angular limited",
+        Full,
+        "linear/radial/angular SwiftUI",
     ));
     out.push(cell(
         "background.gradient",
         Android,
-        Degraded,
-        "first color stop only (Glance)",
+        Full,
+        "baked bitmap at LocalSize / frame",
     ));
     out.push(cell(
         "background.gradient",
@@ -328,17 +328,17 @@ pub fn capability_table() -> Vec<CapabilityEntry> {
     out.push(cell(
         "background.gradient",
         Windows,
-        Unsupported,
-        "Container style=emphasis only",
+        Degraded,
+        "rasterized PNG backgroundImage when rasterize enabled",
     ));
 
-    out.push(cell("canvas.path", Ios, Degraded, "M/L/H/V/Z subset"));
-    out.push(cell("canvas.path", Macos, Degraded, "M/L/H/V/Z subset"));
+    out.push(cell("canvas.path", Ios, Full, "SVG path grammar"));
+    out.push(cell("canvas.path", Macos, Full, "SVG path grammar"));
     out.push(cell(
         "canvas.path",
         Android,
-        Degraded,
-        "limited path commands",
+        Full,
+        "PathParser full SVG path",
     ));
     out.push(cell("canvas.path", Desktop, Full, "SVG path"));
     out.push(cell("canvas.path", Windows, Degraded, "rasterized via SVG"));
@@ -348,11 +348,16 @@ pub fn capability_table() -> Vec<CapabilityEntry> {
     out.push(cell(
         "timer.live",
         Android,
-        Unsupported,
-        "no live timer in Glance snapshot",
+        Full,
+        "Chronometer via AndroidRemoteViews",
     ));
     out.push(cell("timer.live", Desktop, Full, "JS interval"));
-    out.push(cell("timer.live", Windows, Unsupported, "static only"));
+    out.push(cell(
+        "timer.live",
+        Windows,
+        Degraded,
+        "provider pushes UpdateWidget ~1/min",
+    ));
 
     out
 }
@@ -539,80 +544,385 @@ pub fn log_capabilities(config: &WidgetConfig) {
     }
 }
 
-/// Render markdown capability matrix (elements only, not feature keys).
+/// Machine-readable capability matrix for CLI `validate` and docs tooling.
+pub fn render_capabilities_json() -> String {
+    use serde_json::{json, Map, Value};
+
+    let mut elements = Map::new();
+    for el in ELEMENT_TYPES {
+        let mut platforms = Map::new();
+        for p in WidgetPlatform::all() {
+            let e = support_for(el, p);
+            platforms.insert(
+                p.as_str().to_string(),
+                json!({
+                    "support": e.support.as_str(),
+                    "note": e.note,
+                }),
+            );
+        }
+        elements.insert((*el).to_string(), Value::Object(platforms));
+    }
+
+    let mut features = Map::new();
+    for feat in FEATURE_KEYS {
+        let mut platforms = Map::new();
+        for p in WidgetPlatform::all() {
+            let e = support_for(feat, p);
+            platforms.insert(
+                p.as_str().to_string(),
+                json!({
+                    "support": e.support.as_str(),
+                    "note": e.note,
+                }),
+            );
+        }
+        features.insert((*feat).to_string(), Value::Object(platforms));
+    }
+
+    let doc = json!({
+        "version": 1,
+        "platforms": WidgetPlatform::all().map(|p| p.as_str()),
+        "core": CORE_ELEMENTS,
+        "extended": EXTENDED_ELEMENTS,
+        "elements": elements,
+        "features": features,
+    });
+    format!(
+        "{}\n",
+        serde_json::to_string_pretty(&doc).expect("serialize capabilities.json")
+    )
+}
+
+/// Walk `tests/cases` + `tests/golden/{platform}` and count how many goldens
+/// cover each element type on each platform. Used to keep the hand matrix honest.
+pub fn measure_element_coverage(
+    root: &std::path::Path,
+) -> std::collections::BTreeMap<String, std::collections::BTreeMap<String, usize>> {
+    use serde_json::Value;
+    use std::collections::{BTreeMap, BTreeSet};
+
+    let cases_dir = root.join("tests/cases");
+    let golden_root = root.join("tests/golden");
+    let fixtures_root = root.join("tests/fixtures");
+
+    fn walk_types(node: &Value, out: &mut BTreeSet<String>) {
+        match node {
+            Value::Object(map) => {
+                if let Some(Value::String(t)) = map.get("type") {
+                    out.insert(t.clone());
+                }
+                for v in map.values() {
+                    walk_types(v, out);
+                }
+            }
+            Value::Array(arr) => {
+                for v in arr {
+                    walk_types(v, out);
+                }
+            }
+            _ => {}
+        }
+    }
+
+    let mut out: BTreeMap<String, BTreeMap<String, usize>> = BTreeMap::new();
+    let Ok(entries) = std::fs::read_dir(&cases_dir) else {
+        return out;
+    };
+
+    for entry in entries.flatten() {
+        let path = entry.path();
+        if path.extension().and_then(|e| e.to_str()) != Some("json") {
+            continue;
+        }
+        let case_name = path
+            .file_stem()
+            .and_then(|s| s.to_str())
+            .unwrap_or_default()
+            .to_string();
+        let Ok(raw) = std::fs::read_to_string(&path) else {
+            continue;
+        };
+        let Ok(case): Result<Value, _> = serde_json::from_str(&raw) else {
+            continue;
+        };
+        let fixture = case
+            .get("fixture")
+            .and_then(|v| v.as_str())
+            .unwrap_or("");
+        if fixture.is_empty() {
+            continue;
+        }
+        let fixture_path = {
+            let with_json = fixtures_root.join(format!("{fixture}.json"));
+            if with_json.exists() {
+                with_json
+            } else {
+                fixtures_root.join(fixture)
+            }
+        };
+        let Ok(fx_raw) = std::fs::read_to_string(&fixture_path) else {
+            continue;
+        };
+        let Ok(fx): Result<Value, _> = serde_json::from_str(&fx_raw) else {
+            continue;
+        };
+        let mut types = BTreeSet::new();
+        walk_types(&fx, &mut types);
+
+        let platforms: Vec<String> = if let Some(Value::Array(arr)) = case.get("platforms") {
+            arr.iter()
+                .filter_map(|v| v.as_str().map(|s| s.to_string()))
+                .collect()
+        } else {
+            vec![
+                "desktop".into(),
+                "ios".into(),
+                "macos".into(),
+                "android".into(),
+                "linux".into(),
+            ]
+        };
+
+        for platform in platforms {
+            let png = golden_root.join(&platform).join(format!("{case_name}.png"));
+            if !png.exists() {
+                continue;
+            }
+            for ty in &types {
+                *out
+                    .entry(ty.clone())
+                    .or_default()
+                    .entry(platform.clone())
+                    .or_default() += 1;
+            }
+        }
+    }
+    out
+}
+
+/// Measured golden coverage artifact (`schemas/capabilities.coverage.json`).
+pub fn render_capabilities_coverage_json() -> String {
+    let root = std::path::Path::new(env!("CARGO_MANIFEST_DIR"));
+    let measured = measure_element_coverage(root);
+    let mut elements = serde_json::Map::new();
+    for el in ELEMENT_TYPES {
+        let mut platforms = serde_json::Map::new();
+        let row = measured.get(*el);
+        for p in ["desktop", "ios", "macos", "android", "linux", "windows"] {
+            let n = row.and_then(|m| m.get(p)).copied().unwrap_or(0);
+            platforms.insert(p.to_string(), serde_json::json!(n));
+        }
+        elements.insert((*el).to_string(), serde_json::Value::Object(platforms));
+    }
+    let doc = serde_json::json!({
+        "version": 1,
+        "source": "tests/cases + tests/golden",
+        "note": "Counts of golden PNGs whose fixture contains each element type. Hand matrix remains schemas/capabilities.json.",
+        "elements": elements,
+    });
+    format!(
+        "{}\n",
+        serde_json::to_string_pretty(&doc).expect("serialize coverage")
+    )
+}
+
+/// Render markdown capability matrix for docs (`###` headings — embed under
+/// a single `## Capability matrix` on the tiers page).
 pub fn render_capability_matrix_md() -> String {
+    let mut notes: Vec<String> = Vec::new();
     let mut md = String::from(
         "# Capability matrix (element × platform)\n\n\
-         Generated from `tauri_plugin_widgets::capabilities`. Do not edit by hand.\n\n\
-         ## Core (strict snapshot contract)\n\n\
-         | Element | iOS | macOS | Android | Desktop | Windows |\n\
-         |---------|-----|-------|---------|---------|----------|\n",
+         Table is authored in `src/capabilities.rs`; this page embeds it automatically.\n\n",
     );
 
+    md.push_str("### Element lists\n\n");
+    md.push_str(&format!(
+        "**Core** (`CORE_ELEMENTS` in `src/snapshot.rs`): {}\n\n",
+        linked_element_list(CORE_ELEMENTS)
+    ));
+    md.push_str(&format!(
+        "**Extended** (`EXTENDED_ELEMENTS`): {}\n\n",
+        linked_element_list(EXTENDED_ELEMENTS)
+    ));
+
+    md.push_str("### Core\n\n");
+    md.push_str(&platform_table_header("Element"));
     for el in CORE_ELEMENTS {
-        let ios = support_for(el, WidgetPlatform::Ios);
-        let mac = support_for(el, WidgetPlatform::Macos);
-        let and = support_for(el, WidgetPlatform::Android);
-        let desk = support_for(el, WidgetPlatform::Desktop);
-        let win = support_for(el, WidgetPlatform::Windows);
-        md.push_str(&format!(
-            "| `{el}` | {} | {} | {} | {} | {} |\n",
-            cell_md(&ios),
-            cell_md(&mac),
-            cell_md(&and),
-            cell_md(&desk),
-            cell_md(&win),
-        ));
+        md.push_str(&element_row(el, &mut notes));
     }
 
-    md.push_str(
-        "\n## Extended (best-effort, platform-dependent)\n\n\
-         | Element | iOS | macOS | Android | Desktop | Windows |\n\
-         |---------|-----|-------|---------|---------|----------|\n",
-    );
+    md.push_str("\n### Extended\n\n");
+    md.push_str(&platform_table_header("Element"));
     for el in EXTENDED_ELEMENTS {
-        let ios = support_for(el, WidgetPlatform::Ios);
-        let mac = support_for(el, WidgetPlatform::Macos);
-        let and = support_for(el, WidgetPlatform::Android);
-        let desk = support_for(el, WidgetPlatform::Desktop);
-        let win = support_for(el, WidgetPlatform::Windows);
-        md.push_str(&format!(
-            "| `{el}` | {} | {} | {} | {} | {} |\n",
-            cell_md(&ios),
-            cell_md(&mac),
-            cell_md(&and),
-            cell_md(&desk),
-            cell_md(&win),
-        ));
+        md.push_str(&element_row(el, &mut notes));
     }
 
-    md.push_str("\n## Feature notes\n\n");
-    md.push_str("| Feature | iOS | macOS | Android | Desktop | Windows |\n");
-    md.push_str("|---------|-----|-------|---------|---------|----------|\n");
+    md.push_str("\n### Feature notes\n\n");
+    md.push_str(&platform_table_header("Feature"));
     for feat in FEATURE_KEYS {
-        let ios = support_for(feat, WidgetPlatform::Ios);
-        let mac = support_for(feat, WidgetPlatform::Macos);
-        let and = support_for(feat, WidgetPlatform::Android);
-        let desk = support_for(feat, WidgetPlatform::Desktop);
-        let win = support_for(feat, WidgetPlatform::Windows);
-        md.push_str(&format!(
-            "| `{feat}` | {} | {} | {} | {} | {} |\n",
-            cell_md(&ios),
-            cell_md(&mac),
-            cell_md(&and),
-            cell_md(&desk),
-            cell_md(&win),
-        ));
+        md.push_str(&feature_row(feat, &mut notes));
+    }
+
+    md.push_str("\n### Choosing a surface set\n\n");
+    md.push_str(
+        "Pick the platforms you ship, then stay in the **full** set for that profile. \
+         Degraded cells still render, but check the [Notes](#notes) and element pages.\n\n",
+    );
+    md.push_str(&profile_block(
+        "Apple only",
+        "iOS + macOS",
+        &[WidgetPlatform::Ios, WidgetPlatform::Macos],
+    ));
+    md.push_str(&profile_block(
+        "Apple + Android",
+        "iOS + macOS + Android",
+        &[
+            WidgetPlatform::Ios,
+            WidgetPlatform::Macos,
+            WidgetPlatform::Android,
+        ],
+    ));
+    md.push_str(&profile_block(
+        "All five matrix columns",
+        "iOS + macOS + Android + Desktop + Windows",
+        &WidgetPlatform::all(),
+    ));
+
+    if !notes.is_empty() {
+        md.push_str("\n### Notes {#notes}\n\n");
+        for (i, note) in notes.iter().enumerate() {
+            md.push_str(&format!("{}. {}\n", i + 1, note));
+        }
     }
     md
 }
 
-fn cell_md(e: &CapabilityEntry) -> String {
-    if e.note.is_empty() {
-        e.support.as_str().to_string()
-    } else {
-        format!("{} ({})", e.support.as_str(), e.note)
+fn platform_table_header(first: &str) -> String {
+    format!(
+        "| {first} | iOS | macOS | Android | Desktop | Windows |\n\
+         |---------|-----|-------|---------|---------|----------|\n"
+    )
+}
+
+fn linked_element_list(els: &[&str]) -> String {
+    els.iter()
+        .map(|e| format!("[`{e}`]({})", element_doc_href(e)))
+        .collect::<Vec<_>>()
+        .join(", ")
+}
+
+fn element_row(el: &str, notes: &mut Vec<String>) -> String {
+    format!(
+        "| [`{el}`]({}) | {} | {} | {} | {} | {} |\n",
+        element_doc_href(el),
+        cell_md(&support_for(el, WidgetPlatform::Ios), notes),
+        cell_md(&support_for(el, WidgetPlatform::Macos), notes),
+        cell_md(&support_for(el, WidgetPlatform::Android), notes),
+        cell_md(&support_for(el, WidgetPlatform::Desktop), notes),
+        cell_md(&support_for(el, WidgetPlatform::Windows), notes),
+    )
+}
+
+fn feature_row(feat: &str, notes: &mut Vec<String>) -> String {
+    format!(
+        "| [`{feat}`]({}) | {} | {} | {} | {} | {} |\n",
+        element_doc_href(feat),
+        cell_md(&support_for(feat, WidgetPlatform::Ios), notes),
+        cell_md(&support_for(feat, WidgetPlatform::Macos), notes),
+        cell_md(&support_for(feat, WidgetPlatform::Android), notes),
+        cell_md(&support_for(feat, WidgetPlatform::Desktop), notes),
+        cell_md(&support_for(feat, WidgetPlatform::Windows), notes),
+    )
+}
+
+fn profile_block(title: &str, platforms_label: &str, platforms: &[WidgetPlatform]) -> String {
+    let (full_core, watch_core) = partition_by_full(CORE_ELEMENTS, platforms);
+    let (full_ext, watch_ext) = partition_by_full(EXTENDED_ELEMENTS, platforms);
+    let mut out = format!("#### {title}\n\nPlatforms: **{platforms_label}**.\n\n");
+    out.push_str(&format!(
+        "- **Full core:** {}\n",
+        if full_core.is_empty() {
+            "_none_".into()
+        } else {
+            linked_element_list(&full_core)
+        }
+    ));
+    if !watch_core.is_empty() {
+        out.push_str(&format!(
+            "- **Core with degraded/unsupported cells:** {}\n",
+            linked_element_list(&watch_core)
+        ));
     }
+    out.push_str(&format!(
+        "- **Full extended:** {}\n",
+        if full_ext.is_empty() {
+            "_none_".into()
+        } else {
+            linked_element_list(&full_ext)
+        }
+    ));
+    if !watch_ext.is_empty() {
+        out.push_str(&format!(
+            "- **Extended with degraded/unsupported cells:** {}\n",
+            linked_element_list(&watch_ext)
+        ));
+    }
+    out.push('\n');
+    out
+}
+
+fn partition_by_full<'a>(
+    els: &[&'a str],
+    platforms: &[WidgetPlatform],
+) -> (Vec<&'a str>, Vec<&'a str>) {
+    let mut full = Vec::new();
+    let mut watch = Vec::new();
+    for el in els {
+        let all_full = platforms.iter().all(|p| {
+            support_for(el, *p).support == Support::Full
+        });
+        if all_full {
+            full.push(*el);
+        } else {
+            watch.push(*el);
+        }
+    }
+    (full, watch)
+}
+
+/// Docs path for an element or feature key (`image.url` → image page).
+fn element_doc_href(key: &str) -> String {
+    let base = key.split('.').next().unwrap_or(key);
+    if key == "background.gradient" {
+        return "/elements/style".into();
+    }
+    let page = match base {
+        "vstack" | "hstack" | "zstack" | "grid" | "container" => "layout",
+        "text" | "label" | "date" | "timer" => "text",
+        "image" | "shape" | "canvas" => "media",
+        "progress" | "gauge" | "chart" | "list" => "data",
+        "button" | "toggle" | "link" => "interactive",
+        "spacer" | "divider" => "spacing",
+        _ => return "/elements/".into(),
+    };
+    format!("/elements/{page}#el-{base}")
+}
+
+fn cell_md(e: &CapabilityEntry, notes: &mut Vec<String>) -> String {
+    if e.note.is_empty() {
+        return e.support.as_str().to_string();
+    }
+    let idx = note_index(notes, e.note);
+    format!("{}<sup>{}</sup>", e.support.as_str(), idx)
+}
+
+fn note_index(notes: &mut Vec<String>, note: &str) -> usize {
+    if let Some(i) = notes.iter().position(|n| n == note) {
+        return i + 1;
+    }
+    notes.push(note.to_string());
+    notes.len()
 }
 
 #[cfg(test)]
@@ -634,7 +944,7 @@ mod tests {
     }
 
     #[test]
-    fn validate_flags_image_url_on_ios() {
+    fn validate_flags_image_url_on_ios_is_full_after_prefetch() {
         let cfg = WidgetConfig {
             version: 1,
             small: Some(WidgetElement::Image(ImageElement {
@@ -651,9 +961,14 @@ mod tests {
         };
         let warns = validate_config(&cfg, WidgetPlatform::Ios);
         assert!(
-            warns
+            !warns
                 .iter()
                 .any(|w| w.element == "image.url" && w.support == Support::Unsupported),
+            "{warns:?}"
+        );
+        // Full cells do not emit warnings.
+        assert!(
+            !warns.iter().any(|w| w.element == "image.url"),
             "{warns:?}"
         );
     }
@@ -663,6 +978,11 @@ mod tests {
         let md = render_capability_matrix_md();
         assert!(md.contains("`vstack`"));
         assert!(md.contains("image.url"));
+        assert!(md.contains("### Core\n"));
+        assert!(!md.contains("## Core "));
+        assert!(md.contains("/elements/layout#el-vstack"));
+        assert!(md.contains("### Choosing a surface set"));
+        assert!(md.contains("<sup>"));
     }
 
     #[test]
@@ -699,6 +1019,83 @@ mod write_docs {
             "docs/guide/_generated/capability-matrix.md drifted — regenerate with:\n\
              cargo test --lib write_docs::capability_matrix_doc_matches -- --ignored\n\
              or delete the file and re-run this test"
+        );
+    }
+
+    #[test]
+    fn capabilities_json_matches() {
+        let expected = super::render_capabilities_json();
+        let path =
+            std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("schemas/capabilities.json");
+        if !path.exists() {
+            std::fs::create_dir_all(path.parent().unwrap()).unwrap();
+            std::fs::write(&path, &expected).unwrap();
+            return;
+        }
+        let on_disk = std::fs::read_to_string(&path).unwrap();
+        assert_eq!(
+            on_disk, expected,
+            "schemas/capabilities.json drifted — delete it and re-run this test, or:\n\
+             cargo test --lib capabilities::write_docs::capabilities_json_matches"
+        );
+    }
+
+    #[test]
+    fn capabilities_coverage_json_matches() {
+        let root = std::path::Path::new(env!("CARGO_MANIFEST_DIR"));
+        // Packaged crates.io tree omits PNG goldens — skip measured drift there.
+        if !root.join("tests/golden/desktop").is_dir() {
+            return;
+        }
+        let expected = super::render_capabilities_coverage_json();
+        let path = root.join("schemas/capabilities.coverage.json");
+        if !path.exists() {
+            std::fs::create_dir_all(path.parent().unwrap()).unwrap();
+            std::fs::write(&path, &expected).unwrap();
+            return;
+        }
+        let on_disk = std::fs::read_to_string(&path).unwrap();
+        assert_eq!(
+            on_disk, expected,
+            "schemas/capabilities.coverage.json drifted — delete it and re-run this test"
+        );
+    }
+
+    #[test]
+    fn full_cells_have_golden_coverage() {
+        let root = std::path::Path::new(env!("CARGO_MANIFEST_DIR"));
+        if !root.join("tests/golden/desktop").is_dir() {
+            return;
+        }
+        let measured = super::measure_element_coverage(root);
+        // Mature golden stands. Windows is manual / sparse — excluded.
+        let checks: &[(&str, super::WidgetPlatform)] = &[
+            ("desktop", super::WidgetPlatform::Desktop),
+            ("ios", super::WidgetPlatform::Ios),
+            ("macos", super::WidgetPlatform::Macos),
+            ("android", super::WidgetPlatform::Android),
+            ("linux", super::WidgetPlatform::Desktop),
+        ];
+        let mut missing = Vec::new();
+        for el in super::CORE_ELEMENTS {
+            for (plat_key, platform) in checks {
+                let entry = super::support_for(el, *platform);
+                if entry.support != super::Support::Full {
+                    continue;
+                }
+                let covered = measured
+                    .get(*el)
+                    .and_then(|m| m.get(*plat_key))
+                    .copied()
+                    .unwrap_or(0);
+                if covered == 0 {
+                    missing.push(format!("{el}@{plat_key}"));
+                }
+            }
+        }
+        assert!(
+            missing.is_empty(),
+            "core elements marked full lack golden coverage: {missing:?}"
         );
     }
 }

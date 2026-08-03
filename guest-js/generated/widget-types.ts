@@ -1,8 +1,9 @@
 /**
-* Generated widget IR types — do not edit by hand.
-* Source of truth: Rust `src/models.rs` via `cargo run --bin gen-ts --features codegen`.
-* Emitter: `src/codegen.rs` IR_SPEC.
-*/
+ * Generated widget IR types — do not edit by hand.
+ * Source of truth: Rust `src/models` via `cargo run --bin gen-ts --features codegen`.
+ * Emitter: `src/codegen.rs` IR_SPEC (+ `src/codegen/preamble.ts`).
+ */
+
 
 // ── Enums ──
 
@@ -20,70 +21,70 @@ export type ShapeType = "circle" | "capsule" | "rectangle";
 export type TimerCounting = "up" | "down";
 export type ClipShape = "circle" | "capsule" | "rectangle";
 export type TextStyle =
-| "largeTitle" | "title" | "title2" | "title3"
-| "headline" | "subheadline"
-| "body" | "callout"
-| "footnote" | "caption" | "caption2";
+  | "largeTitle" | "title" | "title2" | "title3"
+  | "headline" | "subheadline"
+  | "body" | "callout"
+  | "footnote" | "caption" | "caption2";
 export type GradientType = "linear" | "radial" | "angular";
 export type GradientDirection =
-| "topToBottom" | "bottomToTop"
-| "leadingToTrailing" | "trailingToLeading"
-| "topLeadingToBottomTrailing" | "topTrailingToBottomLeading";
+  | "topToBottom" | "bottomToTop"
+  | "leadingToTrailing" | "trailingToLeading"
+  | "topLeadingToBottomTrailing" | "topTrailingToBottomLeading";
 
 // ── Supporting types ──
 
 export type ColorValue = string | { light: string; dark: string };
 
 export interface ChartDataPoint {
-label: string;
-value: number;
-color?: ColorValue;
+  label: string;
+  value: number;
+  color?: ColorValue;
 }
 
 export interface FrameConfig {
-width?: number;
-height?: number;
-maxWidth?: number | "infinity";
-maxHeight?: number | "infinity";
+  width?: number;
+  height?: number;
+  maxWidth?: number | "infinity";
+  maxHeight?: number | "infinity";
 }
 
 export interface BorderConfig {
-color: string;
-width?: number;
+  color: string;
+  width?: number;
 }
 
 export interface GradientConfig {
-gradientType: GradientType;
-colors: string[];
-direction?: GradientDirection;
+  gradientType: GradientType;
+  colors: string[];
+  direction?: GradientDirection;
 }
 
 export interface ShadowConfig {
-color?: string;
-radius?: number;
-x?: number;
-y?: number;
+  color?: string;
+  radius?: number;
+  x?: number;
+  y?: number;
 }
 
 export type BackgroundValue = string | GradientConfig | { light: string; dark: string };
 
 export type PaddingValue = number | {
-top?: number;
-bottom?: number;
-leading?: number;
-trailing?: number;
+  top?: number;
+  bottom?: number;
+  leading?: number;
+  trailing?: number;
 };
 
 export interface ElementStyle {
-padding?: PaddingValue;
-background?: BackgroundValue;
-cornerRadius?: number;
-opacity?: number;
-frame?: FrameConfig;
-border?: BorderConfig;
-shadow?: ShadowConfig;
-clipShape?: ClipShape;
-flex?: number;
+  padding?: PaddingValue;
+  background?: BackgroundValue;
+  cornerRadius?: number;
+  opacity?: number;
+  frame?: FrameConfig;
+  border?: BorderConfig;
+  shadow?: ShadowConfig;
+  clipShape?: ClipShape;
+  flex?: number;
 }
 
 export interface VStackElement extends ElementStyle {
@@ -255,51 +256,6 @@ export interface LabelElement extends ElementStyle {
   spacing?: number;
 }
 
-export interface SpacerElement {
-type: "spacer";
-minLength?: number;
-}
-
-export interface ListItem {
-text: string;
-checked?: boolean;
-action?: string;
-payload?: string;
-}
-
-export interface CanvasCircle {
-draw: "circle";
-cx: number; cy: number; r: number;
-fill?: ColorValue; stroke?: ColorValue; strokeWidth?: number;
-}
-export interface CanvasLine {
-draw: "line";
-x1: number; y1: number; x2: number; y2: number;
-stroke?: ColorValue; strokeWidth?: number; lineCap?: "butt" | "round" | "square";
-}
-export interface CanvasRect {
-draw: "rect";
-x: number; y: number; width: number; height: number;
-fill?: ColorValue; stroke?: ColorValue; strokeWidth?: number; cornerRadius?: number;
-}
-export interface CanvasArc {
-draw: "arc";
-cx: number; cy: number; r: number;
-startAngle: number; endAngle: number;
-fill?: ColorValue; stroke?: ColorValue; strokeWidth?: number;
-}
-export interface CanvasText {
-draw: "text";
-x: number; y: number; content: string;
-fontSize?: number; color?: ColorValue; anchor?: "start" | "middle" | "end";
-}
-export interface CanvasPath {
-draw: "path";
-d: string;
-fill?: ColorValue; stroke?: ColorValue; strokeWidth?: number;
-}
-export type CanvasDrawCommand = CanvasCircle | CanvasLine | CanvasRect | CanvasArc | CanvasText | CanvasPath;
-
 export type WidgetElement =
   | VStackElement
   | HStackElement
@@ -323,9 +279,54 @@ export type WidgetElement =
   | LabelElement
   | SpacerElement;
 
+export interface SpacerElement {
+  type: "spacer";
+  minLength?: number;
+}
+
+export interface ListItem {
+  text: string;
+  checked?: boolean;
+  action?: string;
+  payload?: string;
+}
+
+export interface CanvasCircle {
+  draw: "circle";
+  cx: number; cy: number; r: number;
+  fill?: ColorValue; stroke?: ColorValue; strokeWidth?: number;
+}
+export interface CanvasLine {
+  draw: "line";
+  x1: number; y1: number; x2: number; y2: number;
+  stroke?: ColorValue; strokeWidth?: number; lineCap?: "butt" | "round" | "square";
+}
+export interface CanvasRect {
+  draw: "rect";
+  x: number; y: number; width: number; height: number;
+  fill?: ColorValue; stroke?: ColorValue; strokeWidth?: number; cornerRadius?: number;
+}
+export interface CanvasArc {
+  draw: "arc";
+  cx: number; cy: number; r: number;
+  startAngle: number; endAngle: number;
+  fill?: ColorValue; stroke?: ColorValue; strokeWidth?: number;
+}
+export interface CanvasText {
+  draw: "text";
+  x: number; y: number; content: string;
+  fontSize?: number; color?: ColorValue; anchor?: "start" | "middle" | "end";
+}
+export interface CanvasPath {
+  draw: "path";
+  d: string;
+  fill?: ColorValue; stroke?: ColorValue; strokeWidth?: number;
+}
+export type CanvasDrawCommand = CanvasCircle | CanvasLine | CanvasRect | CanvasArc | CanvasText | CanvasPath;
+
 export interface WidgetConfig {
-version?: number;
-small?: WidgetElement;
-medium?: WidgetElement;
-large?: WidgetElement;
+  version?: number;
+  small?: WidgetElement;
+  medium?: WidgetElement;
+  large?: WidgetElement;
 }

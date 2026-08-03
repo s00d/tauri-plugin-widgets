@@ -121,6 +121,110 @@ fn action_roundtrip() {
 }
 
 #[test]
+fn clear_pending_everywhere_keeps_undrained_and_skips_meta_bump() {
+    use tauri_plugin_widgets::store::{
+        encode_pending_actions, map_nonce, parse_pending_actions, DataMap, PENDING_ACTIONS_KEY,
+        WidgetActionEnvelope,
+    };
+
+    let _lock = env_lock().lock().unwrap();
+    let tmp = tempfile::tempdir().unwrap();
+    let app_group_file = tmp.path().join("appgroup/widget_data.json");
+    let _env = EnvGuard::apply(&[
+        (
+            "WIDGET_CONTAINER_ROOT",
+            tmp.path().to_string_lossy().into_owned(),
+        ),
+        ("WIDGET_EXTENSION_BUNDLE", "test.app.widgetkit".into()),
+        (
+            "WIDGET_APP_GROUP_DATA_FILE",
+            app_group_file.to_string_lossy().into_owned(),
+        ),
+    ]);
+
+    const GROUP: &str = "group.test.clear-pending";
+    let drained = WidgetActionEnvelope::new("tap", Some("a".into()), "w", GROUP);
+    let keep = WidgetActionEnvelope::new("tap", Some("b".into()), "w", GROUP);
+
+    let mut map = DataMap::new();
+    map.insert(
+        PENDING_ACTIONS_KEY.into(),
+        encode_pending_actions(&[drained.clone(), keep.clone()]).unwrap(),
+    );
+    map.insert("__meta_nonce__".into(), "7".into());
+    write_map_file(&app_group_file, &map).unwrap();
+    write_sandbox_map(GROUP, &map).unwrap();
+
+    mt::clear_pending_actions_everywhere(GROUP, &[drained]);
+
+    for m in mt::read_file_transports(GROUP, Some(&app_group_file)) {
+        let left = parse_pending_actions(m.get(PENDING_ACTIONS_KEY).map(|s| s.as_str()));
+        assert_eq!(left.len(), 1, "only undrained action remains");
+        assert_eq!(left[0].payload.as_deref(), Some("b"));
+        assert_eq!(map_nonce(&m), 7, "clear must not bump nonce");
+    }
+}
+
+#[test]
+fn merge_pending_then_clear_leftover_preserves_sibling_taps() {
+    use tauri_plugin_widgets::store::{
+        encode_pending_actions, map_has_config, parse_pending_actions, DataMap, PENDING_ACTIONS_KEY,
+        WidgetActionEnvelope,
+    };
+
+    let _lock = env_lock().lock().unwrap();
+    let tmp = tempfile::tempdir().unwrap();
+    let app_group_file = tmp.path().join("appgroup/widget_data.json");
+    let _env = EnvGuard::apply(&[
+        (
+            "WIDGET_CONTAINER_ROOT",
+            tmp.path().to_string_lossy().into_owned(),
+        ),
+        ("WIDGET_EXTENSION_BUNDLE", "test.app.widgetkit".into()),
+        (
+            "WIDGET_APP_GROUP_DATA_FILE",
+            app_group_file.to_string_lossy().into_owned(),
+        ),
+    ]);
+
+    const GROUP: &str = "group.test.clear-leftover";
+    const WIDGET: &str = "probe";
+
+    // Stale config + pending tap on App Group file.
+    let mut stale = DataMap::new();
+    put_config_in_map(&mut stale, WIDGET, &cfg_v1()).unwrap();
+    stale.insert(
+        PENDING_ACTIONS_KEY.into(),
+        encode_pending_actions(&[WidgetActionEnvelope::new(
+            "tap",
+            Some("1".into()),
+            WIDGET,
+            GROUP,
+        )])
+        .unwrap(),
+    );
+    write_map_file(&app_group_file, &stale).unwrap();
+
+    // Host write path: merge taps → wipe sibling leftovers → write live map.
+    let mut live = map_with_nonce(50, WIDGET, &cfg_v2()).unwrap();
+    mt::merge_pending_into_map(&mut live, GROUP);
+    mt::clear_sibling_transports(GROUP, "container", &mut live);
+    write_sandbox_map(GROUP, &live).unwrap();
+
+    let pending = parse_pending_actions(live.get(PENDING_ACTIONS_KEY).map(|s| s.as_str()));
+    assert_eq!(pending.len(), 1);
+    assert_eq!(pending[0].payload.as_deref(), Some("1"));
+
+    // App Group leftover must be empty (no stale config). Primary was not wiped.
+    let wiped = std::fs::read_to_string(&app_group_file).unwrap_or_default();
+    let wiped_map: DataMap = serde_json::from_str(&wiped).unwrap_or_default();
+    assert!(
+        !map_has_config(&wiped_map),
+        "clear_sibling must wipe non-primary config"
+    );
+}
+
+#[test]
 fn container_root_override_not_home() {
     let _lock = env_lock().lock().unwrap();
     let tmp = tempfile::tempdir().unwrap();

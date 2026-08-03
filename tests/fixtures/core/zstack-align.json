@@ -1,12 +1,24 @@
 {
+  "$schema": "https://s00d.github.io/tauri-plugin-widgets/schemas/widget-config.v1.json",
   "version": 1,
   "small": {
     "type": "zstack",
     "alignment": "center",
     "background": "#1e293b",
     "children": [
-      { "type": "shape", "shapeType": "circle", "size": 40, "fill": "#334155" },
-      { "type": "text", "content": "Z", "fontSize": 18, "color": "#fff", "alignment": "center" }
+      {
+        "type": "shape",
+        "shapeType": "circle",
+        "size": 40,
+        "fill": "#334155"
+      },
+      {
+        "type": "text",
+        "content": "Z",
+        "fontSize": 18,
+        "color": "#fff",
+        "alignment": "center"
+      }
     ]
   }
 }

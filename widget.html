@@ -33,699 +33,1487 @@
   </div>
 </div>
 <script>
-(function(){
-'use strict';
+(function () {
+    'use strict';
 
-function invoke(cmd,args){return window.__TAURI_INTERNALS__.invoke(cmd,args||{})}
-
-function listen(event,handler){
-  var id=window.__TAURI_INTERNALS__.transformCallback(function(e){handler(e)});
-  var ch={id:id,__TAURI_CHANNEL_MARKER__:true,toJSON:function(){return'__CHANNEL__:'+id}};
-  return invoke('plugin:event|listen',{event:event,target:{kind:'Any'},handler:ch});
-}
-
-var params=new URLSearchParams(window.location.search);
-var GROUP=params.get('group')||'default';
-var SIZE=params.get('size')||'';
-var WIDGET_ID=params.get('widgetId')||'default';
-var root=document.getElementById('root');
-
-function emitAction(action,payload){
-  return invoke('plugin:widgets|widget_action',{
-    action:action,
-    payload:payload==null?null:payload,
-    widgetId:WIDGET_ID,
-    group:GROUP
-  }).catch(console.error);
-}
-
-function expandHex(h){
-  if(h.length===3)return h[0]+h[0]+h[1]+h[1]+h[2]+h[2];
-  if(h.length===4)return h[0]+h[0]+h[1]+h[1]+h[2]+h[2]+h[3]+h[3];
-  return h;
-}
-
-function isDark(){return window.matchMedia&&window.matchMedia('(prefers-color-scheme:dark)').matches}
-
-var SEMANTIC_COLORS={
-  label:['#000000','#FFFFFF'],
-  secondaryLabel:['#3C3C43','#EBEBF5'],
-  systemBackground:['#FFFFFF','#000000'],
-  secondarySystemBackground:['#F2F2F7','#1C1C1E'],
-  accent:['#007AFF','#0A84FF'],
-  separator:['#C6C6C8','#545458']
-};
-
-function hex(c){
-  if(!c)return'inherit';
-  if(SEMANTIC_COLORS[c]){return isDark()?SEMANTIC_COLORS[c][1]:SEMANTIC_COLORS[c][0]}
-  var h=expandHex(c.replace('#',''));
-  if(h.length===8)return'rgba('+parseInt(h.slice(0,2),16)+','+parseInt(h.slice(2,4),16)+','+parseInt(h.slice(4,6),16)+','+(parseInt(h.slice(6,8),16)/255).toFixed(2)+')';
-  return'#'+h;
-}
-
-function resolveColor(cv){
-  if(!cv)return'inherit';
-  if(typeof cv==='string')return hex(cv);
-  if(cv.light&&cv.dark)return isDark()?hex(cv.dark):hex(cv.light);
-  return'inherit';
-}
-
-function tintTrack(tint){
-  var resolved=tint?resolveColor(tint):null;
-  if(!resolved||resolved==='inherit')return'rgba(120,120,128,0.2)';
-  var h=expandHex(resolved.replace('#',''));
-  if(h.length>=6){var r=parseInt(h.slice(0,2),16),g=parseInt(h.slice(2,4),16),b=parseInt(h.slice(4,6),16);return'rgba('+r+','+g+','+b+',0.2)'}
-  return'rgba(120,120,128,0.2)';
-}
-
-var TEXT_STYLE_SIZES={largeTitle:34,title:28,title2:22,title3:20,headline:17,subheadline:15,body:17,callout:16,footnote:13,caption:12,caption2:11};
-var TEXT_STYLE_BOLD={headline:true};
-
-function applyStyle(el,d){
-  if(d.padding!=null){
-    if(typeof d.padding==='number')el.style.padding=d.padding+'px';
-    else{el.style.paddingTop=(d.padding.top||0)+'px';el.style.paddingBottom=(d.padding.bottom||0)+'px';
-      el.style.paddingLeft=(d.padding.leading||0)+'px';el.style.paddingRight=(d.padding.trailing||0)+'px'}
-  }
-  if(d.background){
-    if(typeof d.background==='string')el.style.background=hex(d.background);
-    else if(d.background.colors){
-      var g=d.background,cols=g.colors.map(hex).join(', ');
-      var dirs={topToBottom:'to bottom',bottomToTop:'to top',leadingToTrailing:'to right',
-        trailingToLeading:'to left',topLeadingToBottomTrailing:'to bottom right',
-        topTrailingToBottomLeading:'to bottom left'};
-      if(g.gradientType==='radial')el.style.background='radial-gradient(circle, '+cols+')';
-      else if(g.gradientType==='angular')el.style.background='conic-gradient('+cols+')';
-      else el.style.background='linear-gradient('+(dirs[g.direction]||'to bottom')+', '+cols+')';
-    }else if(d.background.light&&d.background.dark){
-      el.style.background=isDark()?hex(d.background.dark):hex(d.background.light);
+    function tauri() {
+        const t = window.__TAURI_INTERNALS__;
+        if (!t)
+            throw new Error("Tauri internals unavailable");
+        return t;
     }
-  }
-  if(d.cornerRadius){
-    el.style.borderRadius=d.cornerRadius+'px';
-    el.style.overflow='hidden';
-  }
-  if(d.opacity!=null)el.style.opacity=d.opacity;
-  if(d.border)el.style.border=(d.border.width||1)+'px solid '+hex(d.border.color);
-  if(d.shadow){var s=d.shadow;el.style.boxShadow=(s.x||0)+'px '+(s.y||2)+'px '+(s.radius||4)+'px '+(s.color?hex(s.color):'rgba(0,0,0,.3)')}
-  if(d.frame){
-    if(d.frame.width){el.style.width=d.frame.width+'px';el.style.minWidth=d.frame.width+'px';el.style.flexShrink='0'}
-    if(d.frame.height){el.style.height=d.frame.height+'px';el.style.minHeight=d.frame.height+'px'}
-    if(d.frame.maxWidth==='infinity')el.style.maxWidth='100%';
-    else if(d.frame.maxWidth)el.style.maxWidth=d.frame.maxWidth+'px';
-  }
-  if(d.clipShape){
-    el.style.overflow='hidden';
-    if(d.clipShape==='circle')el.style.borderRadius='50%';
-    else if(d.clipShape==='capsule')el.style.borderRadius='9999px';
-    else if(d.clipShape==='rectangle'&&d.cornerRadius)el.style.borderRadius=d.cornerRadius+'px';
-  }
-  if(d.flex&&d.flex>0){el.style.flex=String(d.flex);el.style.minWidth='0'}
-}
-
-function fw(w){return{ultralight:100,thin:200,light:300,regular:400,medium:500,semibold:600,bold:700,heavy:800,black:900}[w]||400}
-
-function svg(tag,a){var e=document.createElementNS('http://www.w3.org/2000/svg',tag);for(var k in a)if(a[k]!=null)e.setAttribute(k,String(a[k]));return e}
-
-function renderEl(d, parentAxis){
-  switch(d.type){
-    case'vstack':return renderStack(d,'column');
-    case'hstack':return renderStack(d,'row');
-    case'zstack':return renderZStack(d);
-    case'grid':return renderGrid(d);
-    case'container':return renderContainer(d);
-    case'text':return renderText(d, parentAxis);
-    case'image':return renderImage(d);
-    case'progress':return renderProgress(d);
-    case'gauge':return renderGauge(d);
-    case'button':return renderButton(d);
-    case'toggle':return renderToggle(d);
-    case'divider':return renderDivider(d, parentAxis);
-    case'spacer':return renderSpacer(d);
-    case'date':return renderDate(d);
-    case'chart':return renderChart(d);
-    case'list':return renderList(d);
-    case'link':return renderLink(d);
-    case'shape':return renderShape(d);
-    case'timer':return renderTimer(d);
-    case'label':return renderLabel(d);
-    case'canvas':return renderCanvas(d);
-    default:return document.createElement('span');
-  }
-}
-
-function renderStack(d,dir){
-  var e=document.createElement('div');
-  e.style.display='flex';e.style.flexDirection=dir;e.style.gap=(d.spacing||0)+'px';
-  // Default stretch (SwiftUI/Glance-like). Explicit alignment only when set.
-  if(dir==='column'){
-    e.style.alignItems=d.alignment==='trailing'?'flex-end'
-      :d.alignment==='leading'?'flex-start'
-      :d.alignment==='center'?'center'
-      :'stretch';
-  }else{
-    e.style.alignItems=d.alignment==='top'?'flex-start'
-      :d.alignment==='bottom'?'flex-end'
-      :d.alignment==='center'?'center'
-      :'stretch';
-  }
-  applyStyle(e,d);
-  var axis=dir==='row'?'horizontal':'vertical';
-  (d.children||[]).forEach(function(c){e.appendChild(renderEl(c, axis))});
-  return e;
-}
-
-function renderZStack(d){
-  var e=document.createElement('div');
-  e.style.display='grid';
-  var a=(d.alignment||'center').toLowerCase();
-  var place={
-    center:'center',
-    top:'start center',
-    bottom:'end center',
-    leading:'center start',
-    trailing:'center end',
-    topleading:'start start',
-    toptrailing:'start end',
-    bottomleading:'end start',
-    bottomtrailing:'end end'
-  };
-  e.style.placeItems=place[a]||'center';
-  applyStyle(e,d);
-  (d.children||[]).forEach(function(c){
-    var w=document.createElement('div');
-    w.style.gridArea='1 / 1';
-    w.appendChild(renderEl(c));
-    e.appendChild(w);
-  });
-  return e;
-}
-
-function renderGrid(d){
-  var e=document.createElement('div');
-  e.style.display='grid';e.style.gridTemplateColumns='repeat('+(d.columns||2)+', 1fr)';
-  e.style.columnGap=(d.spacing||4)+'px';e.style.rowGap=(d.rowSpacing||d.spacing||4)+'px';
-  applyStyle(e,d);
-  (d.children||[]).forEach(function(c){e.appendChild(renderEl(c))});
-  return e;
-}
-
-function renderContainer(d){
-  var e=document.createElement('div');e.style.display='flex';
-  var a=d.contentAlignment||'center';
-  var vert={top:'flex-start',bottom:'flex-end',topLeading:'flex-start',topTrailing:'flex-start',bottomLeading:'flex-end',bottomTrailing:'flex-end'};
-  var horiz={leading:'flex-start',trailing:'flex-end',topLeading:'flex-start',topTrailing:'flex-end',bottomLeading:'flex-start',bottomTrailing:'flex-end'};
-  e.style.alignItems=vert[a]||'center';
-  e.style.justifyContent=horiz[a]||'center';
-  applyStyle(e,d);
-  (d.children||[]).forEach(function(ch){e.appendChild(renderEl(ch));});
-  return e;
-}
-
-function renderText(d, parentAxis){
-  var e=document.createElement('span');
-  e.textContent=d.content||'';
-  var ts=d.textStyle&&TEXT_STYLE_SIZES[d.textStyle];
-  e.style.fontSize=(ts||d.fontSize||14)+'px';
-  e.style.fontWeight=(d.textStyle&&TEXT_STYLE_BOLD[d.textStyle])?700:fw(d.fontWeight);
-  e.style.color=d.color?resolveColor(d.color):'inherit';
-  e.style.textAlign=d.alignment==='center'?'center':d.alignment==='trailing'?'right':'left';
-  e.style.display=d.lineLimit?'-webkit-box':'block';
-  e.style.boxSizing='border-box';
-  e.style.flexShrink='0';
-  // In hstack hug content width so siblings (divider / trailing text) stay visible.
-  // In vstack (or unknown axis) stretch full width so textAlign leading/center/trailing works.
-  if(parentAxis==='horizontal'){
-    e.style.width='auto';
-  }else{
-    e.style.width='100%';
-    e.style.alignSelf='stretch';
-  }
-  if(d.fontDesign==='monospaced')e.style.fontFamily='monospace';
-  else if(d.fontDesign==='serif')e.style.fontFamily='serif';
-  else if(d.fontDesign==='rounded')e.style.fontFamily='ui-rounded, "SF Pro Rounded", system-ui, sans-serif';
-  if(d.lineLimit){e.style.WebkitLineClamp=d.lineLimit;
-    e.style.WebkitBoxOrient='vertical';e.style.overflow='hidden'}
-  applyStyle(e,d);return e;
-}
-
-function systemGlyph(name){
-  var n=String(name||'').toLowerCase();
-  var map={
-    'star.fill':'\u2B50','person.fill':'\u{1F464}','person.2.fill':'\u{1F465}',
-    'gear':'\u2699','gearshape':'\u2699','gearshape.fill':'\u2699',
-    'heart.fill':'\u2764','bolt.fill':'\u26A1','moon.stars.fill':'\u263E',
-    'sun.max.fill':'\u2600','cloud.fill':'\u2601','clock':'\u23F0','globe':'\u25CE'
-  };
-  return map[n]||(n?n.charAt(0).toUpperCase():'\u25CF');
-}
-
-function renderImage(d){
-  var e=document.createElement('span');
-  e.style.display='inline-flex';e.style.alignItems='center';e.style.justifyContent='center';
-  if(d.data){
-    var img=document.createElement('img');
-    img.src=String(d.data).indexOf('data:')===0?d.data:'data:image/png;base64,'+d.data;
-    img.width=d.size||24;img.height=d.size||24;
-    img.style.objectFit=d.contentMode==='fill'?'cover':'contain';e.appendChild(img);
-  }else if(d.url){
-    var img=document.createElement('img');img.src=d.url;
-    img.width=d.size||24;img.height=d.size||24;
-    img.style.objectFit=d.contentMode==='fill'?'cover':'contain';e.appendChild(img);
-  }else if(d.systemName){
-    var sz=d.size||24;
-    e.textContent=systemGlyph(d.systemName);
-    e.style.fontSize=sz+'px';
-    e.style.lineHeight='1';
-    e.style.width=sz+'px';
-    e.style.height=sz+'px';
-    e.style.minWidth=sz+'px';
-    e.style.flexShrink='0';
-    e.style.boxSizing='border-box';
-    e.style.color=d.color?resolveColor(d.color):'inherit';
-  }else{e.textContent='\u25CF';e.style.fontSize=(d.size||24)+'px';e.style.color=d.color?resolveColor(d.color):'inherit'}
-  applyStyle(e,d);return e;
-}
-
-function renderProgress(d){
-  var pct=((d.value/(d.total||1))*100).toFixed(1);
-  var tint=d.tint?resolveColor(d.tint):'#4CAF50';
-  var track=tintTrack(d.tint);
-  if(d.barStyle==='circular'){
-    var w=document.createElement('div');w.style.cssText='width:40px;height:40px;position:relative';
-    var s=svg('svg',{viewBox:'0 0 36 36'});s.style.cssText='width:100%;height:100%';
-    s.appendChild(svg('path',{d:'M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831',fill:'none',stroke:track,'stroke-width':'3'}));
-    s.appendChild(svg('path',{d:'M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831',fill:'none',stroke:tint,'stroke-width':'3','stroke-dasharray':pct+', 100','stroke-linecap':'round'}));
-    w.appendChild(s);applyStyle(w,d);return w;
-  }
-  var e=document.createElement('div');
-  e.style.cssText='flex:1 1 auto;width:100%;min-width:48px;align-self:stretch;box-sizing:border-box';
-  if(d.label){var l=document.createElement('div');l.textContent=d.label;l.style.cssText='font-size:10px;margin-bottom:2px';l.style.color=d.color?resolveColor(d.color):tint;e.appendChild(l)}
-  var tr=document.createElement('div');tr.style.cssText='height:6px;border-radius:3px;overflow:hidden;width:100%';tr.style.background=track;
-  var f=document.createElement('div');f.style.cssText='height:100%;border-radius:3px';f.style.width=pct+'%';f.style.background=tint;
-  tr.appendChild(f);e.appendChild(tr);applyStyle(e,d);return e;
-}
-
-function renderGauge(d){
-  var v=d.value||0,lo=d.min||0,hi=d.max||1;var pct=((v-lo)/Math.max(hi-lo,0.0001))*100;
-  var tint=d.tint?resolveColor(d.tint):'#4CAF50';
-  var track=tintTrack(d.tint);
-  var clr=d.color?resolveColor(d.color):tint;
-  if(d.gaugeStyle==='linear'){
-    var e=document.createElement('div');
-    e.style.cssText='flex:1 1 auto;width:100%;min-width:48px;align-self:stretch;box-sizing:border-box';
-    var top=document.createElement('div');top.style.cssText='display:flex;justify-content:space-between;align-items:baseline;gap:6px;margin-bottom:2px';
-    if(d.label){var l=document.createElement('div');l.textContent=d.label;l.style.cssText='font-size:10px;opacity:0.7';l.style.color=clr;top.appendChild(l)}
-    if(d.currentValueLabel){var cv=document.createElement('div');cv.textContent=d.currentValueLabel;cv.style.cssText='font-size:11px;font-weight:600';cv.style.color=clr;top.appendChild(cv)}
-    if(top.childNodes.length)e.appendChild(top);
-    var tr=document.createElement('div');tr.style.cssText='height:6px;border-radius:3px;overflow:hidden;width:100%';tr.style.background=track;
-    var f=document.createElement('div');f.style.cssText='height:100%;border-radius:3px';f.style.width=Math.max(Math.min(pct,100),0)+'%';f.style.background=tint;
-    tr.appendChild(f);e.appendChild(tr);applyStyle(e,d);return e;
-  }
-  var wr=document.createElement('div');wr.style.textAlign='center';
-  var sw=document.createElement('div');sw.style.cssText='width:56px;height:56px;position:relative;margin:0 auto';
-  var s=svg('svg',{viewBox:'0 0 36 36'});s.style.cssText='width:100%;height:100%';
-  s.appendChild(svg('path',{d:'M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831',fill:'none',stroke:track,'stroke-width':'4'}));
-  s.appendChild(svg('path',{d:'M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831',fill:'none',stroke:tint,'stroke-width':'4','stroke-dasharray':pct.toFixed(1)+', 100','stroke-linecap':'round'}));
-  sw.appendChild(s);
-  if(d.currentValueLabel){var cv=document.createElement('div');cv.style.cssText='position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:600';cv.style.color=clr;cv.textContent=d.currentValueLabel;sw.appendChild(cv)}
-  wr.appendChild(sw);
-  if(d.label){var l=document.createElement('div');l.style.cssText='font-size:10px;margin-top:2px;opacity:0.7';l.style.color=clr;l.textContent=d.label;wr.appendChild(l)}
-  applyStyle(wr,d);return wr;
-}
-
-function renderButton(d){
-  var e=document.createElement('div');e.textContent=d.label||'';
-  var align=(d.textAlignment||d.alignment||'center').toLowerCase();
-  if(align==='middle')align='center';
-  if(align==='end'||align==='trailing')align='right';
-  if(align==='start'||align==='leading')align='left';
-  // Intrinsic height + centered label — avoid stretch in default hstack (tall empty pill, label stuck to top).
-  var padCss='6px 12px';
-  if(d.padding!=null){
-    if(typeof d.padding==='number') padCss=d.padding+'px';
-    else if(typeof d.padding==='object'){
-      var pt=d.padding.top!=null?d.padding.top:(d.padding.vertical!=null?d.padding.vertical:6);
-      var pb=d.padding.bottom!=null?d.padding.bottom:(d.padding.vertical!=null?d.padding.vertical:6);
-      var pl=d.padding.leading!=null?d.padding.leading:(d.padding.left!=null?d.padding.left:(d.padding.horizontal!=null?d.padding.horizontal:12));
-      var pr=d.padding.trailing!=null?d.padding.trailing:(d.padding.right!=null?d.padding.right:(d.padding.horizontal!=null?d.padding.horizontal:12));
-      padCss=pt+'px '+pr+'px '+pb+'px '+pl+'px';
+    function invoke(cmd, args) {
+        return tauri().invoke(cmd, args || {});
     }
-  }
-  e.style.cssText='display:inline-flex;align-items:center;justify-content:'+(align==='left'?'flex-start':align==='right'?'flex-end':'center')+';align-self:center;flex-shrink:0;padding:'+padCss+';text-align:'+align+';cursor:pointer;font-weight:500;transition:filter .1s;box-sizing:border-box';
-  e.style.fontSize=(d.fontSize||14)+'px';
-  e.style.background=d.backgroundColor?resolveColor(d.backgroundColor):'#2196F3';
-  e.style.color=d.color?resolveColor(d.color):'#fff';
-  e.style.borderRadius=(d.cornerRadius||8)+'px';
-  e.onmousedown=function(){e.style.filter='brightness(0.85)'};
-  e.onmouseup=e.onmouseleave=function(){e.style.filter=''};
-  e.onclick=function(){
-    if(d.action)emitAction(d.action);
-    else if(d.url)window.open(d.url,'_blank');
-  };
-  // applyStyle would clobber the padding we just set — skip padding there for buttons.
-  var padSave=d.padding; d.padding=undefined;
-  applyStyle(e,d);
-  d.padding=padSave;
-  return e;
-}
-
-function renderToggle(d){
-  var e=document.createElement('div');e.style.cssText='display:flex;align-items:center;gap:6px';
-  var tint=d.tint?resolveColor(d.tint):'#4CAF50';
-  var c=document.createElement('div');
-  c.style.cssText='width:18px;height:18px;border-radius:9px;display:flex;align-items:center;justify-content:center;flex-shrink:0';
-  c.style.border='2px solid '+(d.isOn?tint:'#999');c.style.background=d.isOn?tint:'transparent';
-  if(d.isOn){var m=document.createElement('span');m.textContent='\u2713';m.style.cssText='color:#fff;font-size:12px';c.appendChild(m)}
-  e.appendChild(c);
-  if(d.label){var l=document.createElement('span');l.textContent=d.label;l.style.fontSize='14px';l.style.color=d.color?resolveColor(d.color):'inherit';e.appendChild(l)}
-  if(d.action){e.style.cursor='pointer';e.onclick=function(){emitAction(d.action,String(!d.isOn))}}
-  applyStyle(e,d);return e;
-}
-
-function renderDivider(d, parentAxis){
-  var e=document.createElement('hr');e.style.border='none';
-  var t=d.thickness||1;
-  e.style.background=d.color?resolveColor(d.color):'#e0e0e0';
-  e.style.flexShrink='0';
-  if(parentAxis==='horizontal'){
-    e.style.width=t+'px';
-    e.style.height='auto';
-    e.style.alignSelf='stretch';
-  }else{
-    e.style.width='100%';
-    e.style.height=t+'px';
-    // Match Android section breath around horizontal rules.
-    e.style.marginTop='4px';
-    e.style.marginBottom='4px';
-  }
-  applyStyle(e,d);return e;
-}
-
-function renderSpacer(d){
-  var e=document.createElement('div');e.style.flex='1';e.style.minHeight=(d.minLength||0)+'px';return e;
-}
-
-function formatRelativeDate(date){
-  var diffMs=date.getTime()-Date.now();
-  var abs=Math.abs(diffMs);
-  var sec=Math.round(abs/1000),min=Math.round(sec/60),hr=Math.round(min/60);
-  var day=Math.round(hr/24),mon=Math.round(day/30),yr=Math.round(day/365);
-  var unit='second',val=sec;
-  if(yr>=1){unit='year';val=yr}
-  else if(mon>=1){unit='month';val=mon}
-  else if(day>=1){unit='day';val=day}
-  else if(hr>=1){unit='hour';val=hr}
-  else if(min>=1){unit='minute';val=min}
-  var signed=diffMs<0?-val:val;
-  try{return new Intl.RelativeTimeFormat(undefined,{numeric:'auto'}).format(signed,unit)}
-  catch(_){return(signed<0?'':'+')+signed+' '+unit+(Math.abs(signed)===1?'':'s')}
-}
-
-function renderDate(d){
-  var e=document.createElement('span');
-  var date=new Date(d.date);
-  var style=(d.dateStyle||'').toLowerCase();
-  if(style==='time')e.textContent=date.toLocaleTimeString(undefined,{hour:'2-digit',minute:'2-digit'});
-  else if(style==='date')e.textContent=date.toLocaleDateString(undefined,{year:'numeric',month:'short',day:'numeric'});
-  else if(style==='relative'||style==='offset')e.textContent=formatRelativeDate(date);
-  else if(style==='timer'){
-    var diff=Math.abs(date.getTime()-Date.now());
-    var h=Math.floor(diff/3600000),m=Math.floor((diff%3600000)/60000),s=Math.floor((diff%60000)/1000);
-    e.textContent=String(h).padStart(2,'0')+':'+String(m).padStart(2,'0')+':'+String(s).padStart(2,'0');
-  }else e.textContent=date.toLocaleString();
-  e.style.fontSize=(d.fontSize||14)+'px';e.style.color=d.color?resolveColor(d.color):'inherit';
-  applyStyle(e,d);return e;
-}
-
-function renderChart(d){
-  var pts=d.chartData||[];var maxV=Math.max.apply(null,pts.map(function(p){return p.value}).concat([1]));
-  var tint=d.tint?resolveColor(d.tint):'#4CAF50';
-  if(d.chartType==='line'||d.chartType==='area'){
-    var w=200,h=60;
-    var s=svg('svg',{viewBox:'0 0 '+w+' '+h});s.style.cssText='width:100%;height:60px';
-    var pathD=pts.map(function(p,i){var x=(i/Math.max(pts.length-1,1))*w;var y=h-(p.value/maxV)*h;return(i===0?'M':'L')+x+','+y}).join(' ');
-    if(d.chartType==='area'){
-      var aD='M0,'+h+' '+pts.map(function(p,i){return'L'+(i/Math.max(pts.length-1,1))*w+','+(h-(p.value/maxV)*h)}).join(' ')+' L'+w+','+h+' Z';
-      s.appendChild(svg('path',{d:aD,fill:tint,opacity:'0.3'}));
+    function listen(event, handler) {
+        const id = tauri().transformCallback((e) => {
+            handler(e);
+        });
+        const ch = {
+            id,
+            __TAURI_CHANNEL_MARKER__: true,
+            toJSON() {
+                return `__CHANNEL__:${id}`;
+            },
+        };
+        return invoke("plugin:event|listen", {
+            event,
+            target: { kind: "Any" },
+            handler: ch,
+        });
     }
-    s.appendChild(svg('path',{d:pathD,fill:'none',stroke:tint,'stroke-width':'2'}));
-    applyStyle(s,d);return s;
-  }
-  if(d.chartType==='pie'){
-    var total=pts.reduce(function(s,p){return s+p.value},0);
-    var dc=['#3b82f6','#22c55e','#f97316','#ef4444','#a855f7','#eab308','#ec4899','#14b8a6'];
-    var r=40,cx=50,cy=50,ca=-90;
-    var s=svg('svg',{viewBox:'0 0 100 100'});s.style.cssText='width:80px;height:80px';
-    pts.forEach(function(p,i){
-      var angle=(p.value/Math.max(total,1))*360;
-      var sr=(ca*Math.PI)/180,er=((ca+angle)*Math.PI)/180;
-      var x1=cx+r*Math.cos(sr),y1=cy+r*Math.sin(sr);
-      var x2=cx+r*Math.cos(er),y2=cy+r*Math.sin(er);
-      var lf=angle>180?1:0;
-      s.appendChild(svg('path',{d:'M'+cx+','+cy+' L'+x1+','+y1+' A'+r+','+r+' 0 '+lf+',1 '+x2+','+y2+' Z',fill:p.color?resolveColor(p.color):dc[i%dc.length]}));
-      ca+=angle;
-    });
-    applyStyle(s,d);return s;
-  }
-  var e=document.createElement('div');e.style.cssText='display:flex;align-items:flex-end;gap:4px;height:70px';
-  pts.forEach(function(p){
-    var col=document.createElement('div');col.style.cssText='flex:1;display:flex;flex-direction:column;align-items:center;gap:2px';
-    var bar=document.createElement('div');bar.style.width='100%';
-    bar.style.height=Math.max((p.value/maxV)*60,2)+'px';
-    bar.style.background=p.color?resolveColor(p.color):tint;bar.style.borderRadius='2px';
-    col.appendChild(bar);
-    var lb=document.createElement('span');lb.textContent=p.label;lb.style.cssText='font-size:8px;color:#999';
-    col.appendChild(lb);e.appendChild(col);
-  });
-  applyStyle(e,d);return e;
-}
-
-function renderList(d){
-  var e=document.createElement('div');
-  e.style.cssText='display:flex;flex-direction:column;gap:'+(d.spacing||4)+'px';
-  var items=d.items||[];
-  var anyCheck=items.some(function(it){return Object.prototype.hasOwnProperty.call(it,'checked')});
-  items.forEach(function(it){
-    var row=document.createElement('div');
-    row.style.cssText='display:flex;align-items:center;gap:6px;min-width:0';
-    var hasCheck=Object.prototype.hasOwnProperty.call(it,'checked');
-    if(hasCheck||anyCheck){
-      var check=document.createElement('span');
-      check.style.cssText='font-size:12px;width:14px;text-align:center;flex-shrink:0;color:'+(hasCheck?(it.checked?'#22c55e':'#9ca3af'):'transparent');
-      check.textContent=hasCheck?(it.checked?'\u2713':'\u25cb'):'\u00a0';
-      row.appendChild(check);
+    const params = new URLSearchParams(window.location.search);
+    const GROUP = params.get("group") || "default";
+    const SIZE = params.get("size") || "";
+    const WIDGET_ID = params.get("widgetId") || "default";
+    const THEME = (params.get("theme") || "").toLowerCase();
+    const root = document.getElementById("root");
+    function emitAction(action, payload) {
+        return invoke("plugin:widgets|widget_action", {
+            action,
+            payload: payload == null ? null : payload,
+            widgetId: WIDGET_ID,
+            group: GROUP,
+        }).catch(console.error);
     }
-    var txt=document.createElement('span');
-    txt.textContent=it.text||'';
-    txt.style.cssText='font-size:'+(d.fontSize||13)+'px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0;flex:1';
-    txt.style.color=d.color?resolveColor(d.color):'inherit';
-    row.appendChild(txt);
-    if(it.action){
-      row.style.cursor='pointer';
-      row.onclick=function(){emitAction(it.action,it.payload);};
+    let timerIds = [];
+    function clearTimers() {
+        timerIds.forEach((id) => {
+            clearInterval(id);
+        });
+        timerIds = [];
     }
-    e.appendChild(row);
-  });
-  applyStyle(e,d);return e;
-}
 
-function renderLink(d){
-  var e=document.createElement('div');e.style.cursor='pointer';
-  e.onclick=function(){
-    if(d.action)emitAction(d.action);
-    else if(d.url)window.open(d.url,'_blank');
-  };
-  applyStyle(e,d);
-  (d.children||[]).forEach(function(c){e.appendChild(renderEl(c))});
-  return e;
-}
-
-function renderShape(d){
-  var sz=d.size||24,fill=d.fill?resolveColor(d.fill):'#4CAF50';
-  var stroke=d.stroke?resolveColor(d.stroke):undefined,sw=d.strokeWidth||1;
-  var e=document.createElement('div');e.style.background=fill;e.style.flexShrink='0';
-  if(stroke)e.style.border=sw+'px solid '+stroke;
-  if(d.shapeType==='circle'){e.style.width=sz+'px';e.style.height=sz+'px';e.style.borderRadius='50%'}
-  else if(d.shapeType==='capsule'){e.style.width=(sz*2)+'px';e.style.height=sz+'px';e.style.borderRadius=(sz/2)+'px'}
-  else{e.style.width=sz+'px';e.style.height=sz+'px';if(d.cornerRadius)e.style.borderRadius=d.cornerRadius+'px'}
-  applyStyle(e,d);return e;
-}
-
-var timerIds=[];
-function clearTimers(){
-  timerIds.forEach(function(id){clearInterval(id)});
-  timerIds=[];
-}
-
-function renderTimer(d){
-  var e=document.createElement('span');
-  e.style.fontSize=(d.fontSize||14)+'px';e.style.fontWeight=fw(d.fontWeight);
-  e.style.color=d.color?resolveColor(d.color):'inherit';e.style.fontVariantNumeric='tabular-nums';
-  function tick(){
-    var target=new Date(d.targetDate).getTime(),now=Date.now(),diff=Math.abs(target-now);
-    var h=Math.floor(diff/3600000),m=Math.floor((diff%3600000)/60000),s=Math.floor((diff%60000)/1000);
-    e.textContent=String(h).padStart(2,'0')+':'+String(m).padStart(2,'0')+':'+String(s).padStart(2,'0');
-  }
-  tick();
-  timerIds.push(setInterval(tick,1000));
-  applyStyle(e,d);return e;
-}
-
-function renderLabel(d){
-  var e=document.createElement('div');e.style.cssText='display:flex;align-items:center;gap:'+(d.spacing||4)+'px';
-  var ic=document.createElement('span');ic.textContent='\u25CF';
-  ic.style.fontSize=((d.fontSize||14)*1.1)+'px';
-  ic.style.color=d.iconColor?resolveColor(d.iconColor):d.color?resolveColor(d.color):'inherit';
-  e.appendChild(ic);
-  var t=document.createElement('span');t.textContent=d.text||'';
-  t.style.fontSize=(d.fontSize||14)+'px';t.style.fontWeight=fw(d.fontWeight);
-  t.style.color=d.color?resolveColor(d.color):'inherit';
-  e.appendChild(t);applyStyle(e,d);return e;
-}
-
-function renderCanvas(d){
-  var cw=d.width||100,ch=d.height||100;
-  var s=svg('svg',{width:cw,height:ch,viewBox:'0 0 '+cw+' '+ch});
-  (d.elements||[]).forEach(function(cmd){
-    switch(cmd.draw){
-      case'circle':s.appendChild(svg('circle',{cx:cmd.cx,cy:cmd.cy,r:cmd.r,fill:cmd.fill?resolveColor(cmd.fill):'none',stroke:cmd.stroke?resolveColor(cmd.stroke):'none','stroke-width':cmd.strokeWidth||1}));break;
-      case'line':s.appendChild(svg('line',{x1:cmd.x1,y1:cmd.y1,x2:cmd.x2,y2:cmd.y2,stroke:cmd.stroke?resolveColor(cmd.stroke):'#fff','stroke-width':cmd.strokeWidth||1,'stroke-linecap':cmd.lineCap||'butt'}));break;
-      case'rect':s.appendChild(svg('rect',{x:cmd.x,y:cmd.y,width:cmd.width,height:cmd.height,rx:cmd.cornerRadius||0,ry:cmd.cornerRadius||0,fill:cmd.fill?resolveColor(cmd.fill):'none',stroke:cmd.stroke?resolveColor(cmd.stroke):'none','stroke-width':cmd.strokeWidth||1}));break;
-      case'arc':{
-        var cx2=cmd.cx||0,cy2=cmd.cy||0,r2=cmd.r||10;
-        var sa=((cmd.startAngle||0)*Math.PI)/180,ea=((cmd.endAngle||360)*Math.PI)/180;
-        var sx=cx2+r2*Math.cos(sa),sy=cy2+r2*Math.sin(sa);
-        var ex=cx2+r2*Math.cos(ea),ey=cy2+r2*Math.sin(ea);
-        var lf=ea-sa>Math.PI?1:0;
-        var pd=cmd.fill?'M'+cx2+','+cy2+' L'+sx+','+sy+' A'+r2+','+r2+' 0 '+lf+' 1 '+ex+','+ey+' Z':'M'+sx+','+sy+' A'+r2+','+r2+' 0 '+lf+' 1 '+ex+','+ey;
-        s.appendChild(svg('path',{d:pd,fill:cmd.fill?resolveColor(cmd.fill):'none',stroke:cmd.stroke?resolveColor(cmd.stroke):'none','stroke-width':cmd.strokeWidth||1}));break;
-      }
-      case'text':{var t=svg('text',{x:cmd.x,y:cmd.y,'font-size':cmd.fontSize||12,fill:cmd.color?resolveColor(cmd.color):'#fff','text-anchor':cmd.anchor==='middle'?'middle':cmd.anchor==='end'?'end':'start'});t.textContent=cmd.content||'';s.appendChild(t);break}
-      case'path':s.appendChild(svg('path',{d:cmd.d,fill:cmd.fill?resolveColor(cmd.fill):'none',stroke:cmd.stroke?resolveColor(cmd.stroke):'none','stroke-width':cmd.strokeWidth||1}));break;
+    function expandHex(h) {
+        if (h.length === 3)
+            return h[0] + h[0] + h[1] + h[1] + h[2] + h[2];
+        if (h.length === 4)
+            return h[0] + h[0] + h[1] + h[1] + h[2] + h[2] + h[3] + h[3];
+        return h;
     }
-  });
-  applyStyle(s,d);return s;
-}
-
-function collectTrace(node, rendered, skipped){
-  if(!node||typeof node!=='object')return;
-  var t=node.type;
-  if(typeof t==='string'&&t){
-    rendered.push(t);
-    if(t==='canvas'&&!(window.Path2D)){
-      skipped.push({type:t,reason:'unsupported'});
+    function isDark() {
+        // Prefer explicit theme: URL ?theme= → data-theme → OS preference.
+        const t = THEME ||
+            document.documentElement.getAttribute("data-theme") ||
+            document.documentElement.dataset?.theme ||
+            "";
+        if (t === "light")
+            return false;
+        if (t === "dark")
+            return true;
+        return !!(window.matchMedia &&
+            window.matchMedia("(prefers-color-scheme:dark)").matches);
     }
-  }
-  var kids=node.children;
-  if(Array.isArray(kids))kids.forEach(function(c){collectTrace(c,rendered,skipped)});
-  if(Array.isArray(node.items))node.items.forEach(function(it){
-    if(it&&it.children)collectTrace(it,rendered,skipped);
-  });
-}
-
-function reportReceipt(cfg, source, trigger, nonceHint){
-  try{
-    var label=(window.__TAURI_INTERNALS__&&window.__TAURI_INTERNALS__.metadata&&
-      window.__TAURI_INTERNALS__.metadata.currentWindow&&
-      window.__TAURI_INTERNALS__.metadata.currentWindow.label)||'desktop';
-    var rendered=[], skipped=[];
-    var branch=SIZE?(cfg&&(cfg[SIZE]||cfg.small||cfg.medium||cfg.large)):(cfg&&(cfg.small||cfg.medium||cfg.large));
-    collectTrace(branch,rendered,skipped);
-    var nonce=0;
-    if(nonceHint!=null)nonce=Number(nonceHint)||0;
-    else if(cfg&&cfg.__nonce!=null)nonce=Number(cfg.__nonce)||0;
-    var trig=trigger||(source==='push'?'reload':'timeline');
-    invoke('plugin:widgets|report_receipt',{receipt:{
-      widgetId:WIDGET_ID,
-      group:GROUP,
-      instance:label,
-      nonce:nonce,
-      size:SIZE||'small',
-      theme:document.documentElement.getAttribute('data-theme')||undefined,
-      schema:1,
-      source:source||'pull',
-      trigger:trig,
-      rendered:rendered,
-      skipped:skipped,
-      ts:Date.now()
-    }}).catch(function(){});
-  }catch(_){}
-}
-
-function render(cfg, source, nonceHint){
-  clearTimers();
-  if(!cfg){root.innerHTML='<div class="w-empty"><div><div style="font-size:28px;margin-bottom:4px">&#x1F4CC;</div><div style="font-size:14px;opacity:.7">No widget config</div></div></div>';return}
-  var data;
-  if(SIZE)data=cfg[SIZE]||cfg.small||cfg.medium||cfg.large;
-  else data=cfg.small||cfg.medium||cfg.large;
-  if(!data){root.innerHTML='<div class="w-empty"><div><div style="font-size:28px;margin-bottom:4px">&#x1F4CC;</div><div style="font-size:14px;opacity:.7">No config for size &quot;'+SIZE+'&quot;</div></div></div>';return}
-
-  root.innerHTML='';
-  // Readable defaults when fixtures leave color/background null (avoids black-on-black
-  // and WebKit leftover Loading purple under transparent surfaces).
-  document.documentElement.style.color='#e5e7eb';
-  document.body.style.color='#e5e7eb';
-  var wrapper=document.createElement('div');
-  wrapper.style.cssText='width:100%;height:100%;overflow:hidden;position:relative';
-
-  var content=renderEl(data);
-  content.style.width='100%';content.style.height='100%';
-  if(!content.style.background && !content.style.backgroundColor){
-    content.style.background='#0f172a';
-  }
-  wrapper.appendChild(content);
-
-  var drag=document.createElement('div');drag.id='drag-handle';
-  drag.setAttribute('data-tauri-drag-region','');
-  wrapper.appendChild(drag);
-
-  var cls=document.createElement('button');cls.id='close-btn';cls.innerHTML='&#x2715;';
-  cls.onclick=function(){
-    try{
-      var label=window.__TAURI_INTERNALS__.metadata.currentWindow.label;
-      invoke('plugin:widgets|close_widget_window',{label:label}).catch(function(){});
-    }catch(_){window.close()}
-  };
-  wrapper.appendChild(cls);
-  root.appendChild(wrapper);
-  reportReceipt(cfg, source||'pull', source==='push'?'reload':'timeline', nonceHint);
-}
-
-function loadConfig(){
-  Promise.all([
-    invoke('plugin:widgets|get_widget_config',{group:GROUP,widgetId:WIDGET_ID}),
-    invoke('plugin:widgets|get_items',{key:'__meta_nonce__',group:GROUP}).catch(function(){return null})
-  ]).then(function(res){
-    var cfg=res[0];
-    var nonce=res[1];
-    if(cfg&&nonce!=null)cfg.__nonce=Number(nonce)||0;
-    render(cfg,'pull',nonce);
-  }).catch(function(e){clearTimers();root.innerHTML='<div class="w-err">'+String(e)+'</div>'});
-}
-
-function init(){
-  if(!window.__TAURI_INTERNALS__){setTimeout(init,50);return}
-  // Listeners BEFORE loadConfig — otherwise a push between the two is dropped.
-  listen('widget-config-push',function(ev){
-    var p=ev.payload;
-    if(p&&p.config){
-      if(p.widgetId&&p.widgetId!==WIDGET_ID)return;
-      if(p.group&&p.group!==GROUP)return;
-      render(p.config,'push');
-    }else{
-      render(p,'push');
+    const SEMANTIC_COLORS = {
+        label: ["#000000", "#FFFFFF"],
+        secondaryLabel: ["#3C3C43", "#EBEBF5"],
+        systemBackground: ["#FFFFFF", "#000000"],
+        secondarySystemBackground: ["#F2F2F7", "#1C1C1E"],
+        accent: ["#007AFF", "#0A84FF"],
+        separator: ["#C6C6C8", "#545458"],
+    };
+    function hex(c) {
+        if (!c)
+            return "inherit";
+        if (SEMANTIC_COLORS[c]) {
+            return isDark() ? SEMANTIC_COLORS[c][1] : SEMANTIC_COLORS[c][0];
+        }
+        const h = expandHex(c.replace("#", ""));
+        if (h.length === 8)
+            return ("rgba(" +
+                parseInt(h.slice(0, 2), 16) +
+                "," +
+                parseInt(h.slice(2, 4), 16) +
+                "," +
+                parseInt(h.slice(4, 6), 16) +
+                "," +
+                (parseInt(h.slice(6, 8), 16) / 255).toFixed(2) +
+                ")");
+        return "#" + h;
     }
-  });
-  listen('widget-update',function(){loadConfig()});
-  listen('widget-reload',function(){loadConfig()});
-  loadConfig();
-}
+    function resolveColor(cv) {
+        if (!cv)
+            return "inherit";
+        if (typeof cv === "string")
+            return hex(cv);
+        if (cv.light && cv.dark)
+            return isDark() ? hex(cv.dark) : hex(cv.light);
+        return "inherit";
+    }
+    function tintTrack(tint) {
+        const resolved = tint ? resolveColor(tint) : null;
+        if (!resolved || resolved === "inherit")
+            return "rgba(120,120,128,0.2)";
+        const h = expandHex(resolved.replace("#", ""));
+        if (h.length >= 6) {
+            const r = parseInt(h.slice(0, 2), 16);
+            const g = parseInt(h.slice(2, 4), 16);
+            const b = parseInt(h.slice(4, 6), 16);
+            return "rgba(" + r + "," + g + "," + b + ",0.2)";
+        }
+        return "rgba(120,120,128,0.2)";
+    }
+    const TEXT_STYLE_SIZES = {
+        largeTitle: 34,
+        title: 28,
+        title2: 22,
+        title3: 20,
+        headline: 17,
+        subheadline: 15,
+        body: 17,
+        callout: 16,
+        footnote: 13,
+        caption: 12,
+        caption2: 11,
+    };
+    const TEXT_STYLE_BOLD = { headline: true };
+    function applyStyle(el, d) {
+        if (d.padding != null) {
+            if (typeof d.padding === "number")
+                el.style.padding = d.padding + "px";
+            else {
+                el.style.paddingTop = (d.padding.top || 0) + "px";
+                el.style.paddingBottom = (d.padding.bottom || 0) + "px";
+                el.style.paddingLeft = (d.padding.leading || 0) + "px";
+                el.style.paddingRight = (d.padding.trailing || 0) + "px";
+            }
+        }
+        if (d.background) {
+            if (typeof d.background === "string")
+                el.style.background = hex(d.background);
+            else if (d.background.colors) {
+                const g = d.background;
+                const cols = g.colors.map(hex).join(", ");
+                const dirs = {
+                    topToBottom: "to bottom",
+                    bottomToTop: "to top",
+                    leadingToTrailing: "to right",
+                    trailingToLeading: "to left",
+                    topLeadingToBottomTrailing: "to bottom right",
+                    topTrailingToBottomLeading: "to bottom left",
+                };
+                if (g.gradientType === "radial")
+                    el.style.background = "radial-gradient(circle, " + cols + ")";
+                else if (g.gradientType === "angular")
+                    el.style.background = "conic-gradient(" + cols + ")";
+                else
+                    el.style.background =
+                        "linear-gradient(" + (dirs[g.direction] || "to bottom") + ", " + cols + ")";
+            }
+            else if (d.background.light && d.background.dark) {
+                el.style.background = isDark()
+                    ? hex(d.background.dark)
+                    : hex(d.background.light);
+            }
+        }
+        if (d.cornerRadius) {
+            el.style.borderRadius = d.cornerRadius + "px";
+            el.style.overflow = "hidden";
+        }
+        if (d.opacity != null)
+            el.style.opacity = String(d.opacity);
+        if (d.border)
+            el.style.border =
+                (d.border.width || 1) + "px solid " + hex(d.border.color);
+        if (d.shadow) {
+            const s = d.shadow;
+            el.style.boxShadow =
+                (s.x || 0) +
+                    "px " +
+                    (s.y || 2) +
+                    "px " +
+                    (s.radius || 4) +
+                    "px " +
+                    (s.color ? hex(s.color) : "rgba(0,0,0,.3)");
+        }
+        if (d.frame) {
+            if (d.frame.width) {
+                el.style.width = d.frame.width + "px";
+                el.style.minWidth = d.frame.width + "px";
+                el.style.flexShrink = "0";
+            }
+            if (d.frame.height) {
+                el.style.height = d.frame.height + "px";
+                el.style.minHeight = d.frame.height + "px";
+            }
+            if (d.frame.maxWidth === "infinity")
+                el.style.maxWidth = "100%";
+            else if (d.frame.maxWidth)
+                el.style.maxWidth = d.frame.maxWidth + "px";
+        }
+        if (d.clipShape) {
+            el.style.overflow = "hidden";
+            if (d.clipShape === "circle")
+                el.style.borderRadius = "50%";
+            else if (d.clipShape === "capsule")
+                el.style.borderRadius = "9999px";
+            else if (d.clipShape === "rectangle" && d.cornerRadius)
+                el.style.borderRadius = d.cornerRadius + "px";
+        }
+        if (d.flex && d.flex > 0) {
+            el.style.flex = String(d.flex);
+            el.style.minWidth = "0";
+        }
+    }
+    function fw(w) {
+        return ({
+            ultralight: 100,
+            thin: 200,
+            light: 300,
+            regular: 400,
+            medium: 500,
+            semibold: 600,
+            bold: 700,
+            heavy: 800,
+            black: 900,
+        }[w || ""] || 400);
+    }
+    function svg(tag, a) {
+        const e = document.createElementNS("http://www.w3.org/2000/svg", tag);
+        for (const k in a)
+            if (a[k] != null)
+                e.setAttribute(k, String(a[k]));
+        return e;
+    }
 
-if(document.readyState==='complete'||document.readyState==='interactive')init();
-else document.addEventListener('DOMContentLoaded',init);
+    function renderStack(d, dir) {
+        var e = document.createElement("div");
+        e.style.display = "flex";
+        e.style.flexDirection = dir;
+        e.style.gap = (d.spacing || 0) + "px";
+        // Default stretch (SwiftUI/Glance-like). Explicit alignment only when set.
+        if (dir === "column") {
+            e.style.alignItems =
+                d.alignment === "trailing"
+                    ? "flex-end"
+                    : d.alignment === "leading"
+                        ? "flex-start"
+                        : d.alignment === "center"
+                            ? "center"
+                            : "stretch";
+        }
+        else {
+            e.style.alignItems =
+                d.alignment === "top"
+                    ? "flex-start"
+                    : d.alignment === "bottom"
+                        ? "flex-end"
+                        : d.alignment === "center"
+                            ? "center"
+                            : "stretch";
+        }
+        applyStyle(e, d);
+        var axis = dir === "row" ? "horizontal" : "vertical";
+        (d.children || []).forEach(function (c) {
+            e.appendChild(renderEl(c, axis));
+        });
+        return e;
+    }
+    function renderZStack(d) {
+        var e = document.createElement("div");
+        e.style.display = "grid";
+        var a = (d.alignment || "center").toLowerCase();
+        var place = {
+            center: "center",
+            top: "start center",
+            bottom: "end center",
+            leading: "center start",
+            trailing: "center end",
+            topleading: "start start",
+            toptrailing: "start end",
+            bottomleading: "end start",
+            bottomtrailing: "end end",
+        };
+        e.style.placeItems = place[a] || "center";
+        applyStyle(e, d);
+        (d.children || []).forEach(function (c) {
+            var w = document.createElement("div");
+            w.style.gridArea = "1 / 1";
+            w.appendChild(renderEl(c));
+            e.appendChild(w);
+        });
+        return e;
+    }
+    function renderGrid(d) {
+        var e = document.createElement("div");
+        e.style.display = "grid";
+        e.style.gridTemplateColumns = "repeat(" + (d.columns || 2) + ", 1fr)";
+        e.style.columnGap = (d.spacing || 4) + "px";
+        e.style.rowGap = (d.rowSpacing || d.spacing || 4) + "px";
+        applyStyle(e, d);
+        (d.children || []).forEach(function (c) {
+            e.appendChild(renderEl(c));
+        });
+        return e;
+    }
+    function renderContainer(d) {
+        var e = document.createElement("div");
+        e.style.display = "flex";
+        var a = d.contentAlignment || "center";
+        var vert = {
+            top: "flex-start",
+            bottom: "flex-end",
+            topLeading: "flex-start",
+            topTrailing: "flex-start",
+            bottomLeading: "flex-end",
+            bottomTrailing: "flex-end",
+        };
+        var horiz = {
+            leading: "flex-start",
+            trailing: "flex-end",
+            topLeading: "flex-start",
+            topTrailing: "flex-end",
+            bottomLeading: "flex-start",
+            bottomTrailing: "flex-end",
+        };
+        e.style.alignItems = vert[a] || "center";
+        e.style.justifyContent = horiz[a] || "center";
+        applyStyle(e, d);
+        (d.children || []).forEach(function (ch) {
+            e.appendChild(renderEl(ch));
+        });
+        return e;
+    }
+
+    function formatRelativeDate(date) {
+        var diffMs = date.getTime() - Date.now();
+        var abs = Math.abs(diffMs);
+        var sec = Math.round(abs / 1000), min = Math.round(sec / 60), hr = Math.round(min / 60);
+        var day = Math.round(hr / 24), mon = Math.round(day / 30), yr = Math.round(day / 365);
+        var unit = "second", val = sec;
+        if (yr >= 1) {
+            unit = "year";
+            val = yr;
+        }
+        else if (mon >= 1) {
+            unit = "month";
+            val = mon;
+        }
+        else if (day >= 1) {
+            unit = "day";
+            val = day;
+        }
+        else if (hr >= 1) {
+            unit = "hour";
+            val = hr;
+        }
+        else if (min >= 1) {
+            unit = "minute";
+            val = min;
+        }
+        var signed = diffMs < 0 ? -val : val;
+        try {
+            return new Intl.RelativeTimeFormat(undefined, { numeric: "auto" }).format(signed, unit);
+        }
+        catch (_) {
+            return ((signed < 0 ? "" : "+") +
+                signed +
+                " " +
+                unit +
+                (Math.abs(signed) === 1 ? "" : "s"));
+        }
+    }
+    function renderText(d, parentAxis) {
+        var e = document.createElement("span");
+        e.textContent = d.content || "";
+        var ts = d.textStyle && TEXT_STYLE_SIZES[d.textStyle];
+        e.style.fontSize = (ts || d.fontSize || 14) + "px";
+        e.style.fontWeight = String(d.textStyle && TEXT_STYLE_BOLD[d.textStyle] ? 700 : fw(d.fontWeight));
+        e.style.color = d.color ? resolveColor(d.color) : "inherit";
+        e.style.textAlign =
+            d.alignment === "center"
+                ? "center"
+                : d.alignment === "trailing"
+                    ? "right"
+                    : "left";
+        e.style.display = d.lineLimit ? "-webkit-box" : "block";
+        e.style.boxSizing = "border-box";
+        e.style.flexShrink = "0";
+        // In hstack hug content width so siblings (divider / trailing text) stay visible.
+        // In vstack (or unknown axis) stretch full width so textAlign leading/center/trailing works.
+        if (parentAxis === "horizontal") {
+            e.style.width = "auto";
+        }
+        else {
+            e.style.width = "100%";
+            e.style.alignSelf = "stretch";
+        }
+        if (d.fontDesign === "monospaced")
+            e.style.fontFamily = "monospace";
+        else if (d.fontDesign === "serif")
+            e.style.fontFamily = "serif";
+        else if (d.fontDesign === "rounded")
+            e.style.fontFamily =
+                'ui-rounded, "SF Pro Rounded", system-ui, sans-serif';
+        if (d.lineLimit) {
+            e.style.webkitLineClamp = String(d.lineLimit);
+            e.style.webkitBoxOrient = "vertical";
+            e.style.overflow = "hidden";
+        }
+        applyStyle(e, d);
+        return e;
+    }
+    function renderDate(d) {
+        var e = document.createElement("span");
+        var date = new Date(d.date);
+        var style = (d.dateStyle || "").toLowerCase();
+        if (style === "time")
+            e.textContent = date.toLocaleTimeString(undefined, {
+                hour: "2-digit",
+                minute: "2-digit",
+            });
+        else if (style === "date")
+            e.textContent = date.toLocaleDateString(undefined, {
+                year: "numeric",
+                month: "short",
+                day: "numeric",
+            });
+        else if (style === "relative" || style === "offset")
+            e.textContent = formatRelativeDate(date);
+        else if (style === "timer") {
+            var diff = Math.abs(date.getTime() - Date.now());
+            var h = Math.floor(diff / 3600000), m = Math.floor((diff % 3600000) / 60000), s = Math.floor((diff % 60000) / 1000);
+            e.textContent =
+                String(h).padStart(2, "0") +
+                    ":" +
+                    String(m).padStart(2, "0") +
+                    ":" +
+                    String(s).padStart(2, "0");
+        }
+        else
+            e.textContent = date.toLocaleString();
+        e.style.fontSize = (d.fontSize || 14) + "px";
+        e.style.color = d.color ? resolveColor(d.color) : "inherit";
+        applyStyle(e, d);
+        return e;
+    }
+    function renderTimer(d) {
+        var e = document.createElement("span");
+        e.style.fontSize = (d.fontSize || 14) + "px";
+        e.style.fontWeight = String(fw(d.fontWeight));
+        e.style.color = d.color ? resolveColor(d.color) : "inherit";
+        e.style.fontVariantNumeric = "tabular-nums";
+        function tick() {
+            var target = new Date(d.targetDate).getTime(), now = Date.now(), diff = Math.abs(target - now);
+            var h = Math.floor(diff / 3600000), m = Math.floor((diff % 3600000) / 60000), s = Math.floor((diff % 60000) / 1000);
+            e.textContent =
+                String(h).padStart(2, "0") +
+                    ":" +
+                    String(m).padStart(2, "0") +
+                    ":" +
+                    String(s).padStart(2, "0");
+        }
+        tick();
+        timerIds.push(setInterval(tick, 1000));
+        applyStyle(e, d);
+        return e;
+    }
+    function renderLabel(d) {
+        var e = document.createElement("div");
+        e.style.cssText =
+            "display:flex;align-items:center;gap:" + (d.spacing || 4) + "px";
+        var ic = document.createElement("span");
+        ic.textContent = "\u25CF";
+        ic.style.fontSize = (d.fontSize || 14) * 1.1 + "px";
+        ic.style.color = d.iconColor
+            ? resolveColor(d.iconColor)
+            : d.color
+                ? resolveColor(d.color)
+                : "inherit";
+        e.appendChild(ic);
+        var t = document.createElement("span");
+        t.textContent = d.text || "";
+        t.style.fontSize = (d.fontSize || 14) + "px";
+        t.style.fontWeight = String(fw(d.fontWeight));
+        t.style.color = d.color ? resolveColor(d.color) : "inherit";
+        e.appendChild(t);
+        applyStyle(e, d);
+        return e;
+    }
+
+    function systemGlyph(name) {
+        var n = String(name || "").toLowerCase();
+        var map = {
+            star: "\u2b50",
+            "star.fill": "\u2b50",
+            heart: "\u2764",
+            "heart.fill": "\u2764",
+            person: "\u1f464",
+            "person.fill": "\u1f464",
+            "person.2.fill": "\u1f465",
+            "person.badge.plus": "\u1f464",
+            gear: "\u2699",
+            gearshape: "\u2699",
+            "gearshape.fill": "\u2699",
+            checkmark: "\u2713",
+            "checkmark.circle": "\u2713",
+            "checkmark.circle.fill": "\u2713",
+            xmark: "\u2715",
+            "xmark.circle": "\u2715",
+            plus: "+",
+            "plus.circle": "+",
+            minus: "\u2212",
+            "minus.circle": "\u2212",
+            bell: "\u1f514",
+            "bell.fill": "\u1f514",
+            house: "\u2302",
+            "house.fill": "\u2302",
+            magnifyingglass: "\u1f50d",
+            calendar: "\u1f4c5",
+            "calendar.badge.clock": "\u1f4c5",
+            "calendar.circle": "\u1f4c5",
+            clock: "\u23f1",
+            "clock.fill": "\u23f1",
+            globe: "\u1f310",
+            "cloud.fill": "\u2601",
+            "cloud.sun.fill": "\u26c5",
+            "cloud.rain.fill": "\u2614",
+            "cloud.bolt.fill": "\u26a1",
+            "sun.max": "\u2600",
+            "sun.max.fill": "\u2600",
+            "moon.fill": "\u263e",
+            "moon.stars.fill": "\u263e",
+            bolt: "\u26a1",
+            "bolt.fill": "\u26a1",
+            "location.fill": "\u2302",
+            "flame.fill": "\u1f525",
+            "drop.fill": "\u25cf",
+            "leaf.fill": "\u273f",
+            "eye.fill": "\u25c9",
+            "bubble.left.fill": "\u25d1",
+            "music.note": "\u266a",
+            "music.note.list": "\u266a",
+            hourglass: "\u23f3",
+            "hourglass.bottomhalf.filled": "\u23f3",
+            "figure.run": "\u27a4",
+            "paintpalette.fill": "\u2698",
+            "quote.opening": "\u201c",
+            "bitcoinsign.circle.fill": "\u20bf",
+            "battery.100": "\u25ae",
+            iphone: "\u25af",
+            ipad: "\u25ad",
+            applewatch: "\u231a",
+            airpodspro: "\u25cb",
+            desktopcomputer: "\u25a3",
+            internaldrive: "\u25a0",
+            network: "\u2261",
+            "envelope.fill": "\u2709",
+            envelope: "\u2709",
+            "phone.fill": "\u260e",
+            phone: "\u260e",
+            "message.fill": "\u1f4ac",
+            trash: "\u1f5d1",
+            "trash.fill": "\u1f5d1",
+            folder: "\u1f4c1",
+            "folder.fill": "\u1f4c1",
+            doc: "\u1f4c4",
+            "doc.fill": "\u1f4c4",
+            photo: "\u1f5bc",
+            "photo.fill": "\u1f5bc",
+            camera: "\u1f4f7",
+            "camera.fill": "\u1f4f7",
+            map: "\u1f5fa",
+            "map.fill": "\u1f5fa",
+            cart: "\u1f6d2",
+            "cart.fill": "\u1f6d2",
+            creditcard: "\u1f4b3",
+            "creditcard.fill": "\u1f4b3",
+            wifi: "\u1f4f6",
+            "antenna.radiowaves.left.and.right": "\u1f4e1",
+            "lock.fill": "\u1f512",
+            lock: "\u1f512",
+            "lock.open.fill": "\u1f513",
+            "key.fill": "\u1f511",
+            "paperplane.fill": "\u27a4",
+            "arrow.right": "\u2192",
+            "arrow.left": "\u2190",
+            "arrow.up": "\u2191",
+            "arrow.down": "\u2193",
+            "chevron.right": "\u203a",
+            "chevron.left": "\u2039",
+            "chevron.up": "\u02c6",
+            "chevron.down": "\u02c7",
+            "info.circle": "\u2139",
+            "info.circle.fill": "\u2139",
+            "exclamationmark.triangle": "\u26a0",
+            "exclamationmark.triangle.fill": "\u26a0",
+            "play.fill": "\u25b6",
+            "pause.fill": "\u23f8",
+            "stop.fill": "\u23f9",
+            "forward.fill": "\u23e9",
+            "backward.fill": "\u23ea",
+        };
+        if (map[n])
+            return map[n];
+        // Never first-letter fallback — looks like a bug.
+        return "\u25CF";
+    }
+    function renderImage(d) {
+        var e = document.createElement("span");
+        e.style.display = "inline-flex";
+        e.style.alignItems = "center";
+        e.style.justifyContent = "center";
+        if (d.data) {
+            var img = document.createElement("img");
+            img.src =
+                String(d.data).indexOf("data:") === 0
+                    ? d.data
+                    : "data:image/png;base64," + d.data;
+            img.width = d.size || 24;
+            img.height = d.size || 24;
+            img.style.objectFit = d.contentMode === "fill" ? "cover" : "contain";
+            e.appendChild(img);
+        }
+        else if (d.url) {
+            var img = document.createElement("img");
+            img.src = d.url;
+            img.width = d.size || 24;
+            img.height = d.size || 24;
+            img.style.objectFit = d.contentMode === "fill" ? "cover" : "contain";
+            e.appendChild(img);
+        }
+        else if (d.systemName) {
+            var sz = d.size || 24;
+            e.textContent = systemGlyph(d.systemName);
+            e.style.fontSize = sz + "px";
+            e.style.lineHeight = "1";
+            e.style.width = sz + "px";
+            e.style.height = sz + "px";
+            e.style.minWidth = sz + "px";
+            e.style.flexShrink = "0";
+            e.style.boxSizing = "border-box";
+            e.style.color = d.color ? resolveColor(d.color) : "inherit";
+        }
+        else {
+            e.textContent = "\u25CF";
+            e.style.fontSize = (d.size || 24) + "px";
+            e.style.color = d.color ? resolveColor(d.color) : "inherit";
+        }
+        applyStyle(e, d);
+        return e;
+    }
+    function renderShape(d) {
+        var sz = d.size || 24, fill = d.fill ? resolveColor(d.fill) : "#4CAF50";
+        var stroke = d.stroke ? resolveColor(d.stroke) : undefined, sw = d.strokeWidth || 1;
+        var e = document.createElement("div");
+        e.style.background = fill;
+        e.style.flexShrink = "0";
+        if (stroke)
+            e.style.border = sw + "px solid " + stroke;
+        if (d.shapeType === "circle") {
+            e.style.width = sz + "px";
+            e.style.height = sz + "px";
+            e.style.borderRadius = "50%";
+        }
+        else if (d.shapeType === "capsule") {
+            e.style.width = sz * 2 + "px";
+            e.style.height = sz + "px";
+            e.style.borderRadius = sz / 2 + "px";
+        }
+        else {
+            e.style.width = sz + "px";
+            e.style.height = sz + "px";
+            if (d.cornerRadius)
+                e.style.borderRadius = d.cornerRadius + "px";
+        }
+        applyStyle(e, d);
+        return e;
+    }
+    function renderCanvas(d) {
+        var cw = d.width || 100, ch = d.height || 100;
+        var s = svg("svg", {
+            width: cw,
+            height: ch,
+            viewBox: "0 0 " + cw + " " + ch,
+        });
+        (d.elements || []).forEach(function (cmd) {
+            switch (cmd.draw) {
+                case "circle":
+                    s.appendChild(svg("circle", {
+                        cx: cmd.cx,
+                        cy: cmd.cy,
+                        r: cmd.r,
+                        fill: cmd.fill ? resolveColor(cmd.fill) : "none",
+                        stroke: cmd.stroke ? resolveColor(cmd.stroke) : "none",
+                        "stroke-width": cmd.strokeWidth || 1,
+                    }));
+                    break;
+                case "line":
+                    s.appendChild(svg("line", {
+                        x1: cmd.x1,
+                        y1: cmd.y1,
+                        x2: cmd.x2,
+                        y2: cmd.y2,
+                        stroke: cmd.stroke ? resolveColor(cmd.stroke) : "#fff",
+                        "stroke-width": cmd.strokeWidth || 1,
+                        "stroke-linecap": cmd.lineCap || "butt",
+                    }));
+                    break;
+                case "rect":
+                    s.appendChild(svg("rect", {
+                        x: cmd.x,
+                        y: cmd.y,
+                        width: cmd.width,
+                        height: cmd.height,
+                        rx: cmd.cornerRadius || 0,
+                        ry: cmd.cornerRadius || 0,
+                        fill: cmd.fill ? resolveColor(cmd.fill) : "none",
+                        stroke: cmd.stroke ? resolveColor(cmd.stroke) : "none",
+                        "stroke-width": cmd.strokeWidth || 1,
+                    }));
+                    break;
+                case "arc": {
+                    var cx2 = cmd.cx || 0, cy2 = cmd.cy || 0, r2 = cmd.r || 10;
+                    var sa = ((cmd.startAngle || 0) * Math.PI) / 180, ea = ((cmd.endAngle || 360) * Math.PI) / 180;
+                    var sx = cx2 + r2 * Math.cos(sa), sy = cy2 + r2 * Math.sin(sa);
+                    var ex = cx2 + r2 * Math.cos(ea), ey = cy2 + r2 * Math.sin(ea);
+                    var lf = ea - sa > Math.PI ? 1 : 0;
+                    var pd = cmd.fill
+                        ? "M" +
+                            cx2 +
+                            "," +
+                            cy2 +
+                            " L" +
+                            sx +
+                            "," +
+                            sy +
+                            " A" +
+                            r2 +
+                            "," +
+                            r2 +
+                            " 0 " +
+                            lf +
+                            " 1 " +
+                            ex +
+                            "," +
+                            ey +
+                            " Z"
+                        : "M" +
+                            sx +
+                            "," +
+                            sy +
+                            " A" +
+                            r2 +
+                            "," +
+                            r2 +
+                            " 0 " +
+                            lf +
+                            " 1 " +
+                            ex +
+                            "," +
+                            ey;
+                    s.appendChild(svg("path", {
+                        d: pd,
+                        fill: cmd.fill ? resolveColor(cmd.fill) : "none",
+                        stroke: cmd.stroke ? resolveColor(cmd.stroke) : "none",
+                        "stroke-width": cmd.strokeWidth || 1,
+                    }));
+                    break;
+                }
+                case "text": {
+                    var t = svg("text", {
+                        x: cmd.x,
+                        y: cmd.y,
+                        "font-size": cmd.fontSize || 12,
+                        fill: cmd.color ? resolveColor(cmd.color) : "#fff",
+                        "text-anchor": cmd.anchor === "middle"
+                            ? "middle"
+                            : cmd.anchor === "end"
+                                ? "end"
+                                : "start",
+                    });
+                    t.textContent = cmd.content || "";
+                    s.appendChild(t);
+                    break;
+                }
+                case "path":
+                    s.appendChild(svg("path", {
+                        d: cmd.d,
+                        fill: cmd.fill ? resolveColor(cmd.fill) : "none",
+                        stroke: cmd.stroke ? resolveColor(cmd.stroke) : "none",
+                        "stroke-width": cmd.strokeWidth || 1,
+                    }));
+                    break;
+            }
+        });
+        applyStyle(s, d);
+        return s;
+    }
+
+    function renderProgress(d) {
+        var pct = ((d.value / (d.total || 1)) * 100).toFixed(1);
+        var tint = d.tint ? resolveColor(d.tint) : "#4CAF50";
+        var track = tintTrack(d.tint);
+        if (d.barStyle === "circular") {
+            var w = document.createElement("div");
+            w.style.cssText = "width:40px;height:40px;position:relative";
+            var s = svg("svg", { viewBox: "0 0 36 36" });
+            s.style.cssText = "width:100%;height:100%";
+            s.appendChild(svg("path", {
+                d: "M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831",
+                fill: "none",
+                stroke: track,
+                "stroke-width": "3",
+            }));
+            s.appendChild(svg("path", {
+                d: "M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831",
+                fill: "none",
+                stroke: tint,
+                "stroke-width": "3",
+                "stroke-dasharray": pct + ", 100",
+                "stroke-linecap": "round",
+            }));
+            w.appendChild(s);
+            applyStyle(w, d);
+            return w;
+        }
+        var e = document.createElement("div");
+        e.style.cssText =
+            "flex:1 1 auto;width:100%;min-width:48px;align-self:stretch;box-sizing:border-box";
+        if (d.label) {
+            var l = document.createElement("div");
+            l.textContent = d.label;
+            l.style.cssText = "font-size:10px;margin-bottom:2px";
+            l.style.color = d.color ? resolveColor(d.color) : tint;
+            e.appendChild(l);
+        }
+        var tr = document.createElement("div");
+        tr.style.cssText =
+            "height:6px;border-radius:3px;overflow:hidden;width:100%";
+        tr.style.background = track;
+        var f = document.createElement("div");
+        f.style.cssText = "height:100%;border-radius:3px";
+        f.style.width = pct + "%";
+        f.style.background = tint;
+        tr.appendChild(f);
+        e.appendChild(tr);
+        applyStyle(e, d);
+        return e;
+    }
+    function renderGauge(d) {
+        var v = d.value || 0, lo = d.min || 0, hi = d.max || 1;
+        var pct = ((v - lo) / Math.max(hi - lo, 0.0001)) * 100;
+        var tint = d.tint ? resolveColor(d.tint) : "#4CAF50";
+        var track = tintTrack(d.tint);
+        var clr = d.color ? resolveColor(d.color) : tint;
+        if (d.gaugeStyle === "linear") {
+            var e = document.createElement("div");
+            e.style.cssText =
+                "flex:1 1 auto;width:100%;min-width:48px;align-self:stretch;box-sizing:border-box";
+            var top = document.createElement("div");
+            top.style.cssText =
+                "display:flex;justify-content:space-between;align-items:baseline;gap:6px;margin-bottom:2px";
+            if (d.label) {
+                var l = document.createElement("div");
+                l.textContent = d.label;
+                l.style.cssText = "font-size:10px;opacity:0.7";
+                l.style.color = clr;
+                top.appendChild(l);
+            }
+            if (d.currentValueLabel) {
+                var cv = document.createElement("div");
+                cv.textContent = d.currentValueLabel;
+                cv.style.cssText = "font-size:11px;font-weight:600";
+                cv.style.color = clr;
+                top.appendChild(cv);
+            }
+            if (top.childNodes.length)
+                e.appendChild(top);
+            var tr = document.createElement("div");
+            tr.style.cssText =
+                "height:6px;border-radius:3px;overflow:hidden;width:100%";
+            tr.style.background = track;
+            var f = document.createElement("div");
+            f.style.cssText = "height:100%;border-radius:3px";
+            f.style.width = Math.max(Math.min(pct, 100), 0) + "%";
+            f.style.background = tint;
+            tr.appendChild(f);
+            e.appendChild(tr);
+            applyStyle(e, d);
+            return e;
+        }
+        var wr = document.createElement("div");
+        wr.style.textAlign = "center";
+        var sw = document.createElement("div");
+        sw.style.cssText = "width:56px;height:56px;position:relative;margin:0 auto";
+        var s = svg("svg", { viewBox: "0 0 36 36" });
+        s.style.cssText = "width:100%;height:100%";
+        s.appendChild(svg("path", {
+            d: "M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831",
+            fill: "none",
+            stroke: track,
+            "stroke-width": "4",
+        }));
+        s.appendChild(svg("path", {
+            d: "M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831",
+            fill: "none",
+            stroke: tint,
+            "stroke-width": "4",
+            "stroke-dasharray": pct.toFixed(1) + ", 100",
+            "stroke-linecap": "round",
+        }));
+        sw.appendChild(s);
+        if (d.currentValueLabel) {
+            var cv = document.createElement("div");
+            cv.style.cssText =
+                "position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:600";
+            cv.style.color = clr;
+            cv.textContent = d.currentValueLabel;
+            sw.appendChild(cv);
+        }
+        wr.appendChild(sw);
+        if (d.label) {
+            var l = document.createElement("div");
+            l.style.cssText = "font-size:10px;margin-top:2px;opacity:0.7";
+            l.style.color = clr;
+            l.textContent = d.label;
+            wr.appendChild(l);
+        }
+        applyStyle(wr, d);
+        return wr;
+    }
+    function renderChart(d) {
+        var pts = d.chartData || [];
+        var maxV = Math.max.apply(null, pts.map(function (p) {
+            return p.value;
+        }).concat([1]));
+        var tint = d.tint ? resolveColor(d.tint) : "#4CAF50";
+        if (d.chartType === "line" || d.chartType === "area") {
+            var w = 200, h = 60;
+            var s = svg("svg", { viewBox: "0 0 " + w + " " + h });
+            s.style.cssText = "width:100%;height:60px";
+            var pathD = pts
+                .map(function (p, i) {
+                var x = (i / Math.max(pts.length - 1, 1)) * w;
+                var y = h - (p.value / maxV) * h;
+                return (i === 0 ? "M" : "L") + x + "," + y;
+            })
+                .join(" ");
+            if (d.chartType === "area") {
+                var aD = "M0," +
+                    h +
+                    " " +
+                    pts
+                        .map(function (p, i) {
+                        return ("L" +
+                            (i / Math.max(pts.length - 1, 1)) * w +
+                            "," +
+                            (h - (p.value / maxV) * h));
+                    })
+                        .join(" ") +
+                    " L" +
+                    w +
+                    "," +
+                    h +
+                    " Z";
+                s.appendChild(svg("path", { d: aD, fill: tint, opacity: "0.3" }));
+            }
+            s.appendChild(svg("path", {
+                d: pathD,
+                fill: "none",
+                stroke: tint,
+                "stroke-width": "2",
+            }));
+            applyStyle(s, d);
+            return s;
+        }
+        if (d.chartType === "pie") {
+            var total = pts.reduce(function (s, p) {
+                return s + p.value;
+            }, 0);
+            var dc = [
+                "#3b82f6",
+                "#22c55e",
+                "#f97316",
+                "#ef4444",
+                "#a855f7",
+                "#eab308",
+                "#ec4899",
+                "#14b8a6",
+            ];
+            var r = 40, cx = 50, cy = 50, ca = -90;
+            var s = svg("svg", { viewBox: "0 0 100 100" });
+            s.style.cssText = "width:80px;height:80px";
+            pts.forEach(function (p, i) {
+                var angle = (p.value / Math.max(total, 1)) * 360;
+                var sr = (ca * Math.PI) / 180, er = ((ca + angle) * Math.PI) / 180;
+                var x1 = cx + r * Math.cos(sr), y1 = cy + r * Math.sin(sr);
+                var x2 = cx + r * Math.cos(er), y2 = cy + r * Math.sin(er);
+                var lf = angle > 180 ? 1 : 0;
+                s.appendChild(svg("path", {
+                    d: "M" +
+                        cx +
+                        "," +
+                        cy +
+                        " L" +
+                        x1 +
+                        "," +
+                        y1 +
+                        " A" +
+                        r +
+                        "," +
+                        r +
+                        " 0 " +
+                        lf +
+                        ",1 " +
+                        x2 +
+                        "," +
+                        y2 +
+                        " Z",
+                    fill: p.color ? resolveColor(p.color) : dc[i % dc.length],
+                }));
+                ca += angle;
+            });
+            applyStyle(s, d);
+            return s;
+        }
+        var e = document.createElement("div");
+        e.style.cssText = "display:flex;align-items:flex-end;gap:4px;height:70px";
+        pts.forEach(function (p) {
+            var col = document.createElement("div");
+            col.style.cssText =
+                "flex:1;display:flex;flex-direction:column;align-items:center;gap:2px";
+            var bar = document.createElement("div");
+            bar.style.width = "100%";
+            bar.style.height = Math.max((p.value / maxV) * 60, 2) + "px";
+            bar.style.background = p.color ? resolveColor(p.color) : tint;
+            bar.style.borderRadius = "2px";
+            col.appendChild(bar);
+            var lb = document.createElement("span");
+            lb.textContent = p.label;
+            lb.style.cssText = "font-size:8px;color:#999";
+            col.appendChild(lb);
+            e.appendChild(col);
+        });
+        applyStyle(e, d);
+        return e;
+    }
+    function renderList(d) {
+        var e = document.createElement("div");
+        e.style.cssText =
+            "display:flex;flex-direction:column;gap:" + (d.spacing || 4) + "px";
+        var items = d.items || [];
+        var anyCheck = items.some(function (it) {
+            return Object.prototype.hasOwnProperty.call(it, "checked");
+        });
+        items.forEach(function (it) {
+            var row = document.createElement("div");
+            row.style.cssText = "display:flex;align-items:center;gap:6px;min-width:0";
+            var hasCheck = Object.prototype.hasOwnProperty.call(it, "checked");
+            if (hasCheck || anyCheck) {
+                var check = document.createElement("span");
+                check.style.cssText =
+                    "font-size:12px;width:14px;text-align:center;flex-shrink:0;color:" +
+                        (hasCheck ? (it.checked ? "#22c55e" : "#9ca3af") : "transparent");
+                check.textContent = hasCheck ? (it.checked ? "\u2713" : "\u25cb") : "\u00a0";
+                row.appendChild(check);
+            }
+            var txt = document.createElement("span");
+            txt.textContent = it.text || "";
+            txt.style.cssText =
+                "font-size:" +
+                    (d.fontSize || 13) +
+                    "px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0;flex:1";
+            txt.style.color = d.color ? resolveColor(d.color) : "inherit";
+            row.appendChild(txt);
+            if (it.action) {
+                row.style.cursor = "pointer";
+                row.onclick = function () {
+                    emitAction(it.action, it.payload);
+                };
+            }
+            e.appendChild(row);
+        });
+        applyStyle(e, d);
+        return e;
+    }
+
+    function renderButton(d) {
+        var e = document.createElement("div");
+        e.textContent = d.label || "";
+        var align = (d.textAlignment || d.alignment || "center").toLowerCase();
+        if (align === "middle")
+            align = "center";
+        if (align === "end" || align === "trailing")
+            align = "right";
+        if (align === "start" || align === "leading")
+            align = "left";
+        // Intrinsic height + centered label — avoid stretch in default hstack (tall empty pill, label stuck to top).
+        var padCss = "6px 12px";
+        if (d.padding != null) {
+            if (typeof d.padding === "number")
+                padCss = d.padding + "px";
+            else if (typeof d.padding === "object") {
+                var pt = d.padding.top != null
+                    ? d.padding.top
+                    : d.padding.vertical != null
+                        ? d.padding.vertical
+                        : 6;
+                var pb = d.padding.bottom != null
+                    ? d.padding.bottom
+                    : d.padding.vertical != null
+                        ? d.padding.vertical
+                        : 6;
+                var pl = d.padding.leading != null
+                    ? d.padding.leading
+                    : d.padding.left != null
+                        ? d.padding.left
+                        : d.padding.horizontal != null
+                            ? d.padding.horizontal
+                            : 12;
+                var pr = d.padding.trailing != null
+                    ? d.padding.trailing
+                    : d.padding.right != null
+                        ? d.padding.right
+                        : d.padding.horizontal != null
+                            ? d.padding.horizontal
+                            : 12;
+                padCss = pt + "px " + pr + "px " + pb + "px " + pl + "px";
+            }
+        }
+        e.style.cssText =
+            "display:inline-flex;align-items:center;justify-content:" +
+                (align === "left"
+                    ? "flex-start"
+                    : align === "right"
+                        ? "flex-end"
+                        : "center") +
+                ";align-self:center;flex-shrink:0;padding:" +
+                padCss +
+                ";text-align:" +
+                align +
+                ";cursor:pointer;font-weight:500;transition:filter .1s;box-sizing:border-box";
+        e.style.fontSize = (d.fontSize || 14) + "px";
+        e.style.background = d.backgroundColor
+            ? resolveColor(d.backgroundColor)
+            : "#2196F3";
+        e.style.color = d.color ? resolveColor(d.color) : "#fff";
+        e.style.borderRadius = (d.cornerRadius || 8) + "px";
+        e.onmousedown = function () {
+            e.style.filter = "brightness(0.85)";
+        };
+        e.onmouseup = e.onmouseleave = function () {
+            e.style.filter = "";
+        };
+        e.onclick = function () {
+            if (d.action)
+                emitAction(d.action);
+            else if (d.url)
+                window.open(d.url, "_blank");
+        };
+        // applyStyle would clobber the padding we just set — skip padding there for buttons.
+        var padSave = d.padding;
+        d.padding = undefined;
+        applyStyle(e, d);
+        d.padding = padSave;
+        return e;
+    }
+    function renderToggle(d) {
+        var e = document.createElement("div");
+        e.style.cssText = "display:flex;align-items:center;gap:6px";
+        var tint = d.tint ? resolveColor(d.tint) : "#4CAF50";
+        var c = document.createElement("div");
+        c.style.cssText =
+            "width:18px;height:18px;border-radius:9px;display:flex;align-items:center;justify-content:center;flex-shrink:0";
+        c.style.border = "2px solid " + (d.isOn ? tint : "#999");
+        c.style.background = d.isOn ? tint : "transparent";
+        if (d.isOn) {
+            var m = document.createElement("span");
+            m.textContent = "\u2713";
+            m.style.cssText = "color:#fff;font-size:12px";
+            c.appendChild(m);
+        }
+        e.appendChild(c);
+        if (d.label) {
+            var l = document.createElement("span");
+            l.textContent = d.label;
+            l.style.fontSize = "14px";
+            l.style.color = d.color ? resolveColor(d.color) : "inherit";
+            e.appendChild(l);
+        }
+        if (d.action) {
+            e.style.cursor = "pointer";
+            e.onclick = function () {
+                emitAction(d.action, String(!d.isOn));
+            };
+        }
+        applyStyle(e, d);
+        return e;
+    }
+    function renderLink(d) {
+        var e = document.createElement("div");
+        e.style.cursor = "pointer";
+        e.onclick = function () {
+            if (d.action)
+                emitAction(d.action);
+            else if (d.url)
+                window.open(d.url, "_blank");
+        };
+        applyStyle(e, d);
+        (d.children || []).forEach(function (c) {
+            e.appendChild(renderEl(c));
+        });
+        return e;
+    }
+
+    function renderDivider(d, parentAxis) {
+        var e = document.createElement("hr");
+        e.style.border = "none";
+        var t = d.thickness || 1;
+        e.style.background = d.color ? resolveColor(d.color) : "#e0e0e0";
+        e.style.flexShrink = "0";
+        if (parentAxis === "horizontal") {
+            e.style.width = t + "px";
+            e.style.height = "auto";
+            e.style.alignSelf = "stretch";
+        }
+        else {
+            e.style.width = "100%";
+            e.style.height = t + "px";
+            // Match Android section breath around horizontal rules.
+            e.style.marginTop = "4px";
+            e.style.marginBottom = "4px";
+        }
+        applyStyle(e, d);
+        return e;
+    }
+    function renderSpacer(d) {
+        var e = document.createElement("div");
+        e.style.flex = "1";
+        e.style.minHeight = (d.minLength || 0) + "px";
+        return e;
+    }
+
+    function renderEl(d, parentAxis) {
+        switch (d.type) {
+            case "vstack":
+                return renderStack(d, "column");
+            case "hstack":
+                return renderStack(d, "row");
+            case "zstack":
+                return renderZStack(d);
+            case "grid":
+                return renderGrid(d);
+            case "container":
+                return renderContainer(d);
+            case "text":
+                return renderText(d, parentAxis);
+            case "image":
+                return renderImage(d);
+            case "progress":
+                return renderProgress(d);
+            case "gauge":
+                return renderGauge(d);
+            case "button":
+                return renderButton(d);
+            case "toggle":
+                return renderToggle(d);
+            case "divider":
+                return renderDivider(d, parentAxis);
+            case "spacer":
+                return renderSpacer(d);
+            case "date":
+                return renderDate(d);
+            case "chart":
+                return renderChart(d);
+            case "list":
+                return renderList(d);
+            case "link":
+                return renderLink(d);
+            case "shape":
+                return renderShape(d);
+            case "timer":
+                return renderTimer(d);
+            case "label":
+                return renderLabel(d);
+            case "canvas":
+                return renderCanvas(d);
+            default:
+                return document.createElement("span");
+        }
+    }
+
+    function collectTrace(node, rendered, skipped) {
+        if (!node || typeof node !== "object")
+            return;
+        const n = node;
+        var t = n.type;
+        if (typeof t === "string" && t) {
+            rendered.push(t);
+            if (t === "canvas" && !window.Path2D) {
+                skipped.push({ type: t, reason: "unsupported" });
+            }
+        }
+        var kids = n.children;
+        if (Array.isArray(kids))
+            kids.forEach(function (c) {
+                collectTrace(c, rendered, skipped);
+            });
+        if (Array.isArray(n.items))
+            n.items.forEach(function (it) {
+                if (it && it.children)
+                    collectTrace(it, rendered, skipped);
+            });
+    }
+    function reportReceipt(cfg, source, trigger, nonceHint) {
+        try {
+            var label = (window.__TAURI_INTERNALS__ &&
+                window.__TAURI_INTERNALS__.metadata &&
+                window.__TAURI_INTERNALS__.metadata.currentWindow &&
+                window.__TAURI_INTERNALS__.metadata.currentWindow.label) ||
+                "desktop";
+            var rendered = [], skipped = [];
+            var branch = SIZE
+                ? cfg && (cfg[SIZE] || cfg.small || cfg.medium || cfg.large)
+                : cfg && (cfg.small || cfg.medium || cfg.large);
+            collectTrace(branch, rendered, skipped);
+            var nonce = 0;
+            if (nonceHint != null)
+                nonce = Number(nonceHint) || 0;
+            else if (cfg && cfg.__nonce != null)
+                nonce = Number(cfg.__nonce) || 0;
+            var trig = trigger || (source === "push" ? "reload" : "timeline");
+            invoke("plugin:widgets|report_receipt", {
+                receipt: {
+                    widgetId: WIDGET_ID,
+                    group: GROUP,
+                    instance: label,
+                    nonce: nonce,
+                    size: SIZE || "small",
+                    theme: document.documentElement.getAttribute("data-theme") || undefined,
+                    schema: 1,
+                    source: source || "pull",
+                    trigger: trig,
+                    rendered: rendered,
+                    skipped: skipped,
+                    ts: Date.now(),
+                },
+            }).catch(function () { });
+        }
+        catch (_) { }
+    }
+    function render(cfg, source, nonceHint) {
+        clearTimers();
+        if (!cfg) {
+            root.innerHTML =
+                '<div class="w-empty"><div><div style="font-size:28px;margin-bottom:4px">&#x1F4CC;</div><div style="font-size:14px;opacity:.7">No widget config</div></div></div>';
+            return;
+        }
+        var data;
+        if (SIZE)
+            data = cfg[SIZE] || cfg.small || cfg.medium || cfg.large;
+        else
+            data = cfg.small || cfg.medium || cfg.large;
+        if (!data) {
+            root.innerHTML =
+                '<div class="w-empty"><div><div style="font-size:28px;margin-bottom:4px">&#x1F4CC;</div><div style="font-size:14px;opacity:.7">No config for size &quot;' +
+                    SIZE +
+                    '&quot;</div></div></div>';
+            return;
+        }
+        root.innerHTML = "";
+        // Readable defaults when fixtures leave color/background null (avoids black-on-black
+        // and WebKit leftover Loading purple under transparent surfaces).
+        var ink = isDark() ? "#e5e7eb" : "#111827";
+        var surface = isDark() ? "#0f172a" : "#f8fafc";
+        document.documentElement.style.color = ink;
+        document.body.style.color = ink;
+        var wrapper = document.createElement("div");
+        wrapper.style.cssText =
+            "width:100%;height:100%;overflow:hidden;position:relative";
+        var content = renderEl(data);
+        content.style.width = "100%";
+        content.style.height = "100%";
+        if (!content.style.background && !content.style.backgroundColor) {
+            content.style.background = surface;
+        }
+        wrapper.appendChild(content);
+        var drag = document.createElement("div");
+        drag.id = "drag-handle";
+        drag.setAttribute("data-tauri-drag-region", "");
+        wrapper.appendChild(drag);
+        var cls = document.createElement("button");
+        cls.id = "close-btn";
+        cls.innerHTML = "&#x2715;";
+        cls.onclick = function () {
+            try {
+                var label = window.__TAURI_INTERNALS__?.metadata?.currentWindow?.label;
+                if (!label) {
+                    window.close();
+                    return;
+                }
+                invoke("plugin:widgets|close_widget_window", { label: label }).catch(function () { });
+            }
+            catch (_) {
+                window.close();
+            }
+        };
+        wrapper.appendChild(cls);
+        root.appendChild(wrapper);
+        reportReceipt(cfg, source || "pull", source === "push" ? "reload" : "timeline", nonceHint);
+    }
+    function loadConfig() {
+        Promise.all([
+            invoke("plugin:widgets|get_widget_config", {
+                group: GROUP,
+                widgetId: WIDGET_ID,
+            }),
+            invoke("plugin:widgets|get_items", {
+                key: "__meta_nonce__",
+                group: GROUP,
+            }).catch(function () {
+                return null;
+            }),
+        ])
+            .then(function (res) {
+            var cfg = res[0];
+            var nonce = res[1];
+            if (cfg && nonce != null)
+                cfg.__nonce = Number(nonce) || 0;
+            render(cfg, "pull", nonce);
+        })
+            .catch(function (e) {
+            clearTimers();
+            root.innerHTML = '<div class="w-err">' + String(e) + "</div>";
+        });
+    }
+    function init() {
+        if (!window.__TAURI_INTERNALS__) {
+            setTimeout(init, 50);
+            return;
+        }
+        // Listeners BEFORE loadConfig — otherwise a push between the two is dropped.
+        listen("widget-config-push", function (ev) {
+            const raw = ev.payload;
+            if (raw && typeof raw === "object" && "config" in raw) {
+                const p = raw;
+                if (!p.config)
+                    return;
+                if (p.widgetId && p.widgetId !== WIDGET_ID)
+                    return;
+                if (p.group && p.group !== GROUP)
+                    return;
+                render(p.config, "push");
+            }
+            else {
+                render(raw, "push");
+            }
+        });
+        listen("widget-update", function () {
+            loadConfig();
+        });
+        listen("widget-reload", function () {
+            loadConfig();
+        });
+        loadConfig();
+    }
+    if (document.readyState === "complete" || document.readyState === "interactive")
+        init();
+    else
+        document.addEventListener("DOMContentLoaded", init);
+
 })();
+
 </script>
 </body>
 </html>

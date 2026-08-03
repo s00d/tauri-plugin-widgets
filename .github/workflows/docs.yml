@@ -65,6 +65,9 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
+      - name: Build CLI (docs:check uses dist-cli)
+        run: pnpm build
+
       - name: Docs check (committed markers up to date)
         run: pnpm docs:check
 

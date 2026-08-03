@@ -1,4 +1,5 @@
 {
+  "$schema": "https://s00d.github.io/tauri-plugin-widgets/schemas/widget-config.v1.json",
   "version": 1,
   "small": {
     "type": "vstack",
@@ -6,12 +7,19 @@
     "spacing": 10,
     "cornerRadius": 16,
     "background": {
-      "gradientType": "linear",
-      "colors": ["#0f172a", "#312e81"],
-      "direction": "topLeadingToBottomTrailing"
+      "light": "#EEF2FF",
+      "dark": "#0f172a"
     },
-    "border": { "color": "#6366f1", "width": 2 },
-    "shadow": { "color": "rgba(99,102,241,0.45)", "radius": 10, "x": 0, "y": 4 },
+    "border": {
+      "color": "#6366f1",
+      "width": 2
+    },
+    "shadow": {
+      "color": "rgba(99,102,241,0.45)",
+      "radius": 10,
+      "x": 0,
+      "y": 4
+    },
     "children": [
       {
         "type": "hstack",
@@ -25,14 +33,17 @@
             "color": "#fff",
             "clipShape": "circle",
             "background": "#6366f1",
-            "frame": { "width": 36, "height": 36 }
+            "frame": {
+              "width": 36,
+              "height": 36
+            }
           },
           {
             "type": "text",
             "content": "Chrome",
             "fontSize": 15,
             "fontWeight": "semibold",
-            "color": "#f8fafc",
+            "color": "label",
             "opacity": 0.85
           }
         ]

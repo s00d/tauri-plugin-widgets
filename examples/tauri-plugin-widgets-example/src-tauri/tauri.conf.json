@@ -1,7 +1,7 @@
 {
   "$schema": "https://schema.tauri.app/config/2",
   "productName": "widget-example",
-  "version": "0.3.0",
+  "version": "../package.json",
   "identifier": "com.s00d.tauri-plugin-widgets-example",
   "build": {
     "beforeDevCommand": "pnpm dev",
@@ -24,7 +24,7 @@
   },
   "plugins": {
     "widgets": {
-      "appGroup": "group.com.s00d.tauri-plugin-widgets-example",
+      "appGroup": "group.com.s00d.tauriwidgets.example",
       "transport": "auto",
       "extensionBundleId": "com.s00d.tauri-plugin-widgets-example.widgetkit"
     }

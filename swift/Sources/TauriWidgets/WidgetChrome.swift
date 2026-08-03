@@ -10,18 +10,7 @@ public enum WidgetChrome {
         case .solid(let hex):
             if let sem = Color.semantic(hex) { sem } else { Color(hex: hex) }
         case .gradient(let g):
-            let colors = g.colors.map { Color(hex: $0) }
-            let (s, e): (UnitPoint, UnitPoint) = {
-                switch g.direction {
-                case "bottomToTop": return (.bottom, .top)
-                case "leadingToTrailing": return (.leading, .trailing)
-                case "trailingToLeading": return (.trailing, .leading)
-                case "topLeadingToBottomTrailing": return (.topLeading, .bottomTrailing)
-                case "topTrailingToBottomLeading": return (.topTrailing, .bottomLeading)
-                default: return (.top, .bottom)
-                }
-            }()
-            LinearGradient(colors: colors, startPoint: s, endPoint: e)
+            g.asView()
         case .adaptive(let light, let dark):
             Color.adaptive(light: light, dark: dark)
         case nil:

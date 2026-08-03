@@ -11,7 +11,7 @@ use crate::config::WidgetsPluginConfig;
 use crate::models::{WidgetConfig, WidgetWindowConfig};
 use crate::receipt::{ReceiptStore, WidgetRenderReceipt};
 use crate::store::config_key;
-use crate::trace::{TraceEvent, TraceSkipReason, TraceStore, WidgetTrace};
+use crate::trace::{TraceEvent, TraceStore, WidgetTrace};
 use crate::transport::validate_mobile_transport;
 
 /// Default minimum interval between WidgetKit reload calls (**iOS/Android host only**).
@@ -265,7 +265,14 @@ impl<R: Runtime> Widget<R> {
         }
         self.remember_group(group);
 
-        let json = serde_json::to_string(config)
+        let mut config = crate::normalize::normalize(
+            config,
+            crate::capabilities::WidgetPlatform::current(),
+        )
+        .config;
+        crate::image_prefetch::prefetch_remote_images(&mut config);
+
+        let json = serde_json::to_string(&config)
             .map_err(|e| crate::Error::new(format!("serialize config: {e}")))?;
         let hash = config_content_hash(&json);
         let key = config_key(widget_id);
@@ -280,7 +287,7 @@ impl<R: Runtime> Widget<R> {
                 nonce: 0,
                 bytes: json.len(),
                 changed: false,
-                skip: Some(TraceSkipReason::Unchanged { hash }),
+                skip: Some(crate::apply::SkipReason::Unchanged { hash }),
             });
             self.trace.push(TraceEvent::Reload {
                 performed: false,
@@ -289,7 +296,7 @@ impl<R: Runtime> Widget<R> {
             return Ok(outcome);
         }
 
-        crate::capabilities::log_capabilities(config);
+        crate::capabilities::log_capabilities(&config);
 
         // Prefer native setWidgetConfig (Android image preprocess + Glance sync).
         // Falls back to set_items with config:{widgetId} key.

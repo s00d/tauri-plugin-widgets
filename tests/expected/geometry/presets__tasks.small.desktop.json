@@ -26,7 +26,7 @@
           ],
           "text": "Tasks",
           "px": 18,
-          "color": "#000000"
+          "color": "#E5E7EB"
         },
         {
           "kind": "div",
@@ -68,7 +68,7 @@
                   ],
                   "text": "Buy milk",
                   "px": 13,
-                  "color": "#000000"
+                  "color": "#E5E7EB"
                 }
               ]
             },
@@ -103,7 +103,7 @@
                   ],
                   "text": "Ship 0.4",
                   "px": 13,
-                  "color": "#000000"
+                  "color": "#E5E7EB"
                 }
               ]
             }

@@ -1,0 +1,75 @@
+{
+  "$schema": "https://s00d.github.io/tauri-plugin-widgets/schemas/widget-config.v1.json",
+  "small": {
+    "type": "vstack",
+    "padding": 12,
+    "background": "#1a1a2e",
+    "spacing": 8,
+    "children": [
+      {
+        "type": "text",
+        "content": "72°",
+        "fontSize": 36,
+        "fontWeight": "bold",
+        "color": "#ffffff"
+      },
+      {
+        "type": "text",
+        "content": "Partly cloudy",
+        "fontSize": 14,
+        "color": "#a0a0b0"
+      },
+      {
+        "type": "progress",
+        "value": 0.7,
+        "tint": "#4CAF50",
+        "label": "Humidity"
+      }
+    ]
+  },
+  "medium": {
+    "type": "hstack",
+    "padding": 16,
+    "background": "#1a1a2e",
+    "spacing": 16,
+    "children": [
+      {
+        "type": "vstack",
+        "spacing": 4,
+        "children": [
+          {
+            "type": "text",
+            "content": "72°",
+            "fontSize": 42,
+            "fontWeight": "bold",
+            "color": "#ffffff"
+          },
+          {
+            "type": "text",
+            "content": "San Francisco",
+            "fontSize": 13,
+            "color": "#a0a0b0"
+          }
+        ]
+      },
+      {
+        "type": "vstack",
+        "spacing": 8,
+        "children": [
+          {
+            "type": "progress",
+            "value": 0.7,
+            "tint": "#4CAF50",
+            "label": "Humidity"
+          },
+          {
+            "type": "progress",
+            "value": 0.4,
+            "tint": "#2196F3",
+            "label": "Wind"
+          }
+        ]
+      }
+    ]
+  }
+}

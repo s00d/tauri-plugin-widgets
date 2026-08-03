@@ -1,8 +1,14 @@
 {
+  "$schema": "https://s00d.github.io/tauri-plugin-widgets/schemas/widget-config.v1.json",
   "version": 1,
   "medium": {
     "type": "vstack",
-    "padding": { "top": 10, "leading": 12, "bottom": 10, "trailing": 12 },
+    "padding": {
+      "top": 10,
+      "leading": 12,
+      "bottom": 10,
+      "trailing": 12
+    },
     "spacing": 8,
     "cornerRadius": 14,
     "background": "#0f172a",
@@ -13,7 +19,9 @@
         "fontSize": 13,
         "fontWeight": "semibold",
         "color": "#f8fafc",
-        "frame": { "maxWidth": 200 }
+        "frame": {
+          "maxWidth": 200
+        }
       },
       {
         "type": "grid",

@@ -17,22 +17,42 @@
       ],
       "children": [
         {
-          "kind": "span",
+          "kind": "div",
           "rect": [
             6,
             6,
             158,
-            26
+            23
           ],
-          "text": "0",
-          "px": 22,
-          "color": "#FFFFFF"
+          "children": [
+            {
+              "kind": "div",
+              "rect": [
+                10,
+                17,
+                136,
+                0
+              ]
+            },
+            {
+              "kind": "span",
+              "rect": [
+                150,
+                6,
+                13,
+                23
+              ],
+              "text": "0",
+              "px": 20,
+              "color": "#FFFFFF"
+            }
+          ]
         },
         {
           "kind": "hr",
           "rect": [
             6,
-            39,
+            35,
             158,
             1
           ]
@@ -41,20 +61,68 @@
           "kind": "div",
           "rect": [
             6,
-            47,
+            42,
             158,
-            112
+            82
           ],
           "children": [
             {
               "kind": "div",
               "rect": [
                 6,
-                47,
+                42,
                 38,
-                25
+                14
               ],
               "text": "C",
+              "px": 10,
+              "color": "#FFFFFF"
+            },
+            {
+              "kind": "div",
+              "rect": [
+                46,
+                42,
+                38,
+                14
+              ],
+              "text": "±",
+              "px": 10,
+              "color": "#FFFFFF"
+            },
+            {
+              "kind": "div",
+              "rect": [
+                86,
+                42,
+                38,
+                14
+              ],
+              "text": "⌫",
+              "px": 10,
+              "color": "#FFFFFF"
+            },
+            {
+              "kind": "div",
+              "rect": [
+                126,
+                42,
+                38,
+                14
+              ],
+              "text": "÷",
+              "px": 10,
+              "color": "#FFFFFF"
+            },
+            {
+              "kind": "div",
+              "rect": [
+                6,
+                58,
+                38,
+                15
+              ],
+              "text": "7",
               "px": 11,
               "color": "#FFFFFF"
             },
@@ -62,11 +130,11 @@
               "kind": "div",
               "rect": [
                 46,
-                47,
+                58,
                 38,
-                25
+                15
               ],
-              "text": "±",
+              "text": "8",
               "px": 11,
               "color": "#FFFFFF"
             },
@@ -74,11 +142,11 @@
               "kind": "div",
               "rect": [
                 86,
-                47,
+                58,
                 38,
-                25
+                15
               ],
-              "text": "⌫",
+              "text": "9",
               "px": 11,
               "color": "#FFFFFF"
             },
@@ -86,48 +154,48 @@
               "kind": "div",
               "rect": [
                 126,
-                47,
+                58,
                 38,
-                25
+                14
               ],
-              "text": "÷",
-              "px": 11,
+              "text": "×",
+              "px": 10,
               "color": "#FFFFFF"
             },
             {
               "kind": "div",
               "rect": [
                 6,
-                74,
+                75,
                 38,
-                27
+                15
               ],
-              "text": "7",
-              "px": 12,
+              "text": "4",
+              "px": 11,
               "color": "#FFFFFF"
             },
             {
               "kind": "div",
               "rect": [
                 46,
-                74,
+                75,
                 38,
-                27
+                15
               ],
-              "text": "8",
-              "px": 12,
+              "text": "5",
+              "px": 11,
               "color": "#FFFFFF"
             },
             {
               "kind": "div",
               "rect": [
                 86,
-                74,
+                75,
                 38,
-                27
+                15
               ],
-              "text": "9",
-              "px": 12,
+              "text": "6",
+              "px": 11,
               "color": "#FFFFFF"
             },
             {
@@ -136,106 +204,106 @@
                 126,
                 75,
                 38,
-                25
-              ],
-              "text": "×",
-              "px": 11,
-              "color": "#FFFFFF"
-            },
-            {
-              "kind": "div",
-              "rect": [
-                6,
-                103,
-                38,
-                27
-              ],
-              "text": "4",
-              "px": 12,
-              "color": "#FFFFFF"
-            },
-            {
-              "kind": "div",
-              "rect": [
-                46,
-                103,
-                38,
-                27
-              ],
-              "text": "5",
-              "px": 12,
-              "color": "#FFFFFF"
-            },
-            {
-              "kind": "div",
-              "rect": [
-                86,
-                103,
-                38,
-                27
-              ],
-              "text": "6",
-              "px": 12,
-              "color": "#FFFFFF"
-            },
-            {
-              "kind": "div",
-              "rect": [
-                126,
-                104,
-                38,
-                25
+                14
               ],
               "text": "−",
-              "px": 11,
+              "px": 10,
               "color": "#FFFFFF"
             },
             {
               "kind": "div",
               "rect": [
                 6,
-                132,
+                92,
                 38,
-                27
+                15
               ],
               "text": "1",
-              "px": 12,
+              "px": 11,
               "color": "#FFFFFF"
             },
             {
               "kind": "div",
               "rect": [
                 46,
-                132,
+                92,
                 38,
-                27
+                15
               ],
               "text": "2",
-              "px": 12,
+              "px": 11,
               "color": "#FFFFFF"
             },
             {
               "kind": "div",
               "rect": [
                 86,
-                132,
+                92,
                 38,
-                27
+                15
               ],
               "text": "3",
-              "px": 12,
+              "px": 11,
               "color": "#FFFFFF"
             },
             {
               "kind": "div",
               "rect": [
                 126,
-                133,
+                92,
                 38,
-                25
+                14
               ],
               "text": "+",
+              "px": 10,
+              "color": "#FFFFFF"
+            },
+            {
+              "kind": "div",
+              "rect": [
+                6,
+                109,
+                38,
+                14
+              ],
+              "text": "%",
+              "px": 10,
+              "color": "#FFFFFF"
+            },
+            {
+              "kind": "div",
+              "rect": [
+                46,
+                109,
+                38,
+                15
+              ],
+              "text": "0",
               "px": 11,
+              "color": "#FFFFFF"
+            },
+            {
+              "kind": "div",
+              "rect": [
+                86,
+                109,
+                38,
+                15
+              ],
+              "text": ".",
+              "px": 11,
+              "color": "#FFFFFF"
+            },
+            {
+              "kind": "div",
+              "rect": [
+                126,
+                109,
+                38,
+                14
+              ],
+              "text": "=",
+              "px": 10,
               "color": "#FFFFFF"
             }
           ]

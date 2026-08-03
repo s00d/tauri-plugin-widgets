@@ -1,94 +1,17 @@
-//! Emit TypeScript IR types from an explicit Rust IR_SPEC (SoT with models.rs).
+//! Emit TypeScript IR types from an explicit Rust `IR_ELEMENTS` spec (SoT with models).
 //!
-//! Not `include_str` of a hand-maintained twin — the emitter builds the file.
-//! Exhaustiveness is checked via [`WidgetElement`] match in tests / type_name.
+//! Static preamble / enums / supporting / footer live in `src/codegen/*.ts` via
+//! `include_str!`. The remaining `push_str` calls are intentional: per-element
+//! interfaces and the `WidgetElement` union are generated from `IR_ELEMENTS`
+//! so exhaustiveness tests stay coupled to [`crate::models::WidgetElement`].
 
 /// Emit `guest-js/generated/widget-types.ts`.
 pub fn emit_widget_types_ts() -> String {
     let mut out = String::new();
-    out.push_str(
-        "/**\n\
-         * Generated widget IR types — do not edit by hand.\n\
-         * Source of truth: Rust `src/models.rs` via `cargo run --bin gen-ts --features codegen`.\n\
-         * Emitter: `src/codegen.rs` IR_SPEC.\n\
-         */\n\n",
-    );
-
-    out.push_str(
-        "// ── Enums ──\n\n\
-         export type FontWeight = \"ultralight\" | \"thin\" | \"light\" | \"regular\" | \"medium\" | \"semibold\" | \"bold\" | \"heavy\" | \"black\";\n\
-         export type FontDesign = \"default\" | \"monospaced\" | \"rounded\" | \"serif\";\n\
-         export type TextAlignment = \"leading\" | \"center\" | \"trailing\";\n\
-         export type HorizontalAlignment = \"leading\" | \"center\" | \"trailing\";\n\
-         export type VerticalAlignment = \"top\" | \"center\" | \"bottom\";\n\
-         export type ContentMode = \"fit\" | \"fill\";\n\
-         export type ProgressStyle = \"linear\" | \"circular\";\n\
-         export type GaugeStyle = \"circular\" | \"linear\";\n\
-         export type DateStyle = \"time\" | \"date\" | \"relative\" | \"offset\" | \"timer\";\n\
-         export type ChartType = \"bar\" | \"line\" | \"area\" | \"pie\";\n\
-         export type ShapeType = \"circle\" | \"capsule\" | \"rectangle\";\n\
-         export type TimerCounting = \"up\" | \"down\";\n\
-         export type ClipShape = \"circle\" | \"capsule\" | \"rectangle\";\n\
-         export type TextStyle =\n\
-           | \"largeTitle\" | \"title\" | \"title2\" | \"title3\"\n\
-           | \"headline\" | \"subheadline\"\n\
-           | \"body\" | \"callout\"\n\
-           | \"footnote\" | \"caption\" | \"caption2\";\n\
-         export type GradientType = \"linear\" | \"radial\" | \"angular\";\n\
-         export type GradientDirection =\n\
-           | \"topToBottom\" | \"bottomToTop\"\n\
-           | \"leadingToTrailing\" | \"trailingToLeading\"\n\
-           | \"topLeadingToBottomTrailing\" | \"topTrailingToBottomLeading\";\n\n",
-    );
-
-    out.push_str(
-        "// ── Supporting types ──\n\n\
-         export type ColorValue = string | { light: string; dark: string };\n\n\
-         export interface ChartDataPoint {\n\
-           label: string;\n\
-           value: number;\n\
-           color?: ColorValue;\n\
-         }\n\n\
-         export interface FrameConfig {\n\
-           width?: number;\n\
-           height?: number;\n\
-           maxWidth?: number | \"infinity\";\n\
-           maxHeight?: number | \"infinity\";\n\
-         }\n\n\
-         export interface BorderConfig {\n\
-           color: string;\n\
-           width?: number;\n\
-         }\n\n\
-         export interface GradientConfig {\n\
-           gradientType: GradientType;\n\
-           colors: string[];\n\
-           direction?: GradientDirection;\n\
-         }\n\n\
-         export interface ShadowConfig {\n\
-           color?: string;\n\
-           radius?: number;\n\
-           x?: number;\n\
-           y?: number;\n\
-         }\n\n\
-         export type BackgroundValue = string | GradientConfig | { light: string; dark: string };\n\n\
-         export type PaddingValue = number | {\n\
-           top?: number;\n\
-           bottom?: number;\n\
-           leading?: number;\n\
-           trailing?: number;\n\
-         };\n\n\
-         export interface ElementStyle {\n\
-           padding?: PaddingValue;\n\
-           background?: BackgroundValue;\n\
-           cornerRadius?: number;\n\
-           opacity?: number;\n\
-           frame?: FrameConfig;\n\
-           border?: BorderConfig;\n\
-           shadow?: ShadowConfig;\n\
-           clipShape?: ClipShape;\n\
-           flex?: number;\n\
-         }\n\n",
-    );
+    out.push_str(include_str!("codegen/preamble.ts"));
+    out.push('\n');
+    out.push_str(include_str!("codegen/enums.ts"));
+    out.push_str(include_str!("codegen/supporting.ts"));
 
     // Element interfaces — IR_SPEC mapping (must stay in sync with WidgetElement)
     for spec in IR_ELEMENTS {
@@ -102,52 +25,6 @@ pub fn emit_widget_types_ts() -> String {
         out.push_str("}\n\n");
     }
 
-    out.push_str(
-        "export interface SpacerElement {\n\
-           type: \"spacer\";\n\
-           minLength?: number;\n\
-         }\n\n\
-         export interface ListItem {\n\
-           text: string;\n\
-           checked?: boolean;\n\
-           action?: string;\n\
-           payload?: string;\n\
-         }\n\n\
-         export interface CanvasCircle {\n\
-           draw: \"circle\";\n\
-           cx: number; cy: number; r: number;\n\
-           fill?: ColorValue; stroke?: ColorValue; strokeWidth?: number;\n\
-         }\n\
-         export interface CanvasLine {\n\
-           draw: \"line\";\n\
-           x1: number; y1: number; x2: number; y2: number;\n\
-           stroke?: ColorValue; strokeWidth?: number; lineCap?: \"butt\" | \"round\" | \"square\";\n\
-         }\n\
-         export interface CanvasRect {\n\
-           draw: \"rect\";\n\
-           x: number; y: number; width: number; height: number;\n\
-           fill?: ColorValue; stroke?: ColorValue; strokeWidth?: number; cornerRadius?: number;\n\
-         }\n\
-         export interface CanvasArc {\n\
-           draw: \"arc\";\n\
-           cx: number; cy: number; r: number;\n\
-           startAngle: number; endAngle: number;\n\
-           fill?: ColorValue; stroke?: ColorValue; strokeWidth?: number;\n\
-         }\n\
-         export interface CanvasText {\n\
-           draw: \"text\";\n\
-           x: number; y: number; content: string;\n\
-           fontSize?: number; color?: ColorValue; anchor?: \"start\" | \"middle\" | \"end\";\n\
-         }\n\
-         export interface CanvasPath {\n\
-           draw: \"path\";\n\
-           d: string;\n\
-           fill?: ColorValue; stroke?: ColorValue; strokeWidth?: number;\n\
-         }\n\
-         export type CanvasDrawCommand = CanvasCircle | CanvasLine | CanvasRect | CanvasArc | CanvasText | CanvasPath;\n\n",
-    );
-
-    // Remaining elements that need custom bodies (list, canvas, etc. already partially in IR_ELEMENTS)
     out.push_str("export type WidgetElement =\n");
     let names: Vec<&str> = IR_ELEMENTS
         .iter()
@@ -160,14 +37,7 @@ pub fn emit_widget_types_ts() -> String {
     }
     out.push('\n');
 
-    out.push_str(
-        "export interface WidgetConfig {\n\
-           version?: number;\n\
-           small?: WidgetElement;\n\
-           medium?: WidgetElement;\n\
-           large?: WidgetElement;\n\
-         }\n",
-    );
+    out.push_str(include_str!("codegen/footer.ts"));
 
     out
 }
@@ -383,6 +253,75 @@ const IR_ELEMENTS: &[ElementSpec] = &[
     },
 ];
 
+/// Wire type strings + field hints for Swift (flat Codable stays in Models.swift).
+pub fn emit_wire_catalog_swift() -> String {
+    let mut out = String::from(
+        "// AUTO-GENERATED by `cargo run --bin gen-native --features codegen`\n\
+         // Do not edit. Source: `src/codegen.rs` IR_ELEMENTS.\n\
+         // Runtime decode still uses flat `WidgetElement` in Models.swift.\n\n\
+         import Foundation\n\n\
+         /// Known `type` wire values for widget IR elements.\n\
+         public enum WidgetWireType: String, CaseIterable, Sendable {\n",
+    );
+    for spec in IR_ELEMENTS {
+        let case = swift_case_name(spec.wire);
+        out.push_str(&format!("    case {case} = \"{}\"\n", spec.wire));
+    }
+    out.push_str("    case spacer = \"spacer\"\n}\n\n");
+    out.push_str("/// Per-element field hints (documentation / drift checks; not Codable).\n");
+    out.push_str("public enum WidgetWireFields {\n");
+    for spec in IR_ELEMENTS {
+        let case = swift_case_name(spec.wire);
+        let fields: Vec<String> = spec
+            .fields
+            .iter()
+            .map(|f| format!("\"{}\"", f.replace('\\', "\\\\").replace('"', "\\\"")))
+            .collect();
+        out.push_str(&format!(
+            "    public static let {case}: [String] = [{}]\n",
+            fields.join(", ")
+        ));
+    }
+    out.push_str("    public static let spacer: [String] = [\"minLength?: number\"]\n");
+    out.push_str("}\n");
+    out
+}
+
+/// Wire type constants for Android Glance renderer (JSONObject path stays dynamic).
+pub fn emit_wire_catalog_kotlin() -> String {
+    let mut out = String::from(
+        "// AUTO-GENERATED by `cargo run --bin gen-native --features codegen`\n\
+         // Do not edit. Source: `src/codegen.rs` IR_ELEMENTS.\n\
+         // Runtime still uses org.json.JSONObject via render.El.\n\n\
+         package git.s00d.widgets\n\n\
+         /** Known `type` wire values for widget IR elements. */\n\
+         object WireTypes {\n",
+    );
+    for spec in IR_ELEMENTS {
+        let const_name = kotlin_const_name(spec.wire);
+        out.push_str(&format!(
+            "    const val {const_name} = \"{}\"\n",
+            spec.wire
+        ));
+    }
+    out.push_str("    const val SPACER = \"spacer\"\n\n");
+    out.push_str("    val ALL: Set<String> = setOf(\n");
+    for spec in IR_ELEMENTS {
+        out.push_str(&format!("        {},\n", kotlin_const_name(spec.wire)));
+    }
+    out.push_str("        SPACER,\n    )\n}\n");
+    out
+}
+
+fn swift_case_name(wire: &str) -> String {
+    // camelCase identifiers from wire names (already lower).
+    wire.to_string()
+}
+
+fn kotlin_const_name(wire: &str) -> String {
+    wire.to_uppercase()
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -415,6 +354,28 @@ mod tests {
         assert!(ts.contains("export type WidgetElement"));
         // Must not be a stale include_str twin
         assert!(ts.contains("Emitter: `src/codegen.rs` IR_SPEC"));
+    }
+
+    #[test]
+    fn swift_catalog_covers_all_element_types() {
+        let swift = emit_wire_catalog_swift();
+        for ty in ELEMENT_TYPES {
+            assert!(
+                swift.contains(&format!("= \"{ty}\"")),
+                "Swift catalog missing `{ty}`"
+            );
+        }
+    }
+
+    #[test]
+    fn kotlin_catalog_covers_all_element_types() {
+        let kt = emit_wire_catalog_kotlin();
+        for ty in ELEMENT_TYPES {
+            assert!(
+                kt.contains(&format!("= \"{ty}\"")),
+                "Kotlin catalog missing `{ty}`"
+            );
+        }
     }
 
     #[test]

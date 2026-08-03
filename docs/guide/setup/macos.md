@@ -25,36 +25,50 @@ npx tauri-plugin-widgets-api init-macos \
 
 This creates `src-tauri/macos-widget/` with:
 - `Sources/MyWidget.swift` — widget code using `TauriWidgetProvider`
-- `TauriWidgetExtension.entitlements` — App Group for the extension
-- `App.entitlements` — App Group for the host app (wired via `bundle.macOS.entitlements`)
+- `App.entitlements` / `TauriWidgetExtension.entitlements` — regenerated on each build from `plugins.widgets.appGroup`
 - `project.yml` — xcodegen spec
 - `build-widget.sh` — builds and signs the `.appex` (`beforeBundleCommand`)
 - `embed-widget.sh` — **deprecated** emergency re-embed; not part of the normal DX
 
 ## Step 2: Plugin config (`plugins.widgets`)
 
-`init-macos` patches bundle / beforeBundle paths, but **does not** write `plugins.widgets`. Without this block the **host app fails at plugin init** even before you care about WidgetKit:
+`init-macos` **writes** `plugins.widgets` for you. Transport is chosen from installed codesign identities:
+
+| Identities | `transport` |
+|------------|-------------|
+| Team ID Development / Developer ID present | `appGroup` |
+| None / ad-hoc only | `widgetContainer` |
 
 ```json
 {
   "plugins": {
     "widgets": {
       "appGroup": "group.com.example.myapp",
-      "transport": "appGroup",
+      "transport": "widgetContainer",
       "extensionBundleId": "com.example.myapp.widgetkit"
     }
   }
 }
 ```
 
+Inspect / re-apply later:
+
+```bash
+npx tauri-widgets signing
+npx tauri-widgets signing --apply              # plugins.widgets + entitlements
+npx tauri-widgets signing --write-entitlements # entitlements only
+```
+
+`build-widget.sh` also regenerates both `.entitlements` from `plugins.widgets.appGroup` on every `tauri build` (files listed in `macos-widget/.gitignore`).
+
 | Situation | `transport` |
 |-----------|-------------|
 | Release / Team ID + App Groups enabled | `appGroup` |
 | Mac App Store | `appGroup` |
 | Local ad-hoc signing (no shared App Group container) | `widgetContainer` |
-| Not sure yet | `auto` once at startup (dev only) — read the log, then pin the winner in conf |
+| Not sure yet | run `signing` — do not ship `auto` |
 
-Wrong `transport` / missing `appGroup` **fails plugin init** with a concrete message. Full driver table: [Apple data transport](/guide/transport) (also summarized below).
+Wrong `transport` / missing `appGroup` **fails plugin init** with a concrete message. Full driver table: [Apple data transport](/guide/transport).
 
 ## Step 3: Configure tauri.conf.json bundle hooks
 
@@ -85,7 +99,7 @@ The CLI patches these fields (paths relative to `src-tauri/`):
 ```bash
 pnpm tauri build
 
-# Optional: identity for signing the .appex before bundling
+# Prefer the identity printed by `npx tauri-widgets signing`:
 WIDGET_SIGN_IDENTITY="Apple Development: you@example.com (TEAMID)" pnpm tauri build
 ```
 
@@ -124,6 +138,7 @@ Match Swift `TauriWidgetProvider` `widgetId` with JS `setWidgetConfig` (CLI temp
 3. Fallback: `-` (ad-hoc)
 
 ```bash
+npx tauri-widgets signing          # lists identities + recommended transport
 security find-identity -v -p codesigning
 ```
 
@@ -132,6 +147,8 @@ security find-identity -v -p codesigning
 | Ad-hoc (`-`) | Yes | `widgetContainer` | Local only |
 | Apple Development | Yes | `appGroup` | Local + TestFlight |
 | Developer ID | Yes | `appGroup` | Direct distribution |
+
+For **App Groups on a Team ID** (portal registration, “id not available”, doctor): [Apple data transport → App Groups & signing](/guide/transport#app-groups--signing-plugin-consumers).
 
 **Important:** The main app's `App.entitlements` should **not** include `com.apple.security.app-sandbox` when using `widgetContainer` (host must write into the extension container). The widget extension is always sandboxed (required by WidgetKit).
 

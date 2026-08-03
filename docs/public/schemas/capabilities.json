@@ -1,0 +1,611 @@
+{
+  "core": [
+    "vstack",
+    "hstack",
+    "zstack",
+    "container",
+    "grid",
+    "text",
+    "image",
+    "spacer",
+    "divider",
+    "progress",
+    "button",
+    "link",
+    "shape"
+  ],
+  "elements": {
+    "button": {
+      "android": {
+        "note": "",
+        "support": "full"
+      },
+      "desktop": {
+        "note": "",
+        "support": "full"
+      },
+      "ios": {
+        "note": "",
+        "support": "full"
+      },
+      "macos": {
+        "note": "",
+        "support": "full"
+      },
+      "windows": {
+        "note": "Adaptive Cards 1.5",
+        "support": "full"
+      }
+    },
+    "canvas": {
+      "android": {
+        "note": "bitmap canvas (full SVG path via PathParser)",
+        "support": "degraded"
+      },
+      "desktop": {
+        "note": "SVG",
+        "support": "full"
+      },
+      "ios": {
+        "note": "",
+        "support": "full"
+      },
+      "macos": {
+        "note": "",
+        "support": "full"
+      },
+      "windows": {
+        "note": "rasterized PNG",
+        "support": "degraded"
+      }
+    },
+    "chart": {
+      "android": {
+        "note": "bitmap bar/line/area/pie",
+        "support": "full"
+      },
+      "desktop": {
+        "note": "SVG",
+        "support": "full"
+      },
+      "ios": {
+        "note": "",
+        "support": "full"
+      },
+      "macos": {
+        "note": "",
+        "support": "full"
+      },
+      "windows": {
+        "note": "rasterized PNG",
+        "support": "degraded"
+      }
+    },
+    "container": {
+      "android": {
+        "note": "",
+        "support": "full"
+      },
+      "desktop": {
+        "note": "",
+        "support": "full"
+      },
+      "ios": {
+        "note": "",
+        "support": "full"
+      },
+      "macos": {
+        "note": "",
+        "support": "full"
+      },
+      "windows": {
+        "note": "Adaptive Cards 1.5",
+        "support": "full"
+      }
+    },
+    "date": {
+      "android": {
+        "note": "",
+        "support": "full"
+      },
+      "desktop": {
+        "note": "",
+        "support": "full"
+      },
+      "ios": {
+        "note": "",
+        "support": "full"
+      },
+      "macos": {
+        "note": "",
+        "support": "full"
+      },
+      "windows": {
+        "note": "Adaptive Cards 1.5",
+        "support": "full"
+      }
+    },
+    "divider": {
+      "android": {
+        "note": "",
+        "support": "full"
+      },
+      "desktop": {
+        "note": "",
+        "support": "full"
+      },
+      "ios": {
+        "note": "",
+        "support": "full"
+      },
+      "macos": {
+        "note": "",
+        "support": "full"
+      },
+      "windows": {
+        "note": "Adaptive Cards 1.5",
+        "support": "full"
+      }
+    },
+    "gauge": {
+      "android": {
+        "note": "",
+        "support": "full"
+      },
+      "desktop": {
+        "note": "",
+        "support": "full"
+      },
+      "ios": {
+        "note": "",
+        "support": "full"
+      },
+      "macos": {
+        "note": "",
+        "support": "full"
+      },
+      "windows": {
+        "note": "rasterized PNG",
+        "support": "degraded"
+      }
+    },
+    "grid": {
+      "android": {
+        "note": "",
+        "support": "full"
+      },
+      "desktop": {
+        "note": "",
+        "support": "full"
+      },
+      "ios": {
+        "note": "",
+        "support": "full"
+      },
+      "macos": {
+        "note": "",
+        "support": "full"
+      },
+      "windows": {
+        "note": "Adaptive Cards 1.5",
+        "support": "full"
+      }
+    },
+    "hstack": {
+      "android": {
+        "note": "",
+        "support": "full"
+      },
+      "desktop": {
+        "note": "",
+        "support": "full"
+      },
+      "ios": {
+        "note": "",
+        "support": "full"
+      },
+      "macos": {
+        "note": "",
+        "support": "full"
+      },
+      "windows": {
+        "note": "Adaptive Cards 1.5",
+        "support": "full"
+      }
+    },
+    "image": {
+      "android": {
+        "note": "url via localPath preprocess; see image.systemName",
+        "support": "full"
+      },
+      "desktop": {
+        "note": "",
+        "support": "full"
+      },
+      "ios": {
+        "note": "",
+        "support": "full"
+      },
+      "macos": {
+        "note": "",
+        "support": "full"
+      },
+      "windows": {
+        "note": "url/data URI; see image.systemName",
+        "support": "full"
+      }
+    },
+    "label": {
+      "android": {
+        "note": "",
+        "support": "full"
+      },
+      "desktop": {
+        "note": "",
+        "support": "full"
+      },
+      "ios": {
+        "note": "",
+        "support": "full"
+      },
+      "macos": {
+        "note": "",
+        "support": "full"
+      },
+      "windows": {
+        "note": "Adaptive Cards 1.5",
+        "support": "full"
+      }
+    },
+    "link": {
+      "android": {
+        "note": "",
+        "support": "full"
+      },
+      "desktop": {
+        "note": "",
+        "support": "full"
+      },
+      "ios": {
+        "note": "",
+        "support": "full"
+      },
+      "macos": {
+        "note": "",
+        "support": "full"
+      },
+      "windows": {
+        "note": "Adaptive Cards 1.5",
+        "support": "full"
+      }
+    },
+    "list": {
+      "android": {
+        "note": "Column chunking; soft cap ~50 items",
+        "support": "full"
+      },
+      "desktop": {
+        "note": "",
+        "support": "full"
+      },
+      "ios": {
+        "note": "",
+        "support": "full"
+      },
+      "macos": {
+        "note": "",
+        "support": "full"
+      },
+      "windows": {
+        "note": "Adaptive Cards Table",
+        "support": "degraded"
+      }
+    },
+    "progress": {
+      "android": {
+        "note": "",
+        "support": "full"
+      },
+      "desktop": {
+        "note": "",
+        "support": "full"
+      },
+      "ios": {
+        "note": "",
+        "support": "full"
+      },
+      "macos": {
+        "note": "",
+        "support": "full"
+      },
+      "windows": {
+        "note": "Adaptive Cards 1.5",
+        "support": "full"
+      }
+    },
+    "shape": {
+      "android": {
+        "note": "",
+        "support": "full"
+      },
+      "desktop": {
+        "note": "",
+        "support": "full"
+      },
+      "ios": {
+        "note": "",
+        "support": "full"
+      },
+      "macos": {
+        "note": "",
+        "support": "full"
+      },
+      "windows": {
+        "note": "rasterized PNG",
+        "support": "degraded"
+      }
+    },
+    "spacer": {
+      "android": {
+        "note": "",
+        "support": "full"
+      },
+      "desktop": {
+        "note": "",
+        "support": "full"
+      },
+      "ios": {
+        "note": "",
+        "support": "full"
+      },
+      "macos": {
+        "note": "",
+        "support": "full"
+      },
+      "windows": {
+        "note": "Adaptive Cards 1.5",
+        "support": "full"
+      }
+    },
+    "text": {
+      "android": {
+        "note": "",
+        "support": "full"
+      },
+      "desktop": {
+        "note": "",
+        "support": "full"
+      },
+      "ios": {
+        "note": "",
+        "support": "full"
+      },
+      "macos": {
+        "note": "",
+        "support": "full"
+      },
+      "windows": {
+        "note": "Adaptive Cards 1.5",
+        "support": "full"
+      }
+    },
+    "timer": {
+      "android": {
+        "note": "Chronometer via AndroidRemoteViews",
+        "support": "full"
+      },
+      "desktop": {
+        "note": "setInterval",
+        "support": "full"
+      },
+      "ios": {
+        "note": "",
+        "support": "full"
+      },
+      "macos": {
+        "note": "",
+        "support": "full"
+      },
+      "windows": {
+        "note": "provider minute push + static TextBlock",
+        "support": "degraded"
+      }
+    },
+    "toggle": {
+      "android": {
+        "note": "",
+        "support": "full"
+      },
+      "desktop": {
+        "note": "",
+        "support": "full"
+      },
+      "ios": {
+        "note": "",
+        "support": "full"
+      },
+      "macos": {
+        "note": "",
+        "support": "full"
+      },
+      "windows": {
+        "note": "Adaptive Cards 1.5",
+        "support": "full"
+      }
+    },
+    "vstack": {
+      "android": {
+        "note": "",
+        "support": "full"
+      },
+      "desktop": {
+        "note": "",
+        "support": "full"
+      },
+      "ios": {
+        "note": "",
+        "support": "full"
+      },
+      "macos": {
+        "note": "",
+        "support": "full"
+      },
+      "windows": {
+        "note": "Adaptive Cards 1.5",
+        "support": "full"
+      }
+    },
+    "zstack": {
+      "android": {
+        "note": "",
+        "support": "full"
+      },
+      "desktop": {
+        "note": "",
+        "support": "full"
+      },
+      "ios": {
+        "note": "",
+        "support": "full"
+      },
+      "macos": {
+        "note": "",
+        "support": "full"
+      },
+      "windows": {
+        "note": "rasterized PNG overlay when possible; else flattened Container",
+        "support": "degraded"
+      }
+    }
+  },
+  "extended": [
+    "gauge",
+    "toggle",
+    "date",
+    "chart",
+    "list",
+    "timer",
+    "canvas",
+    "label"
+  ],
+  "features": {
+    "background.gradient": {
+      "android": {
+        "note": "baked bitmap at LocalSize / frame",
+        "support": "full"
+      },
+      "desktop": {
+        "note": "linear/radial/angular CSS/SVG",
+        "support": "full"
+      },
+      "ios": {
+        "note": "linear/radial/angular SwiftUI",
+        "support": "full"
+      },
+      "macos": {
+        "note": "linear/radial/angular SwiftUI",
+        "support": "full"
+      },
+      "windows": {
+        "note": "rasterized PNG backgroundImage when rasterize enabled",
+        "support": "degraded"
+      }
+    },
+    "canvas.path": {
+      "android": {
+        "note": "PathParser full SVG path",
+        "support": "full"
+      },
+      "desktop": {
+        "note": "SVG path",
+        "support": "full"
+      },
+      "ios": {
+        "note": "SVG path grammar",
+        "support": "full"
+      },
+      "macos": {
+        "note": "SVG path grammar",
+        "support": "full"
+      },
+      "windows": {
+        "note": "rasterized via SVG",
+        "support": "degraded"
+      }
+    },
+    "image.systemName": {
+      "android": {
+        "note": "SF→Material / emoji map (not SF Symbols)",
+        "support": "degraded"
+      },
+      "desktop": {
+        "note": "SF→Material / emoji map (not SF Symbols)",
+        "support": "degraded"
+      },
+      "ios": {
+        "note": "SF Symbols",
+        "support": "full"
+      },
+      "macos": {
+        "note": "SF Symbols",
+        "support": "full"
+      },
+      "windows": {
+        "note": "emoji TextBlock by default; glyph PNG Image with feature rasterize",
+        "support": "degraded"
+      }
+    },
+    "image.url": {
+      "android": {
+        "note": "preprocess to localPath on setWidgetConfig",
+        "support": "full"
+      },
+      "desktop": {
+        "note": "",
+        "support": "full"
+      },
+      "ios": {
+        "note": "host prefetch to data URI on setWidgetConfig",
+        "support": "full"
+      },
+      "macos": {
+        "note": "host prefetch to data URI on setWidgetConfig",
+        "support": "full"
+      },
+      "windows": {
+        "note": "Adaptive Cards Image.url",
+        "support": "full"
+      }
+    },
+    "timer.live": {
+      "android": {
+        "note": "Chronometer via AndroidRemoteViews",
+        "support": "full"
+      },
+      "desktop": {
+        "note": "JS interval",
+        "support": "full"
+      },
+      "ios": {
+        "note": "Text(..., .timer)",
+        "support": "full"
+      },
+      "macos": {
+        "note": "Text(..., .timer)",
+        "support": "full"
+      },
+      "windows": {
+        "note": "provider pushes UpdateWidget ~1/min",
+        "support": "degraded"
+      }
+    }
+  },
+  "platforms": [
+    "ios",
+    "macos",
+    "android",
+    "desktop",
+    "windows"
+  ],
+  "version": 1
+}

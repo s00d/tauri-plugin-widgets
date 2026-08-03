@@ -107,7 +107,7 @@
                   ],
                   "text": "Streaming",
                   "px": 15,
-                  "color": "#FFFFFF"
+                  "color": "#000000"
                 },
                 {
                   "kind": "span",
@@ -119,7 +119,7 @@
                   ],
                   "text": "Jun 1",
                   "px": 11,
-                  "color": "#EBEBF5"
+                  "color": "#3C3C43"
                 }
               ]
             }

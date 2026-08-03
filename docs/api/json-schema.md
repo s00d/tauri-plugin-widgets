@@ -4,31 +4,46 @@ title: JSON Schema
 
 # JSON Schema
 
-The widget config schema is generated from Rust models (`pnpm codegen`):
+Generated from Rust (`pnpm codegen` / `cargo run --bin gen-schema --features codegen`):
 
-[`schemas/widget-config.v1.json`](https://github.com/s00d/tauri-plugin-widgets/blob/main/schemas/widget-config.v1.json)
+| Schema | Pages URL |
+| --- | --- |
+| Widget IR | https://s00d.github.io/tauri-plugin-widgets/schemas/widget-config.v1.json |
+| `plugins.widgets` | https://s00d.github.io/tauri-plugin-widgets/schemas/plugin-config.v1.json |
+| Capabilities matrix | https://s00d.github.io/tauri-plugin-widgets/schemas/capabilities.json |
 
-Raw URL for editors:
+Also in the repo under `schemas/` and shipped in the npm package (`schemas/`).
+
+GitHub raw (fallback):
 
 ```text
 https://raw.githubusercontent.com/s00d/tauri-plugin-widgets/main/schemas/widget-config.v1.json
 ```
 
-The npm package (`tauri-plugin-widgets-api`) does **not** ship `schemas/` — point tools at the GitHub raw URL or a local clone of this repo.
-
 ## IDE association
 
-Example VS Code / Cursor `settings.json`:
+Put `$schema` in the widget JSON (preferred):
+
+```json
+{
+  "$schema": "https://s00d.github.io/tauri-plugin-widgets/schemas/widget-config.v1.json",
+  "small": { "type": "text", "content": "Hi", "color": "#fff" }
+}
+```
+
+Or VS Code / Cursor `settings.json`:
 
 ```json
 {
   "json.schemas": [
     {
       "fileMatch": ["**/widget*.json", "**/fixtures/**/*.json"],
-      "url": "https://raw.githubusercontent.com/s00d/tauri-plugin-widgets/main/schemas/widget-config.v1.json"
+      "url": "https://s00d.github.io/tauri-plugin-widgets/schemas/widget-config.v1.json"
     }
   ]
 }
 ```
 
-Element reference: [Elements](/elements/).
+Validate from the CLI: `npx tauri-widgets validate ./widget.json --platforms ios,android`.
+
+Element reference: [Elements](/elements/) · [CLI](/guide/cli).

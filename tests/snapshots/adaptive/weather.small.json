@@ -2,7 +2,7 @@
   "$schema": "http://adaptivecards.io/schemas/adaptive-card.json",
   "body": [
     {
-      "id": "card:#1a1a2e;gap:8",
+      "id": "card:#1a1a2e",
       "items": [
         {
           "color": "Light",
@@ -14,6 +14,7 @@
           "wrap": true
         },
         {
+          "id": "gap:8",
           "items": [
             {
               "color": "Good",
@@ -40,10 +41,11 @@
               "type": "ColumnSet"
             }
           ],
+          "spacing": "Default",
           "type": "Container"
         }
       ],
-      "spacing": "Default",
+      "spacing": "None",
       "style": "emphasis",
       "type": "Container"
     }

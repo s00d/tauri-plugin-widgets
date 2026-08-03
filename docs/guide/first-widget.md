@@ -18,7 +18,7 @@ Follow [Install](/guide/install) — preferably `pnpm tauri add tauri-plugin-wid
 
 ### macOS host caveat
 
-Even for a **desktop-only** webview (no WidgetKit), macOS still resolves Apple transport at plugin init. Add `plugins.widgets` **before** `tauri dev` or the app will not start:
+Even for a **desktop-only** webview (no WidgetKit), macOS still resolves Apple transport at plugin init. Run `npx tauri-widgets signing --apply` (or `init-macos`) so `plugins.widgets` exists **before** `tauri dev`, or the app will not start:
 
 ```json
 {
@@ -31,7 +31,7 @@ Even for a **desktop-only** webview (no WidgetKit), macOS still resolves Apple t
 }
 ```
 
-Use `widgetContainer` for local ad-hoc signing; switch to `appGroup` once Team ID + App Groups work. Linux / Windows hosts can skip this block. See [Transport](/guide/transport).
+`signing` picks `widgetContainer` when no Team ID cert is installed, `appGroup` when one is. Linux / Windows hosts can skip this block. See [Transport](/guide/transport).
 
 ### Capabilities
 

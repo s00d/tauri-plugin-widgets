@@ -1,9 +1,13 @@
 //! SVG builders + optional PNG rasterize for Adaptive Cards Image data URIs.
 //!
-//! Used for `chart` / `canvas` / `gauge` nodes that Adaptive Cards cannot express natively.
+//! Used for `chart` / `canvas` / `gauge` / `shape` / `zstack` / gradient
+//! backgrounds that Adaptive Cards cannot express natively.
 
 use crate::models::{
-    CanvasDrawCommand, ChartDataPoint, ChartType, ColorValue, GaugeStyle, ShapeType, WidgetElement, GaugeElement, ChartElement, ShapeElement, CanvasElement,
+    CanvasDrawCommand, ChartDataPoint, ChartType, ColorValue, ElementStyle, GaugeStyle,
+    GradientConfig, GradientDirection, GradientType, ProgressElement, ProgressStyle, ShapeType,
+    WidgetElement, GaugeElement, ChartElement, ShapeElement, CanvasElement, TextElement,
+    ImageElement, ZStackElement, BackgroundValue,
 };
 use std::f64::consts::PI;
 
@@ -45,6 +49,22 @@ pub fn element_to_svg(el: &WidgetElement) -> Option<String> {
             current_value_label.as_deref(),
             label.as_deref(),
         )),
+        WidgetElement::Progress(ProgressElement {
+            value,
+            total,
+            tint,
+            label,
+            bar_style,
+            ..
+        }) if matches!(bar_style, Some(ProgressStyle::Circular)) => Some(gauge_svg(
+            *value,
+            0.0,
+            if *total <= 0.0 { 1.0 } else { *total },
+            tint.as_ref(),
+            Some(&GaugeStyle::Circular),
+            None,
+            label.as_deref(),
+        )),
         WidgetElement::Shape(ShapeElement {
             shape_type,
             fill,
@@ -59,8 +79,191 @@ pub fn element_to_svg(el: &WidgetElement) -> Option<String> {
             stroke_width.unwrap_or(1.0),
             size.unwrap_or(24.0),
         )),
+        WidgetElement::ZStack(ZStackElement {
+            children, style, ..
+        }) => zstack_svg(children, style),
         _ => None,
     }
+}
+
+/// Build an SVG gradient fill for Adaptive Cards `backgroundImage` baking.
+pub fn gradient_to_svg(g: &GradientConfig, width: f64, height: f64) -> String {
+    use std::sync::atomic::{AtomicU64, Ordering};
+    static GRAD_ID: AtomicU64 = AtomicU64::new(1);
+    let id = format!("g{}", GRAD_ID.fetch_add(1, Ordering::Relaxed));
+    let w = width.max(8.0);
+    let h = height.max(8.0);
+    let colors = if g.colors.is_empty() {
+        vec!["#6366f1".into(), "#a855f7".into()]
+    } else {
+        g.colors.clone()
+    };
+    let stops: String = colors
+        .iter()
+        .enumerate()
+        .map(|(i, c)| {
+            let off = if colors.len() == 1 {
+                0.0
+            } else {
+                i as f64 / (colors.len() - 1) as f64
+            };
+            format!(
+                r#"<stop offset="{:.0}%" stop-color="{}"/>"#,
+                off * 100.0,
+                esc(c)
+            )
+        })
+        .collect();
+    match g.gradient_type {
+        GradientType::Radial => format!(
+            r#"<svg xmlns="http://www.w3.org/2000/svg" width="{w}" height="{h}" viewBox="0 0 {w} {h}"><defs><radialGradient id="{id}" cx="50%" cy="50%" r="70%">{stops}</radialGradient></defs><rect width="100%" height="100%" fill="url(#{id})"/></svg>"#
+        ),
+        GradientType::Angular => {
+            // Approximate angular as a linear sweep — good enough for AC bake.
+            format!(
+                r#"<svg xmlns="http://www.w3.org/2000/svg" width="{w}" height="{h}" viewBox="0 0 {w} {h}"><defs><linearGradient id="{id}" x1="0%" y1="0%" x2="100%" y2="100%">{stops}</linearGradient></defs><rect width="100%" height="100%" fill="url(#{id})"/></svg>"#
+            )
+        }
+        GradientType::Linear => {
+            let (x1, y1, x2, y2) = match g.direction.as_ref() {
+                Some(GradientDirection::LeadingToTrailing) => ("0%", "0%", "100%", "0%"),
+                Some(GradientDirection::TrailingToLeading) => ("100%", "0%", "0%", "0%"),
+                Some(GradientDirection::BottomToTop) => ("0%", "100%", "0%", "0%"),
+                Some(GradientDirection::TopLeadingToBottomTrailing) => ("0%", "0%", "100%", "100%"),
+                Some(GradientDirection::TopTrailingToBottomLeading) => ("100%", "0%", "0%", "100%"),
+                _ => ("0%", "0%", "0%", "100%"), // topToBottom default
+            };
+            format!(
+                r#"<svg xmlns="http://www.w3.org/2000/svg" width="{w}" height="{h}" viewBox="0 0 {w} {h}"><defs><linearGradient id="{id}" x1="{x1}" y1="{y1}" x2="{x2}" y2="{y2}">{stops}</linearGradient></defs><rect width="100%" height="100%" fill="url(#{id})"/></svg>"#
+            )
+        }
+    }
+}
+
+/// Rasterize a gradient background to a PNG data URI when `rasterize` is enabled.
+pub fn gradient_to_png_data_uri(g: &GradientConfig) -> Result<String, String> {
+    svg_to_data_uri(&gradient_to_svg(g, 320.0, 200.0))
+}
+
+fn zstack_svg(children: &[WidgetElement], style: &ElementStyle) -> Option<String> {
+    const W: f64 = 160.0;
+    const H: f64 = 160.0;
+    let mut layers = String::new();
+    // Bake background so AC Image isn't transparent when style.background is set.
+    if let Some(bg) = &style.background {
+        match bg {
+            BackgroundValue::Solid(s) => {
+                let fill = normalize_color(s);
+                layers.push_str(&format!(
+                    r#"<rect width="100%" height="100%" fill="{fill}"/>"#
+                ));
+            }
+            BackgroundValue::Adaptive { light, .. } => {
+                let fill = normalize_color(light);
+                layers.push_str(&format!(
+                    r#"<rect width="100%" height="100%" fill="{fill}"/>"#
+                ));
+            }
+            BackgroundValue::Gradient(g) => {
+                let grad_svg = gradient_to_svg(g, W, H);
+                let inner = strip_outer_svg(&grad_svg);
+                layers.push_str(&format!(
+                    r#"<svg x="0" y="0" width="{W}" height="{H}" viewBox="0 0 {W} {H}" preserveAspectRatio="none">{inner}</svg>"#
+                ));
+            }
+        }
+    }
+    let mut drew = 0usize;
+    for child in children {
+        match child {
+            WidgetElement::Text(TextElement {
+                content,
+                font_size,
+                color,
+                ..
+            }) => {
+                let size = font_size.unwrap_or(16.0);
+                let fill = color_str(color.as_ref(), "#ffffff");
+                layers.push_str(&format!(
+                    r#"<text x="{:.1}" y="{:.1}" text-anchor="middle" dominant-baseline="middle" font-size="{size}" fill="{fill}" font-family="system-ui,sans-serif">{}</text>"#,
+                    W / 2.0,
+                    H / 2.0,
+                    esc(content)
+                ));
+                drew += 1;
+            }
+            WidgetElement::Image(ImageElement {
+                system_name,
+                size,
+                color,
+                ..
+            }) => {
+                let glyph = system_name
+                    .as_deref()
+                    .map(|n| crate::adaptive_card::sf_symbol_glyph_public(n))
+                    .unwrap_or("•");
+                let sz = size.unwrap_or(28.0);
+                let fill = color_str(color.as_ref(), "#ffffff");
+                layers.push_str(&format!(
+                    r#"<text x="{:.1}" y="{:.1}" text-anchor="middle" dominant-baseline="middle" font-size="{sz}" fill="{fill}">{}</text>"#,
+                    W / 2.0,
+                    H / 2.0,
+                    esc(glyph)
+                ));
+                drew += 1;
+            }
+            other => {
+                let Some(inner) = element_to_svg(other) else {
+                    // Any unrenderable child → fall back so AC can render the full tree.
+                    return None;
+                };
+                let (vbx, vby, vbw, vbh) = extract_viewbox(&inner).unwrap_or((0.0, 0.0, W, H));
+                layers.push_str(&format!(
+                    r#"<svg x="0" y="0" width="{W}" height="{H}" viewBox="{vbx} {vby} {vbw} {vbh}" preserveAspectRatio="xMidYMid meet">{inner_body}</svg>"#,
+                    inner_body = strip_outer_svg(&inner)
+                ));
+                drew += 1;
+            }
+        }
+    }
+    if drew == 0 {
+        return None;
+    }
+    Some(format!(
+        r#"<svg xmlns="http://www.w3.org/2000/svg" width="{W}" height="{H}" viewBox="0 0 {W} {H}">{layers}</svg>"#
+    ))
+}
+
+fn extract_viewbox(svg: &str) -> Option<(f64, f64, f64, f64)> {
+    let re = regex_lite_viewbox(svg)?;
+    Some(re)
+}
+
+/// Tiny viewBox extractor — avoids a regex crate dependency.
+fn regex_lite_viewbox(svg: &str) -> Option<(f64, f64, f64, f64)> {
+    let key = "viewBox=\"";
+    let start = svg.find(key)? + key.len();
+    let end = svg[start..].find('"')? + start;
+    let parts: Vec<f64> = svg[start..end]
+        .split_whitespace()
+        .filter_map(|p| p.parse().ok())
+        .collect();
+    if parts.len() == 4 {
+        Some((parts[0], parts[1], parts[2], parts[3]))
+    } else {
+        None
+    }
+}
+
+fn strip_outer_svg(svg: &str) -> String {
+    let s = svg.trim();
+    if let Some(start) = s.find('>') {
+        let inner = &s[start + 1..];
+        if let Some(end) = inner.rfind("</svg>") {
+            return inner[..end].to_string();
+        }
+    }
+    s.to_string()
 }
 
 /// Rasterize SVG to `data:image/png;base64,…` when the `rasterize` feature is on.

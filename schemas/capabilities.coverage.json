@@ -1,0 +1,175 @@
+{
+  "elements": {
+    "button": {
+      "android": 5,
+      "desktop": 5,
+      "ios": 5,
+      "linux": 5,
+      "macos": 5,
+      "windows": 0
+    },
+    "canvas": {
+      "android": 3,
+      "desktop": 3,
+      "ios": 3,
+      "linux": 3,
+      "macos": 3,
+      "windows": 0
+    },
+    "chart": {
+      "android": 1,
+      "desktop": 1,
+      "ios": 1,
+      "linux": 1,
+      "macos": 1,
+      "windows": 0
+    },
+    "container": {
+      "android": 1,
+      "desktop": 1,
+      "ios": 1,
+      "linux": 1,
+      "macos": 1,
+      "windows": 0
+    },
+    "date": {
+      "android": 1,
+      "desktop": 1,
+      "ios": 1,
+      "linux": 1,
+      "macos": 1,
+      "windows": 0
+    },
+    "divider": {
+      "android": 9,
+      "desktop": 10,
+      "ios": 10,
+      "linux": 9,
+      "macos": 10,
+      "windows": 0
+    },
+    "gauge": {
+      "android": 4,
+      "desktop": 4,
+      "ios": 4,
+      "linux": 4,
+      "macos": 4,
+      "windows": 0
+    },
+    "grid": {
+      "android": 6,
+      "desktop": 7,
+      "ios": 7,
+      "linux": 6,
+      "macos": 7,
+      "windows": 0
+    },
+    "hstack": {
+      "android": 16,
+      "desktop": 18,
+      "ios": 18,
+      "linux": 16,
+      "macos": 18,
+      "windows": 0
+    },
+    "image": {
+      "android": 6,
+      "desktop": 7,
+      "ios": 7,
+      "linux": 6,
+      "macos": 7,
+      "windows": 0
+    },
+    "label": {
+      "android": 6,
+      "desktop": 7,
+      "ios": 7,
+      "linux": 6,
+      "macos": 7,
+      "windows": 0
+    },
+    "link": {
+      "android": 1,
+      "desktop": 1,
+      "ios": 1,
+      "linux": 1,
+      "macos": 1,
+      "windows": 0
+    },
+    "list": {
+      "android": 4,
+      "desktop": 4,
+      "ios": 4,
+      "linux": 4,
+      "macos": 4,
+      "windows": 0
+    },
+    "progress": {
+      "android": 8,
+      "desktop": 9,
+      "ios": 9,
+      "linux": 8,
+      "macos": 9,
+      "windows": 0
+    },
+    "shape": {
+      "android": 13,
+      "desktop": 14,
+      "ios": 14,
+      "linux": 13,
+      "macos": 14,
+      "windows": 0
+    },
+    "spacer": {
+      "android": 10,
+      "desktop": 11,
+      "ios": 11,
+      "linux": 10,
+      "macos": 11,
+      "windows": 0
+    },
+    "text": {
+      "android": 27,
+      "desktop": 30,
+      "ios": 30,
+      "linux": 27,
+      "macos": 30,
+      "windows": 0
+    },
+    "timer": {
+      "android": 1,
+      "desktop": 1,
+      "ios": 1,
+      "linux": 1,
+      "macos": 1,
+      "windows": 0
+    },
+    "toggle": {
+      "android": 1,
+      "desktop": 1,
+      "ios": 1,
+      "linux": 1,
+      "macos": 1,
+      "windows": 0
+    },
+    "vstack": {
+      "android": 30,
+      "desktop": 33,
+      "ios": 33,
+      "linux": 30,
+      "macos": 33,
+      "windows": 0
+    },
+    "zstack": {
+      "android": 8,
+      "desktop": 9,
+      "ios": 9,
+      "linux": 8,
+      "macos": 9,
+      "windows": 0
+    }
+  },
+  "note": "Counts of golden PNGs whose fixture contains each element type. Hand matrix remains schemas/capabilities.json.",
+  "source": "tests/cases + tests/golden",
+  "version": 1
+}

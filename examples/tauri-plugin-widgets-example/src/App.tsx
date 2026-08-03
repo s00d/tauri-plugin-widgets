@@ -15,7 +15,7 @@ import { PRESETS } from "./presets";
 import "./App.css";
 
 const WIDGET_KIND = "ExampleWidget";
-const APP_GROUP = "group.com.s00d.tauri-plugin-widgets-example";
+const APP_GROUP = "group.com.s00d.tauriwidgets.example";
 const WIDGET_ID = "example";
 const WIDGET_LABEL = "desktop-widget";
 
@@ -122,6 +122,8 @@ function App() {
       const stop = await startWidgetUpdater(builder, APP_GROUP, WIDGET_ID, {
         intervalMs,
         immediate: true,
+        // One-shot apply: reload WidgetKit once. Live ticks must not burn the budget.
+        reload: intervalMs === 0,
       });
 
       // A newer click won the race — drop this updater.
@@ -165,6 +167,7 @@ function App() {
       const stop = await startWidgetUpdater(() => config, APP_GROUP, WIDGET_ID, {
         intervalMs: 0,
         immediate: true,
+        reload: true,
       });
       if (gen !== applyGenRef.current) {
         stop();

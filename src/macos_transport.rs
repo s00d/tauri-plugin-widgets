@@ -324,6 +324,91 @@ pub fn all_transports(group: &str) -> Vec<Arc<dyn Transport>> {
     out
 }
 
+/// Wipe leftover maps on every Apple transport **except** `keep` (best-effort).
+///
+/// Writes an empty map with **no** meta bump so a cleared sibling cannot win
+/// `pick_freshest` by nonce. The configured driver is never wiped here — a
+/// failed follow-up write must not erase the last good primary map.
+///
+/// Each wipe is `read → merge pending into `into` → write empty → re-read`.
+/// A nonempty re-read always folds pending again and retries — never a final
+/// blind empty write that could clobber a tap that arrived after the re-read.
+pub fn clear_sibling_transports(group: &str, keep: &str, into: &mut DataMap) {
+    for t in all_transports(group) {
+        if t.name() == keep || !t.available() {
+            continue;
+        }
+        for _ in 0..5 {
+            let Some(existing) = t.read() else { break };
+            if existing.is_empty() {
+                break;
+            }
+            merge_pending_from_map(into, &existing);
+            if let Err(e) = t.write(&DataMap::new()) {
+                log::debug!("clear_sibling_transports({}): {e}", t.name());
+                break;
+            }
+            match t.read() {
+                None => break,
+                Some(after) if after.is_empty() => break,
+                Some(after) => {
+                    // Something reappeared (likely a tap) — fold in and retry wipe.
+                    merge_pending_from_map(into, &after);
+                }
+            }
+        }
+        // Attempts exhausted: preserve any residual pending in `into`, do not
+        // blind-wipe (that race is what drops taps).
+        if let Some(left) = t.read() {
+            if !left.is_empty() {
+                merge_pending_from_map(into, &left);
+            }
+        }
+    }
+}
+
+fn pending_action_key(a: &crate::store::WidgetActionEnvelope) -> String {
+    // Structured JSON — `|` in action/payload must not collide envelopes.
+    serde_json::to_string(&(&a.action, &a.widget_id, &a.payload, a.ts))
+        .unwrap_or_else(|_| format!("{}:{}:{:?}", a.action, a.widget_id, a.ts))
+}
+
+fn merge_pending_from_map(into: &mut DataMap, src: &DataMap) {
+    use crate::store::{encode_pending_actions, parse_pending_actions, PENDING_ACTIONS_KEY};
+    let incoming = parse_pending_actions(src.get(PENDING_ACTIONS_KEY).map(|s| s.as_str()));
+    if incoming.is_empty() {
+        return;
+    }
+    let mut merged = parse_pending_actions(into.get(PENDING_ACTIONS_KEY).map(|s| s.as_str()));
+    let mut seen: std::collections::HashSet<String> =
+        merged.iter().map(pending_action_key).collect();
+    for a in incoming {
+        if seen.insert(pending_action_key(&a)) {
+            merged.push(a);
+        }
+    }
+    match encode_pending_actions(&merged) {
+        Ok(s) => {
+            into.insert(PENDING_ACTIONS_KEY.into(), s);
+        }
+        Err(e) => log::debug!("merge_pending_from_map encode: {e}"),
+    }
+}
+
+/// Fold `pending_actions` from every readable transport into `map` (deduped).
+///
+/// Used by host writes before [`clear_sibling_transports`].
+pub fn merge_pending_into_map(map: &mut DataMap, group: &str) {
+    for t in all_transports(group) {
+        if !t.available() {
+            continue;
+        }
+        if let Some(m) = t.read() {
+            merge_pending_from_map(map, &m);
+        }
+    }
+}
+
 /// Max `__meta_nonce__` across every readable sibling transport.
 pub fn max_nonce_across(group: &str) -> u64 {
     all_transports(group)
@@ -334,36 +419,113 @@ pub fn max_nonce_across(group: &str) -> u64 {
         .unwrap_or(0)
 }
 
-/// Write `map` to every available transport except `primary` (same bytes / nonce).
+/// Collect `pending_actions` from every readable sibling (including primary).
 ///
-/// The widget still multi-reads and picks by nonce. Mirroring keeps inactive
-/// channels from serving a stale higher-nonce snapshot.
-///
-/// Concurrent enqueues: merge `pending_actions` from the sibling's current map
-/// into the outgoing mirror so a host config write cannot wipe a just-appended action.
-pub fn mirror_to_siblings(primary: &dyn Transport, group: &str, map: &DataMap) {
+/// Call on poll — siblings may still hold taps after a driver latch; config
+/// writes clear leftover maps via [`clear_sibling_transports`] instead.
+pub fn harvest_pending_actions(group: &str) -> Vec<crate::store::WidgetActionEnvelope> {
+    use crate::store::{parse_pending_actions, PENDING_ACTIONS_KEY};
+    let mut out = Vec::new();
+    let mut seen = std::collections::HashSet::new();
     for t in all_transports(group) {
-        if t.name() == primary.name() || !t.available() {
+        if !t.available() {
             continue;
         }
-        let mut out = map.clone();
-        if let Some(existing) = t.read() {
-            if let Some(pa) = existing.get(store::PENDING_ACTIONS_KEY) {
-                // Prefer the longer / non-empty queue when the outgoing map cleared it.
-                let outgoing_empty = out
-                    .get(store::PENDING_ACTIONS_KEY)
-                    .map(|s| s.trim().is_empty() || s.trim() == "[]")
-                    .unwrap_or(true);
-                if outgoing_empty && !pa.trim().is_empty() && pa.trim() != "[]" {
-                    out.insert(store::PENDING_ACTIONS_KEY.into(), pa.clone());
-                    // Sibling queue must outrank the empty primary snapshot.
-                    let floor = store::map_nonce(&existing).max(store::map_nonce(map));
-                    store::touch_meta_above(&mut out, floor);
-                }
+        let Some(m) = t.read() else { continue };
+        for a in parse_pending_actions(m.get(PENDING_ACTIONS_KEY).map(|s| s.as_str())) {
+            if seen.insert(pending_action_key(&a)) {
+                out.push(a);
             }
         }
-        if let Err(e) = t.write(&out) {
-            log::debug!("mirror_to_siblings({}): {e}", t.name());
+    }
+    out.sort_by_key(|a| a.ts);
+    out
+}
+
+/// Clear drained `pending_actions` on every transport after a successful host drain.
+///
+/// Re-reads each transport and keeps any actions that arrived after `drained` was
+/// harvested (matched by action|widget|payload|ts with multiplicity), so a tap
+/// between harvest and clear is not lost.
+pub fn clear_pending_actions_everywhere(
+    group: &str,
+    drained: &[crate::store::WidgetActionEnvelope],
+) {
+    use crate::store::{
+        encode_pending_actions, map_nonce, parse_pending_actions, PENDING_ACTIONS_KEY,
+    };
+    use std::collections::HashMap;
+
+    fn filter_pending(
+        current: Vec<crate::store::WidgetActionEnvelope>,
+        drained_counts: &HashMap<String, usize>,
+    ) -> Vec<crate::store::WidgetActionEnvelope> {
+        let mut counts = drained_counts.clone();
+        current
+            .into_iter()
+            .filter(|a| {
+                let key = pending_action_key(a);
+                if let Some(c) = counts.get_mut(&key) {
+                    if *c > 0 {
+                        *c -= 1;
+                        return false;
+                    }
+                }
+                true
+            })
+            .collect()
+    }
+
+    let mut drained_counts: HashMap<String, usize> = HashMap::new();
+    for a in drained {
+        *drained_counts.entry(pending_action_key(a)).or_default() += 1;
+    }
+
+    for t in all_transports(group) {
+        if !t.available() {
+            continue;
+        }
+        for attempt in 0..5 {
+            let Some(m_at_read) = t.read() else {
+                break;
+            };
+            let nonce_at_read = map_nonce(&m_at_read);
+            let pending_snapshot = m_at_read.get(PENDING_ACTIONS_KEY).cloned();
+            let current = parse_pending_actions(pending_snapshot.as_deref());
+            if current.is_empty() {
+                break;
+            }
+
+            let Some(m_disk) = t.read() else {
+                break;
+            };
+            let disk_nonce = map_nonce(&m_disk);
+            let disk_pending = m_disk.get(PENDING_ACTIONS_KEY).cloned();
+            if (disk_nonce > nonce_at_read || disk_pending != pending_snapshot) && attempt + 1 < 5
+            {
+                continue;
+            }
+
+            let fresh = parse_pending_actions(m_disk.get(PENDING_ACTIONS_KEY).map(|s| s.as_str()));
+            if fresh.is_empty() {
+                break;
+            }
+            let remaining = filter_pending(fresh, &drained_counts);
+            let encoded = match encode_pending_actions(&remaining) {
+                Ok(s) => s,
+                Err(e) => {
+                    log::debug!("clear_pending_actions_everywhere encode({}): {e}", t.name());
+                    break;
+                }
+            };
+            let mut m = m_disk;
+            m.insert(PENDING_ACTIONS_KEY.into(), encoded);
+            // Do NOT touch_meta here — bumping nonce on a probe-only sibling lets it
+            // win pick_freshest and wipe the live config on the next host poll.
+            if let Err(e) = t.write(&m) {
+                log::debug!("clear_pending_actions_everywhere({}): {e}", t.name());
+            }
+            break;
         }
     }
 }

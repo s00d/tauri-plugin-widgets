@@ -41,7 +41,7 @@ Full diagram + action sequence: [Concepts → Architecture flowchart](/guide/con
 
 1. [Install](/guide/install)
 2. [First widget](/guide/first-widget) (desktop)
-3. [Concepts](/guide/concepts) · [Transport](/guide/transport)
+3. [Concepts](/guide/concepts) · [Transport & signing](/guide/transport) · [Doctor](/guide/doctor)
 4. [Platform setup](/guide/setup/) when you need a native surface
 5. [Elements](/elements/) · [Showcase](/showcase)
 

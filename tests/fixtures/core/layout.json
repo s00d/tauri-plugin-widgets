@@ -1,4 +1,5 @@
 {
+  "$schema": "https://s00d.github.io/tauri-plugin-widgets/schemas/widget-config.v1.json",
   "version": 1,
   "small": {
     "type": "vstack",
@@ -6,14 +7,45 @@
     "padding": 12,
     "background": "#1a1a2e",
     "children": [
-      { "type": "text", "content": "Hello", "fontSize": 18, "fontWeight": "bold", "color": "#fff", "alignment": "center" },
-      { "type": "hstack", "spacing": 4, "children": [
-        { "type": "shape", "shapeType": "capsule", "size": 8, "fill": "#4CAF50" },
-        { "type": "divider" },
-        { "type": "spacer" },
-        { "type": "progress", "value": 0.5, "tint": "#4CAF50", "label": "OK" }
-      ]},
-      { "type": "button", "label": "Go", "action": "go", "backgroundColor": "#2196F3", "color": "#fff" }
+      {
+        "type": "text",
+        "content": "Hello",
+        "fontSize": 18,
+        "fontWeight": "bold",
+        "color": "#fff",
+        "alignment": "center"
+      },
+      {
+        "type": "hstack",
+        "spacing": 4,
+        "children": [
+          {
+            "type": "shape",
+            "shapeType": "capsule",
+            "size": 8,
+            "fill": "#4CAF50"
+          },
+          {
+            "type": "divider"
+          },
+          {
+            "type": "spacer"
+          },
+          {
+            "type": "progress",
+            "value": 0.5,
+            "tint": "#4CAF50",
+            "label": "OK"
+          }
+        ]
+      },
+      {
+        "type": "button",
+        "label": "Go",
+        "action": "go",
+        "backgroundColor": "#2196F3",
+        "color": "#fff"
+      }
     ]
   }
 }

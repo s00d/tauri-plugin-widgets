@@ -1,4 +1,5 @@
 {
+  "$schema": "https://s00d.github.io/tauri-plugin-widgets/schemas/widget-config.v1.json",
   "version": 1,
   "small": {
     "type": "vstack",
@@ -6,7 +7,7 @@
       {
         "type": "text",
         "content": "Tasks",
-        "fontSize": 18.0,
+        "fontSize": 18,
         "fontWeight": "bold",
         "fontDesign": null,
         "textStyle": null,
@@ -39,7 +40,7 @@
             "payload": null
           }
         ],
-        "spacing": 4.0,
+        "spacing": 4,
         "fontSize": null,
         "color": null,
         "padding": null,
@@ -53,9 +54,9 @@
         "flex": null
       }
     ],
-    "spacing": 6.0,
+    "spacing": 6,
     "alignment": null,
-    "padding": 10.0,
+    "padding": 10,
     "background": null,
     "cornerRadius": null,
     "opacity": null,

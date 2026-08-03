@@ -1,18 +1,19 @@
 {
+  "$schema": "https://s00d.github.io/tauri-plugin-widgets/schemas/widget-config.v1.json",
   "version": 1,
   "small": {
     "type": "canvas",
-    "width": 120.0,
-    "height": 120.0,
+    "width": 120,
+    "height": 120,
     "elements": [
       {
         "draw": "circle",
-        "cx": 60.0,
-        "cy": 60.0,
-        "r": 40.0,
+        "cx": 60,
+        "cy": 60,
+        "r": 40,
         "fill": "#1a1a2e",
         "stroke": "#fff",
-        "strokeWidth": 2.0
+        "strokeWidth": 2
       }
     ],
     "padding": null,

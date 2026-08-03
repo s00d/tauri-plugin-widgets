@@ -14,8 +14,11 @@ use serde::{Deserialize, Serialize};
 use std::sync::atomic::{AtomicBool, AtomicU64, Ordering};
 use std::sync::{Arc, Mutex};
 
+/// Driver name written into widget receipts (`appgroup` file transport).
 pub const NAME_APPGROUP: &str = "appgroup";
+/// Driver name for App Group `UserDefaults` suite.
 pub const NAME_DEFAULTS: &str = "defaults";
+/// Driver name for widget extension container file.
 pub const NAME_CONTAINER: &str = "container";
 
 /// Widget-side ack that it rendered a config from a specific transport.
@@ -32,13 +35,19 @@ pub struct Receipt {
     pub ts: u64,
 }
 
+/// Host-side read/write channel to the widget extension.
 pub trait Transport: Send + Sync {
+    /// Stable driver id (`appgroup` / `defaults` / `container`).
     fn name(&self) -> &'static str;
     /// Cheap local probe — must NOT be treated as delivery proof by itself.
     fn available(&self) -> bool;
+    /// Read the config map if present.
     fn read(&self) -> Option<DataMap>;
+    /// Persist the config map (bumps meta via caller).
     fn write(&self, map: &DataMap) -> crate::Result<()>;
+    /// Widget-side ack for the last painted nonce.
     fn read_receipt(&self) -> Option<Receipt>;
+    /// Host-written ack (rare; mostly widget writes receipts).
     fn write_receipt(&self, receipt: &Receipt) -> crate::Result<()>;
 }
 
@@ -173,7 +182,7 @@ fn probe_once(cfg: &WidgetsPluginConfig) -> crate::Result<Arc<dyn Transport>> {
     let mut probe = candidates
         .iter()
         .filter_map(|t| t.read())
-        .max_by_key(|m| map_nonce(m))
+        .max_by_key(map_nonce)
         .unwrap_or_default();
     let floor = candidates
         .iter()
@@ -262,21 +271,25 @@ pub fn probe_once_among(
         .ok_or_else(|| Error::new("probe fallback missing"))
 }
 
+/// Thin alias of [`store::pick_freshest`] for transport callers.
 pub fn pick_freshest_maps(maps: Vec<DataMap>) -> DataMap {
     store::pick_freshest(maps)
 }
 
 // ─── Fake transport (unit tests) ─────────────────────────────────────────────
 
+/// In-memory transport for unit tests.
 pub struct FakeTransport {
     name: &'static str,
     available: AtomicBool,
     map: Mutex<Option<DataMap>>,
     receipt: Mutex<Option<Receipt>>,
+    /// How many successful `write` calls occurred.
     pub writes: AtomicU64,
 }
 
 impl FakeTransport {
+    /// Available transport with empty map/receipt.
     pub fn new(name: &'static str) -> Arc<Self> {
         Arc::new(Self {
             name,
@@ -287,14 +300,17 @@ impl FakeTransport {
         })
     }
 
+    /// Toggle [`Transport::available`].
     pub fn set_available(&self, v: bool) {
         self.available.store(v, Ordering::Relaxed);
     }
 
+    /// Inject a widget receipt without going through write_receipt.
     pub fn plant_receipt(&self, receipt: Receipt) {
         *self.receipt.lock().unwrap() = Some(receipt);
     }
 
+    /// Snapshot of [`Self::writes`].
     pub fn write_count(&self) -> u64 {
         self.writes.load(Ordering::Relaxed)
     }

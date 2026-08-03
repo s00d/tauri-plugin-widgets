@@ -2,13 +2,19 @@
 
 use serde::Deserialize;
 
+#[cfg(feature = "schema")]
+use schemars::JsonSchema;
+
 /// Which Apple host→widget channel to use.
 ///
 /// Pick this at build time (you know your signing). Do not rely on runtime fan-out.
-#[derive(Debug, Clone, Copy, Deserialize, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, Default, Deserialize, PartialEq, Eq)]
+#[cfg_attr(feature = "schema", derive(JsonSchema))]
 #[serde(rename_all = "camelCase")]
 pub enum TransportKind {
     /// App Group shared container file (`widget_data.json`). Needs a real Team ID.
+    /// Production-safe default; use `auto` explicitly for ad-hoc probing.
+    #[default]
     AppGroup,
     /// App Group `UserDefaults` suite. Same signing requirements as [`AppGroup`].
     UserDefaults,
@@ -16,13 +22,6 @@ pub enum TransportKind {
     WidgetContainer,
     /// One-shot probe at startup (dev only). Prefer pinning an explicit driver in conf.
     Auto,
-}
-
-impl Default for TransportKind {
-    fn default() -> Self {
-        // Production-safe default: shared App Group file. Use `auto` explicitly for ad-hoc probing.
-        Self::AppGroup
-    }
 }
 
 impl TransportKind {
@@ -41,6 +40,7 @@ impl TransportKind {
         }
     }
 
+    /// Wire / conf string for this kind (`appGroup`, `auto`, …).
     pub fn as_str(self) -> &'static str {
         match self {
             Self::AppGroup => "appGroup",
@@ -51,9 +51,12 @@ impl TransportKind {
     }
 }
 
+/// `plugins.widgets` object from `tauri.conf.json`.
 #[derive(Debug, Clone, Deserialize, Default)]
+#[cfg_attr(feature = "schema", derive(JsonSchema))]
 #[serde(rename_all = "camelCase")]
 pub struct WidgetsPluginConfig {
+    /// Host→widget transport driver.
     #[serde(default)]
     pub transport: TransportKind,
     /// App Group id, e.g. `group.com.example.app`.
@@ -73,4 +76,74 @@ pub fn env_transport_override() -> Option<TransportKind> {
 /// Merge conf + env into the effective kind.
 pub fn effective_transport(cfg: &WidgetsPluginConfig) -> TransportKind {
     env_transport_override().unwrap_or(cfg.transport)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn parse_accepts_common_spellings() {
+        let cases = [
+            ("appGroup", TransportKind::AppGroup),
+            ("appgroup", TransportKind::AppGroup),
+            ("app_group", TransportKind::AppGroup),
+            ("app-group", TransportKind::AppGroup),
+            (" App-Group ", TransportKind::AppGroup),
+            ("userDefaults", TransportKind::UserDefaults),
+            ("user_defaults", TransportKind::UserDefaults),
+            ("user-defaults", TransportKind::UserDefaults),
+            ("defaults", TransportKind::UserDefaults),
+            ("widgetContainer", TransportKind::WidgetContainer),
+            ("widget_container", TransportKind::WidgetContainer),
+            ("widget-container", TransportKind::WidgetContainer),
+            ("container", TransportKind::WidgetContainer),
+            ("auto", TransportKind::Auto),
+            ("AUTO", TransportKind::Auto),
+        ];
+        for (raw, want) in cases {
+            assert_eq!(TransportKind::parse(raw), Some(want), "parse({raw:?})");
+        }
+    }
+
+    #[test]
+    fn parse_rejects_unknown() {
+        assert_eq!(TransportKind::parse(""), None);
+        assert_eq!(TransportKind::parse("app group"), None);
+        assert_eq!(TransportKind::parse("fanout"), None);
+    }
+
+    #[test]
+    fn as_str_roundtrips_through_parse() {
+        for kind in [
+            TransportKind::AppGroup,
+            TransportKind::UserDefaults,
+            TransportKind::WidgetContainer,
+            TransportKind::Auto,
+        ] {
+            assert_eq!(TransportKind::parse(kind.as_str()), Some(kind));
+        }
+    }
+
+    #[test]
+    fn env_overrides_conf() {
+        let cfg = WidgetsPluginConfig {
+            transport: TransportKind::AppGroup,
+            ..Default::default()
+        };
+        // SAFETY: serial tests; we restore afterwards.
+        let prev = std::env::var_os("WIDGET_TRANSPORT");
+        std::env::set_var("WIDGET_TRANSPORT", "widget-container");
+        assert_eq!(effective_transport(&cfg), TransportKind::WidgetContainer);
+        std::env::set_var("WIDGET_TRANSPORT", "");
+        assert_eq!(
+            effective_transport(&cfg),
+            TransportKind::AppGroup,
+            "empty env must not override"
+        );
+        match prev {
+            Some(v) => std::env::set_var("WIDGET_TRANSPORT", v),
+            None => std::env::remove_var("WIDGET_TRANSPORT"),
+        }
+    }
 }

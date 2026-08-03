@@ -108,19 +108,22 @@ pnpm build:example macos   # or ios / android / …
 
 ## Documentation site
 
-VitePress is the `@tauri-plugin-widgets/docs` workspace (`docs/`). Maintainer tooling is `@tauri-plugin-widgets/scripts` (citty + TypeScript under `scripts/src`). Consumer CLI `bin/cli.mjs` (`init-macos|ios|windows`) stays separate.
+VitePress is the `@tauri-plugin-widgets/docs` workspace (`docs/`). Maintainer tooling is `@tauri-plugin-widgets/scripts` (citty + TypeScript under `scripts/src`).
+
+**Boundary:** consumer commands (`preview`, `signing`, `doctor`, …) live in `src-cli/` → published `dist-cli/cli.mjs`. Visual stands / goldens / docs codegen live under `scripts/` (`pnpm hosts`, `pnpm cli:test`). See root [README](../../README.md) and [scripts/README.md](../../scripts/README.md).
 
 ```bash
-pnpm docs:generate   # gallery, elements, shots, permissions, …
+pnpm docs:generate   # gallery, elements, shots, permissions, schemas → docs/public
 pnpm docs:check      # marker drift + coverage audit
 pnpm docs:audit      # coverage + schema docs asserts
 pnpm docs:dev        # generate + local VitePress
 pnpm docs:build      # generate + static site
 pnpm -C scripts cli --help          # all maintainer commands
 pnpm -C scripts typecheck
+pnpm test:cli                       # consumer CLI behavior fixtures
 ```
 
-Root aliases (`pnpm triage`, `pnpm ios-up`, `pnpm build:example`, …) call `pnpm -C scripts cli …`. Bash stands under `tools/*.sh` are unchanged; citty only `spawn`s them.
+Root aliases (`pnpm triage`, `pnpm ios-up`, `pnpm build:example`, …) call `pnpm -C scripts cli …`. Bash/PowerShell stands live under `scripts/sh/` and `scripts/win/`; citty only `spawn`s them.
 
 Generated trees (`docs/public/shots/**`, showcase/elements marker bodies) are rebuilt by `pnpm docs:generate`.
 

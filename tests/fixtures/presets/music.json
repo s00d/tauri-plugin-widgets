@@ -1,4 +1,5 @@
 {
+  "$schema": "https://s00d.github.io/tauri-plugin-widgets/schemas/widget-config.v1.json",
   "version": 1,
   "medium": {
     "type": "hstack",
@@ -18,9 +19,27 @@
         "spacing": 6,
         "alignment": "leading",
         "children": [
-          { "type": "text", "content": "Bohemian Rhapsody", "fontSize": 17, "fontWeight": "semibold", "color": "#fff", "lineLimit": 1 },
-          { "type": "text", "content": "Queen • A Night at the Opera", "fontSize": 12, "color": "#94a3b8" },
-          { "type": "progress", "value": 0.625, "tint": "#e94560", "label": "3:42 / 5:55", "color": "#94a3b8" },
+          {
+            "type": "text",
+            "content": "Bohemian Rhapsody",
+            "fontSize": 17,
+            "fontWeight": "semibold",
+            "color": "#fff",
+            "lineLimit": 1
+          },
+          {
+            "type": "text",
+            "content": "Queen • A Night at the Opera",
+            "fontSize": 12,
+            "color": "#94a3b8"
+          },
+          {
+            "type": "progress",
+            "value": 0.625,
+            "tint": "#e94560",
+            "label": "3:42 / 5:55",
+            "color": "#94a3b8"
+          },
           {
             "type": "hstack",
             "spacing": 20,

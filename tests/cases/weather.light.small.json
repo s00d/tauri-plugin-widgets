@@ -1,0 +1,11 @@
+{
+  "fixture": "presets/weather",
+  "size": "small",
+  "theme": "light",
+  "locale": "en_US",
+  "platforms": ["desktop", "ios", "macos"],
+  "macos": {
+    "width": 158,
+    "height": 158
+  }
+}

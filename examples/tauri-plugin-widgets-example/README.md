@@ -157,4 +157,4 @@ Proportional space distribution within stacks:
 
 ## App Group
 
-This example uses `group.com.s00d.tauri-plugin-widgets-example` as the App Group identifier. When setting up native widgets on iOS/macOS, ensure both the main app and widget extension use this same identifier.
+This example uses `group.com.s00d.tauriwidgets.example` as the App Group identifier. When setting up native widgets on iOS/macOS, ensure both the main app and widget extension use this same identifier.

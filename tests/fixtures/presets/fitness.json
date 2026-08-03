@@ -1,4 +1,5 @@
 {
+  "$schema": "https://s00d.github.io/tauri-plugin-widgets/schemas/widget-config.v1.json",
   "version": 1,
   "small": {
     "type": "vstack",
@@ -7,7 +8,13 @@
     "cornerRadius": 16,
     "background": "#0d1117",
     "children": [
-      { "type": "text", "content": "Activity", "fontSize": 15, "fontWeight": "semibold", "color": "#fff" },
+      {
+        "type": "text",
+        "content": "Activity",
+        "fontSize": 15,
+        "fontWeight": "semibold",
+        "color": "#fff"
+      },
       {
         "type": "gauge",
         "value": 0.72,
@@ -22,8 +29,20 @@
         "type": "hstack",
         "spacing": 8,
         "children": [
-          { "type": "progress", "value": 0.45, "tint": "#4ecdc4", "label": "Cal", "color": "#94a3b8" },
-          { "type": "progress", "value": 0.88, "tint": "#ffe66d", "label": "H2O", "color": "#94a3b8" }
+          {
+            "type": "progress",
+            "value": 0.45,
+            "tint": "#4ecdc4",
+            "label": "Cal",
+            "color": "#94a3b8"
+          },
+          {
+            "type": "progress",
+            "value": 0.88,
+            "tint": "#ffe66d",
+            "label": "H2O",
+            "color": "#94a3b8"
+          }
         ]
       }
     ]
@@ -50,17 +69,43 @@
             "gaugeStyle": "circular",
             "tint": "#ff6b6b"
           },
-          { "type": "text", "content": "7,200 / 10k", "fontSize": 11, "color": "#94a3b8" }
+          {
+            "type": "text",
+            "content": "7,200 / 10k",
+            "fontSize": 11,
+            "color": "#94a3b8"
+          }
         ]
       },
-      { "type": "divider", "color": "#334155" },
+      {
+        "type": "divider",
+        "color": "#334155"
+      },
       {
         "type": "vstack",
         "spacing": 6,
         "children": [
-          { "type": "progress", "value": 0.45, "tint": "#4ecdc4", "label": "Calories", "color": "#94a3b8" },
-          { "type": "progress", "value": 0.88, "tint": "#ffe66d", "label": "Water", "color": "#94a3b8" },
-          { "type": "progress", "value": 0.33, "tint": "#ff6b6b", "label": "Exercise", "color": "#94a3b8" }
+          {
+            "type": "progress",
+            "value": 0.45,
+            "tint": "#4ecdc4",
+            "label": "Calories",
+            "color": "#94a3b8"
+          },
+          {
+            "type": "progress",
+            "value": 0.88,
+            "tint": "#ffe66d",
+            "label": "Water",
+            "color": "#94a3b8"
+          },
+          {
+            "type": "progress",
+            "value": 0.33,
+            "tint": "#ff6b6b",
+            "label": "Exercise",
+            "color": "#94a3b8"
+          }
         ]
       }
     ]

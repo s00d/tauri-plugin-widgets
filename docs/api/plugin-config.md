@@ -24,6 +24,6 @@ Configure the plugin under `plugins.widgets` in `tauri.conf.json`:
 | `transport` | `appGroup` \| `userDefaults` \| `widgetContainer` \| `auto` | Host write driver (Apple). iOS: `appGroup` only. See [Transport](/guide/transport). |
 | `extensionBundleId` | string | Widget extension bundle id (macOS `widgetContainer` / tooling) |
 
-`init-macos` / `init-ios` do not invent this block for you — add it under `plugins.widgets` in `tauri.conf.json`. Linux / Windows desktop webview can omit it.
+`init-macos` / `init-ios` write this block from your App Group + codesign identities. Linux / Windows desktop webview can omit it. Re-apply with `npx tauri-widgets signing --apply`.
 
 Permissions: [Permissions](/api/permissions). Environment overrides: [Environment](/api/env).

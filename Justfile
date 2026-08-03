@@ -3,10 +3,10 @@
 repo := justfile_directory()
 
 android-up:
-    bash {{repo}}/tools/android-up.sh
+    bash {{repo}}/scripts/sh/android-up.sh
 
 ios-up:
-    bash {{repo}}/tools/ios-up.sh
+    bash {{repo}}/scripts/sh/ios-up.sh
 
 # Level-1 geometry (Robolectric / Playwright tree) — unchanged bulk update OK.
 test-geometry:
@@ -65,15 +65,13 @@ record-macos case:
 # ─── Windows / UTM (optional remote node) ───────────────────────────────────
 
 win-up:
-    bash {{repo}}/tools/win-up.sh
+    bash {{repo}}/scripts/sh/win-up.sh
 
 win-sync:
-    bash {{repo}}/tools/win/sync.sh
+    bash {{repo}}/scripts/win/sync.sh
 
 win-bootstrap:
-    bash {{repo}}/tools/win-up.sh
-    scp {{repo}}/tools/win/bootstrap.ps1 utm-win:C:/work/bootstrap.ps1
-    ssh utm-win 'powershell -NoProfile -ExecutionPolicy Bypass -File C:\work\bootstrap.ps1'
+    bash {{repo}}/scripts/sh/win-bootstrap.sh
 
 # Adaptive Card transpile tests on the Mac host (no VM required).
 test-windows-adaptive:
@@ -81,8 +79,8 @@ test-windows-adaptive:
 
 # Remote smoke via ssh utm-win (after win-up + win-sync).
 test-windows-remote:
-    bash {{repo}}/tools/win-up.sh
-    bash {{repo}}/tools/win/sync.sh
+    bash {{repo}}/scripts/sh/win-up.sh
+    bash {{repo}}/scripts/win/sync.sh
     ssh utm-win 'powershell -NoProfile -ExecutionPolicy Bypass -File C:\work\shot.ps1'
 
 check-windows-xwin:
@@ -94,8 +92,8 @@ build-windows-example-xwin:
     cd {{repo}}/examples/tauri-plugin-widgets-example/src-tauri && cargo xwin build --target x86_64-pc-windows-msvc
 
 record-windows case:
-    bash {{repo}}/tools/win-up.sh
-    bash {{repo}}/tools/win/sync.sh
+    bash {{repo}}/scripts/sh/win-up.sh
+    bash {{repo}}/scripts/win/sync.sh
     ssh utm-win "powershell -NoProfile -ExecutionPolicy Bypass -File C:\\work\\shot.ps1 -Mode visual -Case {{case}} -Record"
     mkdir -p {{repo}}/tests/golden/windows
     scp "utm-win:C:/work/tauri-plugin-widgets/out/windows/{{case}}.png" "{{repo}}/tests/golden/windows/{{case}}.png" || \
@@ -111,27 +109,23 @@ record-windows-all:
     pnpm -C {{repo}}/scripts cli gen-adaptive-snapshots
 
 test-windows-visual:
-    bash {{repo}}/tools/win-up.sh
-    bash {{repo}}/tools/win/sync.sh
+    bash {{repo}}/scripts/sh/win-up.sh
+    bash {{repo}}/scripts/win/sync.sh
     ssh utm-win 'powershell -NoProfile -ExecutionPolicy Bypass -File C:\work\shot.ps1 -Mode visual'
 
 win-pack:
-    bash {{repo}}/tools/win-up.sh
-    bash {{repo}}/tools/win/sync.sh
-    scp {{repo}}/tools/win/pack.ps1 utm-win:C:/work/pack.ps1
-    ssh utm-win 'powershell -NoProfile -ExecutionPolicy Bypass -File C:\work\pack.ps1'
+    bash {{repo}}/scripts/sh/win-pack.sh
 
 win-sideload:
-    scp {{repo}}/tools/win/sideload.ps1 utm-win:C:/work/sideload.ps1
-    ssh utm-win 'powershell -NoProfile -ExecutionPolicy Bypass -File C:\work\sideload.ps1'
+    bash {{repo}}/scripts/sh/win-sideload.sh
 
 # ─── Linux / Docker (native arm64; X11 xprop + optional Wayland layer-shell) ─
 
 linux-up:
-    bash {{repo}}/tools/linux-up.sh
+    bash {{repo}}/scripts/sh/linux-up.sh
 
 linux-up-wl:
-    bash {{repo}}/tools/linux-up-wl.sh
+    bash {{repo}}/scripts/sh/linux-up-wl.sh
 
 linux-down:
     -docker rm -f wshot wshot-wl
@@ -183,7 +177,7 @@ test-linux-fallback:
       "$IMAGE" bash tests/linux/run-wayland-fallback.sh
 
 shot-linux FX SIZE="small":
-    bash {{repo}}/tools/shot-linux.sh {{FX}} {{SIZE}}
+    bash {{repo}}/scripts/sh/shot-linux.sh {{FX}} {{SIZE}}
 
 # Copy triage capture into golden corpus (explicit).
 record-linux case:
@@ -192,11 +186,11 @@ record-linux case:
     CASE={{case}}
     SIZE="$(jq -r '.size // "small"' "{{repo}}/tests/cases/${CASE}.json" 2>/dev/null || echo small)"
     FX="$(jq -r '.fixture // empty' "{{repo}}/tests/cases/${CASE}.json" 2>/dev/null || true)"
-    bash {{repo}}/tools/linux-up.sh
+    bash {{repo}}/scripts/sh/linux-up.sh
     if [[ -n "$FX" ]]; then
-      bash {{repo}}/tools/shot-linux.sh "$CASE" "$SIZE"
+      bash {{repo}}/scripts/sh/shot-linux.sh "$CASE" "$SIZE"
     else
-      bash {{repo}}/tools/shot-linux.sh "$CASE" "$SIZE"
+      bash {{repo}}/scripts/sh/shot-linux.sh "$CASE" "$SIZE"
     fi
     mkdir -p "{{repo}}/tests/golden/linux"
     SRC="{{repo}}/out/linux/${CASE}-${SIZE}.png"

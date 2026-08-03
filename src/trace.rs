@@ -18,6 +18,7 @@ use crate::store::now_ms;
 
 const RING_CAP: usize = 200;
 const FLUSH_INTERVAL: Duration = Duration::from_secs(10);
+/// On-disk journal filename under the widgets data dir.
 pub const TRACE_FILE_NAME: &str = "widget_trace.json";
 
 /// Whether the in-memory / disk journal is active.
@@ -31,63 +32,72 @@ pub fn trace_enabled() -> bool {
     )
 }
 
-/// Why a config write was skipped (trace mirror of apply types).
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-#[serde(tag = "reason", rename_all = "camelCase")]
-pub enum TraceSkipReason {
-    Unchanged { hash: u64 },
-    NoInstances,
-    TransportUnavailable { name: String },
-}
-
-impl From<SkipReason> for TraceSkipReason {
-    fn from(s: SkipReason) -> Self {
-        match s {
-            SkipReason::Unchanged { hash } => Self::Unchanged { hash },
-        }
-    }
-}
-
 /// One journal entry.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(tag = "kind", rename_all = "camelCase")]
 pub enum TraceEvent {
+    /// Host applied (or skipped) a config write.
     ConfigSet {
+        /// Widget id.
         widget_id: String,
+        /// Map nonce after the write attempt.
         nonce: u64,
+        /// Serialized config size.
         bytes: usize,
+        /// `true` when store bytes changed.
         changed: bool,
+        /// Present when the write was skipped.
         #[serde(default, skip_serializing_if = "Option::is_none")]
-        skip: Option<TraceSkipReason>,
+        skip: Option<SkipReason>,
     },
+    /// A transport `write` finished.
     Write {
+        /// Driver name.
         transport: String,
+        /// Success flag.
         ok: bool,
+        /// Wall time of the write.
         duration_ms: u32,
+        /// Error text when `ok` is false.
         #[serde(default, skip_serializing_if = "Option::is_none")]
         error: Option<String>,
     },
+    /// Native / WidgetKit reload attempt.
     Reload {
+        /// Whether reload was invoked.
         performed: bool,
+        /// Outcome detail.
         reason: ReloadOutcome,
     },
+    /// Host drained pending actions.
     Poll {
+        /// Actions returned this poll.
         count: usize,
     },
+    /// Native / desktop surface painted.
     Render {
+        /// Instance id (family / appWidgetId / window).
         instance: String,
+        /// Config nonce observed.
         nonce: u64,
+        /// Transport / prefs source label.
         source: String,
+        /// Why paint ran (`reload`, `timeline`, …).
         trigger: String,
+        /// Host write → paint lag.
         lag_ms: u64,
+        /// Elements skipped this paint.
         skipped: Vec<crate::receipt::SkippedElement>,
     },
 }
 
+/// Timestamped [`TraceEvent`] in the ring.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct TraceEntry {
+    /// Unix ms.
     pub ts: u64,
+    /// Event payload (flattened in JSON).
     #[serde(flatten)]
     pub event: TraceEvent,
 }
@@ -96,8 +106,11 @@ pub struct TraceEntry {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct WidgetTrace {
+    /// Whether journaling is active in this process.
     pub enabled: bool,
+    /// Ring buffer contents (oldest → newest).
     pub events: Vec<TraceEntry>,
+    /// Latest receipts from the companion store.
     pub receipts: Vec<crate::receipt::WidgetRenderReceipt>,
 }
 
@@ -116,10 +129,12 @@ pub struct TraceStore {
 }
 
 impl TraceStore {
+    /// Empty store.
     pub fn new() -> Self {
         Self::default()
     }
 
+    /// Append an event when tracing is enabled.
     pub fn push(&self, event: TraceEvent) {
         if !trace_enabled() {
             return;
@@ -135,6 +150,7 @@ impl TraceStore {
         g.dirty = true;
     }
 
+    /// Events with `ts >= since_ms` (or all when `None`).
     pub fn list_since(&self, since_ms: Option<u64>) -> Vec<TraceEntry> {
         let g = self.inner.lock().unwrap();
         g.events
@@ -144,6 +160,7 @@ impl TraceStore {
             .collect()
     }
 
+    /// Write the ring to disk if dirty.
     pub fn flush_to_path(&self, path: &Path) -> crate::Result<()> {
         if !trace_enabled() {
             return Ok(());
@@ -168,6 +185,7 @@ impl TraceStore {
         Ok(())
     }
 
+    /// Replace the ring from a previous flush (best-effort).
     pub fn load_from_path(&self, path: &Path) {
         if !trace_enabled() {
             return;
@@ -186,6 +204,7 @@ impl TraceStore {
         g.dirty = false;
     }
 
+    /// `true` when dirty and the flush interval has elapsed.
     pub fn needs_timed_flush(&self) -> bool {
         if !trace_enabled() {
             return false;

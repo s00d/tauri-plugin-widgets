@@ -1,7 +1,9 @@
 target
 node_modules
 dist-js
+dist-cli
 dist
+widget-src/.bundle.js
 .idea
 .DS_Store
 .r2x
@@ -23,7 +25,12 @@ out/
 artifacts/*
 !artifacts/README.md
 !artifacts/STATUS.md
-tools/hosts.env
+scripts/hosts.env
+scripts/apple.env
+.env
+.env.*
+!.env.example
+!scripts/apple.env.example
 
 # VitePress docs — generated trees (rebuilt by `pnpm docs:generate`)
 docs/.vitepress/dist
