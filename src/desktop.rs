@@ -219,14 +219,27 @@ impl<R: Runtime> Widget<R> {
         })
     }
 
-    /// Persist map: one Apple driver on macOS / single file elsewhere.
+    /// Persist map on macOS: write the configured driver, then mirror the same
+    /// bytes to every other available Apple transport.
+    ///
+    /// Single-driver intent still picks *which* channel must succeed, but leaving
+    /// stale `config:*` on App Group / UserDefaults / container makes WidgetKit
+    /// pick an old layout by nonce after `transport` changes (or `auto` latch).
     fn persist_map(&self, group: &str, map: &DataMap) -> crate::Result<()> {
         #[cfg(target_os = "macos")]
         {
             self.macos_driver.write(map)?;
-            // Config writes stay on the selected driver only. pending_actions are
-            // harvested from siblings on poll (see harvest_pending_actions).
-            let _ = group;
+            for t in crate::macos_transport::all_transports(group) {
+                if t.name() == self.macos_driver.name() || !t.available() {
+                    continue;
+                }
+                if let Err(e) = t.write(map) {
+                    log::debug!(
+                        "persist_map: mirror to {} failed (non-fatal): {e}",
+                        t.name()
+                    );
+                }
+            }
         }
         #[cfg(target_os = "windows")]
         {
