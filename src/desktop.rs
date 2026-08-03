@@ -219,27 +219,19 @@ impl<R: Runtime> Widget<R> {
         })
     }
 
-    /// Persist map on macOS: write the configured driver, then mirror the same
-    /// bytes to every other available Apple transport.
+    /// Persist map on macOS: merge sibling `pending_actions`, clear leftovers on
+    /// every Apple transport, then write only to the configured driver.
     ///
-    /// Single-driver intent still picks *which* channel must succeed, but leaving
-    /// stale `config:*` on App Group / UserDefaults / container makes WidgetKit
-    /// pick an old layout by nonce after `transport` changes (or `auto` latch).
+    /// Clearing first drops stale sibling `config:*` so WidgetKit cannot pick an
+    /// old layout after `auto` latch / transport switch. Harvest-before-clear
+    /// keeps taps that still live on a non-primary channel.
     fn persist_map(&self, group: &str, map: &DataMap) -> crate::Result<()> {
         #[cfg(target_os = "macos")]
         {
-            self.macos_driver.write(map)?;
-            for t in crate::macos_transport::all_transports(group) {
-                if t.name() == self.macos_driver.name() || !t.available() {
-                    continue;
-                }
-                if let Err(e) = t.write(map) {
-                    log::debug!(
-                        "persist_map: mirror to {} failed (non-fatal): {e}",
-                        t.name()
-                    );
-                }
-            }
+            let mut out = map.clone();
+            crate::macos_transport::merge_pending_into_map(&mut out, group);
+            crate::macos_transport::clear_leftover_transports(group);
+            self.macos_driver.write(&out)?;
         }
         #[cfg(target_os = "windows")]
         {
@@ -590,13 +582,8 @@ impl<R: Runtime> Widget<R> {
     fn written_transport_names(&self, group: &str) -> Vec<String> {
         #[cfg(target_os = "macos")]
         {
-            let mut names = vec![self.macos_driver.name().to_string()];
-            for t in crate::macos_transport::all_transports(group) {
-                if t.name() != self.macos_driver.name() && t.available() {
-                    names.push(t.name().to_string());
-                }
-            }
-            names
+            let _ = group;
+            vec![self.macos_driver.name().to_string()]
         }
         #[cfg(not(target_os = "macos"))]
         {

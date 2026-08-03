@@ -90,7 +90,7 @@ export function runClean({ cwd, identifier, group, cacheOnly = false }: RunClean
   for (const envKey of ["TAURI_WIDGETS_DATA", "WIDGET_DATA_DIR"] as const) {
     const override = process.env[envKey]?.trim();
     if (override) {
-      bases.push(override.endsWith(".json") ? dirname(override) : override);
+      bases.push(/\.json$/i.test(override) ? dirname(override) : override);
     }
   }
   if (identifier && home) {

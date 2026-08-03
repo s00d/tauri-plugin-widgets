@@ -52,13 +52,13 @@ if [[ -f "$CONF" ]] && command -v node >/dev/null 2>&1; then
     if (!g) { console.error('ERROR: plugins.widgets.appGroup missing in', process.argv[1]); process.exit(1); }
     process.stdout.write(String(g));
   " "$CONF")"
-  gen_entitlements "$HOST_ENTS" "$GROUP" 0
-  gen_entitlements "$EXT_ENTS" "$GROUP" 1
-  echo "[widget] Regenerated entitlements for App Group: $GROUP"
   if [[ ! "$GROUP" =~ ^[A-Za-z0-9._-]+$ ]]; then
     echo "ERROR: invalid appGroup identifier: $GROUP" >&2
     exit 1
   fi
+  gen_entitlements "$HOST_ENTS" "$GROUP" 0
+  gen_entitlements "$EXT_ENTS" "$GROUP" 1
+  echo "[widget] Regenerated entitlements for App Group: $GROUP"
   for swift in "$SCRIPT_DIR"/Sources/*.swift "$SCRIPT_DIR"/MyWidget.swift; do
     [[ -f "$swift" ]] || continue
     if grep -q 'let appGroup = "' "$swift" 2>/dev/null; then

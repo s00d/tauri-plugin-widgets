@@ -324,6 +324,65 @@ pub fn all_transports(group: &str) -> Vec<Arc<dyn Transport>> {
     out
 }
 
+/// Wipe leftover maps on every available Apple transport (best-effort).
+///
+/// Writes an empty map with **no** meta bump so a cleared sibling cannot win
+/// `pick_freshest` by nonce. Call before writing the live map to the chosen
+/// driver — stale `config:*` on App Group / defaults / container is what made
+/// WidgetKit stick on an old layout after `auto` latch or transport switch.
+///
+/// Call [`merge_pending_into_map`] first so sibling taps are not dropped.
+pub fn clear_leftover_transports(group: &str) {
+    for t in all_transports(group) {
+        if !t.available() {
+            continue;
+        }
+        let Some(existing) = t.read() else { continue };
+        if existing.is_empty() {
+            continue;
+        }
+        if let Err(e) = t.write(&DataMap::new()) {
+            log::debug!("clear_leftover_transports({}): {e}", t.name());
+        }
+    }
+}
+
+fn pending_action_key(a: &crate::store::WidgetActionEnvelope) -> String {
+    format!(
+        "{}|{}|{}|{}",
+        a.action,
+        a.widget_id,
+        a.payload.as_deref().unwrap_or(""),
+        a.ts
+    )
+}
+
+/// Fold `pending_actions` from every readable transport into `map` (deduped).
+///
+/// Used by host writes that are about to wipe siblings via
+/// [`clear_leftover_transports`].
+pub fn merge_pending_into_map(map: &mut DataMap, group: &str) {
+    use crate::store::{encode_pending_actions, parse_pending_actions, PENDING_ACTIONS_KEY};
+    let harvested = harvest_pending_actions(group);
+    if harvested.is_empty() {
+        return;
+    }
+    let mut merged = parse_pending_actions(map.get(PENDING_ACTIONS_KEY).map(|s| s.as_str()));
+    let mut seen: std::collections::HashSet<String> =
+        merged.iter().map(pending_action_key).collect();
+    for a in harvested {
+        if seen.insert(pending_action_key(&a)) {
+            merged.push(a);
+        }
+    }
+    match encode_pending_actions(&merged) {
+        Ok(s) => {
+            map.insert(PENDING_ACTIONS_KEY.into(), s);
+        }
+        Err(e) => log::debug!("merge_pending_into_map encode: {e}"),
+    }
+}
+
 /// Max `__meta_nonce__` across every readable sibling transport.
 pub fn max_nonce_across(group: &str) -> u64 {
     all_transports(group)
@@ -336,7 +395,8 @@ pub fn max_nonce_across(group: &str) -> u64 {
 
 /// Collect `pending_actions` from every readable sibling (including primary).
 ///
-/// Call on poll — cheaper and rarer than mirroring the full map on every write.
+/// Call on poll — siblings may still hold taps after a driver latch; config
+/// writes clear leftover maps via [`clear_leftover_transports`] instead.
 pub fn harvest_pending_actions(group: &str) -> Vec<crate::store::WidgetActionEnvelope> {
     use crate::store::{parse_pending_actions, PENDING_ACTIONS_KEY};
     let mut out = Vec::new();
@@ -347,14 +407,7 @@ pub fn harvest_pending_actions(group: &str) -> Vec<crate::store::WidgetActionEnv
         }
         let Some(m) = t.read() else { continue };
         for a in parse_pending_actions(m.get(PENDING_ACTIONS_KEY).map(|s| s.as_str())) {
-            let key = format!(
-                "{}|{}|{}|{}",
-                a.action,
-                a.widget_id,
-                a.payload.as_deref().unwrap_or(""),
-                a.ts
-            );
-            if seen.insert(key) {
+            if seen.insert(pending_action_key(&a)) {
                 out.push(a);
             }
         }
@@ -377,16 +430,6 @@ pub fn clear_pending_actions_everywhere(
     };
     use std::collections::HashMap;
 
-    fn action_key(a: &crate::store::WidgetActionEnvelope) -> String {
-        format!(
-            "{}|{}|{}|{}",
-            a.action,
-            a.widget_id,
-            a.payload.as_deref().unwrap_or(""),
-            a.ts
-        )
-    }
-
     fn filter_pending(
         current: Vec<crate::store::WidgetActionEnvelope>,
         drained_counts: &HashMap<String, usize>,
@@ -395,7 +438,7 @@ pub fn clear_pending_actions_everywhere(
         current
             .into_iter()
             .filter(|a| {
-                let key = action_key(a);
+                let key = pending_action_key(a);
                 if let Some(c) = counts.get_mut(&key) {
                     if *c > 0 {
                         *c -= 1;
@@ -409,7 +452,7 @@ pub fn clear_pending_actions_everywhere(
 
     let mut drained_counts: HashMap<String, usize> = HashMap::new();
     for a in drained {
-        *drained_counts.entry(action_key(a)).or_default() += 1;
+        *drained_counts.entry(pending_action_key(a)).or_default() += 1;
     }
 
     for t in all_transports(group) {

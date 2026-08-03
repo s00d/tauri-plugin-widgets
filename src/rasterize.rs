@@ -88,6 +88,9 @@ pub fn element_to_svg(el: &WidgetElement) -> Option<String> {
 
 /// Build an SVG gradient fill for Adaptive Cards `backgroundImage` baking.
 pub fn gradient_to_svg(g: &GradientConfig, width: f64, height: f64) -> String {
+    use std::sync::atomic::{AtomicU64, Ordering};
+    static GRAD_ID: AtomicU64 = AtomicU64::new(1);
+    let id = format!("g{}", GRAD_ID.fetch_add(1, Ordering::Relaxed));
     let w = width.max(8.0);
     let h = height.max(8.0);
     let colors = if g.colors.is_empty() {
@@ -113,12 +116,12 @@ pub fn gradient_to_svg(g: &GradientConfig, width: f64, height: f64) -> String {
         .collect();
     match g.gradient_type {
         GradientType::Radial => format!(
-            r#"<svg xmlns="http://www.w3.org/2000/svg" width="{w}" height="{h}" viewBox="0 0 {w} {h}"><defs><radialGradient id="g" cx="50%" cy="50%" r="70%">{stops}</radialGradient></defs><rect width="100%" height="100%" fill="url(#g)"/></svg>"#
+            r#"<svg xmlns="http://www.w3.org/2000/svg" width="{w}" height="{h}" viewBox="0 0 {w} {h}"><defs><radialGradient id="{id}" cx="50%" cy="50%" r="70%">{stops}</radialGradient></defs><rect width="100%" height="100%" fill="url(#{id})"/></svg>"#
         ),
         GradientType::Angular => {
             // Approximate angular as a linear sweep — good enough for AC bake.
             format!(
-                r#"<svg xmlns="http://www.w3.org/2000/svg" width="{w}" height="{h}" viewBox="0 0 {w} {h}"><defs><linearGradient id="g" x1="0%" y1="0%" x2="100%" y2="100%">{stops}</linearGradient></defs><rect width="100%" height="100%" fill="url(#g)"/></svg>"#
+                r#"<svg xmlns="http://www.w3.org/2000/svg" width="{w}" height="{h}" viewBox="0 0 {w} {h}"><defs><linearGradient id="{id}" x1="0%" y1="0%" x2="100%" y2="100%">{stops}</linearGradient></defs><rect width="100%" height="100%" fill="url(#{id})"/></svg>"#
             )
         }
         GradientType::Linear => {
@@ -131,7 +134,7 @@ pub fn gradient_to_svg(g: &GradientConfig, width: f64, height: f64) -> String {
                 _ => ("0%", "0%", "0%", "100%"), // topToBottom default
             };
             format!(
-                r#"<svg xmlns="http://www.w3.org/2000/svg" width="{w}" height="{h}" viewBox="0 0 {w} {h}"><defs><linearGradient id="g" x1="{x1}" y1="{y1}" x2="{x2}" y2="{y2}">{stops}</linearGradient></defs><rect width="100%" height="100%" fill="url(#g)"/></svg>"#
+                r#"<svg xmlns="http://www.w3.org/2000/svg" width="{w}" height="{h}" viewBox="0 0 {w} {h}"><defs><linearGradient id="{id}" x1="{x1}" y1="{y1}" x2="{x2}" y2="{y2}">{stops}</linearGradient></defs><rect width="100%" height="100%" fill="url(#{id})"/></svg>"#
             )
         }
     }

@@ -9,7 +9,8 @@ export interface EntitlementsOptions {
 }
 
 function assertSafeAppGroup(appGroup: string): void {
-  if (/[<>&"']/.test(appGroup)) {
+  // XML 1.0 forbids most C0 controls in CharData; also reject markup delimiters.
+  if (/[\x00-\x08\x0B\x0C\x0E-\x1F<>&"']/.test(appGroup)) {
     throw new Error(`appGroup contains XML-unsafe characters: ${appGroup}`);
   }
 }
@@ -68,10 +69,9 @@ export function mergeAppGroupIntoEntitlements(path: string, appGroup: string): v
 
   const emptyArrRe = new RegExp(`(<key>${key}</key>\\s*)<array\\s*/>`, "i");
   if (emptyArrRe.test(raw)) {
-    raw = raw.replace(
-      emptyArrRe,
-      `$1<array>\n        ${tag}\n    </array>`,
-    );
+    raw = raw.replace(emptyArrRe, (_m, prefix: string) => {
+      return `${prefix}<array>\n        ${tag}\n    </array>`;
+    });
     writeFileSync(path, raw, "utf-8");
     return;
   }

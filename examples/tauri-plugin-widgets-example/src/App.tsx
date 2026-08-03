@@ -122,8 +122,8 @@ function App() {
       const stop = await startWidgetUpdater(builder, APP_GROUP, WIDGET_ID, {
         intervalMs,
         immediate: true,
-        // Native WidgetKit needs timeline reload; desktop also gets widget-config-push.
-        reload: true,
+        // One-shot apply: reload WidgetKit once. Live ticks must not burn the budget.
+        reload: intervalMs === 0,
       });
 
       // A newer click won the race — drop this updater.

@@ -117,7 +117,32 @@ function walk(
   }
   const kids = node.children || node.items || [];
   if (Array.isArray(kids)) {
-    kids.forEach((ch, i) => walk(ch, `${path}/${type || "node"}[${i}]`, platform, caps, out));
+    kids.forEach((ch, i) => {
+      const childPath = `${path}/${type || "node"}[${i}]`;
+      if (!ch || typeof ch !== "object" || Array.isArray(ch)) {
+        out.push({
+          level: "error",
+          path: childPath,
+          type: typeof type === "string" ? type : "",
+          platform,
+          support: "invalid",
+          note: "child must be an element object with type",
+        });
+        return;
+      }
+      if (typeof ch.type !== "string") {
+        out.push({
+          level: "error",
+          path: childPath,
+          type: "",
+          platform,
+          support: "invalid",
+          note: "child must have string type",
+        });
+        return;
+      }
+      walk(ch, childPath, platform, caps, out);
+    });
   }
   if (node.content && typeof node.content === "object" && node.content.type) {
     walk(node.content, `${path}/content`, platform, caps, out);
@@ -203,14 +228,17 @@ function walkShape(node: WidgetNode | null | undefined, path: string, out: Confi
       }
     }
     if (type === "image") {
-      if (!node.url && !node.systemName && !node.data) {
+      const hasUrl = typeof node.url === "string" && node.url.length > 0;
+      const hasSystem = typeof node.systemName === "string" && node.systemName.length > 0;
+      const hasData = typeof node.data === "string" && node.data.length > 0;
+      if (!hasUrl && !hasSystem && !hasData) {
         out.push({
           level: "error",
           path,
           type,
           platform: "schema",
           support: "invalid",
-          note: 'type "image" requires url, systemName, or data',
+          note: 'type "image" requires non-empty string url, systemName, or data',
         });
       }
     }
@@ -251,7 +279,32 @@ function walkShape(node: WidgetNode | null | undefined, path: string, out: Confi
   }
   const kids = type === "list" ? node.children || [] : node.children || node.items || [];
   if (Array.isArray(kids)) {
-    kids.forEach((ch, i) => walkShape(ch, `${path}/${type || "node"}[${i}]`, out));
+    kids.forEach((ch, i) => {
+      const childPath = `${path}/${type || "node"}[${i}]`;
+      if (!ch || typeof ch !== "object" || Array.isArray(ch)) {
+        out.push({
+          level: "error",
+          path: childPath,
+          type: typeof type === "string" ? type : "",
+          platform: "schema",
+          support: "invalid",
+          note: "child must be an element object with type",
+        });
+        return;
+      }
+      if (typeof (ch as WidgetNode).type !== "string") {
+        out.push({
+          level: "error",
+          path: childPath,
+          type: "",
+          platform: "schema",
+          support: "invalid",
+          note: "child must have string type",
+        });
+        return;
+      }
+      walkShape(ch as WidgetNode, childPath, out);
+    });
   }
   if (node.content && typeof node.content === "object" && (node.content as WidgetNode).type) {
     walkShape(node.content as WidgetNode, `${path}/content`, out);

@@ -814,7 +814,7 @@
       }
     },
     "FrameDimension": {
-      "description": "A frame dimension — either a fixed point value or a keyword (e.g. `\"infinity\"`).",
+      "description": "A frame dimension — either a fixed point value or `\"infinity\"`.",
       "anyOf": [
         {
           "description": "Fixed point value.",
@@ -822,8 +822,11 @@
           "format": "double"
         },
         {
-          "description": "Keyword such as `\"infinity\"`.",
-          "type": "string"
+          "description": "Keyword `\"infinity\"`.",
+          "type": "string",
+          "enum": [
+            "infinity"
+          ]
         }
       ]
     },
