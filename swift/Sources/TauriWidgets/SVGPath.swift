@@ -43,28 +43,48 @@ func parseSVGPath(_ data: String) -> Path {
             switch c {
             case "M":
                 lastCubicCtrl = nil; lastQuadCtrl = nil
-                if let x = nextNumber(), let y = nextNumber() { cx = x; cy = y; path.move(to: CGPoint(x: x, y: y)) }
+                var firstMove = true
+                while let x = nextNumber(), let y = nextNumber() {
+                    if firstMove {
+                        cx = x; cy = y; path.move(to: CGPoint(x: x, y: y))
+                        firstMove = false
+                    } else {
+                        cx = x; cy = y; path.addLine(to: CGPoint(x: x, y: y))
+                    }
+                }
             case "m":
                 lastCubicCtrl = nil; lastQuadCtrl = nil
-                if let x = nextNumber(), let y = nextNumber() { cx += x; cy += y; path.move(to: CGPoint(x: cx, y: cy)) }
+                var firstMove = true
+                while let x = nextNumber(), let y = nextNumber() {
+                    if firstMove {
+                        cx += x; cy += y; path.move(to: CGPoint(x: cx, y: cy))
+                        firstMove = false
+                    } else {
+                        cx += x; cy += y; path.addLine(to: CGPoint(x: cx, y: cy))
+                    }
+                }
             case "L":
                 lastCubicCtrl = nil; lastQuadCtrl = nil
-                if let x = nextNumber(), let y = nextNumber() { cx = x; cy = y; path.addLine(to: CGPoint(x: x, y: y)) }
+                while let x = nextNumber(), let y = nextNumber() {
+                    cx = x; cy = y; path.addLine(to: CGPoint(x: x, y: y))
+                }
             case "l":
                 lastCubicCtrl = nil; lastQuadCtrl = nil
-                if let x = nextNumber(), let y = nextNumber() { cx += x; cy += y; path.addLine(to: CGPoint(x: cx, y: cy)) }
+                while let x = nextNumber(), let y = nextNumber() {
+                    cx += x; cy += y; path.addLine(to: CGPoint(x: cx, y: cy))
+                }
             case "H":
                 lastCubicCtrl = nil; lastQuadCtrl = nil
-                if let x = nextNumber() { cx = x; path.addLine(to: CGPoint(x: cx, y: cy)) }
+                while let x = nextNumber() { cx = x; path.addLine(to: CGPoint(x: cx, y: cy)) }
             case "h":
                 lastCubicCtrl = nil; lastQuadCtrl = nil
-                if let x = nextNumber() { cx += x; path.addLine(to: CGPoint(x: cx, y: cy)) }
+                while let x = nextNumber() { cx += x; path.addLine(to: CGPoint(x: cx, y: cy)) }
             case "V":
                 lastCubicCtrl = nil; lastQuadCtrl = nil
-                if let y = nextNumber() { cy = y; path.addLine(to: CGPoint(x: cx, y: cy)) }
+                while let y = nextNumber() { cy = y; path.addLine(to: CGPoint(x: cx, y: cy)) }
             case "v":
                 lastCubicCtrl = nil; lastQuadCtrl = nil
-                if let y = nextNumber() { cy += y; path.addLine(to: CGPoint(x: cx, y: cy)) }
+                while let y = nextNumber() { cy += y; path.addLine(to: CGPoint(x: cx, y: cy)) }
             case "Z", "z":
                 lastCubicCtrl = nil; lastQuadCtrl = nil
                 path.closeSubpath()

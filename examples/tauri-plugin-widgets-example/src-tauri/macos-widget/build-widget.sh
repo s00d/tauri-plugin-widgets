@@ -55,6 +55,13 @@ if [[ -f "$CONF" ]] && command -v node >/dev/null 2>&1; then
   gen_entitlements "$HOST_ENTS" "$GROUP" 0
   gen_entitlements "$EXT_ENTS" "$GROUP" 1
   echo "[widget] Regenerated entitlements for App Group: $GROUP"
+  for swift in "$SCRIPT_DIR"/Sources/*.swift "$SCRIPT_DIR"/MyWidget.swift; do
+    [[ -f "$swift" ]] || continue
+    if grep -q 'let appGroup = "' "$swift" 2>/dev/null; then
+      sed -i '' "s/let appGroup = \"[^\"]*\"/let appGroup = \"${GROUP}\"/" "$swift"
+    fi
+  done
+  echo "[widget] Synced appGroup in Swift sources"
 elif [[ -f "$EXT_ENTS" ]]; then
   echo "[widget] WARNING: could not read plugins.widgets.appGroup — using existing entitlements"
 else

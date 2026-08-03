@@ -50,7 +50,8 @@ internal fun RenderInteractive(scope: RenderScope, el: El, modifier: GlanceModif
             )
             val isOn = el.bool("isOn", false)
             val action = el.str("action", "")
-            val payload = el.str("payload", "")
+            // Next state when no explicit payload — matches iOS/desktop toggle contract.
+            val payload = el.str("payload", if (isOn) "false" else "true")
             val url = el.str("url", "")
             val actionModifier = applyAction(modifier, action, payload, url)
             val tint = resolveColorProvider(context, el.opt("tint"))

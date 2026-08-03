@@ -35,6 +35,37 @@ export function writeEntitlementsFile(dest: string, opts: EntitlementsOptions): 
   writeFileSync(dest, entitlementsPlist(opts), "utf-8");
 }
 
+/** Merge appGroup into an existing entitlements plist without dropping other keys. */
+export function mergeAppGroupIntoEntitlements(path: string, appGroup: string): void {
+  if (!existsSync(path)) {
+    writeEntitlementsFile(path, { appGroup, sandbox: false });
+    return;
+  }
+  let raw = readFileSync(path, "utf-8");
+  const key = "com.apple.security.application-groups";
+  const tag = `<string>${appGroup}</string>`;
+  if (raw.includes(tag)) return;
+
+  const arrRe = new RegExp(
+    `(<key>${key}</key>\\s*<array>)([\\s\\S]*?)(</array>)`,
+  );
+  const m = raw.match(arrRe);
+  if (m) {
+    raw = raw.replace(arrRe, `${m[1]}${m[2]}        ${tag}\n    ${m[3]}`);
+    writeFileSync(path, raw, "utf-8");
+    return;
+  }
+
+  const block = [
+    `    <key>${key}</key>`,
+    `    <array>`,
+    `        ${tag}`,
+    `    </array>`,
+  ].join("\n");
+  raw = raw.replace(/\n<\/dict>/, `\n${block}\n</dict>`);
+  writeFileSync(path, raw, "utf-8");
+}
+
 export interface SyncMacosEntitlementsResult {
   wrote: boolean;
   reason?: string;
@@ -182,7 +213,9 @@ export function resolveIosEntitlementsRels(
     }
     if (!widgetEntRel) {
       widgetEntRel =
-        matches.find((p) => /Widget|Extension/i.test(p) && !/_iOS\//.test(p)) || null;
+        matches.find((p) => /Widget/i.test(p) && !/_iOS\//.test(p)) ||
+        matches.find((p) => /Extension/i.test(p) && !/_iOS\//.test(p)) ||
+        null;
     }
   }
 
@@ -202,7 +235,13 @@ export function resolveIosEntitlementsRels(
         onDisk.push(e.name);
       }
     }
-    if (onDisk[0]) {
+    const widgetPref = onDisk.find((n) => /Widget/i.test(n));
+    const extPref = onDisk.find((n) => /Extension/i.test(n));
+    if (widgetPref) {
+      widgetEntRel = widgetPref;
+    } else if (extPref) {
+      widgetEntRel = extPref;
+    } else if (onDisk[0]) {
       widgetEntRel = onDisk[0];
     } else {
       const widgetName = widgetTargets[0] || "WidgetExtension";

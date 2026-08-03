@@ -149,6 +149,9 @@ export async function runTraceFollow({
 
   if (!follow) return;
 
+  const eventKey = (e: TraceEvent) =>
+    `${e.ts}:${e.kind ?? e.type ?? ""}:${JSON.stringify(e)}`;
+  let lastSeenKey = slice.length ? eventKey(slice[slice.length - 1]) : "";
   let lastLen = loaded.events.length;
   let raw = readFileSync(loaded.path, "utf-8");
   const tick = () => {
@@ -158,13 +161,27 @@ export async function runTraceFollow({
       raw = next;
       const events = JSON.parse(next) as unknown;
       if (!Array.isArray(events)) return;
-      if (events.length > lastLen) {
-        for (const e of events.slice(lastLen)) console.log(formatTraceEvent(e as TraceEvent));
-      } else if (events.length < lastLen) {
-        // rotated
-        for (const e of events.slice(-lines)) console.log(formatTraceEvent(e as TraceEvent));
+      const typed = events as TraceEvent[];
+
+      if (typed.length < lastLen) {
+        for (const e of typed.slice(-lines)) console.log(formatTraceEvent(e));
+        lastSeenKey = typed.length ? eventKey(typed[typed.length - 1]) : "";
+        lastLen = typed.length;
+        return;
       }
-      lastLen = events.length;
+
+      let startIdx = 0;
+      if (lastSeenKey) {
+        const idx = typed.findIndex((e) => eventKey(e) === lastSeenKey);
+        startIdx = idx >= 0 ? idx + 1 : Math.max(0, lastLen);
+      } else {
+        startIdx = lastLen;
+      }
+      if (startIdx < typed.length) {
+        for (const e of typed.slice(startIdx)) console.log(formatTraceEvent(e));
+        lastSeenKey = eventKey(typed[typed.length - 1]);
+      }
+      lastLen = typed.length;
     } catch {
       /* ignore partial writes */
     }

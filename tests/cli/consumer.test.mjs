@@ -25,7 +25,7 @@ describe("consumer CLI surface", () => {
   it("lists consumer commands", () => {
     const r = cli("--help");
     assert.equal(r.status, 0);
-    for (const cmd of ["init", "preview", "validate", "signing", "doctor", "trace", "clean"]) {
+    for (const cmd of ["init", "init-ios", "init-macos", "preview", "validate", "signing", "doctor", "trace", "clean"]) {
       assert.match(r.stdout, new RegExp(cmd));
     }
   });

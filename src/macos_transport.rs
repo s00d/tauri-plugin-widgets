@@ -363,22 +363,60 @@ pub fn harvest_pending_actions(group: &str) -> Vec<crate::store::WidgetActionEnv
     out
 }
 
-/// Clear `pending_actions` on every transport after a successful host drain.
-pub fn clear_pending_actions_everywhere(group: &str) {
-    use crate::store::{touch_meta, PENDING_ACTIONS_KEY};
+/// Clear drained `pending_actions` on every transport after a successful host drain.
+///
+/// Re-reads each transport and keeps any actions that arrived after `drained` was
+/// harvested (matched by action|widget|payload|ts), so a tap between harvest and
+/// clear is not lost.
+pub fn clear_pending_actions_everywhere(
+    group: &str,
+    drained: &[crate::store::WidgetActionEnvelope],
+) {
+    use crate::store::{
+        encode_pending_actions, parse_pending_actions, touch_meta, PENDING_ACTIONS_KEY,
+    };
+    let drained_keys: std::collections::HashSet<String> = drained
+        .iter()
+        .map(|a| {
+            format!(
+                "{}|{}|{}|{}",
+                a.action,
+                a.widget_id,
+                a.payload.as_deref().unwrap_or(""),
+                a.ts
+            )
+        })
+        .collect();
     for t in all_transports(group) {
         if !t.available() {
             continue;
         }
         let Some(mut m) = t.read() else { continue };
-        let empty = m
-            .get(PENDING_ACTIONS_KEY)
-            .map(|s| s.trim().is_empty() || s.trim() == "[]")
-            .unwrap_or(true);
-        if empty {
+        let current = parse_pending_actions(m.get(PENDING_ACTIONS_KEY).map(|s| s.as_str()));
+        if current.is_empty() {
             continue;
         }
-        m.insert(PENDING_ACTIONS_KEY.into(), "[]".into());
+        let remaining: Vec<_> = current
+            .into_iter()
+            .filter(|a| {
+                let key = format!(
+                    "{}|{}|{}|{}",
+                    a.action,
+                    a.widget_id,
+                    a.payload.as_deref().unwrap_or(""),
+                    a.ts
+                );
+                !drained_keys.contains(&key)
+            })
+            .collect();
+        let encoded = match encode_pending_actions(&remaining) {
+            Ok(s) => s,
+            Err(e) => {
+                log::debug!("clear_pending_actions_everywhere encode({}): {e}", t.name());
+                continue;
+            }
+        };
+        m.insert(PENDING_ACTIONS_KEY.into(), encoded);
         touch_meta(&mut m);
         if let Err(e) = t.write(&m) {
             log::debug!("clear_pending_actions_everywhere({}): {e}", t.name());

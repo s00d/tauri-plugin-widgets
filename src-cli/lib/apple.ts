@@ -96,6 +96,11 @@ export interface PatchIosCodeSignEntitlementsResult {
   patched: number;
 }
 
+export interface PatchIosCodeSignEntitlementsOptions {
+  /** When set, app-extension targets are skipped unless this returns true. */
+  targetNameFilter?: (name: string) => boolean;
+}
+
 /**
  * Ensure CODE_SIGN_ENTITLEMENTS is set on application + app-extension targets.
  * `entsByProductType` maps productType → relative path from .xcodeproj parent.
@@ -103,13 +108,14 @@ export interface PatchIosCodeSignEntitlementsResult {
 export function patchIosCodeSignEntitlements(
   pbxPath: string,
   entsByProductType: Record<string, string>,
+  options: PatchIosCodeSignEntitlementsOptions = {},
 ): PatchIosCodeSignEntitlementsResult {
   if (!existsSync(pbxPath)) return { patched: 0 };
   let pbx = readFileSync(pbxPath, "utf-8");
   let patched = 0;
 
-  // Map target id → productType for native targets we care about
-  const targetProduct = new Map<string, string>();
+  // Map configuration list id → productType + target name
+  const targetProduct = new Map<string, { productType: string; name: string }>();
   const targetBlockRe =
     /([A-F0-9]{24})\s*\/\*\s*[^*]+\s*\*\/\s*=\s*\{\s*isa = PBXNativeTarget;[\s\S]*?productType = "([^"]+)";[\s\S]*?\};/g;
   let tm: RegExpExecArray | null;
@@ -122,13 +128,22 @@ export function patchIosCodeSignEntitlements(
       continue;
     }
     const block = tm[0];
+    const nameMatch = block.match(/\bname = ([^;]+);/);
+    const rawName = String(nameMatch?.[1] || "").trim().replace(/^"|"$/g, "");
     const listMatch = block.match(/buildConfigurationList = ([A-F0-9]{24})/);
-    if (listMatch) targetProduct.set(listMatch[1], productType);
+    if (listMatch) targetProduct.set(listMatch[1], { productType, name: rawName });
   }
 
   // Map configuration list → build config ids
   const configIds: { id: string; productType: string }[] = [];
-  for (const [listId, productType] of targetProduct) {
+  for (const [listId, { productType, name }] of targetProduct) {
+    if (
+      productType === "com.apple.product-type.app-extension" &&
+      options.targetNameFilter &&
+      !options.targetNameFilter(name)
+    ) {
+      continue;
+    }
     const listRe = new RegExp(
       `${listId}\\s*/\\*[^*]*\\*/\\s*=\\s*\\{[\\s\\S]*?buildConfigurations = \\(([\\s\\S]*?)\\);`,
     );

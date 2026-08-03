@@ -120,12 +120,19 @@ export function initMacosAction(opts: InitMacosOptions): void {
       data.build.beforeBundleCommand = beforeCmd;
       modified = true;
       console.log(`  Set build.beforeBundleCommand → ${beforeCmd}`);
-    } else if (String(data.build.beforeBundleCommand).includes("|| true")) {
-      data.build.beforeBundleCommand = String(data.build.beforeBundleCommand)
-        .replace(/\s*\|\|\s*true\s*$/, "")
-        .trim();
-      modified = true;
-      console.log("  Removed '|| true' from beforeBundleCommand");
+    } else {
+      const existing = String(data.build.beforeBundleCommand);
+      if (existing.includes("build-widget.sh")) {
+        // already wired
+      } else if (existing.includes("|| true")) {
+        data.build.beforeBundleCommand = existing.replace(/\s*\|\|\s*true\s*$/, "").trim();
+        modified = true;
+        console.log("  Removed '|| true' from beforeBundleCommand");
+      } else {
+        data.build.beforeBundleCommand = `${existing.trim()} && ${beforeCmd}`;
+        modified = true;
+        console.log(`  Composed build.beforeBundleCommand → ${data.build.beforeBundleCommand}`);
+      }
     }
 
     if (!data.bundle) data.bundle = {};
@@ -159,6 +166,7 @@ export function initMacosAction(opts: InitMacosOptions): void {
         transport,
         extensionBundleId: bundleId,
         force: Boolean(opts.force),
+        explicitAppGroup: Boolean(opts.appGroup),
       });
       const conf2 = readTauriConf(cwd);
       if (result.wrote || !conf2?.data?.plugins?.widgets?.transport) {

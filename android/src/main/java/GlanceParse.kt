@@ -92,7 +92,8 @@ internal fun parseColor(context: Context, raw: String): Color? {
     }.getOrNull()
 }
 
-/** `#abc` → `#aabbcc`, `#abcd` → `#aabbccdd` (alpha last in CSS; Android wants AARRGGBB). */
+/** `#abc` → `#aabbcc`, `#abcd` → `#aabbccdd` (alpha last in CSS; Android wants AARRGGBB).
+ *  Shared wire format is `#RRGGBBAA`; Android `Color.parseColor` expects `#AARRGGBB`. */
 internal fun expandShortHex(raw: String): String {
     if (!raw.startsWith("#")) return raw
     val h = raw.substring(1)
@@ -105,6 +106,14 @@ internal fun expandShortHex(raw: String): String {
             val b = "${h[2]}${h[2]}"
             val a = "${h[3]}${h[3]}"
             "#$a$r$g$b"
+        }
+        8 -> {
+            // Wire #RRGGBBAA → Android #AARRGGBB
+            val rr = h.substring(0, 2)
+            val gg = h.substring(2, 4)
+            val bb = h.substring(4, 6)
+            val aa = h.substring(6, 8)
+            "#$aa$rr$gg$bb"
         }
         else -> raw
     }

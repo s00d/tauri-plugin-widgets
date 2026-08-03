@@ -145,7 +145,7 @@ extension DynamicElementView {
                         .foregroundColor(resolveColor(element.color) ?? .primary)
                 }
                 if let action = row.action, !action.isEmpty {
-                    Button(intent: WidgetActionIntent(actionName: action)) { rowView }
+                    Button(intent: WidgetActionIntent(actionName: action, payload: row.payload)) { rowView }
                         .buttonStyle(.plain)
                 } else {
                     rowView

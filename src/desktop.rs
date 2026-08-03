@@ -702,7 +702,7 @@ impl<R: Runtime> Widget<R> {
         self.persist_map(group, &snapshot)?;
         #[cfg(target_os = "macos")]
         {
-            crate::macos_transport::clear_pending_actions_everywhere(group);
+            crate::macos_transport::clear_pending_actions_everywhere(group, &actions);
         }
 
         Ok(actions)

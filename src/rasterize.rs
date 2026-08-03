@@ -4,9 +4,10 @@
 //! backgrounds that Adaptive Cards cannot express natively.
 
 use crate::models::{
-    CanvasDrawCommand, ChartDataPoint, ChartType, ColorValue, GaugeStyle, GradientConfig,
-    GradientDirection, GradientType, ShapeType, WidgetElement, GaugeElement, ChartElement,
-    ShapeElement, CanvasElement, TextElement, ImageElement, ZStackElement,
+    CanvasDrawCommand, ChartDataPoint, ChartType, ColorValue, ElementStyle, GaugeStyle,
+    GradientConfig, GradientDirection, GradientType, ProgressElement, ProgressStyle, ShapeType,
+    WidgetElement, GaugeElement, ChartElement, ShapeElement, CanvasElement, TextElement,
+    ImageElement, ZStackElement, BackgroundValue,
 };
 use std::f64::consts::PI;
 
@@ -48,6 +49,22 @@ pub fn element_to_svg(el: &WidgetElement) -> Option<String> {
             current_value_label.as_deref(),
             label.as_deref(),
         )),
+        WidgetElement::Progress(ProgressElement {
+            value,
+            total,
+            tint,
+            label,
+            bar_style,
+            ..
+        }) if matches!(bar_style, Some(ProgressStyle::Circular)) => Some(gauge_svg(
+            *value,
+            0.0,
+            if *total <= 0.0 { 1.0 } else { *total },
+            tint.as_ref(),
+            Some(&GaugeStyle::Circular),
+            None,
+            label.as_deref(),
+        )),
         WidgetElement::Shape(ShapeElement {
             shape_type,
             fill,
@@ -62,7 +79,9 @@ pub fn element_to_svg(el: &WidgetElement) -> Option<String> {
             stroke_width.unwrap_or(1.0),
             size.unwrap_or(24.0),
         )),
-        WidgetElement::ZStack(ZStackElement { children, .. }) => zstack_svg(children),
+        WidgetElement::ZStack(ZStackElement {
+            children, style, ..
+        }) => zstack_svg(children, style),
         _ => None,
     }
 }
@@ -123,10 +142,17 @@ pub fn gradient_to_png_data_uri(g: &GradientConfig) -> Result<String, String> {
     svg_to_data_uri(&gradient_to_svg(g, 320.0, 200.0))
 }
 
-fn zstack_svg(children: &[WidgetElement]) -> Option<String> {
+fn zstack_svg(children: &[WidgetElement], style: &ElementStyle) -> Option<String> {
     const W: f64 = 160.0;
     const H: f64 = 160.0;
     let mut layers = String::new();
+    // Bake solid background so AC Image isn't transparent when style.background is set.
+    if let Some(BackgroundValue::Solid(s)) = &style.background {
+        let fill = normalize_color(s);
+        layers.push_str(&format!(
+            r#"<rect width="100%" height="100%" fill="{fill}"/>"#
+        ));
+    }
     let mut drew = 0usize;
     for child in children {
         match child {
@@ -167,14 +193,16 @@ fn zstack_svg(children: &[WidgetElement]) -> Option<String> {
                 drew += 1;
             }
             other => {
-                if let Some(inner) = element_to_svg(other) {
-                    // Strip outer <svg …> … </svg> and center via nested svg.
-                    layers.push_str(&format!(
-                        r#"<svg x="0" y="0" width="{W}" height="{H}" viewBox="0 0 {W} {H}" preserveAspectRatio="xMidYMid meet">{inner_body}</svg>"#,
-                        inner_body = strip_outer_svg(&inner)
-                    ));
-                    drew += 1;
-                }
+                let Some(inner) = element_to_svg(other) else {
+                    // Any unrenderable child → fall back so AC can render the full tree.
+                    return None;
+                };
+                let (vbx, vby, vbw, vbh) = extract_viewbox(&inner).unwrap_or((0.0, 0.0, W, H));
+                layers.push_str(&format!(
+                    r#"<svg x="0" y="0" width="{W}" height="{H}" viewBox="{vbx} {vby} {vbw} {vbh}" preserveAspectRatio="xMidYMid meet">{inner_body}</svg>"#,
+                    inner_body = strip_outer_svg(&inner)
+                ));
+                drew += 1;
             }
         }
     }
@@ -182,8 +210,29 @@ fn zstack_svg(children: &[WidgetElement]) -> Option<String> {
         return None;
     }
     Some(format!(
-        r#"<svg xmlns="http://www.w3.org/2000/svg" width="{W}" height="{H}" viewBox="0 0 {W} {H}"><rect width="100%" height="100%" fill="transparent"/>{layers}</svg>"#
+        r#"<svg xmlns="http://www.w3.org/2000/svg" width="{W}" height="{H}" viewBox="0 0 {W} {H}">{layers}</svg>"#
     ))
+}
+
+fn extract_viewbox(svg: &str) -> Option<(f64, f64, f64, f64)> {
+    let re = regex_lite_viewbox(svg)?;
+    Some(re)
+}
+
+/// Tiny viewBox extractor — avoids a regex crate dependency.
+fn regex_lite_viewbox(svg: &str) -> Option<(f64, f64, f64, f64)> {
+    let key = "viewBox=\"";
+    let start = svg.find(key)? + key.len();
+    let end = svg[start..].find('"')? + start;
+    let parts: Vec<f64> = svg[start..end]
+        .split_whitespace()
+        .filter_map(|p| p.parse().ok())
+        .collect();
+    if parts.len() == 4 {
+        Some((parts[0], parts[1], parts[2], parts[3]))
+    } else {
+        None
+    }
 }
 
 fn strip_outer_svg(svg: &str) -> String {

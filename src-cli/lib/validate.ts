@@ -125,16 +125,21 @@ function walk(
 }
 
 /**
- * Validate widget config against capabilities.json for one or more platforms.
+ * Structural validation of widget config shape (sizes, required fields per type).
  */
-export function validateWidgetConfig(
-  config: unknown,
-  platforms: string[],
-  caps: Capabilities,
-): ConfigFinding[] {
+export function validateWidgetShape(config: unknown): ConfigFinding[] {
   const findings: ConfigFinding[] = [];
   if (!config || typeof config !== "object") {
-    return [{ level: "error", path: "", type: "", platform: "", support: "unsupported", note: "config is not an object" }];
+    return [
+      {
+        level: "error",
+        path: "",
+        type: "",
+        platform: "schema",
+        support: "invalid",
+        note: "config is not an object",
+      },
+    ];
   }
   const { $schema: _schema, ...body } = config as Record<string, unknown>;
   const sizes = ["small", "medium", "large"];
@@ -142,19 +147,91 @@ export function validateWidgetConfig(
   for (const size of sizes) {
     if (!body[size]) continue;
     hasSize = true;
-    for (const platform of platforms) {
-      walk(body[size] as WidgetNode, size, platform, caps, findings);
-    }
+    walkShape(body[size] as WidgetNode, size, findings);
   }
   if (!hasSize) {
     findings.push({
       level: "error",
       path: "",
       type: "",
-      platform: platforms[0] || "",
-      support: "unsupported",
+      platform: "schema",
+      support: "invalid",
       note: "expected at least one of small/medium/large",
     });
+  }
+  return findings;
+}
+
+function walkShape(node: WidgetNode | null | undefined, path: string, out: ConfigFinding[]): void {
+  if (!node || typeof node !== "object") return;
+  const type = node.type;
+  if (typeof type === "string") {
+    if (type === "text") {
+      const content = node.content;
+      if (typeof content !== "string" || !content) {
+        out.push({
+          level: "error",
+          path,
+          type,
+          platform: "schema",
+          support: "invalid",
+          note: 'type "text" requires string content',
+        });
+      }
+    }
+    if (type === "image") {
+      if (!node.url && !node.systemName && !node.asset && !node.base64) {
+        out.push({
+          level: "error",
+          path,
+          type,
+          platform: "schema",
+          support: "invalid",
+          note: 'type "image" requires url, systemName, asset, or base64',
+        });
+      }
+    }
+    if (type === "list") {
+      if (!Array.isArray(node.items)) {
+        out.push({
+          level: "error",
+          path,
+          type,
+          platform: "schema",
+          support: "invalid",
+          note: 'type "list" requires items array',
+        });
+      }
+    }
+  }
+  const kids = node.children || node.items || [];
+  if (Array.isArray(kids)) {
+    kids.forEach((ch, i) => walkShape(ch, `${path}/${type || "node"}[${i}]`, out));
+  }
+  if (node.content && typeof node.content === "object" && (node.content as WidgetNode).type) {
+    walkShape(node.content as WidgetNode, `${path}/content`, out);
+  }
+}
+
+/**
+ * Validate widget config against capabilities.json for one or more platforms.
+ */
+export function validateWidgetConfig(
+  config: unknown,
+  platforms: string[],
+  caps: Capabilities,
+): ConfigFinding[] {
+  const findings: ConfigFinding[] = validateWidgetShape(config);
+  if (!config || typeof config !== "object") {
+    return findings;
+  }
+  const { $schema: _schema, ...body } = config as Record<string, unknown>;
+  const sizes = ["small", "medium", "large"];
+  for (const size of sizes) {
+    if (!body[size]) continue;
+    for (const platform of platforms) {
+      walk(body[size] as WidgetNode, size, platform, caps, findings);
+    }
   }
   return findings;
 }

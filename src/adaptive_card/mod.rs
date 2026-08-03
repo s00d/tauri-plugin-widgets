@@ -49,13 +49,13 @@ pub fn to_adaptive_card_for_size(config: &WidgetConfig, size: &str) -> Option<Tr
         "large" => config
             .large
             .as_ref()
-            .or(config.medium.as_ref())
-            .or(config.small.as_ref()),
+            .or(config.small.as_ref())
+            .or(config.medium.as_ref()),
         "medium" => config
             .medium
             .as_ref()
-            .or(config.large.as_ref())
-            .or(config.small.as_ref()),
+            .or(config.small.as_ref())
+            .or(config.large.as_ref()),
         _ => config
             .small
             .as_ref()
@@ -113,7 +113,7 @@ fn el(e: &WidgetElement, skipped: &mut Vec<SkippedElement>) -> Value {
         WidgetElement::Canvas(_) => media::canvas(e, skipped),
 
         // data
-        WidgetElement::Progress(p) => data::progress(p),
+        WidgetElement::Progress(p) => data::progress(e, p, skipped),
         WidgetElement::Gauge(_) => data::gauge(e, skipped),
         WidgetElement::Chart(_) => data::chart(e, skipped),
         WidgetElement::List(l) => data::list(l),

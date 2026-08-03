@@ -35,8 +35,6 @@ internal fun RenderText(scope: RenderScope, el: El, modifier: GlanceModifier) {
         else -> {
             when {
                 type == "timer" -> renderLiveTimer(context, el, modifier)
-                type == "date" && el.str("dateStyle", "date").equals("time", ignoreCase = true) ->
-                    renderLiveTextClock(context, el, modifier)
                 else -> {
                     val content = when (type) {
                         "date" -> formatDateValue(el.str("date", ""), el.str("dateStyle", "date"))

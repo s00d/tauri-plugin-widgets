@@ -1,6 +1,32 @@
 import { existsSync, readdirSync, rmSync } from "node:fs";
 import { join } from "node:path";
+import { execSync } from "node:child_process";
 import { loadTraceFile } from "./trace.js";
+
+const SAFE_SEGMENT = /^[A-Za-z0-9._-]+$/;
+
+export function validateSafeSegment(value: string, label: string): void {
+  if (value.includes("..") || value.includes("/") || value.includes("\\")) {
+    throw new Error(`${label} contains unsafe path characters`);
+  }
+  if (!SAFE_SEGMENT.test(value)) {
+    throw new Error(`${label} must match ${SAFE_SEGMENT}`);
+  }
+}
+
+function resolveMacGroupContainer(group: string): string | null {
+  if (process.platform !== "darwin") return null;
+  try {
+    const escaped = group.replace(/\\/g, "\\\\").replace(/"/g, '\\"');
+    const out = execSync(
+      `swift -e 'import Foundation; print(FileManager.default.containerURL(forSecurityApplicationGroupIdentifier: "${escaped}")?.path ?? "")'`,
+      { encoding: "utf-8" },
+    ).trim();
+    return out || null;
+  } catch {
+    return null;
+  }
+}
 
 function cacheBase(): string {
   if (process.platform === "darwin" && process.env.HOME) {
@@ -40,6 +66,9 @@ export function runClean({ cwd, identifier, group, cacheOnly = false }: RunClean
   console.log("clean");
   let n = 0;
 
+  if (identifier) validateSafeSegment(identifier, "identifier");
+  if (group) validateSafeSegment(group, "group");
+
   if (cacheOnly) {
     if (rmDir(prefetchCacheDir(), "image-prefetch cache")) n++;
     console.log(n ? `OK — cleared cache` : `OK — nothing to clear`);
@@ -57,10 +86,17 @@ export function runClean({ cwd, identifier, group, cacheOnly = false }: RunClean
 
   const home = process.env.HOME || "";
   const bases: string[] = [];
+  // Explicit data-dir overrides used by the Rust store / CLI.
+  for (const envKey of ["TAURI_WIDGETS_DATA", "WIDGET_DATA_DIR"] as const) {
+    const override = process.env[envKey]?.trim();
+    if (override) bases.push(override);
+  }
   if (identifier && home) {
     bases.push(join(home, "Library", "Application Support", identifier, "widgets"));
   }
   if (identifier && process.env.LOCALAPPDATA) {
+    // Live Windows store lives under %LOCALAPPDATA%/tauri-plugin-widgets (not app identifier).
+    bases.push(join(process.env.LOCALAPPDATA, "tauri-plugin-widgets"));
     bases.push(join(process.env.LOCALAPPDATA, identifier, "widgets"));
   }
   if (identifier && home) {
@@ -69,15 +105,23 @@ export function runClean({ cwd, identifier, group, cacheOnly = false }: RunClean
     );
   }
   if (group && home && process.platform === "darwin") {
-    bases.push(join(home, "Library", "Group Containers", group));
+    const resolved = resolveMacGroupContainer(group);
+    bases.push(resolved || join(home, "Library", "Group Containers", group));
   }
+
+  const storeFiles = new Set([
+    "widget_data.json",
+    "widget_trace.json",
+    "receipts.json",
+    "render_receipt.json",
+  ]);
 
   for (const base of bases) {
     if (!existsSync(base)) continue;
-    const files = ["widget_data.json", "widget_trace.json", "receipts.json", "render_receipt.json"];
     try {
       for (const f of readdirSync(base)) {
-        if (files.includes(f) || /^config:/.test(f) || f.endsWith(".json")) {
+        // Only known widget store / cache / config keys — never wipe unrelated App Group JSON.
+        if (storeFiles.has(f) || /^config:/.test(f)) {
           const p = join(base, f);
           rmSync(p, { force: true, recursive: true });
           console.log(`  ✓ store: removed ${p}`);

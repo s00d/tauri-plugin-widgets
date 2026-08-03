@@ -25,6 +25,9 @@ if ($MsixPath) {
     Write-Error "signtool not on PATH. Install Windows SDK / use Developer Command Prompt."
   }
   & signtool sign /fd SHA256 /f $PfxPath /p $Password $MsixPath
+  if ($LASTEXITCODE -ne 0) {
+    throw "signtool failed with exit code $LASTEXITCODE"
+  }
   Write-Host "Signed: $MsixPath"
 } else {
   Write-Host "Sign later: signtool sign /fd SHA256 /f $PfxPath /p $Password path\to\app.msix"

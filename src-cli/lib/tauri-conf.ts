@@ -69,6 +69,8 @@ export interface EnsurePluginsWidgetsOptions {
   transport?: string;
   extensionBundleId?: string;
   force?: boolean;
+  /** When true, update appGroup even if one is already set (e.g. explicit --app-group). */
+  explicitAppGroup?: boolean;
 }
 
 export interface EnsurePluginsWidgetsResult {
@@ -82,7 +84,13 @@ export interface EnsurePluginsWidgetsResult {
  */
 export function ensurePluginsWidgets(
   conf: TauriConf | null,
-  { appGroup, transport, extensionBundleId, force = false }: EnsurePluginsWidgetsOptions = {},
+  {
+    appGroup,
+    transport,
+    extensionBundleId,
+    force = false,
+    explicitAppGroup = false,
+  }: EnsurePluginsWidgetsOptions = {},
 ): EnsurePluginsWidgetsResult {
   if (!conf?.data || !conf?.path) return { wrote: false, skipped: true };
   if (!appGroup) return { wrote: false, skipped: true };
@@ -92,7 +100,7 @@ export function ensurePluginsWidgets(
   const w = data.plugins.widgets;
   let changed = false;
 
-  if (!w.appGroup || force) {
+  if (!w.appGroup || force || explicitAppGroup) {
     if (w.appGroup !== appGroup) {
       w.appGroup = appGroup;
       changed = true;

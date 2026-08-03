@@ -95,7 +95,7 @@ extension DynamicElementView {
                 .minimumScaleFactor(0.55)
                 .allowsTightening(true)
         } else {
-            Text(timerInterval: Date.now...target, countsDown: true)
+            Text(timerInterval: Date.now...max(Date.now, target), countsDown: true)
                 .font(style)
                 .foregroundColor(color)
                 .lineLimit(1)

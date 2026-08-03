@@ -1,13 +1,21 @@
 //! Data group: progress / gauge / chart / list.
 
-use crate::models::{ListElement, ProgressElement, WidgetElement};
+use crate::models::{ListElement, ProgressElement, ProgressStyle, WidgetElement};
 use crate::receipt::SkippedElement;
 use serde_json::{json, Value};
 
 use super::media::rasterized_or_skip;
 use super::style::{ac_color, approx_hex_semantic, color_hex};
 
-pub(super) fn progress(p: &ProgressElement) -> Value {
+pub(super) fn progress(
+    e: &WidgetElement,
+    p: &ProgressElement,
+    skipped: &mut Vec<SkippedElement>,
+) -> Value {
+    // Adaptive Cards has no circular progress — rasterize to preserve shape.
+    if matches!(p.bar_style, Some(ProgressStyle::Circular)) {
+        return rasterized_or_skip(e, skipped);
+    }
     let ProgressElement {
         value,
         total,

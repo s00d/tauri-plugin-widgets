@@ -19,13 +19,23 @@ pub(super) fn vstack(v: &VStackElement, skipped: &mut Vec<SkippedElement>) -> Va
         spacing,
         ..
     } = v;
+    let items: Vec<Value> = children
+        .iter()
+        .enumerate()
+        .map(|(i, c)| {
+            let mut item = el(c, skipped);
+            if i > 0 {
+                apply_gap_id(&mut item, *spacing);
+            }
+            item
+        })
+        .collect();
     let mut obj = json!({
         "type": "Container",
         "spacing": "None",
-        "items": children.iter().map(|c| el(c, skipped)).collect::<Vec<_>>(),
+        "items": items,
     });
     apply_container_style(&mut obj, style);
-    apply_gap_id(&mut obj, *spacing);
     // HorizontalAlignment on VStack children (center/leading/trailing).
     if let Some(a) = alignment {
         match a {
@@ -46,8 +56,9 @@ pub(super) fn hstack(h: &HStackElement, skipped: &mut Vec<SkippedElement>) -> Va
         children, spacing, ..
     } = h;
     let n = children.len();
-    let mut obj = json!({
+    json!({
         "type": "ColumnSet",
+        "spacing": "None",
         "columns": children
             .iter()
             .enumerate()
@@ -62,16 +73,19 @@ pub(super) fn hstack(h: &HStackElement, skipped: &mut Vec<SkippedElement>) -> Va
                     }
                     _ => (flex_width(c), json!([el(c, skipped)])),
                 };
-                json!({
+                let mut col = json!({
                     "type": "Column",
                     "width": width,
                     "items": items,
-                })
+                });
+                // Inter-column gap (ColumnSet.spacing is preceding-element only).
+                if i > 0 {
+                    apply_gap_id(&mut col, *spacing);
+                }
+                col
             })
             .collect::<Vec<_>>(),
-    });
-    apply_gap_id(&mut obj, *spacing);
-    obj
+    })
 }
 
 pub(super) fn container(c: &ContainerElement, skipped: &mut Vec<SkippedElement>) -> Value {
@@ -107,31 +121,39 @@ pub(super) fn grid(g: &GridElement, skipped: &mut Vec<SkippedElement>) -> Value 
     } = g;
     let cols = (*columns).max(1) as usize;
     let mut rows = Vec::new();
-    for chunk in children.chunks(cols) {
+    for (ri, chunk) in children.chunks(cols).enumerate() {
         let columns_json: Vec<Value> = chunk
             .iter()
-            .map(|c| {
-                json!({
+            .enumerate()
+            .map(|(ci, c)| {
+                let mut col = json!({
                     "type": "Column",
                     "width": "stretch",
                     "items": [el(c, skipped)],
-                })
+                });
+                // Horizontal gaps between columns within a row.
+                if ci > 0 {
+                    apply_gap_id(&mut col, *spacing);
+                }
+                col
             })
             .collect();
         let mut row = json!({
             "type": "ColumnSet",
+            "spacing": "None",
             "columns": columns_json,
         });
-        apply_gap_id(&mut row, *spacing);
+        // Vertical gaps between rows.
+        if ri > 0 {
+            apply_gap_id(&mut row, row_spacing.or(*spacing));
+        }
         rows.push(row);
     }
-    let mut obj = json!({
+    json!({
         "type": "Container",
         "spacing": "None",
         "items": rows,
-    });
-    apply_gap_id(&mut obj, row_spacing.or(*spacing));
-    obj
+    })
 }
 
 /// `e` is the original node — rasterizing an overlay needs the whole element.

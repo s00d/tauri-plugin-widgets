@@ -10,7 +10,11 @@ import {
   patchIosCodeSignEntitlements,
   renderIosWidgetSwift,
 } from "../lib/apple.js";
-import { resolveIosEntitlementsRels, writeEntitlementsFile } from "../lib/entitlements.js";
+import {
+  mergeAppGroupIntoEntitlements,
+  resolveIosEntitlementsRels,
+  writeEntitlementsFile,
+} from "../lib/entitlements.js";
 import { copyTemplate, widgetTemplateReplacements } from "../lib/templates.js";
 
 export interface InitIosOptions {
@@ -78,16 +82,33 @@ export function initIosAction(opts: InitIosOptions): void {
     const { appEntRel, widgetEntRel } = resolveIosEntitlementsRels(cwd, appleDir, widgetTargets);
     const appEntPath = join(appleDir, appEntRel);
     const widgetEntPath = join(appleDir, widgetEntRel);
-    writeEntitlementsFile(appEntPath, { appGroup, sandbox: false });
-    writeEntitlementsFile(widgetEntPath, { appGroup, sandbox: false });
-    console.log(`  Wrote ${appEntRel}`);
-    console.log(`  Wrote ${widgetEntRel}`);
+    if (existsSync(appEntPath) && !opts.force) {
+      mergeAppGroupIntoEntitlements(appEntPath, appGroup);
+      console.log(`  Merged app-group into ${appEntRel}`);
+    } else {
+      writeEntitlementsFile(appEntPath, { appGroup, sandbox: false });
+      console.log(`  Wrote ${appEntRel}`);
+    }
+    if (existsSync(widgetEntPath) && !opts.force) {
+      mergeAppGroupIntoEntitlements(widgetEntPath, appGroup);
+      console.log(`  Merged app-group into ${widgetEntRel}`);
+    } else {
+      writeEntitlementsFile(widgetEntPath, { appGroup, sandbox: false });
+      console.log(`  Wrote ${widgetEntRel}`);
+    }
+
+    const widgetTargetFilter = (name: string) =>
+      /Widget/i.test(name) || widgetTargets.some((t) => t === name);
 
     for (const pbx of findApplePbxproj(cwd)) {
-      const { patched } = patchIosCodeSignEntitlements(pbx, {
-        "com.apple.product-type.application": appEntRel,
-        "com.apple.product-type.app-extension": widgetEntRel,
-      });
+      const { patched } = patchIosCodeSignEntitlements(
+        pbx,
+        {
+          "com.apple.product-type.application": appEntRel,
+          "com.apple.product-type.app-extension": widgetEntRel,
+        },
+        { targetNameFilter: widgetTargetFilter },
+      );
       if (patched) {
         console.log(`  Patched CODE_SIGN_ENTITLEMENTS in ${basename(dirname(pbx))} (${patched} configs)`);
       } else {
@@ -99,12 +120,11 @@ export function initIosAction(opts: InitIosOptions): void {
   }
 
   if (conf) {
-    // Always sync appGroup when --app-group was given or force; transport stays appGroup on iOS.
-    const forceWidgets = Boolean(opts.force) || Boolean(opts.appGroup);
     const result = ensurePluginsWidgets(conf, {
       appGroup,
       transport: "appGroup",
-      force: forceWidgets,
+      force: true,
+      explicitAppGroup: Boolean(opts.appGroup),
     });
     if (result.wrote) {
       console.log("  Wrote plugins.widgets (transport=appGroup — required on iOS)");

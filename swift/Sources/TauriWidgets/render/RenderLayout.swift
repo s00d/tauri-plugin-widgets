@@ -39,7 +39,7 @@ extension DynamicElementView {
     @ViewBuilder func renderGrid() -> some View {
         let cols = element.columns ?? 2; let sp = element.spacing ?? 4
         LazyVGrid(
-            columns: Array(repeating: GridItem(.flexible(), spacing: sp), count: Int(cols)),
+            columns: Array(repeating: GridItem(.flexible(), spacing: sp), count: max(1, Int(cols))),
             spacing: element.rowSpacing ?? sp
         ) { renderChildren() }
     }

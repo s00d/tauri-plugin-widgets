@@ -22,7 +22,6 @@ export function initUnifiedAction(opts: InitUnifiedOptions): void {
   const targets = new Set<string>(
     ([] as string[])
       .concat(bundle.active || [])
-      .concat(bundle.targets === "all" ? ["macos", "ios", "android", "windows", "linux"] : [])
       .concat(Array.isArray(bundle.targets) ? bundle.targets : [])
       .map(String),
   );

@@ -1,7 +1,7 @@
 import { defineCommand } from "citty";
 import { resolve } from "node:path";
 import { detectTauriIdentifier, readTauriConf } from "../lib/tauri-conf.js";
-import { runClean } from "../lib/clean.js";
+import { runClean, validateSafeSegment } from "../lib/clean.js";
 
 export const cleanCmd = defineCommand({
   meta: {
@@ -29,11 +29,17 @@ export const cleanCmd = defineCommand({
     const conf = readTauriConf(cwd);
     const identifier = detectTauriIdentifier(conf);
     const group = args.group || conf?.data?.plugins?.widgets?.appGroup || undefined;
-    runClean({
-      cwd,
-      identifier,
-      group,
-      cacheOnly: Boolean(args.cache),
-    });
+    try {
+      if (group) validateSafeSegment(group, "group");
+      runClean({
+        cwd,
+        identifier,
+        group,
+        cacheOnly: Boolean(args.cache),
+      });
+    } catch (e) {
+      console.error(`ERROR: ${(e as Error).message}`);
+      process.exit(1);
+    }
   },
 });

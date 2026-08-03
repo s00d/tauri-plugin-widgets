@@ -40,25 +40,28 @@ class WidgetActionCallback : ActionCallback {
         // Only attempt URL open when no action is provided.
         if (!action.isNullOrBlank()) {
             val logicalWidgetId = WidgetStoreKeys.resolveWidgetId(context, appWidgetId)
-            val toggled = applyLocalListToggleIfNeeded(context, glanceId, group, logicalWidgetId, action)
+            val toggled = applyLocalListToggleIfNeeded(
+                context, glanceId, group, logicalWidgetId, action, payload,
+            )
             if (toggled) {
                 Log.d(TAG, "action local list toggle applied action=$action")
             }
-            val prefs = context.getSharedPreferences(group, Context.MODE_PRIVATE)
-            val pendingRaw = prefs.getString(WidgetStoreKeys.PENDING_ACTIONS, "[]") ?: "[]"
-            val arr = runCatching { JSONArray(pendingRaw) }.getOrElse { JSONArray() }
-            val obj = JSONObject()
-            obj.put("action", action)
-            if (!payload.isNullOrBlank()) obj.put("payload", payload)
-            obj.put("ts", System.currentTimeMillis())
-            obj.put("widgetId", logicalWidgetId)
-            obj.put("group", group)
-            arr.put(obj)
-            prefs.edit().putString(WidgetStoreKeys.PENDING_ACTIONS, arr.toString()).apply()
-
             val plugin = WidgetBridgePlugin.pluginInstance
             if (plugin != null) {
                 plugin.emitWidgetAction(action, payload, logicalWidgetId, group)
+            } else {
+                // Queue only when the host plugin is unavailable (matches WidgetActionReceiver).
+                val prefs = context.getSharedPreferences(group, Context.MODE_PRIVATE)
+                val pendingRaw = prefs.getString(WidgetStoreKeys.PENDING_ACTIONS, "[]") ?: "[]"
+                val arr = runCatching { JSONArray(pendingRaw) }.getOrElse { JSONArray() }
+                val obj = JSONObject()
+                obj.put("action", action)
+                if (!payload.isNullOrBlank()) obj.put("payload", payload)
+                obj.put("ts", System.currentTimeMillis())
+                obj.put("widgetId", logicalWidgetId)
+                obj.put("group", group)
+                arr.put(obj)
+                prefs.edit().putString(WidgetStoreKeys.PENDING_ACTIONS, arr.toString()).apply()
             }
         } else if (normalizedUrl.isNotBlank()) {
             val uri = Uri.parse(normalizedUrl)
@@ -84,13 +87,14 @@ class WidgetActionCallback : ActionCallback {
         group: String,
         logicalWidgetId: String,
         action: String,
+        payload: String?,
     ): Boolean {
         val prefs = context.getSharedPreferences(group, Context.MODE_PRIVATE)
         val raw = prefs.getString(WidgetStoreKeys.configKey(logicalWidgetId), null) ?: return false
         val root = runCatching { JSONObject(raw) }.getOrNull() ?: return false
         var changed = false
         listOf("small", "medium", "large").forEach { key ->
-            changed = toggleListItemsInElement(root.optJSONObject(key), action) || changed
+            changed = toggleListItemsInElement(root.optJSONObject(key), action, payload) || changed
         }
         if (!changed) return false
         val updated = root.toString()
@@ -106,7 +110,7 @@ class WidgetActionCallback : ActionCallback {
         return true
     }
 
-    private fun toggleListItemsInElement(el: JSONObject?, action: String): Boolean {
+    private fun toggleListItemsInElement(el: JSONObject?, action: String, payload: String?): Boolean {
         if (el == null) return false
         var changed = false
         if (el.widgetString("type", "") == "list") {
@@ -114,6 +118,10 @@ class WidgetActionCallback : ActionCallback {
             for (i in 0 until items.length()) {
                 val item = items.optJSONObject(i) ?: continue
                 if (item.widgetString("action", "") != action) continue
+                if (!payload.isNullOrBlank()) {
+                    val itemPayload = item.widgetString("payload", "")
+                    if (itemPayload != payload) continue
+                }
                 val hasChecked = item.has("checked")
                 val hasIsOn = item.has("isOn")
                 if (!hasChecked && !hasIsOn) continue
@@ -127,7 +135,7 @@ class WidgetActionCallback : ActionCallback {
         val children = el.optJSONArray("children")
         if (children != null) {
             for (i in 0 until children.length()) {
-                changed = toggleListItemsInElement(children.optJSONObject(i), action) || changed
+                changed = toggleListItemsInElement(children.optJSONObject(i), action, payload) || changed
             }
         }
         return changed

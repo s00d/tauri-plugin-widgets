@@ -274,15 +274,47 @@ pub struct FrameConfig {
     pub max_height: Option<FrameDimension>,
 }
 
-/// A frame dimension — either a fixed point value or a keyword (e.g. `"infinity"`).
-#[derive(Debug, Clone, Serialize, Deserialize)]
+/// A frame dimension — either a fixed point value or `"infinity"`.
+#[derive(Debug, Clone)]
 #[cfg_attr(feature = "schema", derive(JsonSchema))]
-#[serde(untagged)]
 pub enum FrameDimension {
     /// Fixed point value.
     Fixed(f64),
-    /// Keyword such as `"infinity"`.
-    Keyword(String),
+    /// `"infinity"`.
+    Infinity,
+}
+
+impl Serialize for FrameDimension {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer,
+    {
+        match self {
+            Self::Fixed(v) => serializer.serialize_f64(*v),
+            Self::Infinity => serializer.serialize_str("infinity"),
+        }
+    }
+}
+
+impl<'de> Deserialize<'de> for FrameDimension {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        #[derive(Deserialize)]
+        #[serde(untagged)]
+        enum Helper {
+            Num(f64),
+            Str(String),
+        }
+        match Helper::deserialize(deserializer)? {
+            Helper::Num(v) => Ok(Self::Fixed(v)),
+            Helper::Str(s) if s == "infinity" => Ok(Self::Infinity),
+            Helper::Str(s) => Err(serde::de::Error::custom(format!(
+                "unknown frame dimension keyword: {s}"
+            ))),
+        }
+    }
 }
 
 /// Border color and width.
@@ -544,5 +576,16 @@ mod tests {
         assert!(matches!(a, TextAlignment::Trailing));
         let t: TimerCounting = serde_json::from_str(r#""down""#).unwrap();
         assert!(matches!(t, TimerCounting::Down));
+    }
+
+    #[test]
+    fn frame_dimension_accepts_infinity() {
+        let d: FrameDimension = serde_json::from_str(r#""infinity""#).unwrap();
+        assert!(matches!(d, FrameDimension::Infinity));
+    }
+
+    #[test]
+    fn frame_dimension_rejects_unknown_keyword() {
+        assert!(serde_json::from_str::<FrameDimension>(r#""auto""#).is_err());
     }
 }
