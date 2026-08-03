@@ -18,9 +18,9 @@ Linux desktop widgets use the same **embedded** webview path as [Desktop webview
 1. Keep default features, or enable explicitly:
 
 ```toml
-tauri-plugin-widgets = { version = "0.4", features = ["linux"] }
+tauri-plugin-widgets = { version = "0.5", features = ["linux"] }
 # Wayland:
-# tauri-plugin-widgets = { version = "0.4", features = ["linux", "layer-shell"] }
+# tauri-plugin-widgets = { version = "0.5", features = ["linux", "layer-shell"] }
 ```
 
 2. Allow the window label in capabilities (`windows` + `widgets:default`) — [Install](/guide/install#permissions).

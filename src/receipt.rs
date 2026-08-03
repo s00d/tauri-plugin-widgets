@@ -16,14 +16,18 @@ use crate::store::now_ms;
 
 /// Prefs / file basename for the receipt bag (outside config DataMap).
 pub const RECEIPTS_STORE_NAME: &str = "__tauri_widget_receipts__";
+/// On-disk filename under the app data / widgets dir.
 pub const RECEIPTS_FILE_NAME: &str = "widget_receipts.json";
 const HISTORY_CAP: usize = 32;
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
+/// Element the renderer could not paint (capability / parse).
 pub struct SkippedElement {
+    /// IR type name (`chart`, `canvas`, …).
     #[serde(rename = "type")]
     pub type_name: String,
+    /// Why it was skipped.
     pub reason: String,
 }
 
@@ -31,14 +35,18 @@ pub struct SkippedElement {
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct WidgetRenderReceipt {
+    /// Logical widget id from JS / IR.
     pub widget_id: String,
+    /// App Group / prefs group.
     pub group: String,
     /// `appWidgetId` | WidgetFamily | window label
     pub instance: String,
     /// Config-map nonce that was rendered (0 if unknown).
     pub nonce: u64,
+    /// Family / slot size label when known.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub size: Option<String>,
+    /// Light / dark when reported.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub theme: Option<String>,
     /// IR schema version the renderer understands.
@@ -49,10 +57,13 @@ pub struct WidgetRenderReceipt {
     /// Why this paint ran: `reload` | `timeline` | `action` | `added` | `resize` | `snapshot`.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub trigger: Option<String>,
+    /// IR type names that painted successfully.
     #[serde(default)]
     pub rendered: Vec<String>,
+    /// Elements skipped with reasons.
     #[serde(default)]
     pub skipped: Vec<SkippedElement>,
+    /// Unix ms when this receipt was written.
     pub ts: u64,
 }
 
@@ -61,6 +72,7 @@ fn default_schema() -> u32 {
 }
 
 impl WidgetRenderReceipt {
+    /// Fill `ts` with [`now_ms`] if still zero.
     pub fn touch_ts(mut self) -> Self {
         if self.ts == 0 {
             self.ts = now_ms();
@@ -76,10 +88,12 @@ pub struct ReceiptStore {
 }
 
 impl ReceiptStore {
+    /// Empty in-memory store.
     pub fn new() -> Self {
         Self::default()
     }
 
+    /// Append a receipt to the per-instance history ring.
     pub fn upsert(&self, receipt: WidgetRenderReceipt) {
         let receipt = receipt.touch_ts();
         let mut guard = self.by_group.lock().unwrap();
@@ -122,6 +136,7 @@ impl ReceiptStore {
             .unwrap_or_default()
     }
 
+    /// Instance ids with a recent receipt for `widget_id` (age ≤ `max_age_ms`).
     pub fn live_instances(&self, group: &str, widget_id: &str, max_age_ms: u64) -> Vec<String> {
         let now = now_ms();
         self.list(group)
@@ -131,6 +146,7 @@ impl ReceiptStore {
             .collect()
     }
 
+    /// Persist all groups to JSON at `path`.
     pub fn save_to_path(&self, path: &Path) -> crate::Result<()> {
         let all: HashMap<String, Vec<WidgetRenderReceipt>> = self
             .by_group
@@ -153,6 +169,7 @@ impl ReceiptStore {
         Ok(())
     }
 
+    /// Load receipts from disk (best-effort; ignores corrupt files).
     pub fn load_from_path(&self, path: &Path) {
         let Ok(raw) = fs::read_to_string(path) else {
             return;

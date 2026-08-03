@@ -1,5 +1,26 @@
 # Changelog
 
+## 0.5.0
+
+Mega-refactor toward one IR SoT and aligned renderers.
+
+### Added
+- Host-side `normalize()` before store write (`textStyle`, semantic colors, stack spacing defaults, capability degradations)
+- Desktop widget sources as TypeScript (`widget-src/`) bundled into `widget.html`
+- Consumer CLI (`tauri-widgets`) with `tools` proxy to maintainer stands
+- Wire catalogs: Swift `Generated/WireCatalog.swift`, Android `WireTypes.kt` via `gen-native`
+- Measured `schemas/capabilities.coverage.json` (CI; omitted from publish)
+- Light-theme visual cases (desktop / iOS / macOS)
+
+### Changed
+- Split renderers into layout/text/media/data/interactive/spacing groups (Android Glance, SwiftUI, Adaptive Cards, desktop HTML)
+- Split `guest-js` into `api/*` barrel; docs generator into `scripts/.../generate/*`
+- Publish packaging: npm schemas whitelist; crates.io excludes goldens/docs/scripts (~10 MB → ~1.4 MB)
+
+### Fixed
+- Desktop theme resolution (`?theme=` → `data-theme` → `matchMedia`)
+- Android unit tests via JDK 17 wrapper (`scripts/sh/android-gradle.sh`)
+
 ## 0.4.3
 
 ### Fixes

@@ -1,9 +1,12 @@
 //! SVG builders + optional PNG rasterize for Adaptive Cards Image data URIs.
 //!
-//! Used for `chart` / `canvas` / `gauge` nodes that Adaptive Cards cannot express natively.
+//! Used for `chart` / `canvas` / `gauge` / `shape` / `zstack` / gradient
+//! backgrounds that Adaptive Cards cannot express natively.
 
 use crate::models::{
-    CanvasDrawCommand, ChartDataPoint, ChartType, ColorValue, GaugeStyle, ShapeType, WidgetElement, GaugeElement, ChartElement, ShapeElement, CanvasElement,
+    CanvasDrawCommand, ChartDataPoint, ChartType, ColorValue, GaugeStyle, GradientConfig,
+    GradientDirection, GradientType, ShapeType, WidgetElement, GaugeElement, ChartElement,
+    ShapeElement, CanvasElement, TextElement, ImageElement, ZStackElement,
 };
 use std::f64::consts::PI;
 
@@ -59,8 +62,139 @@ pub fn element_to_svg(el: &WidgetElement) -> Option<String> {
             stroke_width.unwrap_or(1.0),
             size.unwrap_or(24.0),
         )),
+        WidgetElement::ZStack(ZStackElement { children, .. }) => zstack_svg(children),
         _ => None,
     }
+}
+
+/// Build an SVG gradient fill for Adaptive Cards `backgroundImage` baking.
+pub fn gradient_to_svg(g: &GradientConfig, width: f64, height: f64) -> String {
+    let w = width.max(8.0);
+    let h = height.max(8.0);
+    let colors = if g.colors.is_empty() {
+        vec!["#6366f1".into(), "#a855f7".into()]
+    } else {
+        g.colors.clone()
+    };
+    let stops: String = colors
+        .iter()
+        .enumerate()
+        .map(|(i, c)| {
+            let off = if colors.len() == 1 {
+                0.0
+            } else {
+                i as f64 / (colors.len() - 1) as f64
+            };
+            format!(
+                r#"<stop offset="{:.0}%" stop-color="{}"/>"#,
+                off * 100.0,
+                esc(c)
+            )
+        })
+        .collect();
+    match g.gradient_type {
+        GradientType::Radial => format!(
+            r#"<svg xmlns="http://www.w3.org/2000/svg" width="{w}" height="{h}" viewBox="0 0 {w} {h}"><defs><radialGradient id="g" cx="50%" cy="50%" r="70%">{stops}</radialGradient></defs><rect width="100%" height="100%" fill="url(#g)"/></svg>"#
+        ),
+        GradientType::Angular => {
+            // Approximate angular as a linear sweep — good enough for AC bake.
+            format!(
+                r#"<svg xmlns="http://www.w3.org/2000/svg" width="{w}" height="{h}" viewBox="0 0 {w} {h}"><defs><linearGradient id="g" x1="0%" y1="0%" x2="100%" y2="100%">{stops}</linearGradient></defs><rect width="100%" height="100%" fill="url(#g)"/></svg>"#
+            )
+        }
+        GradientType::Linear => {
+            let (x1, y1, x2, y2) = match g.direction.as_ref() {
+                Some(GradientDirection::LeadingToTrailing) => ("0%", "0%", "100%", "0%"),
+                Some(GradientDirection::TrailingToLeading) => ("100%", "0%", "0%", "0%"),
+                Some(GradientDirection::BottomToTop) => ("0%", "100%", "0%", "0%"),
+                Some(GradientDirection::TopLeadingToBottomTrailing) => ("0%", "0%", "100%", "100%"),
+                Some(GradientDirection::TopTrailingToBottomLeading) => ("100%", "0%", "0%", "100%"),
+                _ => ("0%", "0%", "0%", "100%"), // topToBottom default
+            };
+            format!(
+                r#"<svg xmlns="http://www.w3.org/2000/svg" width="{w}" height="{h}" viewBox="0 0 {w} {h}"><defs><linearGradient id="g" x1="{x1}" y1="{y1}" x2="{x2}" y2="{y2}">{stops}</linearGradient></defs><rect width="100%" height="100%" fill="url(#g)"/></svg>"#
+            )
+        }
+    }
+}
+
+/// Rasterize a gradient background to a PNG data URI when `rasterize` is enabled.
+pub fn gradient_to_png_data_uri(g: &GradientConfig) -> Result<String, String> {
+    svg_to_data_uri(&gradient_to_svg(g, 320.0, 200.0))
+}
+
+fn zstack_svg(children: &[WidgetElement]) -> Option<String> {
+    const W: f64 = 160.0;
+    const H: f64 = 160.0;
+    let mut layers = String::new();
+    let mut drew = 0usize;
+    for child in children {
+        match child {
+            WidgetElement::Text(TextElement {
+                content,
+                font_size,
+                color,
+                ..
+            }) => {
+                let size = font_size.unwrap_or(16.0);
+                let fill = color_str(color.as_ref(), "#ffffff");
+                layers.push_str(&format!(
+                    r#"<text x="{:.1}" y="{:.1}" text-anchor="middle" dominant-baseline="middle" font-size="{size}" fill="{fill}" font-family="system-ui,sans-serif">{}</text>"#,
+                    W / 2.0,
+                    H / 2.0,
+                    esc(content)
+                ));
+                drew += 1;
+            }
+            WidgetElement::Image(ImageElement {
+                system_name,
+                size,
+                color,
+                ..
+            }) => {
+                let glyph = system_name
+                    .as_deref()
+                    .map(|n| crate::adaptive_card::sf_symbol_glyph_public(n))
+                    .unwrap_or("•");
+                let sz = size.unwrap_or(28.0);
+                let fill = color_str(color.as_ref(), "#ffffff");
+                layers.push_str(&format!(
+                    r#"<text x="{:.1}" y="{:.1}" text-anchor="middle" dominant-baseline="middle" font-size="{sz}" fill="{fill}">{}</text>"#,
+                    W / 2.0,
+                    H / 2.0,
+                    esc(glyph)
+                ));
+                drew += 1;
+            }
+            other => {
+                if let Some(inner) = element_to_svg(other) {
+                    // Strip outer <svg …> … </svg> and center via nested svg.
+                    layers.push_str(&format!(
+                        r#"<svg x="0" y="0" width="{W}" height="{H}" viewBox="0 0 {W} {H}" preserveAspectRatio="xMidYMid meet">{inner_body}</svg>"#,
+                        inner_body = strip_outer_svg(&inner)
+                    ));
+                    drew += 1;
+                }
+            }
+        }
+    }
+    if drew == 0 {
+        return None;
+    }
+    Some(format!(
+        r#"<svg xmlns="http://www.w3.org/2000/svg" width="{W}" height="{H}" viewBox="0 0 {W} {H}"><rect width="100%" height="100%" fill="transparent"/>{layers}</svg>"#
+    ))
+}
+
+fn strip_outer_svg(svg: &str) -> String {
+    let s = svg.trim();
+    if let Some(start) = s.find('>') {
+        let inner = &s[start + 1..];
+        if let Some(end) = inner.rfind("</svg>") {
+            return inner[..end].to_string();
+        }
+    }
+    s.to_string()
 }
 
 /// Rasterize SVG to `data:image/png;base64,…` when the `rasterize` feature is on.

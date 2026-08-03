@@ -18,6 +18,7 @@ pub const META_NONCE_KEY: &str = "__meta_nonce__";
 /// Unix epoch milliseconds of last map write.
 pub const META_UPDATED_AT_KEY: &str = "__meta_updated_at__";
 
+/// String key/value bag persisted by transports.
 pub type DataMap = HashMap<String, String>;
 
 /// Build the storage key for a widget UI config.
@@ -89,16 +90,21 @@ pub fn pick_freshest(maps: impl IntoIterator<Item = DataMap>) -> DataMap {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct WidgetActionEnvelope {
+    /// Action verb (button / toggle / list row).
     pub action: String,
+    /// Optional opaque payload string.
     #[serde(default)]
     pub payload: Option<String>,
     /// Unix epoch milliseconds when the action was enqueued.
     pub ts: u64,
+    /// Widget id that emitted the action.
     pub widget_id: String,
+    /// App Group / prefs group key.
     pub group: String,
 }
 
 impl WidgetActionEnvelope {
+    /// Build an envelope with `ts = now`.
     pub fn new(
         action: impl Into<String>,
         payload: Option<String>,

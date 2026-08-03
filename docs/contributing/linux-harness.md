@@ -15,13 +15,13 @@ OS backends follow `target_os`. The only OS-related Cargo feature is `linux` (gt
 
 ```toml
 # Default (linux pin)
-tauri-plugin-widgets = "0.4"
+tauri-plugin-widgets = "0.5"
 
 # No pin / no gtk
-tauri-plugin-widgets = { version = "0.4", default-features = false }
+tauri-plugin-widgets = { version = "0.5", default-features = false }
 
 # Widgets Board charts
-tauri-plugin-widgets = { version = "0.4", features = ["rasterize"] }
+tauri-plugin-widgets = { version = "0.5", features = ["rasterize"] }
 ```
 
 ## What is tested
@@ -49,7 +49,7 @@ just test-linux-fallback
 just linux-down
 ```
 
-`tools/shot-linux.sh` is **one-shot** (no inbox watch): spins a container, opens the fixture, grabs the live window, exits.  
+`scripts/sh/shot-linux.sh` is **one-shot** (no inbox watch): spins a container, opens the fixture, grabs the live window, exits.  
 Persistent `wshot` is optional for interactive iteration.
 
 ## Files

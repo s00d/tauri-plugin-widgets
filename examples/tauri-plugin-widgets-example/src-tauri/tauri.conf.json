@@ -24,7 +24,7 @@
   },
   "plugins": {
     "widgets": {
-      "appGroup": "group.com.s00d.tauri-plugin-widgets-example",
+      "appGroup": "group.com.s00d.tauriwidgets.example",
       "transport": "auto",
       "extensionBundleId": "com.s00d.tauri-plugin-widgets-example.widgetkit"
     }

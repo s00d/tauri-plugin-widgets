@@ -2,6 +2,7 @@ import Foundation
 import SwiftUI
 
 // MARK: - Top-level config
+// Wire `type` enum catalog: Generated/WireCatalog.swift (`pnpm codegen`).
 
 public struct WidgetUIConfig: Codable {
     public let version: Int?
@@ -168,6 +169,55 @@ public struct GradientConfig: Codable {
     public let gradientType: String
     public let colors: [String]
     public let direction: String?
+
+    public var linearStart: UnitPoint {
+        switch direction {
+        case "bottomToTop": return .bottom
+        case "leadingToTrailing": return .leading
+        case "trailingToLeading": return .trailing
+        case "topLeadingToBottomTrailing": return .topLeading
+        case "topTrailingToBottomLeading": return .topTrailing
+        default: return .top
+        }
+    }
+
+    public var linearEnd: UnitPoint {
+        switch direction {
+        case "bottomToTop": return .top
+        case "leadingToTrailing": return .trailing
+        case "trailingToLeading": return .leading
+        case "topLeadingToBottomTrailing": return .bottomTrailing
+        case "topTrailingToBottomLeading": return .bottomLeading
+        default: return .bottom
+        }
+    }
+
+    @ViewBuilder
+    public func asView() -> some View {
+        let stops = colors.map { Color(hex: $0) }
+        switch gradientType.lowercased() {
+        case "radial":
+            RadialGradient(colors: stops, center: .center, startRadius: 0, endRadius: 160)
+        case "angular":
+            AngularGradient(colors: stops, center: .center)
+        default:
+            LinearGradient(colors: stops, startPoint: linearStart, endPoint: linearEnd)
+        }
+    }
+
+    @ViewBuilder
+    public func filledShape(cornerRadius: CGFloat) -> some View {
+        let shape = RoundedRectangle(cornerRadius: cornerRadius)
+        let stops = colors.map { Color(hex: $0) }
+        switch gradientType.lowercased() {
+        case "radial":
+            shape.fill(RadialGradient(colors: stops, center: .center, startRadius: 0, endRadius: 160))
+        case "angular":
+            shape.fill(AngularGradient(colors: stops, center: .center))
+        default:
+            shape.fill(LinearGradient(colors: stops, startPoint: linearStart, endPoint: linearEnd))
+        }
+    }
 }
 
 public struct ShadowConfig: Codable {

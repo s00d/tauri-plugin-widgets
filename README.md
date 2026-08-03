@@ -18,28 +18,62 @@
 
 Native widgets for **Android**, **iOS**, **macOS**, **Windows**, and **Linux** from one declarative JSON configuration.
 
-**Full documentation** (schema, platform setup, elements, showcase):  
-[https://s00d.github.io/tauri-plugin-widgets](https://s00d.github.io/tauri-plugin-widgets/)
+**Full documentation:** [https://s00d.github.io/tauri-plugin-widgets](https://s00d.github.io/tauri-plugin-widgets/)
 
-> The complete config schema, platform setup guides, and element reference live on the documentation site — they are no longer maintained in this README.
+---
+
+## Two CLIs (read this first)
+
+| | **Using the plugin in your app** | **Developing this repository** |
+|---|---|---|
+| Entry | `npx tauri-widgets` / `pnpm tauri-widgets` | `pnpm -C scripts cli` / `pnpm hosts` |
+| Code | published `dist-cli/` (from `src-cli/`) | `scripts/` (TypeScript + `scripts/sh`) |
+| Examples | `init`, `preview`, `signing`, `doctor`, `validate`, `trace`, `clean` | `hosts up`, `shot`, `test`, `docs-generate`, `triage` |
+
+If you are building an app: ignore `pnpm test:android:visual` and the rest of the root `test:*` / `*-up` scripts — those are for plugin maintainers.
+
+Maintainer map: [`scripts/README.md`](scripts/README.md) · [Contributing](docs/contributing/development.md).
+
+---
 
 ## Install
 
 ```bash
-# any package manager — or: cargo tauri add tauri-plugin-widgets
 pnpm tauri add tauri-plugin-widgets
 ```
-
-Manual alternative:
 
 ```toml
 # src-tauri/Cargo.toml
 [dependencies]
-tauri-plugin-widgets = "0.4"
+tauri-plugin-widgets = "0.5"
 ```
 
 ```bash
 pnpm add tauri-plugin-widgets-api
+```
+
+## Consumer CLI (app authors)
+
+```bash
+npx tauri-widgets init                 # detect platforms → init-macos / ios / windows
+npx tauri-widgets preview ./widget.json --size medium --watch
+npx tauri-widgets signing              # identities + transport verdict
+npx tauri-widgets signing --apply      # write plugins.widgets
+npx tauri-widgets validate ./widget.json --platforms ios,android
+npx tauri-widgets doctor
+npx tauri-widgets trace --follow
+npx tauri-widgets clean --group group.com.example.app
+npx tauri-widgets clean --cache
+```
+
+Preview needs **no native build** — edits to the JSON reload in the browser.
+
+JSON Schema (IDE autocomplete):
+
+```json
+{
+  "$schema": "https://s00d.github.io/tauri-plugin-widgets/schemas/widget-config.v1.json"
+}
 ```
 
 ## Example
@@ -49,6 +83,7 @@ import { setWidgetConfig } from "tauri-plugin-widgets-api";
 
 await setWidgetConfig(
   {
+    $schema: "https://s00d.github.io/tauri-plugin-widgets/schemas/widget-config.v1.json",
     small: {
       type: "vstack",
       padding: 12,
@@ -64,7 +99,7 @@ await setWidgetConfig(
 );
 ```
 
-Register the plugin with `tauri_plugin_widgets::init()` and add `widgets:default` to capabilities. Details: [Install](https://s00d.github.io/tauri-plugin-widgets/guide/install) · [First widget](https://s00d.github.io/tauri-plugin-widgets/guide/first-widget).
+Register `tauri_plugin_widgets::init()` and `widgets:default` in capabilities. Details: [Install](https://s00d.github.io/tauri-plugin-widgets/guide/install) · [First widget](https://s00d.github.io/tauri-plugin-widgets/guide/first-widget).
 
 ## Platform setup
 
@@ -77,11 +112,32 @@ Register the plugin with `tauri_plugin_widgets::init()` and add `widgets:default
 | Linux | [Setup](https://s00d.github.io/tauri-plugin-widgets/guide/setup/linux) |
 | Desktop webview | [Setup](https://s00d.github.io/tauri-plugin-widgets/guide/setup/desktop) |
 
-Quick scaffold: `npx tauri-plugin-widgets-api init-macos|init-ios|init-windows`.
+Or: `npx tauri-widgets init` / `init-macos` / `init-ios` / `init-windows`.
 
-## Contributing
+## Try from zero
 
-Architecture, goldens, harnesses: [docs/contributing/development.md](docs/contributing/development.md).
+Minimal widget JSON + preview (no Tauri app required for layout):
+
+```bash
+# clone / degit this folder
+npx degit s00d/tauri-plugin-widgets/templates/starter my-widget
+cd my-widget
+npx tauri-widgets preview ./widget.json --watch --open
+```
+
+Full app: use the [example](examples/tauri-plugin-widgets-example) or `pnpm tauri add` then `npx tauri-widgets init`.
+
+## Developing this plugin (maintainers)
+
+```bash
+pnpm hosts status
+pnpm hosts up ios android
+pnpm shot weather.small linux
+pnpm cli:test -- --platform desktop
+pnpm docs:generate
+```
+
+See [`scripts/README.md`](scripts/README.md).
 
 ## License
 

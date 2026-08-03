@@ -3,6 +3,9 @@
 //! A Tauri v2 plugin for building native widgets on Android, iOS, macOS,
 //! Windows, and Linux from a single JSON UI configuration.
 //!
+//! Empty placeholders for Adaptive Cards are avoided when the `rasterize`
+//! feature is enabled (chart/canvas/gauge/shape/zstack/gradients → PNG).
+//!
 //! ## Overview
 //!
 //! - **Widget Config API** — send a declarative [`WidgetConfig`](models::WidgetConfig)
@@ -112,32 +115,31 @@ pub mod capabilities;
 pub mod codegen;
 mod commands;
 /// Plugin configuration (`plugins.widgets` in `tauri.conf.json`).
-#[allow(missing_docs)]
 pub mod config;
 /// Plugin error type.
 pub mod error;
+/// Host-side remote image prefetch for WidgetKit / desktop store writes.
+pub mod image_prefetch;
+/// SF Symbol → Material / emoji resolve for non-Apple hosts.
+pub mod icons;
 /// Widget IR models (`WidgetConfig`, `WidgetElement`, …).
 ///
 /// Element structs and their fields carry rustdoc used by `schemars` / docs site.
-#[allow(missing_docs)]
 pub mod models;
+/// Host-side IR normalization (`textStyle` → points, semantic colors → adaptive hex).
+pub mod normalize;
 /// SVG / PNG helpers for Adaptive Cards fallbacks.
 #[allow(missing_docs)]
 pub mod rasterize;
 /// Render receipts written by native / desktop surfaces.
-#[allow(missing_docs)]
 pub mod receipt;
 /// Canonical layout dumps for snapshot tests.
-#[allow(missing_docs)]
 pub mod snapshot;
 /// Shared key-value store helpers and action envelopes.
-#[allow(missing_docs)]
 pub mod store;
 /// Host black-box journal (`WIDGET_DEBUG` / debug builds).
-#[allow(missing_docs)]
 pub mod trace;
 /// macOS / desktop config transport selection.
-#[allow(missing_docs)]
 pub mod transport;
 
 #[cfg(target_os = "windows")]

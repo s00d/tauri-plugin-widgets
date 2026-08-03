@@ -334,36 +334,54 @@ pub fn max_nonce_across(group: &str) -> u64 {
         .unwrap_or(0)
 }
 
-/// Write `map` to every available transport except `primary` (same bytes / nonce).
+/// Collect `pending_actions` from every readable sibling (including primary).
 ///
-/// The widget still multi-reads and picks by nonce. Mirroring keeps inactive
-/// channels from serving a stale higher-nonce snapshot.
-///
-/// Concurrent enqueues: merge `pending_actions` from the sibling's current map
-/// into the outgoing mirror so a host config write cannot wipe a just-appended action.
-pub fn mirror_to_siblings(primary: &dyn Transport, group: &str, map: &DataMap) {
+/// Call on poll — cheaper and rarer than mirroring the full map on every write.
+pub fn harvest_pending_actions(group: &str) -> Vec<crate::store::WidgetActionEnvelope> {
+    use crate::store::{parse_pending_actions, PENDING_ACTIONS_KEY};
+    let mut out = Vec::new();
+    let mut seen = std::collections::HashSet::new();
     for t in all_transports(group) {
-        if t.name() == primary.name() || !t.available() {
+        if !t.available() {
             continue;
         }
-        let mut out = map.clone();
-        if let Some(existing) = t.read() {
-            if let Some(pa) = existing.get(store::PENDING_ACTIONS_KEY) {
-                // Prefer the longer / non-empty queue when the outgoing map cleared it.
-                let outgoing_empty = out
-                    .get(store::PENDING_ACTIONS_KEY)
-                    .map(|s| s.trim().is_empty() || s.trim() == "[]")
-                    .unwrap_or(true);
-                if outgoing_empty && !pa.trim().is_empty() && pa.trim() != "[]" {
-                    out.insert(store::PENDING_ACTIONS_KEY.into(), pa.clone());
-                    // Sibling queue must outrank the empty primary snapshot.
-                    let floor = store::map_nonce(&existing).max(store::map_nonce(map));
-                    store::touch_meta_above(&mut out, floor);
-                }
+        let Some(m) = t.read() else { continue };
+        for a in parse_pending_actions(m.get(PENDING_ACTIONS_KEY).map(|s| s.as_str())) {
+            let key = format!(
+                "{}|{}|{}|{}",
+                a.action,
+                a.widget_id,
+                a.payload.as_deref().unwrap_or(""),
+                a.ts
+            );
+            if seen.insert(key) {
+                out.push(a);
             }
         }
-        if let Err(e) = t.write(&out) {
-            log::debug!("mirror_to_siblings({}): {e}", t.name());
+    }
+    out.sort_by_key(|a| a.ts);
+    out
+}
+
+/// Clear `pending_actions` on every transport after a successful host drain.
+pub fn clear_pending_actions_everywhere(group: &str) {
+    use crate::store::{touch_meta, PENDING_ACTIONS_KEY};
+    for t in all_transports(group) {
+        if !t.available() {
+            continue;
+        }
+        let Some(mut m) = t.read() else { continue };
+        let empty = m
+            .get(PENDING_ACTIONS_KEY)
+            .map(|s| s.trim().is_empty() || s.trim() == "[]")
+            .unwrap_or(true);
+        if empty {
+            continue;
+        }
+        m.insert(PENDING_ACTIONS_KEY.into(), "[]".into());
+        touch_meta(&mut m);
+        if let Err(e) = t.write(&m) {
+            log::debug!("clear_pending_actions_everywhere({}): {e}", t.name());
         }
     }
 }

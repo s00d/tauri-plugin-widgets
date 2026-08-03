@@ -22,7 +22,7 @@ Two independent Windows integrations. Do **not** mix them in one code path.
 - API: `tauri_plugin_widgets::windows::workerw::{find_workerw, attach_to_workerw}`
 - Attach after creating a frameless desktop widget window; pass its HWND
 - Compile-check via `cargo xwin check --features workerw`
-- Runtime smoke only on an interactive Windows desktop session (`tools/win/workerw-smoke.ps1` optional)
+- Runtime smoke only on an interactive Windows desktop session (`scripts/win/workerw-smoke.ps1` optional)
 
 ## UTM tooling
 

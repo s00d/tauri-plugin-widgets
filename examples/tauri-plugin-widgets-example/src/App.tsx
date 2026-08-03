@@ -15,7 +15,7 @@ import { PRESETS } from "./presets";
 import "./App.css";
 
 const WIDGET_KIND = "ExampleWidget";
-const APP_GROUP = "group.com.s00d.tauri-plugin-widgets-example";
+const APP_GROUP = "group.com.s00d.tauriwidgets.example";
 const WIDGET_ID = "example";
 const WIDGET_LABEL = "desktop-widget";
 

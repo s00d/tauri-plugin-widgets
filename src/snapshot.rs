@@ -3,7 +3,9 @@
 use crate::models::{WidgetConfig, WidgetElement, VStackElement, HStackElement, ZStackElement, GridElement, ContainerElement, TextElement, ImageElement, ProgressElement, ButtonElement, DividerElement, SpacerElement, LinkElement, ShapeElement};
 use serde_json::{json, Value};
 
-/// Core elements with a strict cross-platform snapshot contract.
+/// Core elements present on every platform with preserved IR semantics.
+/// Pixel-identical rendering is not guaranteed — see degraded cells in the
+/// capability matrix (`image.systemName`, Windows `zstack` / `shape`, …).
 pub const CORE_ELEMENTS: &[&str] = &[
     "vstack",
     "hstack",
@@ -25,6 +27,7 @@ pub const EXTENDED_ELEMENTS: &[&str] = &[
     "gauge", "toggle", "date", "chart", "list", "timer", "canvas", "label",
 ];
 
+/// `true` when `ty` is in [`CORE_ELEMENTS`].
 pub fn is_core_element(ty: &str) -> bool {
     CORE_ELEMENTS.contains(&ty)
 }

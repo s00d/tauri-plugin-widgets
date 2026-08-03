@@ -4,7 +4,7 @@
 <dict>
     <key>com.apple.security.application-groups</key>
     <array>
-        <string>group.com.s00d.tauri-plugin-widgets-example</string>
+        <string>group.com.s00d.tauriwidgets.example</string>
     </array>
 </dict>
 </plist>

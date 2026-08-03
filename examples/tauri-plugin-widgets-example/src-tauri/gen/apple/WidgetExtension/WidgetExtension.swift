@@ -4,7 +4,7 @@ import TauriWidgets
 
 struct WidgetExtension: Widget {
     let kind = "ExampleWidget"
-    let appGroup = "group.com.s00d.tauri-plugin-widgets-example"
+    let appGroup = "group.com.s00d.tauriwidgets.example"
     let widgetId = "example"
 
     var body: some WidgetConfiguration {

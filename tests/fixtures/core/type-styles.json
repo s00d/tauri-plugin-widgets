@@ -1,4 +1,5 @@
 {
+  "$schema": "https://s00d.github.io/tauri-plugin-widgets/schemas/widget-config.v1.json",
   "version": 1,
   "small": {
     "type": "vstack",
@@ -12,7 +13,10 @@
         "content": "Headline",
         "textStyle": "headline",
         "fontWeight": "semibold",
-        "color": { "light": "#0f172a", "dark": "#f8fafc" }
+        "color": {
+          "light": "#0f172a",
+          "dark": "#f8fafc"
+        }
       },
       {
         "type": "text",

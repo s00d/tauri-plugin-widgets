@@ -21,7 +21,7 @@ import org.junit.runner.RunWith
 /**
  * Level-2 visual stand: AppWidgetHost → real Glance/RemoteViews → bitmap assert.
  *
- * Env: tools/android-up.sh (grantbind, animations off, pinned clock).
+ * Env: scripts/sh/android-up.sh (grantbind, animations off, pinned clock).
  * Record one case:
  *   ./gradlew :connectedDebugAndroidTest \
  *     -Pgolden.record=true \

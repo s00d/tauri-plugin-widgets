@@ -35,8 +35,10 @@ fn main() {
         result.unwrap();
     }
 
-    // Skip native Swift bridge when building codegen tooling (avoids duplicate `main`).
-    if target.contains("apple-darwin") && std::env::var("CARGO_FEATURE_CODEGEN").is_err() {
+    // Always compile the WidgetKit reload bridge on macOS host builds.
+    // `swiftc -parse-as-library` already avoids a duplicate `main`; gating on
+    // `codegen` left `macos_transport` with undefined symbols under `--all-features`.
+    if target.contains("apple-darwin") {
         let sdk = macos_sdk_path();
         let arch = if target.contains("aarch64") {
             "arm64"

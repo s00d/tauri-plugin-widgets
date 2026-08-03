@@ -42,7 +42,7 @@ Optional Cargo features: [Cargo features](/api/cargo-features).
 ```toml
 # src-tauri/Cargo.toml
 [dependencies]
-tauri-plugin-widgets = "0.4"
+tauri-plugin-widgets = "0.5"
 ```
 
 Or:
@@ -74,9 +74,9 @@ pub fn run() {
 
 ## Apple hosts: plugin config
 
-`init-macos` / `init-ios` do **not** write `plugins.widgets` for you. Without it, **plugin init fails** on macOS and iOS (`plugins.widgets.appGroup is required`).
+`init-macos` / `init-ios` **write** `plugins.widgets` (appGroup + transport). Without that block, **plugin init fails** on macOS and iOS (`plugins.widgets.appGroup is required`).
 
-Add to `src-tauri/tauri.conf.json` (use your real App Group id):
+If you scaffolded manually, add to `src-tauri/tauri.conf.json`:
 
 ```json
 {
@@ -89,13 +89,20 @@ Add to `src-tauri/tauri.conf.json` (use your real App Group id):
 }
 ```
 
+Or let discovery fill it:
+
+```bash
+npx tauri-widgets signing          # see identities + verdict
+npx tauri-widgets signing --apply  # write transport from certificates
+```
+
 | Host | Notes |
 | --- | --- |
-| **iOS** | `transport` must be `appGroup` (or omit / `auto` → appGroup). |
-| **macOS** local ad-hoc | Prefer `"transport": "widgetContainer"` until you have a Team ID + App Groups. |
+| **iOS** | `transport` must be `appGroup` (`init-ios` sets this). Physical device widgets need a **paid** Apple Developer account (App Groups). |
+| **macOS** local ad-hoc | `init-macos` / `signing` pick `"widgetContainer"` when no Team ID cert exists. |
 | **macOS** Team ID / MAS | `"transport": "appGroup"`. |
 
-Details: [Plugin config](/api/plugin-config) · [Transport](/guide/transport).
+Details: [Plugin config](/api/plugin-config) · [Transport — App Groups & signing](/guide/transport#app-groups--signing-plugin-consumers).
 
 Linux / Windows desktop webview do not need this block for the built-in window path.
 

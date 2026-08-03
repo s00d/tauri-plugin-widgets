@@ -27,6 +27,7 @@ TAURI_WIDGET_MIN_RELOAD_SECS=0 pnpm tauri ios dev
 WIDGET_TRANSPORT=widgetContainer pnpm tauri dev
 
 # macOS build with explicit signing identity for the .appex
+# (copy the string from `npx tauri-widgets signing`)
 WIDGET_SIGN_IDENTITY="Apple Development: you@example.com (TEAMID)" \
   pnpm tauri build
 ```

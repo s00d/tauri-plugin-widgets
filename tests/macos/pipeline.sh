@@ -14,7 +14,7 @@ cd "$TMP/app"
 # Drop pre-existing macos-widget so init-macos --force regenerates from templates.
 rm -rf src-tauri/macos-widget
 
-node "$REPO/bin/cli.mjs" init-macos \
+node "$REPO/dist-cli/cli.mjs" init-macos \
   --force \
   --app-group group.test.app \
   --bundle-id test.app.widgetkit

@@ -19,6 +19,22 @@ public sealed class WidgetProvider
 {
     private static readonly WidgetStore Store = new();
     private static readonly ConcurrentWidgetSet Running = new();
+    /// <summary>
+    /// Minute tick so countdown/timer cards refresh without a live client clock.
+    /// Not second-level live — Adaptive Cards have no client JS.
+    /// </summary>
+    private static readonly System.Threading.Timer RefreshTimer = new(
+        _ =>
+        {
+            foreach (var id in Running.Ids)
+            {
+                try { Push(id); }
+                catch { /* widget may have been removed */ }
+            }
+        },
+        null,
+        dueTime: TimeSpan.FromSeconds(15),
+        period: TimeSpan.FromMinutes(1));
 
     static WidgetProvider()
     {
@@ -36,6 +52,8 @@ public sealed class WidgetProvider
                 }
             }
         };
+        // Keep the timer rooted for the process lifetime.
+        GC.KeepAlive(RefreshTimer);
     }
 
 #if !WIDGET_SMOKE

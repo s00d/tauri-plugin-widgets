@@ -10,8 +10,57 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 CONFIGURATION="${1:-Release}"
 DERIVED_DATA="$SCRIPT_DIR/build"
-ENTITLEMENTS="$SCRIPT_DIR/TauriWidgetExtension.entitlements"
+HOST_ENTS="$SCRIPT_DIR/App.entitlements"
+EXT_ENTS="$SCRIPT_DIR/TauriWidgetExtension.entitlements"
 IDENTITY="${WIDGET_SIGN_IDENTITY:-${APPLE_SIGNING_IDENTITY:--}}"
+
+# ─── Regenerate entitlements from plugins.widgets.appGroup ───────────────────
+# Single source of truth in tauri.conf.json — avoids host/extension drift.
+
+CONF="$SCRIPT_DIR/../tauri.conf.json"
+if [[ ! -f "$CONF" ]]; then
+  CONF="$(cd "$SCRIPT_DIR/../.." && pwd)/src-tauri/tauri.conf.json"
+fi
+
+gen_entitlements() {
+  local dest="$1"
+  local group="$2"
+  local sandbox="$3"
+  {
+    echo '<?xml version="1.0" encoding="UTF-8"?>'
+    echo '<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">'
+    echo '<plist version="1.0">'
+    echo '<dict>'
+    if [[ "$sandbox" == "1" ]]; then
+      echo '    <key>com.apple.security.app-sandbox</key>'
+      echo '    <true/>'
+    fi
+    echo '    <key>com.apple.security.application-groups</key>'
+    echo '    <array>'
+    echo "        <string>${group}</string>"
+    echo '    </array>'
+    echo '</dict>'
+    echo '</plist>'
+  } >"$dest"
+}
+
+if [[ -f "$CONF" ]] && command -v node >/dev/null 2>&1; then
+  GROUP="$(node -e "
+    const fs = require('fs');
+    const conf = JSON.parse(fs.readFileSync(process.argv[1], 'utf8'));
+    const g = conf.plugins && conf.plugins.widgets && conf.plugins.widgets.appGroup;
+    if (!g) { console.error('ERROR: plugins.widgets.appGroup missing in', process.argv[1]); process.exit(1); }
+    process.stdout.write(String(g));
+  " "$CONF")"
+  gen_entitlements "$HOST_ENTS" "$GROUP" 0
+  gen_entitlements "$EXT_ENTS" "$GROUP" 1
+  echo "[widget] Regenerated entitlements for App Group: $GROUP"
+elif [[ -f "$EXT_ENTS" ]]; then
+  echo "[widget] WARNING: could not read plugins.widgets.appGroup — using existing entitlements"
+else
+  echo "ERROR: need plugins.widgets.appGroup in tauri.conf.json (and node on PATH) to generate entitlements" >&2
+  exit 1
+fi
 
 # ─── Generate Xcode project ─────────────────────────────────────────────────
 
@@ -58,13 +107,13 @@ rm -rf "$APPEX_PATH/Contents/Frameworks"
 
 # ─── Sign .appex with WidgetKit entitlements ─────────────────────────────────
 
-if [ -f "$ENTITLEMENTS" ]; then
+if [ -f "$EXT_ENTS" ]; then
     codesign --force --options runtime --sign "$IDENTITY" \
-        --entitlements "$ENTITLEMENTS" \
+        --entitlements "$EXT_ENTS" \
         "$APPEX_PATH"
     echo "[widget] Signed .appex with entitlements ($IDENTITY)"
 else
-    echo "WARNING: Entitlements not found at $ENTITLEMENTS — signing without them"
+    echo "WARNING: Entitlements not found at $EXT_ENTS — signing without them"
     codesign --force --options runtime --sign "$IDENTITY" "$APPEX_PATH"
 fi
 

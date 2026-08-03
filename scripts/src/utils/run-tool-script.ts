@@ -3,8 +3,8 @@ import { join } from "node:path";
 import { repoRoot } from "../utils/workspace.js";
 
 /**
- * Run a repo-root bash script under `tools/` with inherited stdio.
- * Extra args after the script name are forwarded.
+ * Run a repo-root bash script (usually under `scripts/sh/` or `scripts/win/`)
+ * with inherited stdio. Extra args after the script name are forwarded.
  */
 export function runToolScript(scriptRel: string, args: string[] = []): void {
   const root = repoRoot();

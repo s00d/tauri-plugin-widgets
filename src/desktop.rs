@@ -8,7 +8,7 @@ use tauri::{
     plugin::PluginApi, AppHandle, Emitter, Manager, Runtime, WebviewUrl, WebviewWindowBuilder,
 };
 
-use crate::apply::{config_content_hash, ApplyOutcome, ReloadOutcome};
+use crate::apply::{config_content_hash, ApplyOutcome, ReloadOutcome, SkipReason};
 use crate::config::WidgetsPluginConfig;
 use crate::error::Error;
 use crate::models::{WidgetConfig, WidgetWindowConfig};
@@ -16,7 +16,7 @@ use crate::receipt::{receipts_path, ReceiptStore, WidgetRenderReceipt};
 use crate::store::{
     self, config_key, parse_pending_actions, DataMap, PENDING_ACTIONS_KEY,
 };
-use crate::trace::{trace_path, TraceEvent, TraceSkipReason, TraceStore, WidgetTrace};
+use crate::trace::{trace_path, TraceEvent, TraceStore, WidgetTrace};
 
 #[cfg(target_os = "macos")]
 use crate::transport::Transport;
@@ -224,9 +224,9 @@ impl<R: Runtime> Widget<R> {
         #[cfg(target_os = "macos")]
         {
             self.macos_driver.write(map)?;
-            // Widget still picks freshest across all transports — keep siblings in sync
-            // so a stale UserDefaults/App Group snapshot cannot outrank this write.
-            crate::macos_transport::mirror_to_siblings(self.macos_driver.as_ref(), group, map);
+            // Config writes stay on the selected driver only. pending_actions are
+            // harvested from siblings on poll (see harvest_pending_actions).
+            let _ = group;
         }
         #[cfg(target_os = "windows")]
         {
@@ -452,7 +452,14 @@ impl<R: Runtime> Widget<R> {
         }
         self.remember_group(group);
 
-        let json = serde_json::to_string(config)
+        let mut config = crate::normalize::normalize(
+            config,
+            crate::capabilities::WidgetPlatform::current(),
+        )
+        .config;
+        crate::image_prefetch::prefetch_remote_images(&mut config);
+
+        let json = serde_json::to_string(&config)
             .map_err(|e| Error::new(format!("serialize config: {e}")))?;
         let compact: serde_json::Value = serde_json::from_str(&json)
             .map_err(|e| Error::new(format!("serialize config: {e}")))?;
@@ -480,7 +487,7 @@ impl<R: Runtime> Widget<R> {
                 nonce: 0,
                 bytes: json.len(),
                 changed: false,
-                skip: Some(TraceSkipReason::Unchanged { hash }),
+                skip: Some(SkipReason::Unchanged { hash }),
             });
             self.trace.push(TraceEvent::Reload {
                 performed: false,
@@ -490,7 +497,7 @@ impl<R: Runtime> Widget<R> {
             return Ok(outcome);
         }
 
-        crate::capabilities::log_capabilities(config);
+        crate::capabilities::log_capabilities(&config);
         let t0 = std::time::Instant::now();
         self.set_items(&key, &json, group)?;
         let write_ms = t0.elapsed().as_millis() as u32;
@@ -523,7 +530,7 @@ impl<R: Runtime> Widget<R> {
             // Widgets Board provider reads Adaptive Card blobs from the same store.
             // Desktop webview (widget.html) remains the fallback outside Widget Board.
             if let Some(result) =
-                crate::adaptive_card::to_adaptive_card_for_size(config, "medium")
+                crate::adaptive_card::to_adaptive_card_for_size(&config, "medium")
             {
                 let template = serde_json::to_string(&result.card)
                     .map_err(|e| Error::new(format!("serialize adaptive card: {e}")))?;
@@ -663,7 +670,18 @@ impl<R: Runtime> Widget<R> {
             *map = freshest;
         }
 
+        #[cfg(target_os = "macos")]
+        let actions = {
+            let harvested = crate::macos_transport::harvest_pending_actions(group);
+            if !harvested.is_empty() {
+                harvested
+            } else {
+                parse_pending_actions(map.get(PENDING_ACTIONS_KEY).map(|s| s.as_str()))
+            }
+        };
+        #[cfg(not(target_os = "macos"))]
         let actions = parse_pending_actions(map.get(PENDING_ACTIONS_KEY).map(|s| s.as_str()));
+
         if actions.is_empty() {
             return Ok(Vec::new());
         }
@@ -682,6 +700,10 @@ impl<R: Runtime> Widget<R> {
         drop(store);
 
         self.persist_map(group, &snapshot)?;
+        #[cfg(target_os = "macos")]
+        {
+            crate::macos_transport::clear_pending_actions_everywhere(group);
+        }
 
         Ok(actions)
     }

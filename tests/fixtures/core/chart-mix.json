@@ -1,4 +1,5 @@
 {
+  "$schema": "https://s00d.github.io/tauri-plugin-widgets/schemas/widget-config.v1.json",
   "version": 1,
   "medium": {
     "type": "hstack",
@@ -24,10 +25,26 @@
             "chartType": "bar",
             "tint": "#22c55e",
             "chartData": [
-              { "label": "M", "value": 3, "color": "#22c55e" },
-              { "label": "T", "value": 5, "color": "#3b82f6" },
-              { "label": "W", "value": 2, "color": "#f59e0b" },
-              { "label": "T", "value": 7, "color": "#ef4444" }
+              {
+                "label": "M",
+                "value": 3,
+                "color": "#22c55e"
+              },
+              {
+                "label": "T",
+                "value": 5,
+                "color": "#3b82f6"
+              },
+              {
+                "label": "W",
+                "value": 2,
+                "color": "#f59e0b"
+              },
+              {
+                "label": "T",
+                "value": 7,
+                "color": "#ef4444"
+              }
             ]
           }
         ]
@@ -48,11 +65,26 @@
             "chartType": "line",
             "tint": "#38bdf8",
             "chartData": [
-              { "label": "1", "value": 2 },
-              { "label": "2", "value": 4 },
-              { "label": "3", "value": 3 },
-              { "label": "4", "value": 6 },
-              { "label": "5", "value": 5 }
+              {
+                "label": "1",
+                "value": 2
+              },
+              {
+                "label": "2",
+                "value": 4
+              },
+              {
+                "label": "3",
+                "value": 3
+              },
+              {
+                "label": "4",
+                "value": 6
+              },
+              {
+                "label": "5",
+                "value": 5
+              }
             ]
           }
         ]
@@ -73,9 +105,21 @@
             "type": "chart",
             "chartType": "pie",
             "chartData": [
-              { "label": "A", "value": 40, "color": "#3b82f6" },
-              { "label": "B", "value": 35, "color": "#22c55e" },
-              { "label": "C", "value": 25, "color": "#f97316" }
+              {
+                "label": "A",
+                "value": 40,
+                "color": "#3b82f6"
+              },
+              {
+                "label": "B",
+                "value": 35,
+                "color": "#22c55e"
+              },
+              {
+                "label": "C",
+                "value": 25,
+                "color": "#f97316"
+              }
             ]
           }
         ]

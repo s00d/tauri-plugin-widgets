@@ -189,7 +189,7 @@ for (const c of cases) {
     const vp = SIZE_VIEWPORTS[c.size] ?? SIZE_VIEWPORTS.small;
     await page.setViewportSize(vp);
     await stubTauri(page, fixture, c.theme);
-    await page.goto(widgetHtmlUrl(c.size));
+    await page.goto(widgetHtmlUrl(c.size, c.theme));
     await waitForRender(page);
 
     const raw = await dumpTree(page);

@@ -44,9 +44,11 @@ export function listFixtures(): Array<{ id: string; absPath: string; sizes: stri
   return out;
 }
 
-export function widgetHtmlUrl(size: string): string {
+export function widgetHtmlUrl(size: string, theme?: string): string {
   const base = pathToFileURL(WIDGET_HTML).href;
-  return `${base}?group=g&widgetId=w&size=${encodeURIComponent(size)}`;
+  const q = new URLSearchParams({ group: "g", widgetId: "w", size });
+  if (theme === "light" || theme === "dark") q.set("theme", theme);
+  return `${base}?${q.toString()}`;
 }
 
 export function geometryPath(id: string, size: string, platform: "desktop" | "android" = "desktop"): string {

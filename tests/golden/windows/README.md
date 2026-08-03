@@ -4,7 +4,7 @@ Record via PreviewHost on a Windows VM (`AdaptiveCards.Rendering.Wpf`, `Smoke=fa
 
 ```bash
 just record-windows weather.small
-# or: tools/win/shot.ps1 -Mode visual -Record
+# or: scripts/win/shot.ps1 -Mode visual -Record
 ```
 
 Smoke walker (`Smoke=true`) is only for bootstrap / fallback — visual goldens must use the full WPF renderer.

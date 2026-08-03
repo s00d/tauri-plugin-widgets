@@ -13,6 +13,13 @@ pub enum SkipReason {
         /// Hash of the unchanged config bytes.
         hash: u64,
     },
+    /// No live widget instances to deliver to.
+    NoInstances,
+    /// Selected transport is unavailable.
+    TransportUnavailable {
+        /// Transport name that was unavailable.
+        name: String,
+    },
 }
 
 /// Result of a WidgetKit / AppWidget reload attempt.
