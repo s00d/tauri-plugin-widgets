@@ -188,7 +188,7 @@ fi
 
 # ── Linux (Docker, native arch) ────────────────────────────────────────────
 if want linux; then
-  if command -v docker >/dev/null 2>&1 && docker image inspect widgets-linux >/dev/null 2>&1; then
+  if command -v docker >/dev/null 2>&1 && [[ -n "$(docker images -q widgets-linux 2>/dev/null)" ]]; then
     log "Linux: Docker cargo build --release (binary only; no .deb)"
     # Host must provide dist/ (image has no Node).
     if [[ ! -d "$EXAMPLE/dist" ]]; then
