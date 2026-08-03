@@ -366,60 +366,97 @@ pub fn harvest_pending_actions(group: &str) -> Vec<crate::store::WidgetActionEnv
 /// Clear drained `pending_actions` on every transport after a successful host drain.
 ///
 /// Re-reads each transport and keeps any actions that arrived after `drained` was
-/// harvested (matched by action|widget|payload|ts), so a tap between harvest and
-/// clear is not lost.
+/// harvested (matched by action|widget|payload|ts with multiplicity), so a tap
+/// between harvest and clear is not lost.
 pub fn clear_pending_actions_everywhere(
     group: &str,
     drained: &[crate::store::WidgetActionEnvelope],
 ) {
     use crate::store::{
-        encode_pending_actions, parse_pending_actions, touch_meta, PENDING_ACTIONS_KEY,
+        encode_pending_actions, map_nonce, parse_pending_actions, PENDING_ACTIONS_KEY,
     };
-    let drained_keys: std::collections::HashSet<String> = drained
-        .iter()
-        .map(|a| {
-            format!(
-                "{}|{}|{}|{}",
-                a.action,
-                a.widget_id,
-                a.payload.as_deref().unwrap_or(""),
-                a.ts
-            )
-        })
-        .collect();
+    use std::collections::HashMap;
+
+    fn action_key(a: &crate::store::WidgetActionEnvelope) -> String {
+        format!(
+            "{}|{}|{}|{}",
+            a.action,
+            a.widget_id,
+            a.payload.as_deref().unwrap_or(""),
+            a.ts
+        )
+    }
+
+    fn filter_pending(
+        current: Vec<crate::store::WidgetActionEnvelope>,
+        drained_counts: &HashMap<String, usize>,
+    ) -> Vec<crate::store::WidgetActionEnvelope> {
+        let mut counts = drained_counts.clone();
+        current
+            .into_iter()
+            .filter(|a| {
+                let key = action_key(a);
+                if let Some(c) = counts.get_mut(&key) {
+                    if *c > 0 {
+                        *c -= 1;
+                        return false;
+                    }
+                }
+                true
+            })
+            .collect()
+    }
+
+    let mut drained_counts: HashMap<String, usize> = HashMap::new();
+    for a in drained {
+        *drained_counts.entry(action_key(a)).or_default() += 1;
+    }
+
     for t in all_transports(group) {
         if !t.available() {
             continue;
         }
-        let Some(mut m) = t.read() else { continue };
-        let current = parse_pending_actions(m.get(PENDING_ACTIONS_KEY).map(|s| s.as_str()));
-        if current.is_empty() {
-            continue;
-        }
-        let remaining: Vec<_> = current
-            .into_iter()
-            .filter(|a| {
-                let key = format!(
-                    "{}|{}|{}|{}",
-                    a.action,
-                    a.widget_id,
-                    a.payload.as_deref().unwrap_or(""),
-                    a.ts
-                );
-                !drained_keys.contains(&key)
-            })
-            .collect();
-        let encoded = match encode_pending_actions(&remaining) {
-            Ok(s) => s,
-            Err(e) => {
-                log::debug!("clear_pending_actions_everywhere encode({}): {e}", t.name());
+        for attempt in 0..5 {
+            let Some(m_at_read) = t.read() else {
+                break;
+            };
+            let nonce_at_read = map_nonce(&m_at_read);
+            let pending_snapshot = m_at_read.get(PENDING_ACTIONS_KEY).cloned();
+            let current = parse_pending_actions(pending_snapshot.as_deref());
+            if current.is_empty() {
+                break;
+            }
+
+            let Some(m_disk) = t.read() else {
+                break;
+            };
+            let disk_nonce = map_nonce(&m_disk);
+            let disk_pending = m_disk.get(PENDING_ACTIONS_KEY).cloned();
+            if (disk_nonce > nonce_at_read || disk_pending != pending_snapshot) && attempt + 1 < 5
+            {
                 continue;
             }
-        };
-        m.insert(PENDING_ACTIONS_KEY.into(), encoded);
-        touch_meta(&mut m);
-        if let Err(e) = t.write(&m) {
-            log::debug!("clear_pending_actions_everywhere({}): {e}", t.name());
+
+            let fresh = parse_pending_actions(m_disk.get(PENDING_ACTIONS_KEY).map(|s| s.as_str()));
+            if fresh.is_empty() {
+                break;
+            }
+            let remaining = filter_pending(fresh, &drained_counts);
+            let encoded = match encode_pending_actions(&remaining) {
+                Ok(s) => s,
+                Err(e) => {
+                    log::debug!("clear_pending_actions_everywhere encode({}): {e}", t.name());
+                    break;
+                }
+            };
+            let mut m = m_disk;
+            m.insert(PENDING_ACTIONS_KEY.into(), encoded);
+            // Do NOT touch_meta here — bumping nonce on a probe-only sibling lets it
+            // win pick_freshest and wipe the live config on the next host poll.
+            if let Err(e) = t.write(&m) {
+                log::debug!("clear_pending_actions_everywhere({}): {e}", t.name());
+            }
+            break;
         }
     }
 }

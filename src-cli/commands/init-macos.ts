@@ -121,15 +121,16 @@ export function initMacosAction(opts: InitMacosOptions): void {
       modified = true;
       console.log(`  Set build.beforeBundleCommand → ${beforeCmd}`);
     } else {
-      const existing = String(data.build.beforeBundleCommand);
+      const raw = String(data.build.beforeBundleCommand);
+      const existing = raw.replace(/\s*\|\|\s*true\s*$/, "").trim();
       if (existing.includes("build-widget.sh")) {
-        // already wired
-      } else if (existing.includes("|| true")) {
-        data.build.beforeBundleCommand = existing.replace(/\s*\|\|\s*true\s*$/, "").trim();
-        modified = true;
-        console.log("  Removed '|| true' from beforeBundleCommand");
+        if (existing !== raw) {
+          data.build.beforeBundleCommand = existing;
+          modified = true;
+          console.log("  Removed '|| true' from beforeBundleCommand");
+        }
       } else {
-        data.build.beforeBundleCommand = `${existing.trim()} && ${beforeCmd}`;
+        data.build.beforeBundleCommand = `${existing} && ${beforeCmd}`;
         modified = true;
         console.log(`  Composed build.beforeBundleCommand → ${data.build.beforeBundleCommand}`);
       }

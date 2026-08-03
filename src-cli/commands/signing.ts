@@ -155,10 +155,13 @@ export const signing = defineCommand({
         extensionBundleId,
         force: false,
       });
+      const confAfter = readTauriConf(cwd);
+      const actualTransport =
+        confAfter?.data?.plugins?.widgets?.transport ?? applyTransport;
       console.log(
         result.wrote
-          ? `\nWrote plugins.widgets (transport=${applyTransport}, appGroup=${appGroup})`
-          : `\nplugins.widgets already matched (transport=${applyTransport})`,
+          ? `\nWrote plugins.widgets (transport=${actualTransport}, appGroup=${appGroup})`
+          : `\nplugins.widgets already matched (transport=${actualTransport})`,
       );
       const ents = syncMacosEntitlementsFromConf(cwd, readTauriConf(cwd));
       if (ents.wrote) {

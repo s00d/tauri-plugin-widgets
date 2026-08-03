@@ -91,26 +91,6 @@ private fun renderLiveTimer(context: Context, el: El, modifier: GlanceModifier) 
 }
 
 @Composable
-private fun renderLiveTextClock(context: Context, el: El, modifier: GlanceModifier) {
-    val argb = colorProviderArgb(
-        resolveColorProvider(context, el.opt("color")),
-        context,
-        semanticLabelProvider(context).getColor(context).toArgb(),
-    )
-    val fontSize = el.num(
-        "fontSize",
-        semanticTextSizeSp(el.str("textStyle", "")).toDouble(),
-    ).toFloat().takeIf { it > 0f } ?: 14f
-    val rv = RemoteViews(context.packageName, R.layout.tauri_textclock).apply {
-        setCharSequence(R.id.tauri_clock, "setFormat12Hour", "h:mm a")
-        setCharSequence(R.id.tauri_clock, "setFormat24Hour", "HH:mm")
-        setTextColor(R.id.tauri_clock, argb)
-        setTextViewTextSize(R.id.tauri_clock, TypedValue.COMPLEX_UNIT_SP, fontSize)
-    }
-    AndroidRemoteViews(remoteViews = rv, modifier = modifier)
-}
-
-@Composable
 internal fun renderElementText(
     context: Context,
     el: El,

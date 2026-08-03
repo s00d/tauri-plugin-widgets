@@ -75,7 +75,7 @@ resvg = { version = "0.45", optional = true }
 # ureq → rustls → ring needs NDK C toolchain on Android; Rust prefetch is cfg'd
 # off there anyway (Kotlin localPath). Keep the crate off the Android graph.
 [target.'cfg(not(target_os = "android"))'.dependencies]
-ureq = { version = ">=2.0, <2.12", default-features = true, optional = true }
+ureq = { version = ">=2.0, <2.10", default-features = true, optional = true }
 
 [target.'cfg(target_os = "linux")'.dependencies]
 gtk = { version = "0.18", optional = true }

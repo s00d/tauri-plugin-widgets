@@ -8,7 +8,25 @@ export interface EntitlementsOptions {
   sandbox?: boolean;
 }
 
+function assertSafeAppGroup(appGroup: string): void {
+  if (/[<>&"']/.test(appGroup)) {
+    throw new Error(`appGroup contains XML-unsafe characters: ${appGroup}`);
+  }
+}
+
+/** Escape text embedded in XML plist `<string>` nodes. */
+export function xmlEscapePlist(s: string): string {
+  return s
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&apos;");
+}
+
 export function entitlementsPlist({ appGroup, sandbox = false }: EntitlementsOptions): string {
+  assertSafeAppGroup(appGroup);
+  const escaped = xmlEscapePlist(appGroup);
   const lines = [
     `<?xml version="1.0" encoding="UTF-8"?>`,
     `<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">`,
@@ -21,7 +39,7 @@ export function entitlementsPlist({ appGroup, sandbox = false }: EntitlementsOpt
   lines.push(
     `    <key>com.apple.security.application-groups</key>`,
     `    <array>`,
-    `        <string>${appGroup}</string>`,
+    `        <string>${escaped}</string>`,
     `    </array>`,
     `</dict>`,
     `</plist>`,
@@ -37,14 +55,26 @@ export function writeEntitlementsFile(dest: string, opts: EntitlementsOptions): 
 
 /** Merge appGroup into an existing entitlements plist without dropping other keys. */
 export function mergeAppGroupIntoEntitlements(path: string, appGroup: string): void {
+  assertSafeAppGroup(appGroup);
+  const escaped = xmlEscapePlist(appGroup);
   if (!existsSync(path)) {
     writeEntitlementsFile(path, { appGroup, sandbox: false });
     return;
   }
   let raw = readFileSync(path, "utf-8");
   const key = "com.apple.security.application-groups";
-  const tag = `<string>${appGroup}</string>`;
+  const tag = `<string>${escaped}</string>`;
   if (raw.includes(tag)) return;
+
+  const emptyArrRe = new RegExp(`(<key>${key}</key>\\s*)<array\\s*/>`, "i");
+  if (emptyArrRe.test(raw)) {
+    raw = raw.replace(
+      emptyArrRe,
+      `$1<array>\n        ${tag}\n    </array>`,
+    );
+    writeFileSync(path, raw, "utf-8");
+    return;
+  }
 
   const arrRe = new RegExp(
     `(<key>${key}</key>\\s*<array>)([\\s\\S]*?)(</array>)`,

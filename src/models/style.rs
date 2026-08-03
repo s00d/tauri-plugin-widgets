@@ -276,12 +276,59 @@ pub struct FrameConfig {
 
 /// A frame dimension — either a fixed point value or `"infinity"`.
 #[derive(Debug, Clone)]
-#[cfg_attr(feature = "schema", derive(JsonSchema))]
 pub enum FrameDimension {
     /// Fixed point value.
     Fixed(f64),
     /// `"infinity"`.
     Infinity,
+}
+
+#[cfg(feature = "schema")]
+impl JsonSchema for FrameDimension {
+    fn schema_name() -> String {
+        "FrameDimension".into()
+    }
+
+    fn json_schema(_gen: &mut schemars::gen::SchemaGenerator) -> schemars::schema::Schema {
+        use schemars::schema::{
+            InstanceType, Metadata, Schema, SchemaObject, SingleOrVec, SubschemaValidation,
+        };
+
+        Schema::Object(SchemaObject {
+            metadata: Some(Box::new(Metadata {
+                description: Some(
+                    "A frame dimension — either a fixed point value or `\"infinity\"`.".into(),
+                ),
+                ..Default::default()
+            })),
+            subschemas: Some(Box::new(SubschemaValidation {
+                any_of: Some(vec![
+                    SchemaObject {
+                        metadata: Some(Box::new(Metadata {
+                            description: Some("Fixed point value.".into()),
+                            ..Default::default()
+                        })),
+                        instance_type: Some(SingleOrVec::Single(Box::new(InstanceType::Number))),
+                        format: Some("double".into()),
+                        ..Default::default()
+                    }
+                    .into(),
+                    SchemaObject {
+                        metadata: Some(Box::new(Metadata {
+                            description: Some("Keyword `\"infinity\"`.".into()),
+                            ..Default::default()
+                        })),
+                        instance_type: Some(SingleOrVec::Single(Box::new(InstanceType::String))),
+                        enum_values: Some(vec!["infinity".into()]),
+                        ..Default::default()
+                    }
+                    .into(),
+                ]),
+                ..Default::default()
+            })),
+            ..Default::default()
+        })
+    }
 }
 
 impl Serialize for FrameDimension {

@@ -1,12 +1,12 @@
 import { existsSync, readdirSync, rmSync } from "node:fs";
-import { join } from "node:path";
+import { dirname, join } from "node:path";
 import { execSync } from "node:child_process";
 import { loadTraceFile } from "./trace.js";
 
 const SAFE_SEGMENT = /^[A-Za-z0-9._-]+$/;
 
 export function validateSafeSegment(value: string, label: string): void {
-  if (value.includes("..") || value.includes("/") || value.includes("\\")) {
+  if (value === "." || value.includes("..") || value.includes("/") || value.includes("\\")) {
     throw new Error(`${label} contains unsafe path characters`);
   }
   if (!SAFE_SEGMENT.test(value)) {
@@ -89,14 +89,17 @@ export function runClean({ cwd, identifier, group, cacheOnly = false }: RunClean
   // Explicit data-dir overrides used by the Rust store / CLI.
   for (const envKey of ["TAURI_WIDGETS_DATA", "WIDGET_DATA_DIR"] as const) {
     const override = process.env[envKey]?.trim();
-    if (override) bases.push(override);
+    if (override) {
+      bases.push(override.endsWith(".json") ? dirname(override) : override);
+    }
   }
   if (identifier && home) {
     bases.push(join(home, "Library", "Application Support", identifier, "widgets"));
   }
-  if (identifier && process.env.LOCALAPPDATA) {
-    // Live Windows store lives under %LOCALAPPDATA%/tauri-plugin-widgets (not app identifier).
+  if (process.env.LOCALAPPDATA) {
     bases.push(join(process.env.LOCALAPPDATA, "tauri-plugin-widgets"));
+  }
+  if (identifier && process.env.LOCALAPPDATA) {
     bases.push(join(process.env.LOCALAPPDATA, identifier, "widgets"));
   }
   if (identifier && home) {
@@ -112,6 +115,8 @@ export function runClean({ cwd, identifier, group, cacheOnly = false }: RunClean
   const storeFiles = new Set([
     "widget_data.json",
     "widget_trace.json",
+    "widget_receipt.json",
+    "widget_receipts.json",
     "receipts.json",
     "render_receipt.json",
   ]);

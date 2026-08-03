@@ -27,7 +27,8 @@ export function initIosAction(opts: InitIosOptions): void {
   const cwd = process.cwd();
   const conf = readTauriConf(cwd);
 
-  let appGroup = opts.appGroup;
+  const confAppGroup = conf?.data?.plugins?.widgets?.appGroup;
+  let appGroup = opts.appGroup || confAppGroup;
   const identifier = conf ? detectTauriIdentifier(conf) : null;
 
   if (!appGroup) {
@@ -41,6 +42,8 @@ export function initIosAction(opts: InitIosOptions): void {
     }
     appGroup = "group." + identifier;
     console.log(`  Auto-detected app-group: ${appGroup}`);
+  } else if (!opts.appGroup && confAppGroup) {
+    console.log(`  Using app-group from plugins.widgets: ${appGroup}`);
   }
 
   const targetDir = resolve(cwd, opts.dir);

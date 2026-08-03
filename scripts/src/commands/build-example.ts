@@ -14,8 +14,9 @@ export const buildExampleCommand = defineCommand({
     },
   },
   run({ args, rawArgs }) {
-    // citty keeps all positionals on rawArgs; platforms follow the verb.
-    const fromRaw = rawArgs.slice(1).map(String).filter(Boolean);
+    // citty keeps all positionals on rawArgs; drop the subcommand name when present.
+    const start = rawArgs[0] === "build-example" ? 1 : 0;
+    const fromRaw = rawArgs.slice(start).map(String).filter(Boolean);
     const fromArgs = Array.isArray(args._)
       ? args._.map(String)
       : args._

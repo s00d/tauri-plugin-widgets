@@ -146,12 +146,29 @@ fn zstack_svg(children: &[WidgetElement], style: &ElementStyle) -> Option<String
     const W: f64 = 160.0;
     const H: f64 = 160.0;
     let mut layers = String::new();
-    // Bake solid background so AC Image isn't transparent when style.background is set.
-    if let Some(BackgroundValue::Solid(s)) = &style.background {
-        let fill = normalize_color(s);
-        layers.push_str(&format!(
-            r#"<rect width="100%" height="100%" fill="{fill}"/>"#
-        ));
+    // Bake background so AC Image isn't transparent when style.background is set.
+    if let Some(bg) = &style.background {
+        match bg {
+            BackgroundValue::Solid(s) => {
+                let fill = normalize_color(s);
+                layers.push_str(&format!(
+                    r#"<rect width="100%" height="100%" fill="{fill}"/>"#
+                ));
+            }
+            BackgroundValue::Adaptive { light, .. } => {
+                let fill = normalize_color(light);
+                layers.push_str(&format!(
+                    r#"<rect width="100%" height="100%" fill="{fill}"/>"#
+                ));
+            }
+            BackgroundValue::Gradient(g) => {
+                let grad_svg = gradient_to_svg(g, W, H);
+                let inner = strip_outer_svg(&grad_svg);
+                layers.push_str(&format!(
+                    r#"<svg x="0" y="0" width="{W}" height="{H}" viewBox="0 0 {W} {H}" preserveAspectRatio="none">{inner}</svg>"#
+                ));
+            }
+        }
     }
     let mut drew = 0usize;
     for child in children {

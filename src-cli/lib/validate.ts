@@ -147,7 +147,30 @@ export function validateWidgetShape(config: unknown): ConfigFinding[] {
   for (const size of sizes) {
     if (!body[size]) continue;
     hasSize = true;
-    walkShape(body[size] as WidgetNode, size, findings);
+    const node = body[size];
+    if (!node || typeof node !== "object" || Array.isArray(node)) {
+      findings.push({
+        level: "error",
+        path: size,
+        type: "",
+        platform: "schema",
+        support: "invalid",
+        note: `${size} must be an element object with type`,
+      });
+      continue;
+    }
+    if (typeof (node as WidgetNode).type !== "string") {
+      findings.push({
+        level: "error",
+        path: size,
+        type: "",
+        platform: "schema",
+        support: "invalid",
+        note: `${size} must have string type`,
+      });
+      continue;
+    }
+    walkShape(node as WidgetNode, size, findings);
   }
   if (!hasSize) {
     findings.push({
@@ -168,7 +191,7 @@ function walkShape(node: WidgetNode | null | undefined, path: string, out: Confi
   if (typeof type === "string") {
     if (type === "text") {
       const content = node.content;
-      if (typeof content !== "string" || !content) {
+      if (typeof content !== "string") {
         out.push({
           level: "error",
           path,
@@ -180,14 +203,14 @@ function walkShape(node: WidgetNode | null | undefined, path: string, out: Confi
       }
     }
     if (type === "image") {
-      if (!node.url && !node.systemName && !node.asset && !node.base64) {
+      if (!node.url && !node.systemName && !node.data) {
         out.push({
           level: "error",
           path,
           type,
           platform: "schema",
           support: "invalid",
-          note: 'type "image" requires url, systemName, asset, or base64',
+          note: 'type "image" requires url, systemName, or data',
         });
       }
     }
@@ -201,10 +224,32 @@ function walkShape(node: WidgetNode | null | undefined, path: string, out: Confi
           support: "invalid",
           note: 'type "list" requires items array',
         });
+      } else {
+        node.items.forEach((item, i) => {
+          if (!item || typeof item !== "object" || Array.isArray(item)) {
+            out.push({
+              level: "error",
+              path: `${path}/items[${i}]`,
+              type,
+              platform: "schema",
+              support: "invalid",
+              note: "list item must be an object with string text",
+            });
+          } else if (typeof (item as WidgetNode).text !== "string") {
+            out.push({
+              level: "error",
+              path: `${path}/items[${i}]`,
+              type,
+              platform: "schema",
+              support: "invalid",
+              note: "list item requires string text",
+            });
+          }
+        });
       }
     }
   }
-  const kids = node.children || node.items || [];
+  const kids = type === "list" ? node.children || [] : node.children || node.items || [];
   if (Array.isArray(kids)) {
     kids.forEach((ch, i) => walkShape(ch, `${path}/${type || "node"}[${i}]`, out));
   }

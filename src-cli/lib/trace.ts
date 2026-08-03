@@ -172,8 +172,16 @@ export async function runTraceFollow({
 
       let startIdx = 0;
       if (lastSeenKey) {
-        const idx = typed.findIndex((e) => eventKey(e) === lastSeenKey);
-        startIdx = idx >= 0 ? idx + 1 : Math.max(0, lastLen);
+        const keys = typed.map((e) => eventKey(e));
+        const idx = keys.lastIndexOf(lastSeenKey);
+        if (idx >= 0) {
+          startIdx = idx + 1;
+        } else {
+          for (const e of typed.slice(-lines)) console.log(formatTraceEvent(e));
+          lastSeenKey = typed.length ? eventKey(typed[typed.length - 1]) : "";
+          lastLen = typed.length;
+          return;
+        }
       } else {
         startIdx = lastLen;
       }
