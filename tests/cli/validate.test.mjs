@@ -1,6 +1,10 @@
 import { describe, it } from "node:test";
 import assert from "node:assert/strict";
-import { validateWidgetShape } from "../../dist-cli/lib/validate.mjs";
+import {
+  loadCapabilities,
+  validateWidgetConfig,
+  validateWidgetShape,
+} from "../../dist-cli/lib/validate.mjs";
 
 describe("validateWidgetShape", () => {
   it("rejects object-valued image data", () => {
@@ -35,6 +39,27 @@ describe("validateWidgetShape", () => {
     });
     assert.equal(
       findings.filter((f) => f.level === "error").length,
+      0,
+      JSON.stringify(findings),
+    );
+  });
+});
+
+describe("validateWidgetConfig list rows", () => {
+  it("does not treat list items as element children", () => {
+    const { data: caps } = loadCapabilities();
+    const findings = validateWidgetConfig(
+      {
+        small: {
+          type: "list",
+          items: [{ text: "One", checked: false, action: "toggle", payload: "0" }],
+        },
+      },
+      ["android"],
+      caps,
+    );
+    assert.equal(
+      findings.filter((f) => /child must have string type/.test(f.note || "")).length,
       0,
       JSON.stringify(findings),
     );
