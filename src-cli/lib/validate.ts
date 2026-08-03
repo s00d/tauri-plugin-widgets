@@ -115,7 +115,9 @@ function walk(
       }
     }
   }
-  const kids = node.children || node.items || [];
+  // List `items` are data rows ({text,...}), not element nodes — only recurse
+  // explicit `children`. Matches walkShape's list special-case.
+  const kids = type === "list" ? node.children || [] : node.children || node.items || [];
   if (Array.isArray(kids)) {
     kids.forEach((ch, i) => {
       const childPath = `${path}/${type || "node"}[${i}]`;

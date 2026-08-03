@@ -324,62 +324,88 @@ pub fn all_transports(group: &str) -> Vec<Arc<dyn Transport>> {
     out
 }
 
-/// Wipe leftover maps on every available Apple transport (best-effort).
+/// Wipe leftover maps on every Apple transport **except** `keep` (best-effort).
 ///
 /// Writes an empty map with **no** meta bump so a cleared sibling cannot win
-/// `pick_freshest` by nonce. Call before writing the live map to the chosen
-/// driver — stale `config:*` on App Group / defaults / container is what made
-/// WidgetKit stick on an old layout after `auto` latch or transport switch.
+/// `pick_freshest` by nonce. The configured driver is never wiped here — a
+/// failed follow-up write must not erase the last good primary map.
 ///
-/// Call [`merge_pending_into_map`] first so sibling taps are not dropped.
-pub fn clear_leftover_transports(group: &str) {
+/// For each sibling, pending actions are merged into `into` immediately before
+/// the wipe (with a short re-read retry) so a tap between an earlier harvest and
+/// this clear is not dropped.
+pub fn clear_sibling_transports(group: &str, keep: &str, into: &mut DataMap) {
+    use crate::store::PENDING_ACTIONS_KEY;
+
     for t in all_transports(group) {
-        if !t.available() {
+        if t.name() == keep || !t.available() {
             continue;
         }
-        let Some(existing) = t.read() else { continue };
-        if existing.is_empty() {
-            continue;
-        }
-        if let Err(e) = t.write(&DataMap::new()) {
-            log::debug!("clear_leftover_transports({}): {e}", t.name());
+        for attempt in 0..3 {
+            let Some(existing) = t.read() else { break };
+            if existing.is_empty() {
+                break;
+            }
+            merge_pending_from_map(into, &existing);
+            let pending_snapshot = existing.get(PENDING_ACTIONS_KEY).cloned();
+            if let Err(e) = t.write(&DataMap::new()) {
+                log::debug!("clear_sibling_transports({}): {e}", t.name());
+                break;
+            }
+            // Tap landed during wipe — fold it in and clear again.
+            let Some(after) = t.read() else { break };
+            if after.is_empty() {
+                break;
+            }
+            merge_pending_from_map(into, &after);
+            let again = after.get(PENDING_ACTIONS_KEY).cloned();
+            if again != pending_snapshot && attempt + 1 < 3 {
+                continue;
+            }
+            let _ = t.write(&DataMap::new());
+            break;
         }
     }
 }
 
 fn pending_action_key(a: &crate::store::WidgetActionEnvelope) -> String {
-    format!(
-        "{}|{}|{}|{}",
-        a.action,
-        a.widget_id,
-        a.payload.as_deref().unwrap_or(""),
-        a.ts
-    )
+    // Structured JSON — `|` in action/payload must not collide envelopes.
+    serde_json::to_string(&(&a.action, &a.widget_id, &a.payload, a.ts))
+        .unwrap_or_else(|_| format!("{}:{}:{:?}", a.action, a.widget_id, a.ts))
 }
 
-/// Fold `pending_actions` from every readable transport into `map` (deduped).
-///
-/// Used by host writes that are about to wipe siblings via
-/// [`clear_leftover_transports`].
-pub fn merge_pending_into_map(map: &mut DataMap, group: &str) {
+fn merge_pending_from_map(into: &mut DataMap, src: &DataMap) {
     use crate::store::{encode_pending_actions, parse_pending_actions, PENDING_ACTIONS_KEY};
-    let harvested = harvest_pending_actions(group);
-    if harvested.is_empty() {
+    let incoming = parse_pending_actions(src.get(PENDING_ACTIONS_KEY).map(|s| s.as_str()));
+    if incoming.is_empty() {
         return;
     }
-    let mut merged = parse_pending_actions(map.get(PENDING_ACTIONS_KEY).map(|s| s.as_str()));
+    let mut merged = parse_pending_actions(into.get(PENDING_ACTIONS_KEY).map(|s| s.as_str()));
     let mut seen: std::collections::HashSet<String> =
         merged.iter().map(pending_action_key).collect();
-    for a in harvested {
+    for a in incoming {
         if seen.insert(pending_action_key(&a)) {
             merged.push(a);
         }
     }
     match encode_pending_actions(&merged) {
         Ok(s) => {
-            map.insert(PENDING_ACTIONS_KEY.into(), s);
+            into.insert(PENDING_ACTIONS_KEY.into(), s);
         }
-        Err(e) => log::debug!("merge_pending_into_map encode: {e}"),
+        Err(e) => log::debug!("merge_pending_from_map encode: {e}"),
+    }
+}
+
+/// Fold `pending_actions` from every readable transport into `map` (deduped).
+///
+/// Used by host writes before [`clear_sibling_transports`].
+pub fn merge_pending_into_map(map: &mut DataMap, group: &str) {
+    for t in all_transports(group) {
+        if !t.available() {
+            continue;
+        }
+        if let Some(m) = t.read() {
+            merge_pending_from_map(map, &m);
+        }
     }
 }
 
@@ -396,7 +422,7 @@ pub fn max_nonce_across(group: &str) -> u64 {
 /// Collect `pending_actions` from every readable sibling (including primary).
 ///
 /// Call on poll — siblings may still hold taps after a driver latch; config
-/// writes clear leftover maps via [`clear_leftover_transports`] instead.
+/// writes clear leftover maps via [`clear_sibling_transports`] instead.
 pub fn harvest_pending_actions(group: &str) -> Vec<crate::store::WidgetActionEnvelope> {
     use crate::store::{parse_pending_actions, PENDING_ACTIONS_KEY};
     let mut out = Vec::new();

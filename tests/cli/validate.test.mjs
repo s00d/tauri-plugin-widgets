@@ -25,4 +25,18 @@ describe("validateWidgetShape", () => {
       JSON.stringify(findings),
     );
   });
+
+  it("accepts list items without element type", () => {
+    const findings = validateWidgetShape({
+      small: {
+        type: "list",
+        items: [{ text: "One", checked: false, action: "toggle", payload: "0" }],
+      },
+    });
+    assert.equal(
+      findings.filter((f) => f.level === "error").length,
+      0,
+      JSON.stringify(findings),
+    );
+  });
 });

@@ -219,18 +219,22 @@ impl<R: Runtime> Widget<R> {
         })
     }
 
-    /// Persist map on macOS: merge sibling `pending_actions`, clear leftovers on
-    /// every Apple transport, then write only to the configured driver.
+    /// Persist map on macOS: merge pending from all channels, clear leftover
+    /// maps on **sibling** transports only, then write the configured driver.
     ///
-    /// Clearing first drops stale sibling `config:*` so WidgetKit cannot pick an
-    /// old layout after `auto` latch / transport switch. Harvest-before-clear
-    /// keeps taps that still live on a non-primary channel.
+    /// The primary is never wiped before a successful write (failed write must
+    /// not erase the last good map). Sibling clear re-merges pending on each
+    /// wipe attempt so a mid-clear tap is not dropped.
     fn persist_map(&self, group: &str, map: &DataMap) -> crate::Result<()> {
         #[cfg(target_os = "macos")]
         {
             let mut out = map.clone();
             crate::macos_transport::merge_pending_into_map(&mut out, group);
-            crate::macos_transport::clear_leftover_transports(group);
+            crate::macos_transport::clear_sibling_transports(
+                group,
+                self.macos_driver.name(),
+                &mut out,
+            );
             self.macos_driver.write(&out)?;
         }
         #[cfg(target_os = "windows")]

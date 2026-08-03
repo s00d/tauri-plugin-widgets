@@ -205,22 +205,22 @@ fn merge_pending_then_clear_leftover_preserves_sibling_taps() {
     );
     write_map_file(&app_group_file, &stale).unwrap();
 
-    // Host write path: merge taps → wipe leftovers → write live map to sandbox.
+    // Host write path: merge taps → wipe sibling leftovers → write live map.
     let mut live = map_with_nonce(50, WIDGET, &cfg_v2()).unwrap();
     mt::merge_pending_into_map(&mut live, GROUP);
-    mt::clear_leftover_transports(GROUP);
+    mt::clear_sibling_transports(GROUP, "container", &mut live);
     write_sandbox_map(GROUP, &live).unwrap();
 
     let pending = parse_pending_actions(live.get(PENDING_ACTIONS_KEY).map(|s| s.as_str()));
     assert_eq!(pending.len(), 1);
     assert_eq!(pending[0].payload.as_deref(), Some("1"));
 
-    // App Group leftover must be empty (no stale config).
+    // App Group leftover must be empty (no stale config). Primary was not wiped.
     let wiped = std::fs::read_to_string(&app_group_file).unwrap_or_default();
     let wiped_map: DataMap = serde_json::from_str(&wiped).unwrap_or_default();
     assert!(
         !map_has_config(&wiped_map),
-        "clear_leftover must wipe sibling config"
+        "clear_sibling must wipe non-primary config"
     );
 }
 
