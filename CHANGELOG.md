@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.6.1
+
+### Fixed
+- Keep `gtk` **0.18** as a direct Linux dependency (layer-shell remap, GTK main-thread checks, CI `libgtk-3-dev`). Do not bump to 0.19: `gtk-sys` `links = "gtk-3"` clashes with Tauri 2.
+- Guest `@tauri-apps/api` range is `^2` again (wide Tauri 2 support; not `>=2.12.1`).
+- Playwright desktop tests pin `locale` + `timezoneId` so `date-timer` geometry does not depend on the host TZ.
+
+### Changed
+- Compatible lock/tooling bumps (Tauri 2.12.1, TypeScript 5.9, Playwright, Rollup, mermaid 12). TypeScript 7 skipped (`@rollup/plugin-typescript`). Breaking crates (`base64` 0.23, `resvg` 0.48, `schemars` 1, `ureq` 3, `x11rb` 0.14) left on current majors.
+
 ## 0.6.0
 
 ### Added

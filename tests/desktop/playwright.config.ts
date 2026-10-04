@@ -16,6 +16,9 @@ export default defineConfig({
   use: {
     viewport: { width: 170, height: 170 },
     colorScheme: "dark",
+    // Pin so `date-timer` (`2099-06-15T14:30:00Z` → 19:30) stays `07:30 PM`.
+    locale: "en-US",
+    timezoneId: "Asia/Yekaterinburg",
   },
   projects: [{ name: "chromium", use: { browserName: "chromium" } }],
 });
