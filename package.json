@@ -14,16 +14,24 @@
   },
   "exports": {
     ".": {
-      "types": "./dist-js/index.d.ts",
-      "import": "./dist-js/index.js",
-      "require": "./dist-js/index.cjs",
-      "default": "./dist-js/index.js"
+      "import": {
+        "types": "./dist-js/index.d.ts",
+        "default": "./dist-js/index.js"
+      },
+      "require": {
+        "types": "./dist-js/index.d.cts",
+        "default": "./dist-js/index.cjs"
+      }
     },
     "./render": {
-      "types": "./dist-js/render.d.ts",
-      "import": "./dist-js/render.js",
-      "require": "./dist-js/render.cjs",
-      "default": "./dist-js/render.js"
+      "import": {
+        "types": "./dist-js/render.d.ts",
+        "default": "./dist-js/render.js"
+      },
+      "require": {
+        "types": "./dist-js/render.d.cts",
+        "default": "./dist-js/render.cjs"
+      }
     },
     "./schemas/*": "./schemas/*"
   },
@@ -44,10 +52,15 @@
     "README.md",
     "LICENSE"
   ],
+  "sideEffects": false,
+  "engines": {
+    "node": ">=18"
+  },
   "scripts": {
     "build": "rollup -c rollup.config.mjs",
     "build:widget": "WIDGET_ONLY=1 rollup -c rollup.config.mjs",
-    "prepublishOnly": "pnpm build",
+    "prepublishOnly": "pnpm build && publint --strict",
+    "publint": "publint --strict",
     "pretest": "pnpm build",
     "test": "pnpm test:rust && pnpm test:cli && pnpm test:desktop && pnpm test:geometry && pnpm test:events && pnpm test:android && pnpm test:swift && pnpm docs:check",
     "test:rust": "cargo test --all-features",
@@ -113,6 +126,7 @@
     "@playwright/test": "^1.63.0",
     "@rollup/plugin-typescript": "^12.3.0",
     "@types/node": "^26.6.4",
+    "publint": "^0.3.25",
     "rollup": "^4.64.0",
     "tslib": "^2.8.1",
     "typescript": "^5.9.3"

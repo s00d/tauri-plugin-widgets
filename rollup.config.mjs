@@ -1,24 +1,34 @@
 import { readFileSync, writeFileSync, chmodSync, existsSync } from "node:fs";
-import { dirname, join } from "node:path";
+import { join } from "node:path";
 import { cwd } from "node:process";
 import typescript from "@rollup/plugin-typescript";
 
 const pkg = JSON.parse(readFileSync(join(cwd(), "package.json"), "utf8"));
 const runtimeDeps = Object.keys(pkg.dependencies || {});
-const pkgRoot = pkg.exports["."];
+
+function copyCts(dtsPath) {
+  const ctsPath = dtsPath.replace(/\.d\.ts$/, ".d.cts");
+  writeFileSync(ctsPath, readFileSync(dtsPath, "utf8"));
+}
 
 /** Guest JS API (existing). */
 const lib = {
   input: "guest-js/index.ts",
   output: [
-    { file: pkgRoot.import, format: "esm" },
-    { file: pkgRoot.require, format: "cjs" },
+    { file: "dist-js/index.js", format: "esm" },
+    { file: "dist-js/index.cjs", format: "cjs" },
   ],
   plugins: [
     typescript({
       declaration: true,
-      declarationDir: dirname(pkgRoot.import),
+      declarationDir: "dist-js",
     }),
+    {
+      name: "index-d-cts",
+      writeBundle() {
+        copyCts(join(cwd(), "dist-js", "index.d.ts"));
+      },
+    },
   ],
   external: [
     /^@tauri-apps\/api/,
@@ -138,7 +148,9 @@ const renderLib = {
     {
       name: "render-dts",
       writeBundle() {
-        writeFileSync(join(cwd(), "dist-js", "render.d.ts"), RENDER_DTS);
+        const dir = join(cwd(), "dist-js");
+        writeFileSync(join(dir, "render.d.ts"), RENDER_DTS);
+        writeFileSync(join(dir, "render.d.cts"), RENDER_DTS);
       },
     },
   ],
