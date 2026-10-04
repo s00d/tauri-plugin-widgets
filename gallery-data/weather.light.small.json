@@ -1,0 +1,63 @@
+{
+  "$schema": "https://s00d.github.io/tauri-plugin-widgets/schemas/widget-config.v1.json",
+  "version": 1,
+  "small": {
+    "type": "vstack",
+    "children": [
+      {
+        "type": "text",
+        "content": "72°",
+        "fontSize": 36,
+        "fontWeight": "bold",
+        "fontDesign": null,
+        "textStyle": null,
+        "color": "#fff",
+        "alignment": null,
+        "lineLimit": null,
+        "padding": null,
+        "background": null,
+        "cornerRadius": null,
+        "opacity": null,
+        "frame": null,
+        "border": null,
+        "shadow": null,
+        "clipShape": null,
+        "flex": null
+      },
+      {
+        "type": "progress",
+        "value": 0.7,
+        "total": 1,
+        "label": "Humidity",
+        "tint": "#4CAF50",
+        "color": null,
+        "bar_style": null,
+        "padding": null,
+        "background": null,
+        "cornerRadius": null,
+        "opacity": null,
+        "frame": null,
+        "border": null,
+        "shadow": null,
+        "clipShape": null,
+        "flex": null
+      }
+    ],
+    "spacing": 8,
+    "alignment": null,
+    "padding": 12,
+    "background": {
+      "light": "#F2F2F7",
+      "dark": "#1a1a2e"
+    },
+    "cornerRadius": 16,
+    "opacity": null,
+    "frame": null,
+    "border": null,
+    "shadow": null,
+    "clipShape": null,
+    "flex": null
+  },
+  "medium": null,
+  "large": null
+}

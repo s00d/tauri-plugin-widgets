@@ -1,0 +1,32 @@
+{
+  "$schema": "https://s00d.github.io/tauri-plugin-widgets/schemas/widget-config.v1.json",
+  "version": 1,
+  "small": {
+    "type": "vstack",
+    "padding": 8,
+    "background": "#000",
+    "children": [
+      {
+        "type": "button",
+        "label": "Tap",
+        "action": "go",
+        "url": null,
+        "color": "#fff",
+        "backgroundColor": "#2563eb"
+      },
+      {
+        "type": "text",
+        "content": "ok",
+        "fontSize": 12,
+        "color": "#fff",
+        "fontWeight": null
+      },
+      {
+        "type": "progress",
+        "value": 0.3,
+        "label": null,
+        "tint": "#22c55e"
+      }
+    ]
+  }
+}
