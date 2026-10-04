@@ -32,32 +32,25 @@ export function listen(
   });
 }
 
-const params =
-  typeof window !== "undefined"
-    ? new URLSearchParams(window.location.search)
-    : new URLSearchParams();
-export const GROUP = params.get("group") || "default";
-export const SIZE = params.get("size") || "";
-export const WIDGET_ID = params.get("widgetId") || "default";
-export const THEME = (params.get("theme") || "").toLowerCase();
-export const root =
-  typeof document !== "undefined"
-    ? (document.getElementById("root") as HTMLElement | null)
-    : null;
-
 type ActionHandler = (action: string, payload?: string | null) => void;
 
-let sessionSize = SIZE;
-let sessionTheme = THEME;
+let sessionSize = "";
+let sessionTheme = "";
+let sessionGroup = "default";
+let sessionWidgetId = "default";
 let actionHandler: ActionHandler | null = null;
 
 export function setRenderSession(opts: {
   size?: string;
   theme?: string;
+  group?: string;
+  widgetId?: string;
   onAction?: ActionHandler;
 }): void {
   if (opts.size !== undefined) sessionSize = opts.size;
   if (opts.theme !== undefined) sessionTheme = opts.theme;
+  if (opts.group !== undefined) sessionGroup = opts.group;
+  if (opts.widgetId !== undefined) sessionWidgetId = opts.widgetId;
   if (opts.onAction !== undefined) actionHandler = opts.onAction;
 }
 
@@ -83,8 +76,8 @@ export function emitAction(
   return invoke("plugin:widgets|widget_action", {
     action,
     payload: payload == null ? null : payload,
-    widgetId: WIDGET_ID,
-    group: GROUP,
+    widgetId: sessionWidgetId,
+    group: sessionGroup,
   }).catch(console.error);
 }
 

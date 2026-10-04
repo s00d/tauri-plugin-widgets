@@ -1,8 +1,8 @@
 {
   "name": "tauri-plugin-widgets-api",
-  "version": "0.6.1",
+  "version": "0.6.2",
   "author": "s00d",
-  "description": "A Tauri v2 plugin to interact with App Widgets on Android and iOS, with desktop fallback. SharedPreferences / UserDefaults / WidgetKit / AppWidgetManager.",
+  "description": "Tauri v2 plugin for App Widgets on Android, iOS, macOS, Windows, and Linux from a shared JSON config.",
   "license": "MIT",
   "type": "module",
   "types": "./dist-js/index.d.ts",
@@ -16,12 +16,16 @@
     ".": {
       "types": "./dist-js/index.d.ts",
       "import": "./dist-js/index.js",
-      "require": "./dist-js/index.cjs"
+      "require": "./dist-js/index.cjs",
+      "default": "./dist-js/index.js"
     },
     "./render": {
       "types": "./dist-js/render.d.ts",
-      "import": "./dist-js/render.js"
-    }
+      "import": "./dist-js/render.js",
+      "require": "./dist-js/render.cjs",
+      "default": "./dist-js/render.js"
+    },
+    "./schemas/*": "./schemas/*"
   },
   "bin": {
     "tauri-plugin-widgets-api": "./dist-cli/cli.mjs",

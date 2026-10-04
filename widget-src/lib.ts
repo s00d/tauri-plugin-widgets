@@ -9,6 +9,8 @@ export type WidgetTheme = "light" | "dark";
 export type RenderWidgetOptions = {
   size?: WidgetSize | string;
   theme?: WidgetTheme | string;
+  group?: string;
+  widgetId?: string;
   chrome?: boolean;
   onAction?: (action: string, payload?: string | null) => void;
 };
@@ -136,6 +138,8 @@ export function renderWidget(
   setRenderSession({
     size,
     theme,
+    group: opts?.group,
+    widgetId: opts?.widgetId,
     onAction: opts?.onAction,
   });
   paintConfig(host, config, !!opts?.chrome);

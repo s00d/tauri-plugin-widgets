@@ -14,7 +14,7 @@ function pluginRoot(): string {
   for (const c of candidates) {
     if (existsSync(join(c, "scripts", "package.json"))) return c;
   }
-  return join(here, "../..");
+  return "";
 }
 
 /**
@@ -32,6 +32,12 @@ export const toolsCmd = defineCommand({
   },
   async run() {
     const root = pluginRoot();
+    if (!root) {
+      console.error(
+        "tauri-widgets tools is only available in the plugin git checkout (scripts/ is not shipped on npm). Use init, doctor, preview, or validate from this package.",
+      );
+      process.exit(1);
+    }
     // Everything after `tools` (or `tools --`)
     const argv = process.argv;
     const idx = argv.findIndex((a) => a === "tools");

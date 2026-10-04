@@ -1,15 +1,16 @@
 import type { ElNode, SkippedElement, WidgetConfig } from "./types";
-import {
-  invoke,
-  listen,
-  GROUP,
-  SIZE,
-  THEME,
-  WIDGET_ID,
-  root,
-  clearTimers,
-} from "./ctx";
+import { invoke, listen, clearTimers } from "./ctx";
 import { renderWidget } from "./lib";
+
+const params = new URLSearchParams(window.location.search);
+const GROUP = params.get("group") || "default";
+const SIZE = params.get("size") || "";
+const WIDGET_ID = params.get("widgetId") || "default";
+const THEME = (params.get("theme") || "").toLowerCase();
+
+function getRoot(): HTMLElement | null {
+  return document.getElementById("root");
+}
 
 function collectTrace(node: unknown, rendered: string[], skipped: SkippedElement[]) {
   if (!node || typeof node !== "object") return;
@@ -71,12 +72,16 @@ function reportReceipt(cfg: WidgetConfig | null | undefined, source: string, tri
 }
 
 function render(cfg: WidgetConfig | null | undefined, source?: string, nonceHint?: unknown) {
+  const root = getRoot();
   if (!root) return;
-  if (!cfg) {
-    renderWidget(root, null, { size: SIZE, theme: THEME, chrome: true });
-    return;
-  }
-  renderWidget(root, cfg, { size: SIZE, theme: THEME, chrome: true });
+  renderWidget(root, cfg ?? null, {
+    size: SIZE,
+    theme: THEME,
+    group: GROUP,
+    widgetId: WIDGET_ID,
+    chrome: true,
+  });
+  if (!cfg) return;
   reportReceipt(
     cfg,
     source || "pull",
@@ -86,7 +91,7 @@ function render(cfg: WidgetConfig | null | undefined, source?: string, nonceHint
 }
 
 function loadConfig() {
-  if (!root) return;
+  if (!getRoot()) return;
   Promise.all([
     invoke("plugin:widgets|get_widget_config", {
       group: GROUP,
@@ -107,6 +112,7 @@ function loadConfig() {
     })
     .catch(function (e) {
       clearTimers();
+      const root = getRoot();
       if (!root) return;
       root.textContent = "";
       var err = document.createElement("div");

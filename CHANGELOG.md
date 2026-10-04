@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.6.2
+
+### Fixed
+- `tauri-widgets --version` reads `package.json` (was hardcoded `0.5.0`)
+- `exports` exposes `./schemas/*`; `./render` has CJS + `default`
+- `renderWidget` no longer reads `location.search` / `#root` at import; `group` / `widgetId` are session options
+- `tauri-widgets tools` errors on npm installs (`scripts/` is not published)
+
+### Changed
+- npm package description covers all host platforms
+
 ## 0.6.1
 
 ### Fixed

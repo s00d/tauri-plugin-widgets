@@ -111,6 +111,8 @@ export type WidgetTheme = "light" | "dark";
 export type RenderWidgetOptions = {
   size?: WidgetSize | string;
   theme?: WidgetTheme | string;
+  group?: string;
+  widgetId?: string;
   chrome?: boolean;
   onAction?: (action: string, payload?: string | null) => void;
 };
@@ -124,10 +126,10 @@ export function renderWidget(
 
 const renderLib = {
   input: "widget-src/lib.ts",
-  output: {
-    file: "dist-js/render.js",
-    format: "esm",
-  },
+  output: [
+    { file: "dist-js/render.js", format: "esm" },
+    { file: "dist-js/render.cjs", format: "cjs" },
+  ],
   plugins: [
     typescript({
       tsconfig: "widget-src/tsconfig.render.json",

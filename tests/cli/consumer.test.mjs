@@ -30,6 +30,13 @@ describe("consumer CLI surface", () => {
     }
   });
 
+  it("prints package.json version", () => {
+    const pkg = JSON.parse(readFileSync(join(ROOT, "package.json"), "utf8"));
+    const r = cli("--version");
+    assert.equal(r.status, 0, r.stdout + r.stderr);
+    assert.match(r.stdout, new RegExp(String(pkg.version).replace(/\./g, "\\.")));
+  });
+
   it("signing --help mentions apply and dev-cert", () => {
     const r = cli("signing", "--help");
     assert.equal(r.status, 0);

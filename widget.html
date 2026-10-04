@@ -62,24 +62,20 @@
             handler: ch,
         });
     }
-    const params = typeof window !== "undefined"
-        ? new URLSearchParams(window.location.search)
-        : new URLSearchParams();
-    const GROUP = params.get("group") || "default";
-    const SIZE = params.get("size") || "";
-    const WIDGET_ID = params.get("widgetId") || "default";
-    const THEME = (params.get("theme") || "").toLowerCase();
-    const root = typeof document !== "undefined"
-        ? document.getElementById("root")
-        : null;
-    let sessionSize = SIZE;
-    let sessionTheme = THEME;
+    let sessionSize = "";
+    let sessionTheme = "";
+    let sessionGroup = "default";
+    let sessionWidgetId = "default";
     let actionHandler = null;
     function setRenderSession(opts) {
         if (opts.size !== undefined)
             sessionSize = opts.size;
         if (opts.theme !== undefined)
             sessionTheme = opts.theme;
+        if (opts.group !== undefined)
+            sessionGroup = opts.group;
+        if (opts.widgetId !== undefined)
+            sessionWidgetId = opts.widgetId;
         if (opts.onAction !== undefined)
             actionHandler = opts.onAction;
     }
@@ -100,8 +96,8 @@
         return invoke("plugin:widgets|widget_action", {
             action,
             payload: payload == null ? null : payload,
-            widgetId: WIDGET_ID,
-            group: GROUP,
+            widgetId: sessionWidgetId,
+            group: sessionGroup,
         }).catch(console.error);
     }
     let timerIds = [];
@@ -1485,7 +1481,7 @@
             content.style.background = surface;
         }
         wrapper.appendChild(content);
-        if (chrome) {
+        {
             const drag = document.createElement("div");
             drag.id = "drag-handle";
             drag.setAttribute("data-tauri-drag-region", "");
@@ -1529,9 +1525,11 @@
         setRenderSession({
             size,
             theme,
+            group: opts?.group,
+            widgetId: opts?.widgetId,
             onAction: opts?.onAction,
         });
-        paintConfig(host, config, !!opts?.chrome);
+        paintConfig(host, config);
         return {
             destroy() {
                 clearTimers();
@@ -1540,6 +1538,14 @@
         };
     }
 
+    const params = new URLSearchParams(window.location.search);
+    const GROUP = params.get("group") || "default";
+    const SIZE = params.get("size") || "";
+    const WIDGET_ID = params.get("widgetId") || "default";
+    const THEME = (params.get("theme") || "").toLowerCase();
+    function getRoot() {
+        return document.getElementById("root");
+    }
     function collectTrace(node, rendered, skipped) {
         if (!node || typeof node !== "object")
             return;
@@ -1601,17 +1607,20 @@
         catch (_) { }
     }
     function render(cfg, source, nonceHint) {
+        const root = getRoot();
         if (!root)
             return;
-        if (!cfg) {
-            renderWidget(root, null, { size: SIZE, theme: THEME, chrome: true });
+        renderWidget(root, cfg ?? null, {
+            size: SIZE,
+            theme: THEME,
+            group: GROUP,
+            widgetId: WIDGET_ID});
+        if (!cfg)
             return;
-        }
-        renderWidget(root, cfg, { size: SIZE, theme: THEME, chrome: true });
         reportReceipt(cfg, source || "pull", source === "push" ? "reload" : "timeline", nonceHint);
     }
     function loadConfig() {
-        if (!root)
+        if (!getRoot())
             return;
         Promise.all([
             invoke("plugin:widgets|get_widget_config", {
@@ -1634,6 +1643,7 @@
         })
             .catch(function (e) {
             clearTimers();
+            const root = getRoot();
             if (!root)
                 return;
             root.textContent = "";

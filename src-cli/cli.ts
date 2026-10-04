@@ -1,3 +1,5 @@
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
 import { defineCommand, runMain } from "citty";
 import { initUnified } from "./commands/init.js";
 import { initMacos } from "./commands/init-macos.js";
@@ -10,11 +12,23 @@ import { validateCmd } from "./commands/validate.js";
 import { traceCmd } from "./commands/trace.js";
 import { cleanCmd } from "./commands/clean.js";
 import { toolsCmd } from "./commands/tools.js";
+import { pluginRoot } from "./lib/paths.js";
+
+function packageVersion(): string {
+  try {
+    const pkg = JSON.parse(
+      readFileSync(join(pluginRoot(), "package.json"), "utf8"),
+    ) as { version?: string };
+    return typeof pkg.version === "string" ? pkg.version : "0.0.0";
+  } catch {
+    return "0.0.0";
+  }
+}
 
 const main = defineCommand({
   meta: {
     name: "tauri-widgets",
-    version: "0.5.0",
+    version: packageVersion(),
     description:
       "CLI for tauri-plugin-widgets: consumer commands (init, doctor, preview, …) plus `tools` for maintainer stands.",
   },
