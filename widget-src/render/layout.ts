@@ -55,7 +55,31 @@ export function renderZStack(d: ElNode): HTMLElement {
   (d.children || []).forEach(function (c: ElNode) {
     var w = document.createElement("div");
     w.style.gridArea = "1 / 1";
-    w.appendChild(renderEl(c));
+    // Stacks / bare rectangle underlays fill the cell so spacers can push corners.
+    var fill =
+      c.type === "vstack" ||
+      c.type === "hstack" ||
+      c.type === "container" ||
+      c.type === "grid" ||
+      c.type === "zstack" ||
+      (c.type === "shape" &&
+        (c.shapeType === "rectangle" || !c.shapeType) &&
+        !c.size &&
+        !(c.frame && c.frame.width && c.frame.height));
+    if (fill) {
+      w.style.width = "100%";
+      w.style.height = "100%";
+      w.style.display = "flex";
+      w.style.flexDirection = "column";
+    }
+    var child = renderEl(c);
+    if (fill) {
+      child.style.flex = "1";
+      child.style.width = "100%";
+      child.style.height = "100%";
+      child.style.minHeight = "0";
+    }
+    w.appendChild(child);
     e.appendChild(w);
   });
   return e;

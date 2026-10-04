@@ -62,25 +62,54 @@ extension DynamicElementView {
     // MARK: Shape
 
     @ViewBuilder func renderShape() -> some View {
-        let s = element.size ?? 24
         let fc = resolveColor(element.fill) ?? Color.accentColor
         let sc = resolveColor(element.stroke); let sw = element.strokeWidth ?? 1
+        let frameW = element.frame?.width
+        let frameH = element.frame?.height
+        let explicitSize = element.size
         switch element.shapeType {
         case "circle":
+            let s = explicitSize ?? frameW ?? frameH ?? 24
             ZStack {
                 Circle().fill(fc).frame(width: s, height: s)
                 if let c = sc { Circle().stroke(c, lineWidth: sw).frame(width: s, height: s) }
             }
         case "capsule":
+            // Prefer explicit frame (accent bar 6×36). size-only keeps width=2*size contract.
+            let capsuleSize: (CGFloat, CGFloat) = {
+                if let fw = frameW, let fh = frameH { return (fw, fh) }
+                if let fw = frameW { return (fw, explicitSize ?? fw) }
+                if let fh = frameH { return (explicitSize ?? fh, fh) }
+                let s = explicitSize ?? 24
+                return (s * 2, s)
+            }()
             ZStack {
-                Capsule().fill(fc).frame(width: s * 2, height: s)
-                if let c = sc { Capsule().stroke(c, lineWidth: sw).frame(width: s * 2, height: s) }
+                Capsule().fill(fc).frame(width: capsuleSize.0, height: capsuleSize.1)
+                if let c = sc {
+                    Capsule().stroke(c, lineWidth: sw).frame(width: capsuleSize.0, height: capsuleSize.1)
+                }
             }
         default:
             let cr = element.cornerRadius ?? 0
-            ZStack {
-                RoundedRectangle(cornerRadius: cr).fill(fc).frame(width: s, height: s)
-                if let c = sc { RoundedRectangle(cornerRadius: cr).stroke(c, lineWidth: sw).frame(width: s, height: s) }
+            // No size/frame → fill proposed size (zstack underlay). Otherwise hug.
+            if explicitSize == nil && frameW == nil && frameH == nil {
+                ZStack {
+                    RoundedRectangle(cornerRadius: cr).fill(fc)
+                    if let c = sc {
+                        RoundedRectangle(cornerRadius: cr).stroke(c, lineWidth: sw)
+                    }
+                }
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+            } else {
+                let s = explicitSize ?? min(frameW ?? 24, frameH ?? 24)
+                let w = frameW ?? s
+                let h = frameH ?? s
+                ZStack {
+                    RoundedRectangle(cornerRadius: cr).fill(fc).frame(width: w, height: h)
+                    if let c = sc {
+                        RoundedRectangle(cornerRadius: cr).stroke(c, lineWidth: sw).frame(width: w, height: h)
+                    }
+                }
             }
         }
     }

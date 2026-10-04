@@ -124,31 +124,40 @@ extension DynamicElementView {
     // MARK: List
 
     @ViewBuilder func renderList() -> some View {
-        let rows = element.items ?? []
-        let anyCheckbox = rows.contains { $0.checked != nil }
-        VStack(alignment: .leading, spacing: element.spacing ?? 4) {
-            ForEach(rows.indices, id: \.self) { i in
-                let row = rows[i]
-                let hasCheckbox = row.checked != nil
-                let rowView = HStack(spacing: 6) {
-                    if hasCheckbox {
-                        Image(systemName: (row.checked ?? false) ? "checkmark.circle.fill" : "circle")
-                            .foregroundColor((row.checked ?? false) ? .green : .gray)
-                            .font(.system(size: 12))
-                            .frame(width: 14)
-                    } else if anyCheckbox {
-                        Color.clear.frame(width: 14, height: 12)
-                    }
-                    Text(row.text)
-                        .font(.system(size: element.fontSize ?? 13))
-                        .lineLimit(1)
-                        .foregroundColor(resolveColor(element.color) ?? .primary)
+        // Custom rows (`children`) or typed `items` — stress-nest uses rich child rows.
+        if let children = element.children, !children.isEmpty {
+            VStack(alignment: .leading, spacing: element.spacing ?? 4) {
+                ForEach(children.indices, id: \.self) { idx in
+                    DynamicElementView(element: children[idx], parentAxis: .vertical)
                 }
-                if let action = row.action, !action.isEmpty {
-                    Button(intent: WidgetActionIntent(actionName: action, payload: row.payload)) { rowView }
-                        .buttonStyle(.plain)
-                } else {
-                    rowView
+            }
+        } else {
+            let rows = element.items ?? []
+            let anyCheckbox = rows.contains { $0.checked != nil }
+            VStack(alignment: .leading, spacing: element.spacing ?? 4) {
+                ForEach(rows.indices, id: \.self) { i in
+                    let row = rows[i]
+                    let hasCheckbox = row.checked != nil
+                    let rowView = HStack(spacing: 6) {
+                        if hasCheckbox {
+                            Image(systemName: (row.checked ?? false) ? "checkmark.circle.fill" : "circle")
+                                .foregroundColor((row.checked ?? false) ? .green : .gray)
+                                .font(.system(size: 12))
+                                .frame(width: 14)
+                        } else if anyCheckbox {
+                            Color.clear.frame(width: 14, height: 12)
+                        }
+                        Text(row.text)
+                            .font(.system(size: element.fontSize ?? 13))
+                            .lineLimit(1)
+                            .foregroundColor(resolveColor(element.color) ?? .primary)
+                    }
+                    if let action = row.action, !action.isEmpty {
+                        Button(intent: WidgetActionIntent(actionName: action, payload: row.payload)) { rowView }
+                            .buttonStyle(.plain)
+                    } else {
+                        rowView
+                    }
                 }
             }
         }

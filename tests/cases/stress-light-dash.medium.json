@@ -1,0 +1,11 @@
+{
+  "fixture": "presets/stress-light-dash",
+  "size": "medium",
+  "theme": "light",
+  "locale": "en_US",
+  "platforms": [
+    "android",
+    "ios",
+    "macos"
+  ]
+}

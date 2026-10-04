@@ -405,7 +405,7 @@ class WidgetBridgePlugin(private val activity: Activity) : Plugin(activity) {
                 .putString(WidgetStoreKeys.KEY_ACTIVE_WIDGET_ID, args.widgetId)
                 .apply()
             syncConfigToGlanceState(safeGroup, args.widgetId, processedConfig)
-            reloadGenericWidgets()
+            // Reload is owned by the Rust mobile layer (`skipReload`); do not force here.
             invoke.resolve(JSObject().put("results", true))
         } catch (e: Exception) {
             Log.e(TAG, "setWidgetConfig failed ${e.message}", e)

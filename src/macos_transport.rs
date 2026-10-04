@@ -39,9 +39,22 @@ pub fn extension_bundle_id(group: &str) -> String {
 }
 
 pub fn sandbox_widget_data_path(group: &str) -> PathBuf {
+    // Callers that take `group` from IPC must pass `crate::group::validate_group` first.
+    // Defense in depth: refuse path segments that would escape Containers.
+    let segment = extension_bundle_id(group);
+    let safe = if segment.is_empty()
+        || segment == "."
+        || segment == ".."
+        || segment.contains('/')
+        || segment.contains('\\')
+    {
+        "_invalid_group".to_string()
+    } else {
+        segment
+    };
     container_root()
         .join("Library/Containers")
-        .join(extension_bundle_id(group))
+        .join(safe)
         .join("Data")
         .join("widget_data.json")
 }

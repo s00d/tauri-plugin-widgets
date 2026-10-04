@@ -174,9 +174,21 @@ export function renderShape(d: ElNode): HTMLElement {
     e.style.height = sz + "px";
     e.style.borderRadius = "50%";
   } else if (d.shapeType === "capsule") {
-    e.style.width = sz * 2 + "px";
-    e.style.height = sz + "px";
-    e.style.borderRadius = sz / 2 + "px";
+    var cw =
+      d.frame && d.frame.width
+        ? d.frame.width
+        : d.frame && d.frame.height
+          ? d.size || d.frame.height
+          : sz * 2;
+    var ch =
+      d.frame && d.frame.height
+        ? d.frame.height
+        : d.frame && d.frame.width
+          ? d.size || d.frame.width
+          : sz;
+    e.style.width = cw + "px";
+    e.style.height = ch + "px";
+    e.style.borderRadius = Math.min(cw, ch) / 2 + "px";
   } else {
     e.style.width = sz + "px";
     e.style.height = sz + "px";

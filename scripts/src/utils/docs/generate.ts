@@ -21,7 +21,7 @@ export {
   extractElementsFromSchema,
 } from "./generate/shared.js";
 export { genElements } from "./generate/elements.js";
-export { copyShots, copySchemas, copySandbox } from "./generate/sandbox.js";
+export { copyShots, copySchemas } from "./generate/sandbox.js";
 export { groupCasesByPreset, genShowcase } from "./generate/showcase.js";
 export { genPermissions } from "./generate/permissions.js";
 export { genCapabilityMatrix } from "./generate/capability-matrix.js";

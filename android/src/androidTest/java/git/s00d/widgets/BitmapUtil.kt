@@ -22,6 +22,47 @@ internal object BitmapUtil {
         return md.digest(bytes).joinToString("") { "%02x".format(it) }
     }
 
+    /**
+     * Glance fallback "Can't show content" is a near-solid dark plate with a few
+     * light glyphs — auto golden would happily record that as success.
+     */
+    fun looksLikeGlanceError(bmp: Bitmap, step: Int = 6): Boolean {
+        if (bmp.width <= 0 || bmp.height <= 0) return true
+        val counts = HashMap<Int, Int>()
+        var opaque = 0
+        var light = 0
+        var y = 0
+        while (y < bmp.height) {
+            var x = 0
+            while (x < bmp.width) {
+                val px = bmp.getPixel(x, y)
+                if ((px ushr 24) > 200) {
+                    opaque++
+                    val rgb = px and 0x00FFFFFF
+                    counts[rgb] = (counts[rgb] ?: 0) + 1
+                    val r = (rgb shr 16) and 0xff
+                    val g = (rgb shr 8) and 0xff
+                    val b = rgb and 0xff
+                    if (r + g + b > 500) light++
+                }
+                x += step
+            }
+            y += step
+        }
+        if (opaque < 40) return true
+        val topEntry = counts.maxByOrNull { it.value } ?: return true
+        val topFrac = topEntry.value.toDouble() / opaque
+        val r = (topEntry.key shr 16) and 0xff
+        val g = (topEntry.key shr 8) and 0xff
+        val b = topEntry.key and 0xff
+        // Material Glance error plate is near #1A1B21 (sampled as 26,27,33).
+        val glanceErrorBg =
+            kotlin.math.abs(r - 26) <= 6 &&
+                kotlin.math.abs(g - 27) <= 6 &&
+                kotlin.math.abs(b - 33) <= 6
+        return glanceErrorBg && topFrac > 0.85 && light in 1..(opaque / 30) && counts.size < 80
+    }
+
     /** True when sampled pixels are (nearly) one color — empty/dead render. */
     fun isUniform(bmp: Bitmap, step: Int = 8): Boolean {
         if (bmp.width <= 0 || bmp.height <= 0) return true

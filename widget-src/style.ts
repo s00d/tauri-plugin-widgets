@@ -1,4 +1,4 @@
-import { THEME } from "./ctx";
+import { getTheme } from "./ctx";
 import type { ColorValue, ElNode } from "./types";
 
 export function expandHex(h: string): string {
@@ -11,7 +11,7 @@ export function expandHex(h: string): string {
 export function isDark(): boolean {
   // Prefer explicit theme: URL ?theme= → data-theme → OS preference.
   const t =
-    THEME ||
+    getTheme() ||
     document.documentElement.getAttribute("data-theme") ||
     document.documentElement.dataset?.theme ||
     "";

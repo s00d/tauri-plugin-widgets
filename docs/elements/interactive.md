@@ -145,6 +145,16 @@ _From showcase preset — case `toggle-row.small`._
 }
 ```
 
+#### From showcase `stress-nest.large`
+
+```json
+{
+  "type": "toggle",
+  "isOn": true,
+  "action": "stress_toggle"
+}
+```
+
 #### From showcase `toggle-row.small`
 
 ```json
@@ -261,6 +271,26 @@ _From showcase preset — case `link-chip.small`._
           "color": "#e2e8f0"
         }
       ]
+    }
+  ]
+}
+```
+
+#### From showcase `stress-nest.large`
+
+```json
+{
+  "type": "link",
+  "action": "open_settings",
+  "padding": 8,
+  "cornerRadius": 8,
+  "background": "#334155",
+  "children": [
+    {
+      "type": "text",
+      "content": "Link",
+      "fontSize": 12,
+      "color": "#38bdf8"
     }
   ]
 }

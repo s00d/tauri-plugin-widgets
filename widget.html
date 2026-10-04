@@ -62,13 +62,41 @@
             handler: ch,
         });
     }
-    const params = new URLSearchParams(window.location.search);
+    const params = typeof window !== "undefined"
+        ? new URLSearchParams(window.location.search)
+        : new URLSearchParams();
     const GROUP = params.get("group") || "default";
     const SIZE = params.get("size") || "";
     const WIDGET_ID = params.get("widgetId") || "default";
     const THEME = (params.get("theme") || "").toLowerCase();
-    const root = document.getElementById("root");
+    const root = typeof document !== "undefined"
+        ? document.getElementById("root")
+        : null;
+    let sessionSize = SIZE;
+    let sessionTheme = THEME;
+    let actionHandler = null;
+    function setRenderSession(opts) {
+        if (opts.size !== undefined)
+            sessionSize = opts.size;
+        if (opts.theme !== undefined)
+            sessionTheme = opts.theme;
+        if (opts.onAction !== undefined)
+            actionHandler = opts.onAction;
+    }
+    function getSize() {
+        return sessionSize;
+    }
+    function getTheme() {
+        return sessionTheme;
+    }
     function emitAction(action, payload) {
+        if (actionHandler) {
+            actionHandler(action, payload);
+            return Promise.resolve();
+        }
+        if (typeof window === "undefined" || !window.__TAURI_INTERNALS__) {
+            return Promise.resolve();
+        }
         return invoke("plugin:widgets|widget_action", {
             action,
             payload: payload == null ? null : payload,
@@ -93,7 +121,7 @@
     }
     function isDark() {
         // Prefer explicit theme: URL ?theme= → data-theme → OS preference.
-        const t = THEME ||
+        const t = getTheme() ||
             document.documentElement.getAttribute("data-theme") ||
             document.documentElement.dataset?.theme ||
             "";
@@ -329,7 +357,30 @@
         (d.children || []).forEach(function (c) {
             var w = document.createElement("div");
             w.style.gridArea = "1 / 1";
-            w.appendChild(renderEl(c));
+            // Stacks / bare rectangle underlays fill the cell so spacers can push corners.
+            var fill = c.type === "vstack" ||
+                c.type === "hstack" ||
+                c.type === "container" ||
+                c.type === "grid" ||
+                c.type === "zstack" ||
+                (c.type === "shape" &&
+                    (c.shapeType === "rectangle" || !c.shapeType) &&
+                    !c.size &&
+                    !(c.frame && c.frame.width && c.frame.height));
+            if (fill) {
+                w.style.width = "100%";
+                w.style.height = "100%";
+                w.style.display = "flex";
+                w.style.flexDirection = "column";
+            }
+            var child = renderEl(c);
+            if (fill) {
+                child.style.flex = "1";
+                child.style.width = "100%";
+                child.style.height = "100%";
+                child.style.minHeight = "0";
+            }
+            w.appendChild(child);
             e.appendChild(w);
         });
         return e;
@@ -420,18 +471,28 @@
         e.style.fontSize = (ts || d.fontSize || 14) + "px";
         e.style.fontWeight = String(d.textStyle && TEXT_STYLE_BOLD[d.textStyle] ? 700 : fw(d.fontWeight));
         e.style.color = d.color ? resolveColor(d.color) : "inherit";
+        var hasFixedBox = !!(d.frame && d.frame.width && d.frame.height);
+        var align = d.alignment ||
+            (hasFixedBox || d.clipShape === "circle" ? "center" : "leading");
         e.style.textAlign =
-            d.alignment === "center"
+            align === "center"
                 ? "center"
-                : d.alignment === "trailing"
+                : align === "trailing"
                     ? "right"
                     : "left";
-        e.style.display = d.lineLimit ? "-webkit-box" : "block";
+        e.style.display = d.lineLimit ? "-webkit-box" : hasFixedBox ? "flex" : "block";
+        if (hasFixedBox) {
+            e.style.alignItems = "center";
+            e.style.justifyContent =
+                align === "trailing" ? "flex-end" : align === "center" ? "center" : "flex-start";
+        }
         e.style.boxSizing = "border-box";
         e.style.flexShrink = "0";
         // In hstack hug content width so siblings (divider / trailing text) stay visible.
         // In vstack (or unknown axis) stretch full width so textAlign leading/center/trailing works.
-        if (parentAxis === "horizontal") {
+        // Fixed frame badges keep explicit width from applyStyle — don't force 100%.
+        if (hasFixedBox) ;
+        else if (parentAxis === "horizontal") {
             e.style.width = "auto";
         }
         else {
@@ -706,9 +767,19 @@
             e.style.borderRadius = "50%";
         }
         else if (d.shapeType === "capsule") {
-            e.style.width = sz * 2 + "px";
-            e.style.height = sz + "px";
-            e.style.borderRadius = sz / 2 + "px";
+            var cw = d.frame && d.frame.width
+                ? d.frame.width
+                : d.frame && d.frame.height
+                    ? d.size || d.frame.height
+                    : sz * 2;
+            var ch = d.frame && d.frame.height
+                ? d.frame.height
+                : d.frame && d.frame.width
+                    ? d.size || d.frame.width
+                    : sz;
+            e.style.width = cw + "px";
+            e.style.height = ch + "px";
+            e.style.borderRadius = Math.min(cw, ch) / 2 + "px";
         }
         else {
             e.style.width = sz + "px";
@@ -1092,6 +1163,14 @@
         var e = document.createElement("div");
         e.style.cssText =
             "display:flex;flex-direction:column;gap:" + (d.spacing || 4) + "px";
+        // Rich rows (children) or typed items.
+        if (d.children && d.children.length) {
+            d.children.forEach(function (c) {
+                e.appendChild(renderEl(c, "vertical"));
+            });
+            applyStyle(e, d);
+            return e;
+        }
         var items = d.items || [];
         var anyCheck = items.some(function (it) {
             return Object.prototype.hasOwnProperty.call(it, "checked");
@@ -1199,7 +1278,7 @@
             if (d.action)
                 emitAction(d.action);
             else if (d.url)
-                window.open(d.url, "_blank");
+                openHttpUrl(d.url);
         };
         // applyStyle would clobber the padding we just set — skip padding there for buttons.
         var padSave = d.padding;
@@ -1240,6 +1319,14 @@
         applyStyle(e, d);
         return e;
     }
+    /** Open only http(s) URLs — block javascript:/data:/etc. from widget config. */
+    function openHttpUrl(url) {
+        var u = String(url).trim();
+        var lower = u.toLowerCase();
+        if (lower.indexOf("http://") !== 0 && lower.indexOf("https://") !== 0)
+            return;
+        window.open(u, "_blank");
+    }
     function renderLink(d) {
         var e = document.createElement("div");
         e.style.cursor = "pointer";
@@ -1247,7 +1334,7 @@
             if (d.action)
                 emitAction(d.action);
             else if (d.url)
-                window.open(d.url, "_blank");
+                openHttpUrl(d.url);
         };
         applyStyle(e, d);
         (d.children || []).forEach(function (c) {
@@ -1333,6 +1420,126 @@
         }
     }
 
+    const HOST_CSS = `
+.widget-host{width:100%;height:100%;overflow:hidden;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;color:#e5e7eb;background:transparent;-webkit-user-select:none;user-select:none}
+.widget-host .w-empty,.widget-host .w-err{display:flex;align-items:center;justify-content:center;height:100%;color:#6b7280;font-size:13px;text-align:center;padding:16px}
+.widget-host .w-err{color:#f87171}
+.widget-host #drag-handle{position:absolute;top:0;left:0;right:32px;height:28px;z-index:10;cursor:move}
+.widget-host #close-btn{position:absolute;top:6px;right:6px;width:20px;height:20px;border:none;border-radius:50%;background:rgba(255,255,255,.12);color:#fff;font-size:11px;cursor:pointer;z-index:11;display:flex;align-items:center;justify-content:center;line-height:1;padding:0}
+.widget-host #close-btn:hover{background:rgba(239,68,68,.8)}
+`.trim();
+    function ensureHostCss() {
+        if (typeof document === "undefined")
+            return;
+        if (document.getElementById("widget-host-css"))
+            return;
+        const style = document.createElement("style");
+        style.id = "widget-host-css";
+        style.textContent = HOST_CSS;
+        document.head.appendChild(style);
+    }
+    function pickBranch(cfg, size) {
+        const keyed = cfg;
+        if (size)
+            return keyed[size] || cfg.small || cfg.medium || cfg.large;
+        return cfg.small || cfg.medium || cfg.large;
+    }
+    function paintEmpty(host, message) {
+        host.textContent = "";
+        const empty = document.createElement("div");
+        empty.className = "w-empty";
+        const emptyInner = document.createElement("div");
+        const icon = document.createElement("div");
+        icon.style.cssText = "font-size:28px;margin-bottom:4px";
+        icon.textContent = "\uD83D\uDCCC";
+        const msg = document.createElement("div");
+        msg.style.cssText = "font-size:14px;opacity:.7";
+        msg.textContent = message;
+        emptyInner.appendChild(icon);
+        emptyInner.appendChild(msg);
+        empty.appendChild(emptyInner);
+        host.appendChild(empty);
+    }
+    function paintConfig(host, cfg, chrome) {
+        clearTimers();
+        host.replaceChildren();
+        if (!cfg) {
+            paintEmpty(host, "No widget config");
+            return;
+        }
+        const size = getSize();
+        const data = pickBranch(cfg, size);
+        if (!data) {
+            paintEmpty(host, 'No config for size "' + size + '"');
+            return;
+        }
+        const ink = isDark() ? "#e5e7eb" : "#111827";
+        const surface = isDark() ? "#0f172a" : "#f8fafc";
+        host.style.color = ink;
+        const wrapper = document.createElement("div");
+        wrapper.style.cssText = "width:100%;height:100%;overflow:hidden;position:relative";
+        const content = renderEl(data);
+        content.style.width = "100%";
+        content.style.height = "100%";
+        if (!content.style.background && !content.style.backgroundColor) {
+            content.style.background = surface;
+        }
+        wrapper.appendChild(content);
+        if (chrome) {
+            const drag = document.createElement("div");
+            drag.id = "drag-handle";
+            drag.setAttribute("data-tauri-drag-region", "");
+            wrapper.appendChild(drag);
+            const cls = document.createElement("button");
+            cls.id = "close-btn";
+            cls.innerHTML = "&#x2715;";
+            cls.onclick = function () {
+                try {
+                    const label = window.__TAURI_INTERNALS__?.metadata?.currentWindow?.label;
+                    if (!label) {
+                        window.close();
+                        return;
+                    }
+                    const internals = window.__TAURI_INTERNALS__;
+                    if (!internals) {
+                        window.close();
+                        return;
+                    }
+                    internals
+                        .invoke("plugin:widgets|close_widget_window", { label: label })
+                        .catch(function () { });
+                }
+                catch (_) {
+                    window.close();
+                }
+            };
+            wrapper.appendChild(cls);
+        }
+        host.appendChild(wrapper);
+    }
+    function renderWidget(host, config, opts) {
+        ensureHostCss();
+        host.classList.add("widget-host");
+        const size = opts?.size ?? "";
+        const theme = (opts?.theme || "").toLowerCase();
+        if (theme)
+            host.setAttribute("data-theme", theme);
+        else
+            host.removeAttribute("data-theme");
+        setRenderSession({
+            size,
+            theme,
+            onAction: opts?.onAction,
+        });
+        paintConfig(host, config, !!opts?.chrome);
+        return {
+            destroy() {
+                clearTimers();
+                host.replaceChildren();
+            },
+        };
+    }
+
     function collectTrace(node, rendered, skipped) {
         if (!node || typeof node !== "object")
             return;
@@ -1363,9 +1570,10 @@
                 window.__TAURI_INTERNALS__.metadata.currentWindow.label) ||
                 "desktop";
             var rendered = [], skipped = [];
+            var keyed = cfg;
             var branch = SIZE
-                ? cfg && (cfg[SIZE] || cfg.small || cfg.medium || cfg.large)
-                : cfg && (cfg.small || cfg.medium || cfg.large);
+                ? keyed && (keyed[SIZE] || keyed.small || keyed.medium || keyed.large)
+                : keyed && (keyed.small || keyed.medium || keyed.large);
             collectTrace(branch, rendered, skipped);
             var nonce = 0;
             if (nonceHint != null)
@@ -1393,66 +1601,18 @@
         catch (_) { }
     }
     function render(cfg, source, nonceHint) {
-        clearTimers();
+        if (!root)
+            return;
         if (!cfg) {
-            root.innerHTML =
-                '<div class="w-empty"><div><div style="font-size:28px;margin-bottom:4px">&#x1F4CC;</div><div style="font-size:14px;opacity:.7">No widget config</div></div></div>';
+            renderWidget(root, null, { size: SIZE, theme: THEME, chrome: true });
             return;
         }
-        var data;
-        if (SIZE)
-            data = cfg[SIZE] || cfg.small || cfg.medium || cfg.large;
-        else
-            data = cfg.small || cfg.medium || cfg.large;
-        if (!data) {
-            root.innerHTML =
-                '<div class="w-empty"><div><div style="font-size:28px;margin-bottom:4px">&#x1F4CC;</div><div style="font-size:14px;opacity:.7">No config for size &quot;' +
-                    SIZE +
-                    '&quot;</div></div></div>';
-            return;
-        }
-        root.innerHTML = "";
-        // Readable defaults when fixtures leave color/background null (avoids black-on-black
-        // and WebKit leftover Loading purple under transparent surfaces).
-        var ink = isDark() ? "#e5e7eb" : "#111827";
-        var surface = isDark() ? "#0f172a" : "#f8fafc";
-        document.documentElement.style.color = ink;
-        document.body.style.color = ink;
-        var wrapper = document.createElement("div");
-        wrapper.style.cssText =
-            "width:100%;height:100%;overflow:hidden;position:relative";
-        var content = renderEl(data);
-        content.style.width = "100%";
-        content.style.height = "100%";
-        if (!content.style.background && !content.style.backgroundColor) {
-            content.style.background = surface;
-        }
-        wrapper.appendChild(content);
-        var drag = document.createElement("div");
-        drag.id = "drag-handle";
-        drag.setAttribute("data-tauri-drag-region", "");
-        wrapper.appendChild(drag);
-        var cls = document.createElement("button");
-        cls.id = "close-btn";
-        cls.innerHTML = "&#x2715;";
-        cls.onclick = function () {
-            try {
-                var label = window.__TAURI_INTERNALS__?.metadata?.currentWindow?.label;
-                if (!label) {
-                    window.close();
-                    return;
-                }
-                invoke("plugin:widgets|close_widget_window", { label: label }).catch(function () { });
-            }
-            catch (_) {
-                window.close();
-            }
-        };
-        wrapper.appendChild(cls);
-        root.appendChild(wrapper);
+        renderWidget(root, cfg, { size: SIZE, theme: THEME, chrome: true });
         reportReceipt(cfg, source || "pull", source === "push" ? "reload" : "timeline", nonceHint);
     }
     function loadConfig() {
+        if (!root)
+            return;
         Promise.all([
             invoke("plugin:widgets|get_widget_config", {
                 group: GROUP,
@@ -1474,7 +1634,13 @@
         })
             .catch(function (e) {
             clearTimers();
-            root.innerHTML = '<div class="w-err">' + String(e) + "</div>";
+            if (!root)
+                return;
+            root.textContent = "";
+            var err = document.createElement("div");
+            err.className = "w-err";
+            err.textContent = String(e);
+            root.appendChild(err);
         });
     }
     function init() {
@@ -1482,7 +1648,6 @@
             setTimeout(init, 50);
             return;
         }
-        // Listeners BEFORE loadConfig — otherwise a push between the two is dropped.
         listen("widget-config-push", function (ev) {
             const raw = ev.payload;
             if (raw && typeof raw === "object" && "config" in raw) {

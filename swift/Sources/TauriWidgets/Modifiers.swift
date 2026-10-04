@@ -20,12 +20,22 @@ struct BgMod: ViewModifier {
         switch bg {
         case .solid(let hex):
             let c = Color.semantic(hex) ?? Color(hex: hex)
-            content.background(RoundedRectangle(cornerRadius: cr ?? 0).fill(c))
+            // Fill the framed bounds (not the text glyph box) so 40×24 badges stay 40×24.
+            content.background {
+                RoundedRectangle(cornerRadius: cr ?? 0).fill(c)
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+            }
         case .gradient(let g):
-            content.background(g.filledShape(cornerRadius: cr ?? 0))
+            content.background {
+                g.filledShape(cornerRadius: cr ?? 0)
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+            }
         case .adaptive(let l, let d):
-            content.background(RoundedRectangle(cornerRadius: cr ?? 0)
-                .fill(Color.adaptive(light: l, dark: d)))
+            content.background {
+                RoundedRectangle(cornerRadius: cr ?? 0)
+                    .fill(Color.adaptive(light: l, dark: d))
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+            }
         case nil: content
         }
     }
@@ -46,7 +56,13 @@ struct FrameMod: ViewModifier {
     func body(content: Content) -> some View {
         if let f = f {
             // Explicit center so badge/avatar content isn't left/top-biased inside the box.
-            content.frame(width: f.width, height: f.height, alignment: .center)
+            // fixedSize keeps accent bars (6×36) from being crushed by HStack flex siblings.
+            content
+                .frame(width: f.width, height: f.height, alignment: .center)
+                .fixedSize(
+                    horizontal: f.width != nil && f.maxWidth == nil,
+                    vertical: f.height != nil && f.maxHeight == nil
+                )
                 .frame(maxWidth: f.maxWidth?.cgFloat, maxHeight: f.maxHeight?.cgFloat)
         } else { content }
     }
@@ -77,8 +93,10 @@ struct ClipShapeMod: ViewModifier {
 struct FlexMod: ViewModifier {
     let flex: CGFloat?
     func body(content: Content) -> some View {
-        if let f = flex, f > 0 {
-            content.frame(maxWidth: .infinity).layoutPriority(Double(f))
+        if (flex ?? 0) > 0 {
+            // Take remaining HStack/VStack space. Do NOT raise layoutPriority —
+            // that compresses trailing labels (Today / $15.99) to zero width.
+            content.frame(maxWidth: .infinity)
         } else { content }
     }
 }

@@ -208,6 +208,7 @@ export interface ChartElement extends ElementStyle {
 export interface ListElement extends ElementStyle {
   type: "list";
   items: ListItem[];
+  children?: WidgetElement[];
   spacing?: number;
   fontSize?: number;
   color?: ColorValue;

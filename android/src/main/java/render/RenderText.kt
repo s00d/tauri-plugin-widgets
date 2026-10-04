@@ -9,6 +9,8 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.graphics.toArgb
 import androidx.glance.GlanceModifier
 import androidx.glance.appwidget.AndroidRemoteViews
+import androidx.glance.layout.Alignment
+import androidx.glance.layout.Box
 import androidx.glance.layout.Row
 import androidx.glance.layout.fillMaxWidth
 import androidx.glance.text.Text
@@ -97,9 +99,30 @@ internal fun renderElementText(
     content: String,
     modifier: GlanceModifier = GlanceModifier,
 ) {
-    val style = textStyleFromElement(context, el.raw)
+    val frame = el.obj("frame")
+    val hasFixedBox =
+        frame != null &&
+            frame.optDouble("width", -1.0) > 0 &&
+            frame.optDouble("height", -1.0) > 0
+    // Badge boxes (TL/TR/BL/BR): center glyph inside frame+background.
+    // Glance Text ignores vertical alignment on the modifier alone.
+    val styleEl =
+        if (hasFixedBox && el.str("alignment", "").isBlank()) {
+            El(org.json.JSONObject(el.raw.toString()).put("alignment", "center"))
+        } else {
+            el
+        }
+    val style = textStyleFromElement(context, styleEl.raw)
     val limit = el.int("lineLimit", -1)
-    if (limit > 0) {
+    if (hasFixedBox) {
+        Box(modifier = modifier, contentAlignment = Alignment.Center) {
+            if (limit > 0) {
+                Text(content, style = style, maxLines = limit)
+            } else {
+                Text(content, style = style)
+            }
+        }
+    } else if (limit > 0) {
         Text(content, modifier = modifier, style = style, maxLines = limit)
     } else {
         Text(content, modifier = modifier, style = style)

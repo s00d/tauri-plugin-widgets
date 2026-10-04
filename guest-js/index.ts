@@ -45,6 +45,7 @@ export {
 } from "./api/window";
 export {
   setWidgetConfig,
+  setWidgetConfigFromPath,
   getWidgetConfig,
   type SkipReason,
   type ReloadOutcome,

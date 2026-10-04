@@ -72,7 +72,7 @@ export function renderButton(d: ElNode): HTMLElement {
   };
   e.onclick = function () {
     if (d.action) emitAction(d.action);
-    else if (d.url) window.open(d.url, "_blank");
+    else if (d.url) openHttpUrl(d.url);
   };
   // applyStyle would clobber the padding we just set — skip padding there for buttons.
   var padSave = d.padding;
@@ -115,12 +115,20 @@ export function renderToggle(d: ElNode): HTMLElement {
   return e;
 }
 
+/** Open only http(s) URLs — block javascript:/data:/etc. from widget config. */
+function openHttpUrl(url: string): void {
+  var u = String(url).trim();
+  var lower = u.toLowerCase();
+  if (lower.indexOf("http://") !== 0 && lower.indexOf("https://") !== 0) return;
+  window.open(u, "_blank");
+}
+
 export function renderLink(d: ElNode): HTMLElement {
   var e = document.createElement("div");
   e.style.cursor = "pointer";
   e.onclick = function () {
     if (d.action) emitAction(d.action);
-    else if (d.url) window.open(d.url, "_blank");
+    else if (d.url) openHttpUrl(d.url);
   };
   applyStyle(e, d);
   (d.children || []).forEach(function (c: ElNode) {

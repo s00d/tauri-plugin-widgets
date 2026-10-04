@@ -48,6 +48,12 @@ final class MacRenderTests: XCTestCase {
         let image = try Self.renderAppKit(case: c, element: el)
         try PixelCompare.assertNonUniform(image: image, caseName: c.name)
 
+        // Always surface actual for agent/manual review (mirrors ios/android-shot).
+        let outDir = RepoPaths.outMacos
+        try FileManager.default.createDirectory(at: outDir, withIntermediateDirectories: true)
+        let actualURL = outDir.appendingPathComponent("\(c.name).actual.png")
+        try PixelCompare.writePNG(image, to: actualURL)
+
         let goldenURL = RepoPaths.goldenMacos.appendingPathComponent("\(c.name).png")
         if record {
             try PixelCompare.writePNG(image, to: goldenURL)
@@ -66,15 +72,12 @@ final class MacRenderTests: XCTestCase {
         let expected = try PixelCompare.loadPNG(goldenURL)
         let match = PixelCompare.similarity(expected, image)
         if match < Self.precision {
-            let outDir = RepoPaths.outMacos
-            try FileManager.default.createDirectory(at: outDir, withIntermediateDirectories: true)
-            try PixelCompare.writePNG(image, to: outDir.appendingPathComponent("\(c.name).actual.png"))
             throw NSError(
                 domain: "TauriWidgetsTests",
                 code: 23,
                 userInfo: [
                     NSLocalizedDescriptionKey: String(
-                        format: "golden mismatch \(c.name): similarity %.4f < %.2f (actual → \(outDir.path))",
+                        format: "golden mismatch \(c.name): similarity %.4f < %.2f (actual → \(actualURL.path))",
                         match,
                         Self.precision,
                     ),

@@ -29,14 +29,16 @@ public enum WidgetChrome {
         element: WidgetElement,
         width: CGFloat,
         height: CGFloat,
-        cornerRadius: CGFloat = 22
+        cornerRadius: CGFloat? = nil
     ) -> some View {
+        // Prefer the layout's own cornerRadius so pad 12 isn't clipped by a harder 22pt mask.
+        let cr = cornerRadius ?? element.cornerRadius ?? 16
         ZStack(alignment: .topLeading) {
             background(for: element)
             DynamicElementView(element: element, isWidgetRoot: true)
                 .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
         }
         .frame(width: width, height: height)
-        .clipShape(RoundedRectangle(cornerRadius: cornerRadius, style: .continuous))
+        .clipShape(RoundedRectangle(cornerRadius: cr, style: .continuous))
     }
 }

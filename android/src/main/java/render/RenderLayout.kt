@@ -11,12 +11,43 @@ import androidx.glance.layout.ColumnScope
 import androidx.glance.layout.Row
 import androidx.glance.layout.RowScope
 import androidx.glance.layout.Spacer
+import androidx.glance.layout.fillMaxHeight
 import androidx.glance.layout.fillMaxSize
 import androidx.glance.layout.fillMaxWidth
 import androidx.glance.layout.height
 import androidx.glance.layout.width
 import org.json.JSONArray
 import org.json.JSONObject
+import java.util.Locale
+
+/** True when a flex spacer should absorb adjacent VStack/HStack spacing. */
+private fun isExpandingSpacer(child: JSONObject): Boolean {
+    if (child.widgetString("type", "") != "spacer") return false
+    return !child.has("minLength") || child.optDouble("flex", 0.0) > 0.0
+}
+
+/**
+ * ZStack children that need the full slot (so Column spacers expand) vs badges that must
+ * keep intrinsic size for [Box] contentAlignment.
+ */
+private fun zstackChildModifier(child: JSONObject): GlanceModifier {
+    val type = child.widgetString("type", "")
+    if (type in setOf("vstack", "hstack", "container", "grid", "zstack")) {
+        return GlanceModifier.fillMaxSize()
+    }
+    if (type == "shape") {
+        val frame = child.optJSONObject("frame")
+        val hasFrame =
+            (frame?.optDouble("width", -1.0) ?: -1.0) > 0 &&
+                (frame?.optDouble("height", -1.0) ?: -1.0) > 0
+        val hasSize = child.optDouble("size", -1.0) > 0
+        // Bare rectangle underlay (stress-align) → fill; sized circle/capsule → hug.
+        if (!hasFrame && !hasSize) return GlanceModifier.fillMaxSize()
+        val shapeType = child.widgetString("shapeType", "circle").lowercase(Locale.US)
+        if (shapeType == "rectangle" && !hasFrame) return GlanceModifier.fillMaxSize()
+    }
+    return GlanceModifier
+}
 
 @Composable
 internal fun RenderLayout(scope: RenderScope, el: El, modifier: GlanceModifier) {
@@ -52,14 +83,16 @@ internal fun RenderLayout(scope: RenderScope, el: El, modifier: GlanceModifier) 
             val alignment = parseContentAlignment(el.str("alignment", "center").ifBlank { "center" })
             // fillMaxSize inside a Row steals all remaining width/height and zeros siblings
             // (nested-dashboard badge crushed the title/button/body). Wrap in hstacks.
-            val boxMod = if (inHorizontal) modifier else modifier.fillMaxWidth()
+            val boxMod = if (inHorizontal) modifier else modifier.fillMaxWidth().fillMaxHeight()
             Box(modifier = boxMod, contentAlignment = alignment) {
                 val children = el.arr("children")
                 if (children != null && children.length() > 0) {
                     for (i in 0 until children.length()) {
                         val child = children.optJSONObject(i) ?: continue
-                        // Do not fillMaxSize on children — that breaks Box contentAlignment.
-                        RenderElement(scope, El(child), GlanceModifier)
+                        // Stacks / full-bleed shapes must fill so Spacers get a height budget.
+                        // Fixed badges (text/image/circle) stay intrinsic — fillMaxSize on those
+                        // breaks Box contentAlignment.
+                        RenderElement(scope, El(child), zstackChildModifier(child))
                     }
                 }
             }
@@ -164,11 +197,15 @@ private fun ColumnScope.renderChildrenVertical(
 
     val childScope = scope.vertical()
     for (idx in visible.indices) {
-        if (idx > 0 && spacing > 0) {
-            // Spacer between children — padding(bottom) on thin dividers often collapses in RemoteViews.
-            Spacer(GlanceModifier.height(spacing.dp))
-        }
         val child = visible[idx]
+        if (idx > 0 && spacing > 0) {
+            val prev = visible[idx - 1]
+            // Fixed spacing Spacers around flex spacers steal height and crush the last row
+            // (stress-align BL/BR → 2dp lines). Flex spacer already provides the gap.
+            if (!isExpandingSpacer(prev) && !isExpandingSpacer(child)) {
+                Spacer(GlanceModifier.height(spacing.dp))
+            }
+        }
         val flex = child.optDouble("flex", 0.0)
         val type = child.widgetString("type", "")
         // Buttons/images/shapes hug content — fillMaxWidth makes Tap a full-bleed bar.
@@ -218,7 +255,10 @@ private fun RowScope.renderChildrenHorizontal(
     for (idx in visible.indices) {
         val child = visible[idx]
         if (idx > 0 && spacing > 0) {
-            Spacer(GlanceModifier.width(spacing.dp))
+            val prev = visible[idx - 1]
+            if (!isExpandingSpacer(prev) && !isExpandingSpacer(child)) {
+                Spacer(GlanceModifier.width(spacing.dp))
+            }
         }
         val t = child.widgetString("type", "")
         when (t) {

@@ -26,7 +26,27 @@ use std::ffi::CString;
 /// Protocol name registered by the plugin for the built-in widget renderer.
 pub(crate) const BUILTIN_PROTOCOL: &str = "widgetview";
 
+/// Percent-encode a query component (RFC 3986 unreserved left as-is).
+fn encode_query_component(s: &str) -> String {
+    let mut out = String::with_capacity(s.len());
+    for &b in s.as_bytes() {
+        match b {
+            b'A'..=b'Z' | b'a'..=b'z' | b'0'..=b'9' | b'-' | b'.' | b'_' | b'~' => {
+                out.push(b as char);
+            }
+            _ => {
+                use std::fmt::Write as _;
+                let _ = write!(out, "%{b:02X}");
+            }
+        }
+    }
+    out
+}
+
 fn builtin_widget_url(group: &str, size: &str, widget_id: &str) -> WebviewUrl {
+    let group = encode_query_component(group);
+    let size = encode_query_component(size);
+    let widget_id = encode_query_component(widget_id);
     #[cfg(target_os = "windows")]
     let url_str = format!(
         "https://{}.localhost/?group={}&size={}&widgetId={}",
@@ -38,6 +58,29 @@ fn builtin_widget_url(group: &str, size: &str, widget_id: &str) -> WebviewUrl {
         BUILTIN_PROTOCOL, group, size, widget_id
     );
     WebviewUrl::External(url_str.parse().expect("invalid built-in widget URL"))
+}
+
+#[cfg(test)]
+mod builtin_url_tests {
+    use super::encode_query_component;
+
+    #[test]
+    fn encodes_ampersand_and_equals() {
+        assert_eq!(
+            encode_query_component("small&widgetId=hijack"),
+            "small%26widgetId%3Dhijack"
+        );
+        assert_eq!(encode_query_component("a=b&c"), "a%3Db%26c");
+    }
+
+    #[test]
+    fn leaves_unreserved_alone() {
+        assert_eq!(
+            encode_query_component("group.com.example.app"),
+            "group.com.example.app"
+        );
+        assert_eq!(encode_query_component("weather_1"), "weather_1");
+    }
 }
 
 pub fn init<R: Runtime>(
@@ -449,6 +492,25 @@ impl<R: Runtime> Widget<R> {
         ))
     }
 
+    /// Load a [`WidgetConfig`] JSON file from disk, then apply it like [`Self::set_widget_config`].
+    pub fn set_widget_config_from_path(
+        &self,
+        path: impl AsRef<std::path::Path>,
+        group: &str,
+        widget_id: &str,
+        skip_reload: bool,
+    ) -> crate::Result<ApplyOutcome> {
+        if widget_id.is_empty() {
+            return Err(Error::new("widget_id must not be empty"));
+        }
+        let path = path.as_ref();
+        let path_str = path.to_str().ok_or_else(|| {
+            Error::new(format!("invalid UTF-8 path: {}", path.display()))
+        })?;
+        let config = crate::commands::load_widget_config_from_path(path_str)?;
+        self.set_widget_config(&config, group, widget_id, skip_reload)
+    }
+
     pub fn set_widget_config(
         &self,
         config: &WidgetConfig,
@@ -536,7 +598,8 @@ impl<R: Runtime> Widget<R> {
 
         #[cfg(target_os = "windows")]
         {
-            // Widgets Board provider reads Adaptive Card blobs from the same store.
+            // Widgets Board: single Adaptive Card from the medium IR branch.
+            // Package Size capability is medium-only (templates/windows-widget).
             // Desktop webview (widget.html) remains the fallback outside Widget Board.
             if let Some(result) =
                 crate::adaptive_card::to_adaptive_card_for_size(&config, "medium")

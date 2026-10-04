@@ -1,6 +1,6 @@
 {
   "name": "tauri-plugin-widgets-api",
-  "version": "0.5.0",
+  "version": "0.6.0",
   "author": "s00d",
   "description": "A Tauri v2 plugin to interact with App Widgets on Android and iOS, with desktop fallback. SharedPreferences / UserDefaults / WidgetKit / AppWidgetManager.",
   "license": "MIT",
@@ -13,9 +13,15 @@
     "url": "git+https://github.com/s00d/tauri-plugin-widgets.git"
   },
   "exports": {
-    "types": "./dist-js/index.d.ts",
-    "import": "./dist-js/index.js",
-    "require": "./dist-js/index.cjs"
+    ".": {
+      "types": "./dist-js/index.d.ts",
+      "import": "./dist-js/index.js",
+      "require": "./dist-js/index.cjs"
+    },
+    "./render": {
+      "types": "./dist-js/render.d.ts",
+      "import": "./dist-js/render.js"
+    }
   },
   "bin": {
     "tauri-plugin-widgets-api": "./dist-cli/cli.mjs",
@@ -70,6 +76,9 @@
     "test:android": "bash scripts/sh/android-gradle.sh :testDebugUnitTest",
     "test:android:update": "bash scripts/sh/android-gradle.sh :testDebugUnitTest -PupdateSnapshots=true",
     "test:android:visual": "bash scripts/sh/android-gradle.sh :connectedDebugAndroidTest -Pandroid.testInstrumentationRunnerArguments.class=git.s00d.widgets.WidgetRenderTest",
+    "shot:android": "bash scripts/sh/android-shot.sh",
+    "shot:ios": "bash scripts/sh/ios-shot.sh",
+    "shot:macos": "bash scripts/sh/macos-shot.sh",
     "test:swift": "cd swift && swift test --filter MacRenderTests && swift test --filter RenderTests && swift test --filter TransportTests && swift test --filter DispatcherCoverageTests",
     "test:ios:visual": "cd swift && swift test --filter RenderTests",
     "test:macos:visual": "cd swift && swift test --filter MacRenderTests",

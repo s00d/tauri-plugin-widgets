@@ -1,0 +1,13 @@
+# Automatically generated - DO NOT EDIT!
+
+"$schema" = "../../schemas/schema.json"
+
+[[permission]]
+identifier = "allow-set-widget-config-from-path"
+description = "Enables the set_widget_config_from_path command without any pre-configured scope."
+commands.allow = ["set_widget_config_from_path"]
+
+[[permission]]
+identifier = "deny-set-widget-config-from-path"
+description = "Denies the set_widget_config_from_path command without any pre-configured scope."
+commands.deny = ["set_widget_config_from_path"]

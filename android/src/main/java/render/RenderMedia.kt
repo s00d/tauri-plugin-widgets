@@ -7,7 +7,10 @@ import androidx.compose.ui.unit.sp
 import androidx.glance.GlanceModifier
 import androidx.glance.Image
 import androidx.glance.ImageProvider
+import androidx.glance.background
+import androidx.glance.layout.Box
 import androidx.glance.layout.ContentScale
+import androidx.glance.layout.fillMaxSize
 import androidx.glance.layout.height
 import androidx.glance.layout.size
 import androidx.glance.layout.width
@@ -68,30 +71,50 @@ internal fun RenderMedia(scope: RenderScope, el: El, modifier: GlanceModifier) {
             }
         }
         "shape" -> {
-            val size = el.num("size", 18.0).toInt().coerceAtLeast(1)
             val shapeType = el.str("shapeType", "circle")
             val isCapsule = shapeType.equals("capsule", ignoreCase = true)
-            // Capsule contract: width = 2*size, height = size (not square)
-            val shapeModifier = if (isCapsule) {
-                modifier.width((size * 2).dp).height(size.dp)
-            } else {
-                modifier.size(size.dp)
-            }
-            val shapeBmp = drawShapeBitmap(context, el.raw, size)
-            if (shapeBmp != null) {
-                Image(
-                    provider = ImageProvider(shapeBmp),
-                    contentDescription = shapeType,
-                    modifier = shapeModifier,
-                    contentScale = ContentScale.FillBounds
-                )
-            } else {
-                val symbol = when (shapeType.lowercase(Locale.US)) {
-                    "capsule" -> "[====]"
-                    "rectangle" -> "[##]"
-                    else -> "(o)"
+            val frame = el.obj("frame")
+            val frameW = frame?.optDouble("width", -1.0) ?: -1.0
+            val frameH = frame?.optDouble("height", -1.0) ?: -1.0
+            val explicitSize = el.num("size", -1.0)
+            // Full-bleed rectangle underlay from zstack (modifier already fillMaxSize).
+            val fillBleed =
+                shapeType.equals("rectangle", ignoreCase = true) &&
+                    explicitSize <= 0 &&
+                    frameW <= 0 &&
+                    frameH <= 0
+            if (fillBleed) {
+                val fill = resolveColorProvider(context, el.opt("fill"))
+                if (fill != null) {
+                    Box(modifier = modifier.fillMaxSize().background(fill)) {}
+                } else {
+                    Box(modifier = modifier.fillMaxSize()) {}
                 }
-                Text(symbol, modifier = shapeModifier, style = textStyleFromElement(context, el.raw))
+            } else {
+                val size = (if (explicitSize > 0) explicitSize else 18.0).toInt().coerceAtLeast(1)
+                // Capsule contract: width = 2*size, height = size (not square)
+                val shapeModifier = when {
+                    frameW > 0 && frameH > 0 ->
+                        modifier.width(frameW.toInt().dp).height(frameH.toInt().dp)
+                    isCapsule -> modifier.width((size * 2).dp).height(size.dp)
+                    else -> modifier.size(size.dp)
+                }
+                val shapeBmp = drawShapeBitmap(context, el.raw, size)
+                if (shapeBmp != null) {
+                    Image(
+                        provider = ImageProvider(shapeBmp),
+                        contentDescription = shapeType,
+                        modifier = shapeModifier,
+                        contentScale = ContentScale.FillBounds
+                    )
+                } else {
+                    val symbol = when (shapeType.lowercase(Locale.US)) {
+                        "capsule" -> "[====]"
+                        "rectangle" -> "[##]"
+                        else -> "(o)"
+                    }
+                    Text(symbol, modifier = shapeModifier, style = textStyleFromElement(context, el.raw))
+                }
             }
         }
         else -> {

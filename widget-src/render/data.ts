@@ -1,5 +1,6 @@
 import { applyStyle, resolveColor, svg, tintTrack } from "../style";
 import { emitAction } from "../ctx";
+import { renderEl } from "./element";
 import type { ElNode } from "../types";
 
 export function renderProgress(d: ElNode): HTMLElement | SVGElement {
@@ -284,6 +285,14 @@ export function renderList(d: ElNode): HTMLElement {
   var e = document.createElement("div");
   e.style.cssText =
     "display:flex;flex-direction:column;gap:" + (d.spacing || 4) + "px";
+  // Rich rows (children) or typed items.
+  if (d.children && d.children.length) {
+    d.children.forEach(function (c: ElNode) {
+      e.appendChild(renderEl(c, "vertical"));
+    });
+    applyStyle(e, d);
+    return e;
+  }
   var items = d.items || [];
   var anyCheck = items.some(function (it: ElNode) {
     return Object.prototype.hasOwnProperty.call(it, "checked");

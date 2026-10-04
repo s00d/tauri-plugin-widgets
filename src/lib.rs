@@ -118,6 +118,8 @@ mod commands;
 pub mod config;
 /// Plugin error type.
 pub mod error;
+/// Fail-closed validation for widget `group` identifiers.
+pub mod group;
 /// Host-side remote image prefetch for WidgetKit / desktop store writes.
 pub mod image_prefetch;
 /// SF Symbol → Material / emoji resolve for non-Apple hosts.
@@ -196,6 +198,7 @@ pub fn init<R: Runtime>() -> TauriPlugin<R, Option<WidgetsPluginConfig>> {
             commands::create_widget_window,
             commands::close_widget_window,
             commands::set_widget_config,
+            commands::set_widget_config_from_path,
             commands::get_widget_config,
             commands::widget_action,
             commands::poll_pending_actions,

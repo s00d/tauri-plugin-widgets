@@ -32,12 +32,12 @@ function printOtherPlatformHints(caseName: string, platform: string): void {
       console.log(`  just test-android-visual`);
       break;
     case "ios":
-      console.log(`  just record-ios ${caseName}`);
-      console.log(`  just test-ios-visual`);
+      console.log(`  just shot-ios ${caseName}`);
+      console.log(`  GOLDEN_RECORD=1 just shot-ios ${caseName}`);
       break;
     case "macos":
-      console.log(`  just record-macos ${caseName}`);
-      console.log(`  just test-macos-visual`);
+      console.log(`  just shot-macos ${caseName}`);
+      console.log(`  GOLDEN_RECORD=1 just shot-macos ${caseName}`);
       break;
     case "windows":
     case "win":
@@ -58,7 +58,7 @@ function printOtherPlatformHints(caseName: string, platform: string): void {
 export const shotCommand = defineCommand({
   meta: {
     name: "shot",
-    description: "Capture a visual case (linux runs shot-linux; others print just/pnpm hints)",
+    description: "Capture a visual case (linux/android/ios/macos run real hosts; others print just/pnpm hints)",
   },
   args: {
     case: {
@@ -80,6 +80,24 @@ export const shotCommand = defineCommand({
     if (platform === "linux") {
       const size = readCaseSize(caseName);
       runToolScript("scripts/sh/shot-linux.sh", [caseName, size]);
+      return;
+    }
+
+    if (platform === "android") {
+      // Real AppWidgetHost capture (not Robolectric). Pulls PNGs to out/android/.
+      runToolScript("scripts/sh/android-shot.sh", [caseName]);
+      return;
+    }
+
+    if (platform === "ios") {
+      // Real SwiftUI ImageRenderer + WidgetChrome → out/ios/.
+      runToolScript("scripts/sh/ios-shot.sh", [caseName]);
+      return;
+    }
+
+    if (platform === "macos") {
+      // Real AppKit NSHostingView + WidgetChrome → out/macos/.
+      runToolScript("scripts/sh/macos-shot.sh", [caseName]);
       return;
     }
 

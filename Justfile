@@ -23,12 +23,27 @@ test-android-visual:
     cd {{repo}}/android && ./gradlew :connectedDebugAndroidTest \
       -Pandroid.testInstrumentationRunnerArguments.class=git.s00d.widgets.WidgetRenderTest
 
+# One case: AppWidgetHost → out/android/<case>.actual.png (+ assert vs golden).
+# GOLDEN_RECORD=1 to rewrite tests/golden/android/<case>.png
+shot-android case:
+    bash {{repo}}/scripts/sh/android-shot.sh {{case}}
+
 test-ios-visual:
     cd {{repo}}/swift && swift test --filter RenderTests
+
+# One case: SwiftUI ImageRenderer → out/ios/<case>.actual.png (+ assert vs golden).
+# GOLDEN_RECORD=1 to rewrite tests/golden/ios/<case>.png. No Simulator required.
+shot-ios case:
+    bash {{repo}}/scripts/sh/ios-shot.sh {{case}}
 
 # Level A — macOS AppKit DynamicElementView (no sim, seconds).
 test-macos-visual:
     cd {{repo}}/swift && swift test --filter MacRenderTests
+
+# One case: AppKit NSHostingView → out/macos/<case>.actual.png (+ assert vs golden).
+# GOLDEN_RECORD=1 to rewrite tests/golden/macos/<case>.png
+shot-macos case:
+    bash {{repo}}/scripts/sh/macos-shot.sh {{case}}
 
 # Level C1 — Rust + Swift transports (config driver + file IO).
 test-macos-transports:
@@ -48,19 +63,13 @@ record-desktop case:
     CASE={{case}} GOLDEN_RECORD=1 pnpm test:visual:desktop
 
 record-android case:
-    cd {{repo}}/android && ./gradlew :connectedDebugAndroidTest \
-      -Pgolden.record=true \
-      -Pcase={{case}} \
-      -Pandroid.testInstrumentationRunnerArguments.class=git.s00d.widgets.WidgetRenderTest
-    @echo "Pull recorded PNGs:"
-    @echo "  adb shell 'run-as git.s00d.widgets.test cat ...'  # or:"
-    @echo "  adb pull /storage/emulated/0/Android/data/git.s00d.widgets.test/files/widgets-golden/ ./tests/golden/android/"
+    GOLDEN_RECORD=1 bash {{repo}}/scripts/sh/android-shot.sh {{case}}
 
 record-ios case:
-    cd {{repo}}/swift && CASE={{case}} GOLDEN_RECORD=1 swift test --filter RenderTests
+    GOLDEN_RECORD=1 bash {{repo}}/scripts/sh/ios-shot.sh {{case}}
 
 record-macos case:
-    cd {{repo}}/swift && CASE={{case}} GOLDEN_RECORD=1 swift test --filter MacRenderTests
+    GOLDEN_RECORD=1 bash {{repo}}/scripts/sh/macos-shot.sh {{case}}
 
 # ─── Windows / UTM (optional remote node) ───────────────────────────────────
 

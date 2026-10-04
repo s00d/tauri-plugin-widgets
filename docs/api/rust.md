@@ -121,6 +121,31 @@ fn refresh(app: &tauri::AppHandle) -> tauri_plugin_widgets::Result<()> {
 reload ran — inspect `reload` (`Ok` / `Throttled` / `Skipped` / `Failed`).
 `reload_all_timelines` asks WidgetKit / the desktop webview to repaint.
 
+### Load from a JSON file
+
+When the layout lives on disk (bundle resource / app data), use
+`set_widget_config_from_path` instead of building the object in code. Path must be
+readable by the app process — absolute or resolved via `app.path().resource_dir()`.
+Network URLs are not supported.
+
+```rust
+use tauri::Manager;
+use tauri_plugin_widgets::WidgetExt;
+
+fn refresh_from_file(app: &tauri::AppHandle) -> tauri_plugin_widgets::Result<()> {
+    let path = app
+        .path()
+        .resource_dir()?
+        .join("widgets")
+        .join("weather.json");
+    app.widget()
+        .set_widget_config_from_path(&path, "group.com.example.app", "weather", false)?;
+    Ok(())
+}
+```
+
+Guest JS: `setWidgetConfigFromPath(path, group, widgetId)` — same file semantics.
+
 ## Receiving actions
 
 Two complementary paths:

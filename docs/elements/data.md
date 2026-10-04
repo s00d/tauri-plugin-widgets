@@ -275,6 +275,44 @@ _From showcase preset — case `chart-mix.medium`._
 }
 ```
 
+#### From showcase `stress-nest.large`
+
+```json
+{
+  "type": "chart",
+  "chartType": "bar",
+  "flex": 1,
+  "tint": "#38bdf8",
+  "chartData": [
+    {
+      "label": "a",
+      "value": 2,
+      "color": "#38bdf8"
+    },
+    {
+      "label": "b",
+      "value": 5,
+      "color": "#818cf8"
+    },
+    {
+      "label": "c",
+      "value": 1,
+      "color": "#c084fc"
+    },
+    {
+      "label": "d",
+      "value": 7,
+      "color": "#f472b6"
+    },
+    {
+      "label": "e",
+      "value": 4,
+      "color": "#fb7185"
+    }
+  ]
+}
+```
+
 #### Inside a `WidgetConfig`
 
 ```json
@@ -317,6 +355,7 @@ _From showcase preset — case `android-list.large`._
 | --- | --- | --- | --- |
 | `background` | `BackgroundValue` | `—` | Solid, adaptive, or gradient background. |
 | `border` | `BorderConfig` | `—` | Border color and width. |
+| `children` | `WidgetElement[]` | `—` | Rich rows as nested elements (alternative to typed [`ListItem`]s). |
 | `clipShape` | `ClipShape` | `—` | Clip content to a shape (e.g. circle avatar from square image). |
 | `color` | `ColorValue` | `—` | Row text color. |
 | `cornerRadius` | `number` | `—` | Corner radius in points. |

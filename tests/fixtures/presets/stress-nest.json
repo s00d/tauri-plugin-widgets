@@ -1,0 +1,242 @@
+{
+  "$schema": "https://s00d.github.io/tauri-plugin-widgets/schemas/widget-config.v1.json",
+  "version": 1,
+  "large": {
+    "type": "vstack",
+    "padding": 10,
+    "spacing": 8,
+    "cornerRadius": 16,
+    "background": "#020617",
+    "children": [
+      {
+        "type": "hstack",
+        "spacing": 8,
+        "alignment": "center",
+        "children": [
+          {
+            "type": "zstack",
+            "alignment": "center",
+            "frame": { "width": 56, "height": 56 },
+            "children": [
+              {
+                "type": "shape",
+                "shapeType": "circle",
+                "fill": "#1d4ed8",
+                "size": 56
+              },
+              {
+                "type": "shape",
+                "shapeType": "circle",
+                "fill": "#0ea5e9",
+                "size": 36
+              },
+              {
+                "type": "text",
+                "content": "A1",
+                "fontSize": 14,
+                "fontWeight": "bold",
+                "color": "#fff"
+              }
+            ]
+          },
+          {
+            "type": "vstack",
+            "spacing": 2,
+            "flex": 1,
+            "children": [
+              {
+                "type": "text",
+                "content": "Stress Nest — deep stacks",
+                "fontSize": 15,
+                "fontWeight": "bold",
+                "color": "#f8fafc",
+                "lineLimit": 1
+              },
+              {
+                "type": "text",
+                "content": "This subtitle is intentionally very long to check truncation and ellipsis behavior on Android Glance RemoteViews",
+                "fontSize": 11,
+                "color": "#94a3b8",
+                "lineLimit": 2
+              }
+            ]
+          },
+          {
+            "type": "toggle",
+            "isOn": true,
+            "action": "stress_toggle"
+          }
+        ]
+      },
+      {
+        "type": "divider",
+        "color": "#1e293b"
+      },
+      {
+        "type": "grid",
+        "columns": 3,
+        "spacing": 6,
+        "rowSpacing": 6,
+        "children": [
+          {
+            "type": "vstack",
+            "padding": 8,
+            "spacing": 4,
+            "cornerRadius": 10,
+            "background": "#111827",
+            "alignment": "center",
+            "children": [
+              { "type": "text", "content": "L", "fontSize": 10, "color": "#64748b" },
+              {
+                "type": "gauge",
+                "value": 0.15,
+                "min": 0,
+                "max": 1,
+                "gaugeStyle": "circular",
+                "tint": "#22c55e",
+                "currentValueLabel": "15"
+              }
+            ]
+          },
+          {
+            "type": "vstack",
+            "padding": 8,
+            "spacing": 4,
+            "cornerRadius": 10,
+            "background": "#111827",
+            "alignment": "center",
+            "children": [
+              { "type": "text", "content": "M", "fontSize": 10, "color": "#64748b" },
+              {
+                "type": "gauge",
+                "value": 0.55,
+                "min": 0,
+                "max": 1,
+                "gaugeStyle": "circular",
+                "tint": "#f59e0b",
+                "currentValueLabel": "55"
+              }
+            ]
+          },
+          {
+            "type": "vstack",
+            "padding": 8,
+            "spacing": 4,
+            "cornerRadius": 10,
+            "background": "#111827",
+            "alignment": "center",
+            "children": [
+              { "type": "text", "content": "H", "fontSize": 10, "color": "#64748b" },
+              {
+                "type": "gauge",
+                "value": 0.92,
+                "min": 0,
+                "max": 1,
+                "gaugeStyle": "circular",
+                "tint": "#ef4444",
+                "currentValueLabel": "92"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "type": "hstack",
+        "spacing": 8,
+        "children": [
+          {
+            "type": "chart",
+            "chartType": "bar",
+            "flex": 1,
+            "tint": "#38bdf8",
+            "chartData": [
+              { "label": "a", "value": 2, "color": "#38bdf8" },
+              { "label": "b", "value": 5, "color": "#818cf8" },
+              { "label": "c", "value": 1, "color": "#c084fc" },
+              { "label": "d", "value": 7, "color": "#f472b6" },
+              { "label": "e", "value": 4, "color": "#fb7185" }
+            ]
+          },
+          {
+            "type": "list",
+            "flex": 1,
+            "spacing": 4,
+            "children": [
+              {
+                "type": "hstack",
+                "spacing": 6,
+                "alignment": "center",
+                "children": [
+                  { "type": "shape", "shapeType": "circle", "fill": "#22c55e", "size": 8 },
+                  { "type": "text", "content": "ok row", "fontSize": 12, "color": "#e2e8f0", "flex": 1 },
+                  { "type": "text", "content": "12", "fontSize": 12, "color": "#64748b" }
+                ]
+              },
+              {
+                "type": "hstack",
+                "spacing": 6,
+                "alignment": "center",
+                "children": [
+                  { "type": "shape", "shapeType": "circle", "fill": "#f59e0b", "size": 8 },
+                  { "type": "text", "content": "warn — wraps?", "fontSize": 12, "color": "#e2e8f0", "flex": 1 },
+                  { "type": "text", "content": "3", "fontSize": 12, "color": "#64748b" }
+                ]
+              },
+              {
+                "type": "hstack",
+                "spacing": 6,
+                "alignment": "center",
+                "children": [
+                  { "type": "shape", "shapeType": "circle", "fill": "#ef4444", "size": 8 },
+                  { "type": "text", "content": "err overflow text that should clip", "fontSize": 12, "color": "#e2e8f0", "flex": 1, "lineLimit": 1 },
+                  { "type": "text", "content": "99", "fontSize": 12, "color": "#64748b" }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "type": "hstack",
+        "spacing": 8,
+        "children": [
+          {
+            "type": "button",
+            "label": "Primary",
+            "action": "stress_primary",
+            "backgroundColor": "#2563eb",
+            "color": "#fff",
+            "fontSize": 13,
+            "cornerRadius": 8,
+            "flex": 1
+          },
+          {
+            "type": "button",
+            "label": "Ghost",
+            "action": "stress_ghost",
+            "backgroundColor": "#1e293b",
+            "color": "#94a3b8",
+            "fontSize": 13,
+            "cornerRadius": 8,
+            "flex": 1
+          },
+          {
+            "type": "link",
+            "action": "open_settings",
+            "padding": 8,
+            "cornerRadius": 8,
+            "background": "#334155",
+            "children": [
+              {
+                "type": "text",
+                "content": "Link",
+                "fontSize": 12,
+                "color": "#38bdf8"
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  }
+}

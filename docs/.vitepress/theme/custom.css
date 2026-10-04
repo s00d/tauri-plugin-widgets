@@ -73,7 +73,8 @@
   margin: 0 auto;
 }
 
-.playground__frame iframe {
+.playground__frame .playground__host,
+.playground__frame .widget-host {
   border: 0;
   display: block;
   width: 100%;
@@ -91,4 +92,13 @@
   background: var(--vp-c-bg-soft);
   color: var(--vp-c-text-1);
   resize: vertical;
+}
+
+.Layout.widget-constructor .content-container,
+.Layout.widget-constructor .content {
+  max-width: 1180px;
+}
+
+.Layout.widget-constructor .aside {
+  display: none;
 }

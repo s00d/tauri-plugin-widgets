@@ -15,6 +15,7 @@ Package: `tauri-plugin-widgets-api`. Types for the widget IR are generated from 
 ```ts
 import {
   setWidgetConfig,
+  setWidgetConfigFromPath,
   createWidgetWindow,
   onWidgetAction,
   startWidgetUpdater,
@@ -26,11 +27,20 @@ import {
 | Function | Purpose |
 | --- | --- |
 | `setWidgetConfig(config, group, widgetId, skipReload?)` | Push a full `WidgetConfig`. Returns `ApplyOutcome` (`written`, `reload`, `transports`, optional `skip`) — not a bare boolean |
+| `setWidgetConfigFromPath(path, group, widgetId, skipReload?)` | Read a `WidgetConfig` JSON file from disk, then push it like `setWidgetConfig`. Path must be readable by the app process (absolute or resolved `resourceDir()` / app-data). No network URLs. Needs `widgets:allow-set-widget-config-from-path` (included in `widgets:default`) |
 | `getWidgetTrace(group, { since? })` | Host delivery journal + receipt history (debug / `WIDGET_DEBUG=1`) |
 | `flushWidgetTrace()` | Flush journal to disk (desktop) |
 | `getWidgetConfig(group, widgetId)` | Read the stored config |
 | `setItems(key, value, group)` | Low-level key/value write shared with native widgets |
 | `getItems(key, group)` | Low-level key/value read |
+
+```ts
+import { resourceDir, join } from "@tauri-apps/api/path";
+import { setWidgetConfigFromPath } from "tauri-plugin-widgets-api";
+
+const path = await join(await resourceDir(), "widgets", "weather.json");
+await setWidgetConfigFromPath(path, "group.com.example.myapp", "weather");
+```
 
 ## Timelines and Android pin
 

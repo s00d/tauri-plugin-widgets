@@ -6,8 +6,19 @@ import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
+import org.junit.runner.RunWith
+import org.robolectric.RobolectricTestRunner
+import org.robolectric.annotation.Config
 
-/** Unit coverage for El typed JSON accessors. */
+/**
+ * Unit coverage for El typed JSON accessors.
+ *
+ * Must run under Robolectric: plain JVM Android stubs +
+ * `unitTests.isReturnDefaultValues = true` make org.json return empty
+ * defaults, so "reads value" assertions look like false failures.
+ */
+@RunWith(RobolectricTestRunner::class)
+@Config(sdk = [34])
 class ElTest {
     @Test
     fun str_returnsDefaultWhenMissing() {

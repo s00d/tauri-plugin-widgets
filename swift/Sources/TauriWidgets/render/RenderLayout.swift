@@ -23,16 +23,55 @@ extension DynamicElementView {
     @ViewBuilder func renderHStack() -> some View {
         let align: VerticalAlignment = element.alignment == "top" ? .top
             : element.alignment == "bottom" ? .bottom : .center
-        HStack(alignment: align, spacing: element.spacing ?? 0) { renderChildren(axis: .horizontal) }
+        let stack = HStack(alignment: align, spacing: element.spacing ?? 0) {
+            renderChildren(axis: .horizontal)
+        }
+        // In a VStack: span width so flex:1 pushes trailing labels, but hug height
+        // so padded cards don't eat leftover space and look top-heavy.
+        // IMPORTANT: frame(maxWidth:) before fixedSize — otherwise the HStack stays
+        // content-sized and `alignment: .leading` parks Today mid-row.
+        if parentAxis == .vertical {
+            stack
+                .frame(maxWidth: .infinity)
+                .fixedSize(horizontal: false, vertical: true)
+        } else {
+            stack
+        }
     }
 
     @ViewBuilder func renderZStack() -> some View {
         ZStack(alignment: parseAlignment(element.alignment)) {
             if let children = element.children {
                 ForEach(children.indices, id: \.self) { idx in
-                    DynamicElementView(element: children[idx], inZStack: true)
+                    let child = children[idx]
+                    let view = DynamicElementView(element: child, inZStack: true)
+                    // Bare rectangle underlays fill here. Stacks fill after padding in applyStyle.
+                    if Self.zstackChildFills(child) {
+                        view.frame(maxWidth: .infinity, maxHeight: .infinity)
+                    } else {
+                        view
+                    }
                 }
             }
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+    }
+
+    /// Whether a ZStack child should expand to the proposed slot size.
+    private static func zstackChildFills(_ child: WidgetElement) -> Bool {
+        switch child.type {
+        case "container", "grid", "zstack":
+            return true
+        case "vstack", "hstack":
+            // Filled after PaddingMod in DynamicElementView.applyStyle.
+            return false
+        case "shape":
+            let hasFrame = child.frame?.width != nil && child.frame?.height != nil
+            let hasSize = child.size != nil
+            if hasFrame || hasSize { return false }
+            return (child.shapeType ?? "rectangle") == "rectangle"
+        default:
+            return false
         }
     }
 

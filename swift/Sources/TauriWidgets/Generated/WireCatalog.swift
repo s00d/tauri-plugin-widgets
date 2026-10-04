@@ -45,7 +45,7 @@ public enum WidgetWireFields {
     public static let divider: [String] = ["color?: ColorValue", "thickness?: number"]
     public static let date: [String] = ["date: string", "dateStyle?: DateStyle", "fontSize?: number", "color?: ColorValue"]
     public static let chart: [String] = ["chartType: ChartType", "chartData: ChartDataPoint[]", "tint?: ColorValue"]
-    public static let list: [String] = ["items: ListItem[]", "spacing?: number", "fontSize?: number", "color?: ColorValue"]
+    public static let list: [String] = ["items: ListItem[]", "children?: WidgetElement[]", "spacing?: number", "fontSize?: number", "color?: ColorValue"]
     public static let link: [String] = ["children: WidgetElement[]", "url?: string", "action?: string"]
     public static let shape: [String] = ["shapeType: ShapeType", "fill?: ColorValue", "stroke?: ColorValue", "strokeWidth?: number", "size?: number"]
     public static let timer: [String] = ["targetDate: string", "counting?: TimerCounting", "fontSize?: number", "fontWeight?: FontWeight", "color?: ColorValue"]

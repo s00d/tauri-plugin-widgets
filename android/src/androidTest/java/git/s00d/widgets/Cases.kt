@@ -55,8 +55,9 @@ object VisualStore {
 
     fun reset(ctx: Context) {
         val g = group(ctx)
-        ctx.getSharedPreferences(g, Context.MODE_PRIVATE).edit().clear().apply()
-        WidgetStoreKeys.metaPrefs(ctx).edit().clear().apply()
+        // commit(): visual stand must see prefs before updateAll (apply is async).
+        ctx.getSharedPreferences(g, Context.MODE_PRIVATE).edit().clear().commit()
+        WidgetStoreKeys.metaPrefs(ctx).edit().clear().commit()
     }
 
     fun putConfig(ctx: Context, appWidgetId: Int, configJson: String) {
@@ -66,12 +67,12 @@ object VisualStore {
             .putString(WidgetStoreKeys.configKey(WIDGET_ID), configJson)
             .putString(WidgetStoreKeys.META_NONCE, "1")
             .putString(WidgetStoreKeys.META_UPDATED_AT, System.currentTimeMillis().toString())
-            .apply()
+            .commit()
         WidgetStoreKeys.metaPrefs(ctx)
             .edit()
             .putString(WidgetStoreKeys.KEY_ACTIVE_GROUP, g)
             .putString(WidgetStoreKeys.KEY_ACTIVE_WIDGET_ID, WIDGET_ID)
-            .apply()
+            .commit()
         WidgetStoreKeys.bindInstance(ctx, appWidgetId, WIDGET_ID, g)
     }
 }

@@ -11,6 +11,7 @@ const COMMANDS: &[&str] = &[
     "create_widget_window",
     "close_widget_window",
     "set_widget_config",
+    "set_widget_config_from_path",
     "get_widget_config",
     "widget_action",
     "poll_pending_actions",

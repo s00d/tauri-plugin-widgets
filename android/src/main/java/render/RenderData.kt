@@ -34,52 +34,68 @@ internal fun RenderData(scope: RenderScope, el: El, modifier: GlanceModifier) {
             // Column (not LazyColumn): home-screen lists are short, and LazyColumn
             // often yields zero children under GlanceRemoteViews / Robolectric.
             // Glance Column hard-caps ~10 children — chunk into nested Columns.
-            val items = el.arr("items") ?: JSONArray()
-            val itemList = mutableListOf<JSONObject>()
-            for (i in 0 until items.length()) {
-                items.optJSONObject(i)?.let { itemList += it }
-                if (itemList.size >= GLANCE_LIST_LIMIT) break
-            }
-            val truncated = items.length() - itemList.size
-            if (truncated > 0) {
-                Log.w(
-                    TAG,
-                    "list items truncated: requested=${items.length()} rendered=${itemList.size} limit=$GLANCE_LIST_LIMIT"
-                )
-            }
-            val anyCheckbox = itemList.any { it.has("checked") || it.has("isOn") }
-            val chunks = itemList.chunked(GLANCE_LIST_CHUNK)
-            Column(modifier = modifier.fillMaxWidth()) {
-                chunks.forEachIndexed { chunkIdx, chunk ->
-                    Column(modifier = GlanceModifier.fillMaxWidth()) {
-                        chunk.forEachIndexed { index, item ->
-                            if (index > 0 && spacing > 0) {
-                                Spacer(GlanceModifier.height(spacing.dp))
-                            } else if (index == 0 && chunkIdx > 0 && spacing > 0) {
-                                Spacer(GlanceModifier.height(spacing.dp))
-                            }
-                            val text = item.widgetString("text", item.widgetString("content", ""))
-                            val hasCheckbox = item.has("checked") || item.has("isOn")
-                            val checked = item.optBoolean("checked", false) || item.optBoolean("isOn", false)
-                            val action = item.widgetString("action", "")
-                            val payload = item.widgetString("payload", "")
-                            val rowMod = applyAction(GlanceModifier.fillMaxWidth(), action, payload, "")
-                            val prefix = when {
-                                hasCheckbox && checked -> "✓ "
-                                hasCheckbox -> "○ "
-                                anyCheckbox -> "  "
-                                else -> ""
-                            }
-                            renderElementText(context, el, "$prefix$text", rowMod)
+            val customChildren = el.arr("children")
+            if (customChildren != null && customChildren.length() > 0) {
+                // Rich rows (stress-nest): arbitrary widget children, not ListItem[].
+                val childScope = scope.vertical()
+                val limit = customChildren.length().coerceAtMost(GLANCE_LIST_LIMIT)
+                Column(modifier = modifier.fillMaxWidth()) {
+                    for (i in 0 until limit) {
+                        if (i > 0 && spacing > 0) {
+                            Spacer(GlanceModifier.height(spacing.dp))
                         }
+                        val child = customChildren.optJSONObject(i) ?: continue
+                        RenderElement(childScope, El(child), GlanceModifier.fillMaxWidth())
                     }
                 }
+            } else {
+                val items = el.arr("items") ?: JSONArray()
+                val itemList = mutableListOf<JSONObject>()
+                for (i in 0 until items.length()) {
+                    items.optJSONObject(i)?.let { itemList += it }
+                    if (itemList.size >= GLANCE_LIST_LIMIT) break
+                }
+                val truncated = items.length() - itemList.size
                 if (truncated > 0) {
-                    if (spacing > 0) Spacer(GlanceModifier.height(spacing.dp))
-                    Text(
-                        "+$truncated more",
-                        style = TextStyle(color = semanticSecondaryProvider(context), fontSize = 11.sp)
+                    Log.w(
+                        TAG,
+                        "list items truncated: requested=${items.length()} rendered=${itemList.size} limit=$GLANCE_LIST_LIMIT"
                     )
+                }
+                val anyCheckbox = itemList.any { it.has("checked") || it.has("isOn") }
+                val chunks = itemList.chunked(GLANCE_LIST_CHUNK)
+                Column(modifier = modifier.fillMaxWidth()) {
+                    chunks.forEachIndexed { chunkIdx, chunk ->
+                        Column(modifier = GlanceModifier.fillMaxWidth()) {
+                            chunk.forEachIndexed { index, item ->
+                                if (index > 0 && spacing > 0) {
+                                    Spacer(GlanceModifier.height(spacing.dp))
+                                } else if (index == 0 && chunkIdx > 0 && spacing > 0) {
+                                    Spacer(GlanceModifier.height(spacing.dp))
+                                }
+                                val text = item.widgetString("text", item.widgetString("content", ""))
+                                val hasCheckbox = item.has("checked") || item.has("isOn")
+                                val checked = item.optBoolean("checked", false) || item.optBoolean("isOn", false)
+                                val action = item.widgetString("action", "")
+                                val payload = item.widgetString("payload", "")
+                                val rowMod = applyAction(GlanceModifier.fillMaxWidth(), action, payload, "")
+                                val prefix = when {
+                                    hasCheckbox && checked -> "✓ "
+                                    hasCheckbox -> "○ "
+                                    anyCheckbox -> "  "
+                                    else -> ""
+                                }
+                                renderElementText(context, el, "$prefix$text", rowMod)
+                            }
+                        }
+                    }
+                    if (truncated > 0) {
+                        if (spacing > 0) Spacer(GlanceModifier.height(spacing.dp))
+                        Text(
+                            "+$truncated more",
+                            style = TextStyle(color = semanticSecondaryProvider(context), fontSize = 11.sp)
+                        )
+                    }
                 }
             }
         }

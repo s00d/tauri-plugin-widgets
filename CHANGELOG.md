@@ -1,5 +1,19 @@
 # Changelog
 
+## 0.6.0
+
+### Added
+- JS render library: `tauri-plugin-widgets-api/render` (`renderWidget` in a host div, no Tauri)
+- Docs widget constructor (schema inspector, click-to-insert outline, Up/Down/Duplicate)
+- `set_widget_config_from_path` / `setWidgetConfigFromPath` (permission in `widgets:default`)
+- `ListElement.children` in generated TS / schema (rich list rows)
+- Stress / probe visual cases and light-theme goldens
+
+### Changed
+- Desktop `widget-src` split: library host vs chrome IIFE (`widget.html`)
+- Docs Playground/Constructor render in-page; dropped iframe sandbox copy pipeline
+- VitePress 2 + mermaid renderer
+
 ## 0.5.0
 
 Mega-refactor toward one IR SoT and aligned renderers.

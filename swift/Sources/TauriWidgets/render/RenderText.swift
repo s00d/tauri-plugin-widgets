@@ -36,15 +36,22 @@ extension DynamicElementView {
         let frameAlign: Alignment = alignRaw == "trailing" || alignRaw == "right" || alignRaw == "end" ? .trailing
             : (alignRaw == "center" || alignRaw == "middle" ? .center : .leading)
         let base = colored.multilineTextAlignment(textAlign)
+        // Expand only in VStack (textAlign) or when flex>0. Hug in HStack / link / button
+        // content — otherwise "Link" steals the row and leaves an empty bg square.
+        let inHStack = parentAxis == .horizontal
+        let inVStack = parentAxis == .vertical
+        let wantsFlex = (element.flex ?? 0) > 0
+        let expandWidth = !inZStack && !hasFixedBox && (wantsFlex || inVStack)
+        let hugWidth = inZStack || hasFixedBox || inHStack || (!inVStack && !wantsFlex)
         Group {
             if let limit = element.lineLimit {
-                base.lineLimit(Int(limit))
+                base.lineLimit(Int(limit)).truncationMode(.tail)
             } else {
                 base
             }
         }
-        .fixedSize(horizontal: inZStack || hasFixedBox, vertical: hasFixedBox)
-        .frame(maxWidth: (inZStack || hasFixedBox) ? nil : .infinity, alignment: frameAlign)
+        .fixedSize(horizontal: hugWidth, vertical: false)
+        .frame(maxWidth: expandWidth ? .infinity : nil, alignment: frameAlign)
     }
 
     // MARK: Date

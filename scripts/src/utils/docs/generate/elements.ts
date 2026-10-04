@@ -1,10 +1,12 @@
 // @ts-nocheck
+import { existsSync } from "node:fs";
 import { join } from "node:path";
 import { cell, code, table } from "../../markdown.js";
 import {
   CORE_ELEMENTS,
   ELEMENT_GROUPS,
   EXTENDED_ELEMENTS,
+  ROOT,
   extractElementsFromSchema,
   loadCase,
   loadFixture,
@@ -388,8 +390,13 @@ ${JSON.stringify(b.json, null, 2)}
     .join("\n\n");
 }
 
+/** Prefer a case that has a desktop golden so VitePress can resolve `/shots/desktop/…`. */
 function firstShotCase(cases) {
-  return cases?.[0] ?? null;
+  if (!cases?.length) return null;
+  for (const name of cases) {
+    if (existsSync(join(ROOT, "tests/golden/desktop", `${name}.png`))) return name;
+  }
+  return null;
 }
 
 function elementSection(el, usage) {

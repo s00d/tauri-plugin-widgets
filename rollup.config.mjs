@@ -5,18 +5,19 @@ import typescript from "@rollup/plugin-typescript";
 
 const pkg = JSON.parse(readFileSync(join(cwd(), "package.json"), "utf8"));
 const runtimeDeps = Object.keys(pkg.dependencies || {});
+const pkgRoot = pkg.exports["."];
 
 /** Guest JS API (existing). */
 const lib = {
   input: "guest-js/index.ts",
   output: [
-    { file: pkg.exports.import, format: "esm" },
-    { file: pkg.exports.require, format: "cjs" },
+    { file: pkgRoot.import, format: "esm" },
+    { file: pkgRoot.require, format: "cjs" },
   ],
   plugins: [
     typescript({
       declaration: true,
-      declarationDir: dirname(pkg.exports.import),
+      declarationDir: dirname(pkgRoot.import),
     }),
   ],
   external: [
@@ -103,5 +104,43 @@ const widget = {
   ],
 };
 
-const all = [lib, cli, widget];
+const RENDER_DTS = `import type { WidgetConfig } from "./index";
+export type { WidgetConfig };
+export type WidgetSize = "small" | "medium" | "large";
+export type WidgetTheme = "light" | "dark";
+export type RenderWidgetOptions = {
+  size?: WidgetSize | string;
+  theme?: WidgetTheme | string;
+  chrome?: boolean;
+  onAction?: (action: string, payload?: string | null) => void;
+};
+export type RenderHandle = { destroy(): void };
+export function renderWidget(
+  host: HTMLElement,
+  config: WidgetConfig | null | undefined,
+  opts?: RenderWidgetOptions,
+): RenderHandle;
+`;
+
+const renderLib = {
+  input: "widget-src/lib.ts",
+  output: {
+    file: "dist-js/render.js",
+    format: "esm",
+  },
+  plugins: [
+    typescript({
+      tsconfig: "widget-src/tsconfig.render.json",
+      declaration: false,
+    }),
+    {
+      name: "render-dts",
+      writeBundle() {
+        writeFileSync(join(cwd(), "dist-js", "render.d.ts"), RENDER_DTS);
+      },
+    },
+  ],
+};
+
+const all = [lib, cli, widget, renderLib];
 export default process.env.WIDGET_ONLY ? [widget] : all;

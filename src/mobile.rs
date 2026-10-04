@@ -210,10 +210,12 @@ impl<R: Runtime> Widget<R> {
                 });
             }
         }
-        *last = Some(now);
         drop(last);
         match self.reload_all_timelines() {
-            Ok(_) => Ok(ReloadOutcome::Ok),
+            Ok(_) => {
+                *self.last_reload.lock().unwrap() = Some(now);
+                Ok(ReloadOutcome::Ok)
+            }
             Err(e) => Ok(ReloadOutcome::Failed {
                 error: e.to_string(),
             }),
@@ -251,6 +253,25 @@ impl<R: Runtime> Widget<R> {
         Err(crate::Error::Unsupported(
             "Webview widgets are desktop only".into(),
         ))
+    }
+
+    /// Load a [`WidgetConfig`] JSON file from disk, then apply it like [`Self::set_widget_config`].
+    pub fn set_widget_config_from_path(
+        &self,
+        path: impl AsRef<std::path::Path>,
+        group: &str,
+        widget_id: &str,
+        skip_reload: bool,
+    ) -> crate::Result<ApplyOutcome> {
+        if widget_id.is_empty() {
+            return Err(crate::Error::new("widget_id must not be empty"));
+        }
+        let path = path.as_ref();
+        let path_str = path.to_str().ok_or_else(|| {
+            crate::Error::new(format!("invalid UTF-8 path: {}", path.display()))
+        })?;
+        let config = crate::commands::load_widget_config_from_path(path_str)?;
+        self.set_widget_config(&config, group, widget_id, skip_reload)
     }
 
     pub fn set_widget_config(

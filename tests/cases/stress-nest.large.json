@@ -1,0 +1,11 @@
+{
+  "fixture": "presets/stress-nest",
+  "size": "large",
+  "theme": "dark",
+  "locale": "en_US",
+  "platforms": [
+    "android",
+    "ios",
+    "macos"
+  ]
+}

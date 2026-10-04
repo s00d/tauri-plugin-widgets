@@ -1,0 +1,11 @@
+{
+  "fixture": "presets/stress-unicode",
+  "size": "small",
+  "theme": "dark",
+  "locale": "ru_RU",
+  "platforms": [
+    "android",
+    "ios",
+    "macos"
+  ]
+}

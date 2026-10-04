@@ -1,11 +1,11 @@
 {
   "elements": {
     "button": {
-      "android": 5,
+      "android": 6,
       "desktop": 5,
-      "ios": 5,
+      "ios": 6,
       "linux": 5,
-      "macos": 5,
+      "macos": 6,
       "windows": 0
     },
     "canvas": {
@@ -17,11 +17,11 @@
       "windows": 0
     },
     "chart": {
-      "android": 1,
+      "android": 2,
       "desktop": 1,
-      "ios": 1,
+      "ios": 2,
       "linux": 1,
-      "macos": 1,
+      "macos": 2,
       "windows": 0
     },
     "container": {
@@ -41,35 +41,35 @@
       "windows": 0
     },
     "divider": {
-      "android": 9,
+      "android": 10,
       "desktop": 10,
-      "ios": 10,
+      "ios": 11,
       "linux": 9,
-      "macos": 10,
+      "macos": 11,
       "windows": 0
     },
     "gauge": {
-      "android": 4,
+      "android": 5,
       "desktop": 4,
-      "ios": 4,
+      "ios": 5,
       "linux": 4,
-      "macos": 4,
+      "macos": 5,
       "windows": 0
     },
     "grid": {
-      "android": 6,
+      "android": 7,
       "desktop": 7,
-      "ios": 7,
+      "ios": 8,
       "linux": 6,
-      "macos": 7,
+      "macos": 8,
       "windows": 0
     },
     "hstack": {
-      "android": 16,
+      "android": 20,
       "desktop": 18,
-      "ios": 18,
+      "ios": 22,
       "linux": 16,
-      "macos": 18,
+      "macos": 22,
       "windows": 0
     },
     "image": {
@@ -89,51 +89,51 @@
       "windows": 0
     },
     "link": {
-      "android": 1,
+      "android": 2,
       "desktop": 1,
-      "ios": 1,
+      "ios": 2,
       "linux": 1,
-      "macos": 1,
+      "macos": 2,
       "windows": 0
     },
     "list": {
-      "android": 4,
+      "android": 5,
       "desktop": 4,
-      "ios": 4,
+      "ios": 5,
       "linux": 4,
-      "macos": 4,
+      "macos": 5,
       "windows": 0
     },
     "progress": {
-      "android": 8,
+      "android": 12,
       "desktop": 9,
-      "ios": 9,
+      "ios": 13,
       "linux": 8,
-      "macos": 9,
+      "macos": 13,
       "windows": 0
     },
     "shape": {
-      "android": 13,
+      "android": 17,
       "desktop": 14,
-      "ios": 14,
+      "ios": 18,
       "linux": 13,
-      "macos": 14,
+      "macos": 18,
       "windows": 0
     },
     "spacer": {
-      "android": 10,
+      "android": 11,
       "desktop": 11,
-      "ios": 11,
+      "ios": 12,
       "linux": 10,
-      "macos": 11,
+      "macos": 12,
       "windows": 0
     },
     "text": {
-      "android": 27,
+      "android": 33,
       "desktop": 30,
-      "ios": 30,
+      "ios": 36,
       "linux": 27,
-      "macos": 30,
+      "macos": 36,
       "windows": 0
     },
     "timer": {
@@ -145,27 +145,27 @@
       "windows": 0
     },
     "toggle": {
-      "android": 1,
+      "android": 2,
       "desktop": 1,
-      "ios": 1,
+      "ios": 2,
       "linux": 1,
-      "macos": 1,
+      "macos": 2,
       "windows": 0
     },
     "vstack": {
-      "android": 30,
+      "android": 36,
       "desktop": 33,
-      "ios": 33,
+      "ios": 39,
       "linux": 30,
-      "macos": 33,
+      "macos": 39,
       "windows": 0
     },
     "zstack": {
-      "android": 8,
+      "android": 10,
       "desktop": 9,
-      "ios": 9,
+      "ios": 11,
       "linux": 8,
-      "macos": 9,
+      "macos": 11,
       "windows": 0
     }
   },

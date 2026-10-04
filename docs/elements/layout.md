@@ -542,24 +542,63 @@ _From showcase preset — case `nested-dashboard.large`._
 }
 ```
 
-#### From showcase `upcoming-payments-empty.large`
+#### From showcase `stress-align.medium` (size root)
 
 ```json
 {
   "type": "zstack",
-  "alignment": "center",
+  "cornerRadius": 16,
+  "background": "#0b1020",
   "children": [
     {
       "type": "shape",
-      "shapeType": "circle",
-      "fill": "#263878FA",
-      "size": 52
+      "shapeType": "rectangle",
+      "fill": "#172554",
+      "cornerRadius": 16
     },
     {
-      "type": "image",
-      "systemName": "checkmark.circle.fill",
-      "size": 30,
-      "color": "#3878FA"
+      "type": "vstack",
+      "padding": 16,
+      "spacing": 0,
+      "children": [
+        {
+          "type": "hstack",
+          "spacing": 0,
+          "children": [
+            {
+              "type": "text",
+              "content": "TL",
+              "fontSize": 12,
+              "fontWeight": "bold",
+              "color": "#86efac",
+              "frame": {
+                "width": 40,
+                "height": 24
+              },
+              "background": "#14532d",
+              "cornerRadius": 4
+            },
+            {
+              "type": "spacer"
+            },
+            {
+              "type": "text",
+              "content": "… +1 more",
+              "fontSize": 11,
+              "color": "secondaryLabel"
+            }
+          ]
+        },
+        {
+          "type": "spacer"
+        },
+        {
+          "type": "text",
+          "content": "… +3 more",
+          "fontSize": 11,
+          "color": "secondaryLabel"
+        }
+      ]
     }
   ]
 }

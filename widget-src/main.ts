@@ -4,12 +4,12 @@ import {
   listen,
   GROUP,
   SIZE,
+  THEME,
   WIDGET_ID,
   root,
   clearTimers,
 } from "./ctx";
-import { isDark } from "./style";
-import { renderEl } from "./render/element";
+import { renderWidget } from "./lib";
 
 function collectTrace(node: unknown, rendered: string[], skipped: SkippedElement[]) {
   if (!node || typeof node !== "object") return;
@@ -42,9 +42,10 @@ function reportReceipt(cfg: WidgetConfig | null | undefined, source: string, tri
       "desktop";
     var rendered: string[] = [],
       skipped: SkippedElement[] = [];
+    var keyed = cfg as (WidgetConfig & Record<string, ElNode | undefined>) | null | undefined;
     var branch = SIZE
-      ? cfg && ((cfg[SIZE] as ElNode | undefined) || cfg.small || cfg.medium || cfg.large)
-      : cfg && (cfg.small || cfg.medium || cfg.large);
+      ? keyed && (keyed[SIZE] || keyed.small || keyed.medium || keyed.large)
+      : keyed && (keyed.small || keyed.medium || keyed.large);
     collectTrace(branch, rendered, skipped);
     var nonce = 0;
     if (nonceHint != null) nonce = Number(nonceHint) || 0;
@@ -70,72 +71,22 @@ function reportReceipt(cfg: WidgetConfig | null | undefined, source: string, tri
 }
 
 function render(cfg: WidgetConfig | null | undefined, source?: string, nonceHint?: unknown) {
-  clearTimers();
+  if (!root) return;
   if (!cfg) {
-    root.innerHTML =
-      '<div class="w-empty"><div><div style="font-size:28px;margin-bottom:4px">&#x1F4CC;</div><div style="font-size:14px;opacity:.7">No widget config</div></div></div>';
+    renderWidget(root, null, { size: SIZE, theme: THEME, chrome: true });
     return;
   }
-  var data;
-  if (SIZE) data = (cfg[SIZE] as ElNode | undefined) || cfg.small || cfg.medium || cfg.large;
-  else data = cfg.small || cfg.medium || cfg.large;
-  if (!data) {
-    root.innerHTML =
-      '<div class="w-empty"><div><div style="font-size:28px;margin-bottom:4px">&#x1F4CC;</div><div style="font-size:14px;opacity:.7">No config for size &quot;' +
-      SIZE +
-      '&quot;</div></div></div>';
-    return;
-  }
-
-  root.innerHTML = "";
-  // Readable defaults when fixtures leave color/background null (avoids black-on-black
-  // and WebKit leftover Loading purple under transparent surfaces).
-  var ink = isDark() ? "#e5e7eb" : "#111827";
-  var surface = isDark() ? "#0f172a" : "#f8fafc";
-  document.documentElement.style.color = ink;
-  document.body.style.color = ink;
-  var wrapper = document.createElement("div");
-  wrapper.style.cssText =
-    "width:100%;height:100%;overflow:hidden;position:relative";
-
-  var content = renderEl(data as ElNode);
-  content.style.width = "100%";
-  content.style.height = "100%";
-  if (!content.style.background && !content.style.backgroundColor) {
-    content.style.background = surface;
-  }
-  wrapper.appendChild(content);
-
-  var drag = document.createElement("div");
-  drag.id = "drag-handle";
-  drag.setAttribute("data-tauri-drag-region", "");
-  wrapper.appendChild(drag);
-
-  var cls = document.createElement("button");
-  cls.id = "close-btn";
-  cls.innerHTML = "&#x2715;";
-  cls.onclick = function () {
-    try {
-      var label = window.__TAURI_INTERNALS__?.metadata?.currentWindow?.label;
-      if (!label) { window.close(); return; }
-      invoke("plugin:widgets|close_widget_window", { label: label }).catch(
-        function () {}
-      );
-    } catch (_) {
-      window.close();
-    }
-  };
-  wrapper.appendChild(cls);
-  root.appendChild(wrapper);
+  renderWidget(root, cfg, { size: SIZE, theme: THEME, chrome: true });
   reportReceipt(
     cfg,
     source || "pull",
     source === "push" ? "reload" : "timeline",
-    nonceHint
+    nonceHint,
   );
 }
 
 function loadConfig() {
+  if (!root) return;
   Promise.all([
     invoke("plugin:widgets|get_widget_config", {
       group: GROUP,
@@ -156,7 +107,12 @@ function loadConfig() {
     })
     .catch(function (e) {
       clearTimers();
-      root.innerHTML = '<div class="w-err">' + String(e) + "</div>";
+      if (!root) return;
+      root.textContent = "";
+      var err = document.createElement("div");
+      err.className = "w-err";
+      err.textContent = String(e);
+      root.appendChild(err);
     });
 }
 
@@ -165,7 +121,6 @@ function init() {
     setTimeout(init, 50);
     return;
   }
-  // Listeners BEFORE loadConfig — otherwise a push between the two is dropped.
   listen("widget-config-push", function (ev) {
     type ConfigPush = {
       config?: WidgetConfig;

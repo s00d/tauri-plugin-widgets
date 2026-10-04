@@ -3356,6 +3356,13 @@
                 }
               ]
             },
+            "children": {
+              "description": "Rich rows as nested elements (alternative to typed [`ListItem`]s).",
+              "type": "array",
+              "items": {
+                "$ref": "#/definitions/WidgetElement"
+              }
+            },
             "clipShape": {
               "description": "Clip content to a shape (e.g. circle avatar from square image).",
               "anyOf": [

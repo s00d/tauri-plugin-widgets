@@ -9,6 +9,11 @@ android {
 
     defaultConfig {
         minSdk = 21
+        // Library consumers ignore this; the androidTest APK needs it.
+        // API 34+ emulator images reject install when targetSdk < 23/24
+        // (INSTALL_FAILED_DEPRECATED_SDK_VERSION) — verified on widgets-test.
+        @Suppress("DEPRECATION")
+        targetSdk = 34
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         consumerProguardFiles("consumer-rules.pro")

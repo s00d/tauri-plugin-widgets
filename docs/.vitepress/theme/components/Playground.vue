@@ -1,6 +1,7 @@
 <script setup lang="ts">
-import { computed, onMounted, ref, watch } from "vue";
+import { computed, onBeforeUnmount, onMounted, ref, watch } from "vue";
 import { withBase } from "vitepress";
+import { renderWidget, type RenderHandle } from "tauri-plugin-widgets-api/render";
 
 const props = defineProps<{
   case?: string;
@@ -19,11 +20,8 @@ const frameSize = computed(() => {
   if (s === "medium") return { width: "360px", height: "200px" };
   return { width: "180px", height: "180px" };
 });
-
-const iframeSrc = computed(() =>
-  withBase(`/widget-sandbox.html?size=${encodeURIComponent(size.value)}&sandbox=1`),
-);
-const iframeEl = ref<HTMLIFrameElement | null>(null);
+const hostEl = ref<HTMLElement | null>(null);
+let handle: RenderHandle | null = null;
 
 function decodeConfig(): string | null {
   if (props.configB64) {
@@ -47,18 +45,17 @@ function decodeConfig(): string | null {
 }
 
 function push() {
-  const w = iframeEl.value?.contentWindow;
-  if (!w) return;
+  if (!hostEl.value) return;
   try {
     const config = JSON.parse(editable.value);
-    w.postMessage({ type: "render", config }, "*");
+    handle?.destroy();
+    handle = renderWidget(hostEl.value, config, {
+      size: size.value,
+      onAction: (action, payload) => console.log("[widget]", action, payload),
+    });
   } catch {
     /* ignore invalid JSON while typing */
   }
-}
-
-function onLoad() {
-  push();
 }
 
 async function loadCaseConfig() {
@@ -114,6 +111,10 @@ onMounted(async () => {
   await loadCaseConfig();
   push();
 });
+onBeforeUnmount(() => {
+  handle?.destroy();
+  handle = null;
+});
 watch(
   () => [props.case, props.config, props.configB64],
   async () => {
@@ -121,17 +122,13 @@ watch(
     push();
   },
 );
+watch(size, push);
 </script>
 
 <template>
   <div class="playground">
     <div class="playground__frame" :style="frameSize">
-      <iframe
-        ref="iframeEl"
-        :src="iframeSrc"
-        :title="`playground-${props.case || 'custom'}`"
-        @load="onLoad"
-      />
+      <div ref="hostEl" class="playground__host" />
     </div>
     <textarea v-model="editable" class="playground__editor" spellcheck="false" @input="push" />
   </div>

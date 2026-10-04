@@ -80,6 +80,44 @@ export async function setWidgetConfig(
 }
 
 /**
+ * Read a `WidgetConfig` JSON file from disk and push it like {@link setWidgetConfig}.
+ *
+ * Prefer this when the layout lives next to app resources instead of being built in code.
+ * `path` must be readable by the app process (absolute path or a resolved
+ * `resourceDir()` / app-data path). Network URLs are not supported.
+ *
+ * @example
+ * ```ts
+ * import { resourceDir, join } from "@tauri-apps/api/path";
+ * import { setWidgetConfigFromPath } from "tauri-plugin-widgets-api";
+ *
+ * const path = await join(await resourceDir(), "widgets", "weather.json");
+ * await setWidgetConfigFromPath(path, "group.com.example.myapp", "weather");
+ * ```
+ */
+export async function setWidgetConfigFromPath(
+  path: string,
+  group: string,
+  widgetId: string,
+  skipReload = false,
+): Promise<ApplyOutcome> {
+  const trimmedPath = path?.trim() ?? "";
+  if (!trimmedPath) {
+    throw new Error("setWidgetConfigFromPath: 'path' must not be empty");
+  }
+  if (!group) throw new Error("setWidgetConfigFromPath: 'group' must not be empty");
+  if (!widgetId) {
+    throw new Error("setWidgetConfigFromPath: 'widgetId' must not be empty");
+  }
+  return await invoke<ApplyOutcome>(`${PLUGIN_ID}|set_widget_config_from_path`, {
+    path: trimmedPath,
+    group,
+    widgetId,
+    skipReload,
+  });
+}
+
+/**
  * Read the current widget UI configuration from the data store.
  *
  * @param group - Widget group identifier.

@@ -12,6 +12,7 @@ permissions = [
     "allow-create-widget-window",
     "allow-close-widget-window",
     "allow-set-widget-config",
+    "allow-set-widget-config-from-path",
     "allow-get-widget-config",
     "allow-widget-action",
     "allow-poll-pending-actions",

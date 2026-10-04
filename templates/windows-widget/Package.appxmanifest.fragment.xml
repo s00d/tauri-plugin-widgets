@@ -35,15 +35,11 @@
                 DisplayName="{{WIDGET_DISPLAY_NAME}}"
                 Description="Tauri Adaptive Cards widget"
                 AllowMultiple="true">
+              <!-- Host writes a single Adaptive Card from the medium IR branch
+                   (see src/desktop.rs set_widget_config). Advertise only medium. -->
               <Capabilities>
                 <Capability>
-                  <Size Name="small" />
-                </Capability>
-                <Capability>
                   <Size Name="medium" />
-                </Capability>
-                <Capability>
-                  <Size Name="large" />
                 </Capability>
               </Capabilities>
               <ThemeResources>

@@ -609,6 +609,9 @@ pub struct ListElement {
     /// Row items.
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub items: Vec<ListItem>,
+    /// Rich rows as nested elements (alternative to typed [`ListItem`]s).
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub children: Vec<WidgetElement>,
     /// Space between rows (points).
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub spacing: Option<f64>,

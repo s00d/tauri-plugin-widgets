@@ -23,6 +23,7 @@ Default permissions for the widgets plugin — enables all commands.
 - `allow-create-widget-window`
 - `allow-close-widget-window`
 - `allow-set-widget-config`
+- `allow-set-widget-config-from-path`
 - `allow-get-widget-config`
 - `allow-widget-action`
 - `allow-poll-pending-actions`
@@ -426,6 +427,32 @@ Enables the set_widget_config command without any pre-configured scope.
 <td>
 
 Denies the set_widget_config command without any pre-configured scope.
+
+</td>
+</tr>
+
+<tr>
+<td>
+
+`widgets:allow-set-widget-config-from-path`
+
+</td>
+<td>
+
+Enables the set_widget_config_from_path command without any pre-configured scope.
+
+</td>
+</tr>
+
+<tr>
+<td>
+
+`widgets:deny-set-widget-config-from-path`
+
+</td>
+<td>
+
+Denies the set_widget_config_from_path command without any pre-configured scope.
 
 </td>
 </tr>

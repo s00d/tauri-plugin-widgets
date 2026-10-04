@@ -82,7 +82,9 @@ extension DynamicElementView {
     // MARK: Link
 
     @ViewBuilder func renderLink() -> some View {
-        let content = VStack(spacing: 0) { renderChildren() }
+        // Horizontal axis so nested text hugs (not maxWidth infinity → empty bg square).
+        let content = HStack(spacing: 0) { renderChildren(axis: .horizontal) }
+            .fixedSize(horizontal: true, vertical: true)
         if let act = element.action, !act.isEmpty {
             Button(intent: WidgetActionIntent(actionName: act)) { content }.buttonStyle(.plain)
         } else if let u = element.url, !u.isEmpty, let url = URL(string: u) {

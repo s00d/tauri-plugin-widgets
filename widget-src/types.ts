@@ -17,12 +17,13 @@ export type ColorValue =
       direction?: string;
     };
 
+/** Matches `guest-js/generated/widget-types.ts` `WidgetConfig` plus desktop nonce. */
 export type WidgetConfig = {
+  version?: number;
   small?: ElNode;
   medium?: ElNode;
   large?: ElNode;
   __nonce?: number;
-  [size: string]: ElNode | number | undefined;
 };
 
 export type SkippedElement = { type: string; reason: string };

@@ -1,0 +1,11 @@
+{
+  "fixture": "presets/stress-align",
+  "size": "medium",
+  "theme": "dark",
+  "locale": "en_US",
+  "platforms": [
+    "android",
+    "ios",
+    "macos"
+  ]
+}

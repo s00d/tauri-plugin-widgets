@@ -51,10 +51,21 @@ public struct DynamicElementView: View {
     private func applyStyle<V: View>(to view: V, element el: WidgetElement) -> some View {
         // Buttons consume `padding` as content insets in renderButton — don't double-apply.
         let outerPad: PaddingValue? = el.type == "button" ? nil : el.padding
-        let styled = view
+        let isStack = el.type == "vstack" || el.type == "hstack"
+        // ZStack stacks: padding THEN fill — so spacers expand inside the inset,
+        // and corner badges aren't flush under the chrome clip.
+        let base = view
             .modifier(FlexMod(flex: el.flex))
             .modifier(PaddingMod(p: outerPad))
             .modifier(FrameMod(f: el.frame))
+        let styled: AnyView = {
+            if inZStack && isStack {
+                return AnyView(
+                    base.frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .center)
+                )
+            }
+            return AnyView(base)
+        }()
         if isWidgetRoot {
             // Keep padding/frame; chrome comes from WidgetKit containerBackground.
             styled

@@ -60,18 +60,30 @@ export function renderText(d: ElNode, parentAxis?: ParentAxis): HTMLElement {
   e.style.fontWeight = String(
     d.textStyle && TEXT_STYLE_BOLD[d.textStyle] ? 700 : fw(d.fontWeight));
   e.style.color = d.color ? resolveColor(d.color) : "inherit";
+  var hasFixedBox = !!(d.frame && d.frame.width && d.frame.height);
+  var align =
+    d.alignment ||
+    (hasFixedBox || d.clipShape === "circle" ? "center" : "leading");
   e.style.textAlign =
-    d.alignment === "center"
+    align === "center"
       ? "center"
-      : d.alignment === "trailing"
+      : align === "trailing"
         ? "right"
         : "left";
-  e.style.display = d.lineLimit ? "-webkit-box" : "block";
+  e.style.display = d.lineLimit ? "-webkit-box" : hasFixedBox ? "flex" : "block";
+  if (hasFixedBox) {
+    e.style.alignItems = "center";
+    e.style.justifyContent =
+      align === "trailing" ? "flex-end" : align === "center" ? "center" : "flex-start";
+  }
   e.style.boxSizing = "border-box";
   e.style.flexShrink = "0";
   // In hstack hug content width so siblings (divider / trailing text) stay visible.
   // In vstack (or unknown axis) stretch full width so textAlign leading/center/trailing works.
-  if (parentAxis === "horizontal") {
+  // Fixed frame badges keep explicit width from applyStyle — don't force 100%.
+  if (hasFixedBox) {
+    // width/height come from applyStyle(frame)
+  } else if (parentAxis === "horizontal") {
     e.style.width = "auto";
   } else {
     e.style.width = "100%";

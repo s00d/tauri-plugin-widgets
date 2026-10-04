@@ -1,0 +1,11 @@
+{
+  "fixture": "presets/probe-agent",
+  "size": "small",
+  "theme": "dark",
+  "locale": "en_US",
+  "platforms": [
+    "android",
+    "ios",
+    "macos"
+  ]
+}

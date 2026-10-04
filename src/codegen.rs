@@ -193,6 +193,7 @@ const IR_ELEMENTS: &[ElementSpec] = &[
         ts_name: "ListElement",
         fields: &[
             "items: ListItem[]",
+            "children?: WidgetElement[]",
             "spacing?: number",
             "fontSize?: number",
             "color?: ColorValue",

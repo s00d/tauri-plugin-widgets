@@ -4,8 +4,8 @@
 //!
 //! Behind the `image-prefetch` feature (`ureq`). In-memory + disk cache by URL
 //! with TTL so `startWidgetUpdater` does not hit the network every tick.
-//! The command path only reads the cache; network fetches run on a background
-//! thread so a slow host cannot stall `set_widget_config`.
+//! Cache hits are instant; cold misses fetch synchronously (≤ TIMEOUT) so the
+//! store write from `set_widget_config` already embeds `data:` for WidgetKit.
 //! Successful prefetch **keeps** `url` so Android / Adaptive Cards can still use it.
 
 use crate::models::WidgetConfig;
@@ -45,7 +45,6 @@ mod imp {
     }
 
     static MEMORY: Mutex<Option<HashMap<String, CacheEntry>>> = Mutex::new(None);
-    static IN_FLIGHT: Mutex<Option<std::collections::HashSet<String>>> = Mutex::new(None);
 
     fn memory() -> std::sync::MutexGuard<'static, Option<HashMap<String, CacheEntry>>> {
         MEMORY.lock().unwrap_or_else(|e| e.into_inner())
@@ -129,36 +128,20 @@ mod imp {
         {
             return;
         }
-        // Hot path: memory/disk only — never block `set_widget_config` on HTTP.
+        // Hot path: memory/disk only.
         if let Some(cached) = cache_get(url) {
             img.data = Some(cached);
             return;
         }
-        spawn_background_fetch(url.to_string());
-    }
-
-    fn spawn_background_fetch(url: String) {
-        {
-            let mut guard = IN_FLIGHT.lock().unwrap_or_else(|e| e.into_inner());
-            let set = guard.get_or_insert_with(std::collections::HashSet::new);
-            if !set.insert(url.clone()) {
-                return;
+        // Cold miss: fetch now so the upcoming store write includes `data:`.
+        // WidgetKit cannot HTTP-fetch; a background-only fill never rewrites the store.
+        match fetch_as_data_uri(url) {
+            Ok(data_uri) => {
+                cache_put(url, data_uri.clone());
+                img.data = Some(data_uri);
             }
+            Err(err) => log::warn!("image.url prefetch failed for {url}: {err}"),
         }
-        std::thread::Builder::new()
-            .name("widget-image-prefetch".into())
-            .spawn(move || {
-                match fetch_as_data_uri(&url) {
-                    Ok(data_uri) => cache_put(&url, data_uri),
-                    Err(err) => log::warn!("image.url prefetch failed for {url}: {err}"),
-                }
-                if let Ok(mut guard) = IN_FLIGHT.lock() {
-                    if let Some(set) = guard.as_mut() {
-                        set.remove(&url);
-                    }
-                }
-            })
-            .ok();
     }
 
     fn cache_get(url: &str) -> Option<String> {
