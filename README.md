@@ -45,7 +45,7 @@ pnpm tauri add tauri-plugin-widgets
 ```toml
 # src-tauri/Cargo.toml
 [dependencies]
-tauri-plugin-widgets = "0.6"
+tauri-plugin-widgets = "0.7"
 ```
 
 ```bash

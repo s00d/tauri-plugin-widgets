@@ -33,7 +33,7 @@ const features: PageFeatureProps[] = [
       :links="heroLinks"
     >
       <template #headline>
-        <UButton to="/changelog" label="0.6.2: new documentation site" trailing-icon="i-lucide-arrow-right" color="neutral" variant="subtle" size="sm" />
+        <UButton to="/changelog" label="0.7.0: setup without config" trailing-icon="i-lucide-arrow-right" color="neutral" variant="subtle" size="sm" />
       </template>
     </UPageHero>
 

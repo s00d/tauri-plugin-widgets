@@ -1,6 +1,11 @@
 # Changelog
 
-## Unreleased
+## 0.7.0
+
+### Breaking
+- Rust: `WidgetsPluginConfig::transport` is `Option<TransportKind>` (unset = platform default).
+- macOS: with `transport` unset the host writes into the widget extension's container (`widgetContainer`), not the App Group. Sandboxed Mac App Store hosts set `"transport": "appGroup"`.
+- Android: `WidgetActionReceiver` removed (taps go through the action callback queue).
 
 ### Setup is simpler
 - No `plugins.widgets` block needed: `appGroup` defaults to `group.<identifier>`, `transport` to `widgetContainer` on macOS and `appGroup` on iOS. JS `group` is optional (defaults to the App Group), `widgetId` defaults to `"default"`.

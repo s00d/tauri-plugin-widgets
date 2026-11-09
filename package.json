@@ -1,6 +1,6 @@
 {
   "name": "tauri-plugin-widgets-api",
-  "version": "0.6.2",
+  "version": "0.7.0",
   "author": "s00d",
   "description": "Tauri v2 plugin for App Widgets on Android, iOS, macOS, Windows, and Linux from a shared JSON config.",
   "license": "MIT",
