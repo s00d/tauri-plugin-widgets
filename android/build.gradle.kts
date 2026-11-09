@@ -1,7 +1,33 @@
+// The app that includes this plugin decides the Kotlin version: Tauri 2 projects made
+// before 2026 use Kotlin 1.9, new ones Kotlin 2.x. Kotlin 2 needs the Compose Compiler
+// Gradle plugin (same version as Kotlin); Kotlin 1.9 needs the old compiler artifact.
+buildscript {
+    // Tauri puts the Kotlin Gradle plugin on the root buildscript classpath; when it is only
+    // in pluginManagement (this repo) the class is not visible here: assume 1.9.
+    val kotlinVersion = runCatching {
+        Class.forName("org.jetbrains.kotlin.gradle.plugin.KotlinPluginWrapper")
+            .`package`?.implementationVersion?.substringBefore("-release")
+    }.getOrNull() ?: "1.9.25"
+    extra["kotlinVersion"] = kotlinVersion
+    repositories {
+        google()
+        mavenCentral()
+    }
+    if (!kotlinVersion.startsWith("1.")) {
+        dependencies { classpath("org.jetbrains.kotlin:compose-compiler-gradle-plugin:$kotlinVersion") }
+    }
+}
+
 plugins {
     id("com.android.library")
     id("org.jetbrains.kotlin.android")
 }
+
+val kotlin2 = !(extra["kotlinVersion"] as String).startsWith("1.")
+if (kotlin2) apply(plugin = "org.jetbrains.kotlin.plugin.compose")
+
+// A plain path: AGP 9 rejects Providers in the source-set API.
+val visualAssetsDir = layout.buildDirectory.dir("generated/visualAssets").get().asFile
 
 android {
     namespace = "git.s00d.widgets"
@@ -9,11 +35,6 @@ android {
 
     defaultConfig {
         minSdk = 21
-        // Library consumers ignore this; the androidTest APK needs it.
-        // API 34+ emulator images reject install when targetSdk < 23/24
-        // (INSTALL_FAILED_DEPRECATED_SDK_VERSION) — verified on widgets-test.
-        @Suppress("DEPRECATION")
-        targetSdk = 34
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         consumerProguardFiles("consumer-rules.pro")
@@ -51,25 +72,31 @@ android {
     buildFeatures {
         compose = true
     }
-    composeOptions {
-        kotlinCompilerExtensionVersion = "1.5.15"
+    if (!kotlin2) {
+        composeOptions {
+            kotlinCompilerExtensionVersion = "1.5.15"
+        }
+    }
+    sourceSets {
+        getByName("androidTest").assets.srcDir(visualAssetsDir)
     }
     testOptions {
+        // Only the androidTest APK uses it: API 34+ images reject install when targetSdk < 23.
+        // (defaultConfig.targetSdk no longer exists for libraries in AGP 9.)
+        targetSdk = 34
         unitTests.isIncludeAndroidResources = true
         unitTests.isReturnDefaultValues = true
     }
 }
 
-val syncVisualTestAssets by tasks.registering(Sync::class) {
-    from("${rootProject.projectDir}/../tests/cases") { into("cases") }
-    from("${rootProject.projectDir}/../tests/fixtures") { into("fixtures") }
-    from("${rootProject.projectDir}/../tests/golden/android") { into("golden") }
-    into(layout.buildDirectory.dir("generated/visualAssets"))
+// Maintainer visual tests: cases / goldens from this repo (paths relative to the plugin,
+// not to the app that includes it).
+val syncVisualTestAssets = tasks.register<Sync>("syncVisualTestAssets") {
+    from("${projectDir}/../tests/cases") { into("cases") }
+    from("${projectDir}/../tests/fixtures") { into("fixtures") }
+    from("${projectDir}/../tests/golden/android") { into("golden") }
+    into(visualAssetsDir)
 }
-
-android.sourceSets.getByName("androidTest").assets.srcDir(
-    syncVisualTestAssets.map { it.destinationDir },
-)
 
 tasks.matching { it.name.contains("AndroidTest", ignoreCase = true) }.configureEach {
     dependsOn(syncVisualTestAssets)
@@ -91,7 +118,7 @@ dependencies {
     implementation("androidx.glance:glance-appwidget:1.1.1")
     implementation("androidx.glance:glance-material3:1.1.1")
     implementation("androidx.datastore:datastore-preferences:1.1.1")
-    add("kotlinCompilerPluginClasspath", "androidx.compose.compiler:compiler:1.5.15")
+    if (!kotlin2) add("kotlinCompilerPluginClasspath", "androidx.compose.compiler:compiler:1.5.15")
 }
 
 tasks.withType<Test>().configureEach {
