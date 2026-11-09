@@ -6,6 +6,26 @@ import android.content.Context
 object WidgetStoreKeys {
     const val CONFIG_PREFIX = "config:"
     const val PENDING_ACTIONS = "pending_actions"
+
+    /** Guards every read-modify-write of [PENDING_ACTIONS] in this process. */
+    val QUEUE_LOCK = Any()
+
+    /** Append one widget action to the group's queue (the host drains it). */
+    fun enqueueAction(context: android.content.Context, group: String, action: String, payload: String?, widgetId: String) {
+        synchronized(QUEUE_LOCK) {
+            val prefs = context.getSharedPreferences(group, android.content.Context.MODE_PRIVATE)
+            val raw = prefs.getString(PENDING_ACTIONS, "[]") ?: "[]"
+            val arr = runCatching { org.json.JSONArray(raw) }.getOrElse { org.json.JSONArray() }
+            val obj = org.json.JSONObject()
+            obj.put("action", action)
+            if (!payload.isNullOrBlank()) obj.put("payload", payload)
+            obj.put("ts", System.currentTimeMillis())
+            obj.put("widgetId", widgetId)
+            obj.put("group", group)
+            arr.put(obj)
+            prefs.edit().putString(PENDING_ACTIONS, arr.toString()).commit()
+        }
+    }
     const val META_NONCE = "__meta_nonce__"
     const val META_UPDATED_AT = "__meta_updated_at__"
     const val META_PREFS = "__tauri_widget_meta__"

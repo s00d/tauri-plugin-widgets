@@ -1,4 +1,4 @@
-import { invoke } from "@tauri-apps/api/core";
+import { addPluginListener, invoke, type PluginListener } from "@tauri-apps/api/core";
 import { listen, type UnlistenFn } from "@tauri-apps/api/event";
 import { PLUGIN_ID } from "./plugin";
 
@@ -64,9 +64,26 @@ export async function widgetAction(
 export async function onWidgetAction(
   callback: (data: WidgetActionPayload) => void,
 ): Promise<UnlistenFn> {
-  return await listen<WidgetActionPayload>("widget-action", (event) => {
+  const unlisten = await listen<WidgetActionPayload>("widget-action", (event) => {
     callback(event.payload);
   });
+  // Android: a tap while the app runs only wakes the plugin ("widget-action-pending").
+  // Drain the queue and re-emit through Rust so every `widget-action` listener gets each
+  // action once. Other platforms have no such plugin event: registration just fails.
+  let pending: PluginListener | null = null;
+  try {
+    pending = await addPluginListener<{ group?: string }>("widgets", "widget-action-pending", async (e) => {
+      for (const a of await pollPendingWidgetActions(e?.group || undefined)) {
+        await widgetAction(a.action, a.payload ?? undefined, { widgetId: a.widgetId, group: a.group });
+      }
+    });
+  } catch {
+    // desktop / iOS
+  }
+  return () => {
+    unlisten();
+    void pending?.unregister();
+  };
 }
 
 /** Poll pending widget actions queued by native side (Android fallback path). */
