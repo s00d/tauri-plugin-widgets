@@ -305,9 +305,14 @@ public struct TauriWidgetDataStore {
         var fileCandidates: [(String, [String: String])] = []
         var defaultsCandidates: [(String, [String: String])] = []
 
+        // The extension's own container is the macOS `widgetContainer` transport. iOS has
+        // only App Groups: a copy there could outrank a reset App Group store by nonce
+        // and pin the widget to stale data forever.
+        #if os(macOS)
         if let m = readOwnContainerMap() {
             fileCandidates.append((TauriWidgetTransportName.container, m))
         }
+        #endif
         if let m = readAppGroupFileMap(appGroup: appGroup) {
             fileCandidates.append((TauriWidgetTransportName.appGroup, m))
         }
@@ -368,7 +373,9 @@ public struct TauriWidgetDataStore {
     }
 
     private static func fanoutWrite(_ map: [String: String], appGroup: String) {
+        #if os(macOS)
         writeOwnContainerMap(map)
+        #endif
         writeUserDefaultsMap(map, appGroup: appGroup)
         writeAppGroupFileMap(map, appGroup: appGroup)
     }
