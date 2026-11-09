@@ -32,8 +32,16 @@ scripts/apple.env
 !.env.example
 !scripts/apple.env.example
 
-# VitePress docs — generated trees (rebuilt by `pnpm docs:generate`)
-docs/.vitepress/dist
-docs/.vitepress/cache
+# Docs site (docs/): build output and generated trees
+docs/.nuxt
+docs/.output
+docs/.data
+docs/dist
+# copied by `pnpm docs:generate` (tests/golden, tests/fixtures)
 docs/public/shots
 docs/public/gallery-data
+# written by docs/scripts/generate.mjs on every build
+docs/content/3.api/2.reference.md
+docs/content/3.api/4.commands.md
+docs/content/3.api/8.permissions.md
+docs/content/6.changelog.md

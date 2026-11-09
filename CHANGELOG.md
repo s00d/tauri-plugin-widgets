@@ -1,5 +1,10 @@
 # Changelog
 
+## Unreleased
+
+### Changed
+- Docs site moved from VitePress to Nuxt (Nuxt UI + Nuxt Content), same URLs. JS reference, Tauri commands, permissions and changelog pages are generated from the sources at build time; diagrams are committed SVGs instead of client-side mermaid. Element anchors are now `#vstack` (was `#el-vstack`).
+
 ## 0.6.2
 
 ### Fixed

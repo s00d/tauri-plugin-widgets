@@ -37,10 +37,10 @@ export function genShowcase(report, check) {
     parts.push(`## ${base}\n`);
     parts.push(`Sizes: ${sizes}\n`);
 
-    // Size tabs via ShotGrid for each case — show all size variants' desktop shot + platform tabs on primary
+    // Size tabs via the shot-grid component for each case — show all size variants' desktop shot + platform tabs on primary
     for (const { name, case: c } of entries) {
       parts.push(`### ${c.size}\n`);
-      parts.push(`<ShotGrid case="${name}" />\n`);
+      parts.push(`::shot-grid{case="${name}"}\n::\n`);
     }
 
     const primary = entries[0];
@@ -58,12 +58,10 @@ export function genShowcase(report, check) {
       check,
     );
 
-    const b64 = Buffer.from(fixtureJson, "utf8").toString("base64");
-    parts.push(`<details>\n<summary>Config JSON</summary>\n\n\`\`\`json\n${fixtureJson}\n\`\`\`\n\n</details>\n`);
-    parts.push(
-      `<Playground case="${primary.name}" size="${primary.case.size || "small"}" config-b64="${b64}" />\n`,
-    );
+    parts.push(`::collapsible{name="config JSON"}\n\n\`\`\`json\n${fixtureJson}\n\`\`\`\n\n::\n`);
+    // The playground fetches /gallery-data/<case>.json (written above).
+    parts.push(`::playground{case="${primary.name}" size="${primary.case.size || "small"}"}\n::\n`);
   }
 
-  writeBlock(report, "docs/showcase.md", "showcase", parts.join("\n"), check);
+  writeBlock(report, "docs/content/4.showcase.md", "showcase", parts.join("\n"), check);
 }

@@ -1,0 +1,6 @@
+flowchart LR
+  App["setWidgetConfig"] --> Store["Shared storage"]
+  App2["createWidgetWindow"] --> Win["Frameless webview"]
+  Win --> Proto["widgetview protocol"]
+  Proto --> HTML["Embedded widget.html"]
+  HTML --> Store

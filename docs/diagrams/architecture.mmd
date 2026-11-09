@@ -1,0 +1,40 @@
+flowchart TB
+  subgraph App["Your app"]
+    JS["JS / TS<br/>tauri-plugin-widgets-api"]
+    RS["Rust host code<br/>optional"]
+  end
+
+  subgraph Host["Plugin host (Rust)"]
+    CMD["Commands<br/>setWidgetConfig · setItems<br/>createWidgetWindow · …"]
+    APPLY["Apply / validate<br/>capability warnings"]
+    STORE["Shared store<br/>config:{widgetId}<br/>pending_actions · nonce"]
+    AC["Adaptive Cards<br/>transpile + optional rasterize"]
+    PROTO["widgetview protocol<br/>embedded widget.html"]
+  end
+
+  subgraph Surfaces["Native / desktop surfaces"]
+    AND["Android<br/>Jetpack Glance"]
+    IOS["iOS WidgetKit"]
+    MAC["macOS WidgetKit"]
+    WIN["Windows Widgets Board<br/>C# IWidgetProvider"]
+    DESK["Desktop webview<br/>macOS · Windows · Linux"]
+  end
+
+  JS --> CMD
+  RS --> CMD
+  CMD --> APPLY --> STORE
+  APPLY --> AC
+  CMD --> PROTO
+
+  STORE --> AND
+  STORE --> IOS
+  STORE --> MAC
+  STORE --> DESK
+  AC --> WIN
+  PROTO --> DESK
+
+  AND -.->|actions / receipts| CMD
+  IOS -.->|actions / receipts| CMD
+  MAC -.->|actions / receipts| CMD
+  WIN -.->|actions / receipts| CMD
+  DESK -.->|actions / receipts| CMD

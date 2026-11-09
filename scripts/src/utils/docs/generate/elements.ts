@@ -46,7 +46,7 @@ function tierOf(name) {
 
 function groupHref(name) {
   for (const g of Object.values(ELEMENT_GROUPS)) {
-    if (g.types.includes(name)) return `/elements/${g.file.split("/").pop().replace(".md", "")}#el-${name}`;
+    if (g.types.includes(name)) return `/elements/${g.file.split("/").pop().replace(/^\d+\./, "").replace(".md", "")}#${name}`;
   }
   return "/elements/";
 }
@@ -390,7 +390,7 @@ ${JSON.stringify(b.json, null, 2)}
     .join("\n\n");
 }
 
-/** Prefer a case that has a desktop golden so VitePress can resolve `/shots/desktop/…`. */
+/** Prefer a case that has a desktop golden so the docs site can resolve `/shots/desktop/…`. */
 function firstShotCase(cases) {
   if (!cases?.length) return null;
   for (const name of cases) {
@@ -416,7 +416,7 @@ function elementSection(el, usage) {
     ? `![${el.name} (${shotCase})](/shots/desktop/${shotCase}.png)\n\n_From showcase preset — case \`${shotCase}\`._`
     : "_No screenshot case._";
 
-  return `## \`${el.name}\` {#el-${el.name}}
+  return `## \`${el.name}\`
 
 **Tier:** ${tierOf(el.name)}
 
@@ -467,6 +467,6 @@ export function genElements(report, check, usage) {
 | --- | --- | --- |
 ${cards}
 `;
-  writeBlock(report, "docs/elements/index.md", "elements-index", indexBody, check);
+  writeBlock(report, "docs/content/2.elements/1.index.md", "elements-index", indexBody, check);
   return elements;
 }

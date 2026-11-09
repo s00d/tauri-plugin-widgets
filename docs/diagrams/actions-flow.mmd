@@ -1,0 +1,11 @@
+sequenceDiagram
+  participant Surface as Widget surface
+  participant Store as Shared store
+  participant Host as Plugin host
+  participant App as Your app
+
+  Surface->>Store: enqueue pending_actions
+  Surface->>Host: optional receipt
+  App->>Host: onWidgetAction / pollPendingWidgetActions
+  Host->>Store: drain pending_actions
+  Host->>App: { action, payload, widgetId, group, ts }

@@ -1,0 +1,7 @@
+flowchart LR
+  App["App<br/>setWidgetConfig"] --> Host["Rust plugin host"]
+  Host --> Store["Shared store<br/>config:{widgetId}"]
+  Store --> G["Glance"]
+  Store --> WK["WidgetKit"]
+  Store --> HTML["widget.html"]
+  Host --> AC["Adaptive Cards"] --> WB["Widgets Board"]

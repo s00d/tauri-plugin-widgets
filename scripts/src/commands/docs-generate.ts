@@ -4,7 +4,7 @@ import { runGenerate } from "../utils/docs/generate.js";
 export const docsGenerateCommand = defineCommand({
   meta: {
     name: "docs-generate",
-    description: "Generate VitePress pages from schema, cases, goldens, permissions",
+    description: "Fill docs marker blocks and docs/public from schema, cases and goldens",
   },
   args: {
     check: {

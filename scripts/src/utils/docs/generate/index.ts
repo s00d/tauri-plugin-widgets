@@ -4,7 +4,6 @@ import { join } from "node:path";
 import { auditCoverage, auditSchemaDocs } from "./audit.js";
 import { genCapabilityMatrix } from "./capability-matrix.js";
 import { genElements } from "./elements.js";
-import { genPermissions } from "./permissions.js";
 import { copySchemas, copyShots } from "./sandbox.js";
 import { genShowcase } from "./showcase.js";
 import { DOCS, PUBLIC, collectElementUsage } from "./shared.js";
@@ -12,13 +11,12 @@ export async function runGenerate({ check = false, audit = true } = {}) {
   /** @type {Report} */
   const report = { written: [], stale: [] };
   mkdirSync(PUBLIC, { recursive: true });
-  mkdirSync(join(DOCS, "guide", "_generated"), { recursive: true });
+  mkdirSync(join(DOCS, "generated"), { recursive: true });
 
   const usage = collectElementUsage();
   copyShots(report, check);
   genShowcase(report, check);
   const elements = genElements(report, check, usage);
-  genPermissions(report, check);
   genCapabilityMatrix(report, check);
   copySchemas(report, check);
 

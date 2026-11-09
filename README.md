@@ -32,7 +32,7 @@ Native widgets for **Android**, **iOS**, **macOS**, **Windows**, and **Linux** f
 
 If you are building an app: ignore `pnpm test:android:visual` and the rest of the root `test:*` / `*-up` scripts — those are for plugin maintainers.
 
-Maintainer map: [`scripts/README.md`](scripts/README.md) · [Contributing](docs/contributing/development.md).
+Maintainer map: [`scripts/README.md`](scripts/README.md) · [Contributing](https://s00d.github.io/tauri-plugin-widgets/contributing/development).
 
 ---
 

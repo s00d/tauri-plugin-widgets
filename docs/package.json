@@ -1,18 +1,36 @@
 {
-  "name": "@tauri-plugin-widgets/docs",
+  "name": "tauri-plugin-widgets-docs",
   "version": "0.0.0",
   "private": true,
   "type": "module",
-  "description": "VitePress documentation site for tauri-plugin-widgets.",
+  "description": "Documentation site for tauri-plugin-widgets (https://s00d.github.io/tauri-plugin-widgets/).",
+  "packageManager": "pnpm@9.15.9",
   "scripts": {
-    "dev": "vitepress dev .",
-    "build": "vitepress build .",
-    "preview": "vitepress preview ."
+    "sync": "node scripts/generate.mjs",
+    "dev": "node scripts/generate.mjs && nuxt dev",
+    "generate": "node scripts/generate.mjs && nuxt generate && node scripts/redirects.mjs",
+    "postinstall": "nuxt prepare",
+    "typecheck": "nuxt typecheck",
+    "diagrams": "node scripts/diagrams.mjs"
+  },
+  "dependencies": {
+    "@iconify-json/lucide": "^1.2.150",
+    "@iconify-json/simple-icons": "^1.2.101",
+    "@nuxt/content": "3.16.2",
+    "@nuxt/ui": "^4.12.0",
+    "nuxt": "^4.6.4",
+    "tailwindcss": "^4.3.4",
+    "zod": "^4.6.7"
   },
   "devDependencies": {
-    "mermaid": "^12.1.0",
-    "vitepress": "^2.0.0-alpha.20",
-    "vitepress-mermaid-renderer": "^1.2.2",
-    "vue": "^3.5.43"
+    "smol-toml": "^1.3.4",
+    "typescript": "6.0.3",
+    "vue-tsc": "^3.3.14"
+  },
+  "pnpm": {
+    "onlyBuiltDependencies": [
+      "esbuild",
+      "@parcel/watcher"
+    ]
   }
 }

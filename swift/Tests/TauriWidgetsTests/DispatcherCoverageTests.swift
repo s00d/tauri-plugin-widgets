@@ -31,7 +31,7 @@ final class DispatcherCoverageTests: XCTestCase {
         }
     }
 
-    /// Dispatcher groups must stay aligned with docs/guide/elements/*.md names.
+    /// Dispatcher groups must stay aligned with docs/content/2.elements/*.md names.
     func testKnownTypesAreAssignedToAGroup() {
         let layout: Set = ["vstack", "hstack", "zstack", "grid", "container"]
         let text: Set = ["text", "label", "date", "timer"]

@@ -23,7 +23,6 @@ export {
 export { genElements } from "./generate/elements.js";
 export { copyShots, copySchemas } from "./generate/sandbox.js";
 export { groupCasesByPreset, genShowcase } from "./generate/showcase.js";
-export { genPermissions } from "./generate/permissions.js";
 export { genCapabilityMatrix } from "./generate/capability-matrix.js";
 export { auditSchemaDocs, auditCoverage } from "./generate/audit.js";
 export { runGenerate } from "./generate/index.js";

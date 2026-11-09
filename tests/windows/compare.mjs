@@ -27,7 +27,7 @@ const goldenFiles = existsSync(goldenDir)
   : [];
 if (goldenFiles.length === 0) {
   console.log(
-    "windows: no PNG goldens under tests/golden/windows/ — track is manual (WinUI3 VM). See docs/contributing/windows-surfaces.md",
+    "windows: no PNG goldens under tests/golden/windows/ — track is manual (WinUI3 VM). See docs/content/5.contributing/6.windows-surfaces.md",
   );
   process.exit(0);
 }

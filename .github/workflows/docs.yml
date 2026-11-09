@@ -14,12 +14,15 @@ on:
       - "tests/fixtures/**"
       - "tests/golden/**"
       - "guest-js/**"
+      - "widget-src/**"
+      - "src/commands.rs"
       - "permissions/**"
-      - "widget.html"
+      - "CHANGELOG.md"
       - "package.json"
       - "pnpm-lock.yaml"
       - "pnpm-workspace.yaml"
       - ".github/workflows/docs.yml"
+  # Build only (no deploy) so a broken reference parse or dead link fails the PR.
   pull_request:
     paths:
       - "docs/**"
@@ -29,8 +32,10 @@ on:
       - "tests/fixtures/**"
       - "tests/golden/**"
       - "guest-js/**"
+      - "widget-src/**"
+      - "src/commands.rs"
       - "permissions/**"
-      - "widget.html"
+      - "CHANGELOG.md"
       - "package.json"
       - "pnpm-lock.yaml"
       - "pnpm-workspace.yaml"
@@ -41,10 +46,10 @@ concurrency:
   group: docs-${{ github.ref }}
   cancel-in-progress: true
 
-# Node-only: VitePress build + Pages deploy.
-# Generated markers / capability matrix are committed locally
-# (`pnpm docs:generate`, `cargo test --lib capabilities::write_docs::…`).
-# Drift of the Rust-owned matrix is checked in CI (`ci.yml` Codegen drift), not here.
+# Nuxt (docs/, own lockfile) + Pages deploy.
+# Element pages, showcase and capability matrix are committed marker blocks (`pnpm docs:generate`);
+# `docs:check` fails when they are stale. Reference pages (JS API, commands, permissions, changelog)
+# are generated at build time by docs/scripts/generate.mjs.
 
 jobs:
   docs:
@@ -61,27 +66,41 @@ jobs:
         with:
           node-version: 22
           cache: pnpm
+          cache-dependency-path: |
+            pnpm-lock.yaml
+            docs/pnpm-lock.yaml
 
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
-      - name: Build CLI (docs:check uses dist-cli)
+      - name: Build CLI (docs:generate uses dist-cli)
         run: pnpm build
 
       - name: Docs check (committed markers up to date)
         run: pnpm docs:check
 
-      - name: Docs build
-        run: pnpm -C docs build
+      - name: Copy goldens and gallery data into docs/public
+        run: pnpm docs:generate
 
-      - name: Add nojekyll
-        run: touch docs/.vitepress/dist/.nojekyll
+      - name: Install docs dependencies
+        working-directory: docs
+        run: pnpm install --frozen-lockfile
+
+      - name: Build (reference pages + nuxt generate)
+        working-directory: docs
+        env:
+          NUXT_APP_BASE_URL: /tauri-plugin-widgets/
+        run: pnpm generate
+
+      - name: Add .nojekyll
+        run: touch docs/.output/public/.nojekyll
 
       - name: Deploy to GitHub Pages
         if: github.event_name != 'pull_request' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master')
         uses: crazy-max/ghaction-github-pages@v4
         with:
           target_branch: gh-pages
-          build_dir: docs/.vitepress/dist
+          build_dir: docs/.output/public
+          jekyll: false
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

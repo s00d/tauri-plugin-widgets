@@ -48,32 +48,32 @@ export const EXTENDED_ELEMENTS = [
 /** @type {Record<string, { file: string; marker: string; types: string[] }>} */
 export const ELEMENT_GROUPS = {
   layout: {
-    file: "docs/elements/layout.md",
+    file: "docs/content/2.elements/2.layout.md",
     marker: "elements-layout",
     types: ["vstack", "hstack", "zstack", "grid", "container"],
   },
   text: {
-    file: "docs/elements/text.md",
+    file: "docs/content/2.elements/3.text.md",
     marker: "elements-text",
     types: ["text", "label", "date", "timer"],
   },
   media: {
-    file: "docs/elements/media.md",
+    file: "docs/content/2.elements/4.media.md",
     marker: "elements-media",
     types: ["image", "shape", "canvas"],
   },
   data: {
-    file: "docs/elements/data.md",
+    file: "docs/content/2.elements/5.data.md",
     marker: "elements-data",
     types: ["progress", "gauge", "chart", "list"],
   },
   interactive: {
-    file: "docs/elements/interactive.md",
+    file: "docs/content/2.elements/6.interactive.md",
     marker: "elements-interactive",
     types: ["button", "toggle", "link"],
   },
   spacing: {
-    file: "docs/elements/spacing.md",
+    file: "docs/content/2.elements/7.spacing.md",
     marker: "elements-spacing",
     types: ["spacer", "divider"],
   },

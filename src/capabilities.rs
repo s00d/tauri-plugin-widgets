@@ -790,7 +790,7 @@ pub fn render_capability_matrix_md() -> String {
     ));
 
     if !notes.is_empty() {
-        md.push_str("\n### Notes {#notes}\n\n");
+        md.push_str("\n### Notes\n\n");
         for (i, note) in notes.iter().enumerate() {
             md.push_str(&format!("{}. {}\n", i + 1, note));
         }
@@ -906,7 +906,7 @@ fn element_doc_href(key: &str) -> String {
         "spacer" | "divider" => "spacing",
         _ => return "/elements/".into(),
     };
-    format!("/elements/{page}#el-{base}")
+    format!("/elements/{page}#{base}")
 }
 
 fn cell_md(e: &CapabilityEntry, notes: &mut Vec<String>) -> String {
@@ -980,7 +980,7 @@ mod tests {
         assert!(md.contains("image.url"));
         assert!(md.contains("### Core\n"));
         assert!(!md.contains("## Core "));
-        assert!(md.contains("/elements/layout#el-vstack"));
+        assert!(md.contains("/elements/layout#vstack"));
         assert!(md.contains("### Choosing a surface set"));
         assert!(md.contains("<sup>"));
     }
@@ -1007,7 +1007,7 @@ mod write_docs {
     fn capability_matrix_doc_matches() {
         let expected = super::render_capability_matrix_md();
         let path = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
-            .join("docs/guide/_generated/capability-matrix.md");
+            .join("docs/generated/capability-matrix.md");
         if !path.exists() {
             std::fs::create_dir_all(path.parent().unwrap()).unwrap();
             std::fs::write(&path, &expected).unwrap();
@@ -1016,7 +1016,7 @@ mod write_docs {
         let on_disk = std::fs::read_to_string(&path).unwrap();
         assert_eq!(
             on_disk, expected,
-            "docs/guide/_generated/capability-matrix.md drifted — regenerate with:\n\
+            "docs/generated/capability-matrix.md drifted — regenerate with:\n\
              cargo test --lib write_docs::capability_matrix_doc_matches -- --ignored\n\
              or delete the file and re-run this test"
         );
