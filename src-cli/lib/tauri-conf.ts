@@ -1,5 +1,5 @@
 import { existsSync, readFileSync, writeFileSync } from "node:fs";
-import { join } from "node:path";
+import { dirname, join } from "node:path";
 
 export interface PluginWidgetsConfig {
   appGroup?: string;
@@ -12,7 +12,7 @@ export interface TauriConfData {
   identifier?: string;
   productName?: string;
   build?: {
-    beforeBundleCommand?: string;
+    beforeBundleCommand?: string | { script: string; cwd?: string };
     [key: string]: unknown;
   };
   bundle?: {
@@ -47,12 +47,45 @@ export function findTauriConf(cwd: string): string | null {
 
 export function readTauriConf(cwd: string): TauriConf | null {
   const confPath = findTauriConf(cwd);
-  if (!confPath) return null;
-  try {
-    return { path: confPath, data: JSON.parse(readFileSync(confPath, "utf-8")) as TauriConfData };
-  } catch {
+  if (!confPath) {
+    for (const other of ["tauri.conf.json5", "Tauri.toml"]) {
+      if (existsSync(join(cwd, "src-tauri", other)) || existsSync(join(cwd, other))) {
+        console.error(`ERROR: found ${other}; the tauri-widgets CLI reads tauri.conf.json only.`);
+        process.exit(1);
+      }
+    }
     return null;
   }
+  try {
+    return { path: confPath, data: JSON.parse(readFileSync(confPath, "utf-8")) as TauriConfData };
+  } catch (e) {
+    console.error(`ERROR: cannot parse ${confPath}: ${(e as Error).message}`);
+    process.exit(1);
+  }
+}
+
+/**
+ * `tauri.<platform>.conf.json` next to the main config (`{}` when missing). Tauri merges it
+ * over tauri.conf.json on that platform only, so macOS / iOS settings stay out of the
+ * shared config (a macOS build hook there breaks `tauri build` on Linux and Windows).
+ */
+export function readPlatformConf(conf: TauriConf, platform: "macos" | "ios"): TauriConf {
+  const path = join(dirname(conf.path), `tauri.${platform}.conf.json`);
+  if (!existsSync(path)) return { path, data: {} };
+  try {
+    return { path, data: JSON.parse(readFileSync(path, "utf-8")) as TauriConfData };
+  } catch (e) {
+    console.error(`ERROR: cannot parse ${path}: ${(e as Error).message}`);
+    process.exit(1);
+  }
+}
+
+/** The App Group the plugin uses: plugins.widgets.appGroup, else group.<identifier>. */
+export function effectiveAppGroup(conf: TauriConf | null, platformConf?: TauriConf): string | null {
+  const explicit = platformConf?.data?.plugins?.widgets?.appGroup || conf?.data?.plugins?.widgets?.appGroup;
+  if (explicit) return String(explicit);
+  const id = detectTauriIdentifier(conf);
+  return id ? `group.${id}` : null;
 }
 
 export function detectTauriIdentifier(conf: TauriConf | null): string | null {

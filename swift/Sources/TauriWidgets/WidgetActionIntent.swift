@@ -52,7 +52,6 @@ public struct WidgetActionIntent: AppIntent {
         guard !group.isEmpty else { return .result() }
 
         let wid = (widgetId?.isEmpty == false ? widgetId! : TauriWidgetsConfig.widgetId)
-        var pending = TauriWidgetDataStore.readPendingActions(appGroup: group)
         let envelope = WidgetActionEnvelope(
             action: actionName,
             payload: payload,
@@ -60,8 +59,7 @@ public struct WidgetActionIntent: AppIntent {
             widgetId: wid,
             group: group
         )
-        pending.append(envelope)
-        TauriWidgetDataStore.writePendingActions(pending, appGroup: group)
+        TauriWidgetDataStore.appendPendingAction(envelope, appGroup: group)
         return .result()
     }
 }

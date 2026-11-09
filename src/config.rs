@@ -65,6 +65,21 @@ pub struct WidgetsPluginConfig {
     pub extension_bundle_id: Option<String>,
 }
 
+impl WidgetsPluginConfig {
+    /// Fill `appGroup` with `group.<identifier>` when the app did not set it, and make it
+    /// the default group for commands that omit `group`.
+    pub fn with_defaults(mut self, identifier: &str) -> Self {
+        let missing = self.app_group.as_deref().map(str::trim).unwrap_or("").is_empty();
+        if missing && !identifier.trim().is_empty() {
+            self.app_group = Some(format!("group.{}", identifier.trim()));
+        }
+        if let Some(group) = self.app_group.as_deref() {
+            crate::group::set_default_group(group);
+        }
+        self
+    }
+}
+
 /// `WIDGET_TRANSPORT` overrides `plugins.widgets.transport` when set.
 pub fn env_transport_override() -> Option<TransportKind> {
     std::env::var("WIDGET_TRANSPORT")

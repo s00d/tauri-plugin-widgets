@@ -166,7 +166,13 @@ export function startPreviewServer({
         const opener =
           process.platform === "darwin" ? "open" : process.platform === "win32" ? "start" : "xdg-open";
         import("node:child_process").then(({ spawn }) => {
-          spawn(opener, [url], { stdio: "ignore", detached: true }).unref();
+          // `start` is a cmd.exe builtin: needs a shell (empty title arg first).
+          const child =
+            process.platform === "win32"
+              ? spawn("cmd", ["/c", "start", "", url], { stdio: "ignore", detached: true })
+              : spawn(opener, [url], { stdio: "ignore", detached: true });
+          child.on("error", () => console.log(`  Open ${url} in a browser`));
+          child.unref();
         });
       }
       resolvePromise({

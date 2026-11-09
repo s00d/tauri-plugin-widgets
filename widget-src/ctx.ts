@@ -34,40 +34,71 @@ export function listen(
 
 type ActionHandler = (action: string, payload?: string | null) => void;
 
-let sessionSize = "";
-let sessionTheme = "";
-let sessionGroup = "default";
-let sessionWidgetId = "default";
-let actionHandler: ActionHandler | null = null;
+/** State of one `renderWidget` call. Rendering is synchronous, so renderers read the
+ *  current session while building; click handlers and timers keep their own session,
+ *  so several widgets on one page do not share handlers or kill each other's timers. */
+export type RenderSession = {
+  size: string;
+  theme: string;
+  group: string;
+  widgetId: string;
+  onAction: ActionHandler | null;
+  timers: ReturnType<typeof setInterval>[];
+};
 
+let current: RenderSession = newSession({});
+
+function newSession(opts: {
+  size?: string;
+  theme?: string;
+  group?: string;
+  widgetId?: string;
+  onAction?: ActionHandler;
+}): RenderSession {
+  return {
+    size: opts.size ?? "",
+    theme: opts.theme ?? "",
+    // "" = the app's default group (plugins.widgets.appGroup).
+    group: opts.group ?? "",
+    widgetId: opts.widgetId ?? "default",
+    onAction: opts.onAction ?? null,
+    timers: [],
+  };
+}
+
+/** Start a render: everything built until the next call belongs to this session. */
 export function setRenderSession(opts: {
   size?: string;
   theme?: string;
   group?: string;
   widgetId?: string;
   onAction?: ActionHandler;
-}): void {
-  if (opts.size !== undefined) sessionSize = opts.size;
-  if (opts.theme !== undefined) sessionTheme = opts.theme;
-  if (opts.group !== undefined) sessionGroup = opts.group;
-  if (opts.widgetId !== undefined) sessionWidgetId = opts.widgetId;
-  if (opts.onAction !== undefined) actionHandler = opts.onAction;
+}): RenderSession {
+  current = newSession(opts);
+  return current;
 }
 
 export function getSize(): string {
-  return sessionSize;
+  return current.size;
 }
 
 export function getTheme(): string {
-  return sessionTheme;
+  return current.theme;
 }
 
-export function emitAction(
+/** Action emitter bound to the session being rendered (call while rendering). */
+export function boundEmit(): (action: string, payload?: string | null) => Promise<unknown> {
+  const session = current;
+  return (action, payload) => emitAction(session, action, payload);
+}
+
+function emitAction(
+  session: RenderSession,
   action: string,
   payload?: string | null,
 ): Promise<unknown> {
-  if (actionHandler) {
-    actionHandler(action, payload);
+  if (session.onAction) {
+    session.onAction(action, payload);
     return Promise.resolve();
   }
   if (typeof window === "undefined" || !window.__TAURI_INTERNALS__) {
@@ -76,16 +107,19 @@ export function emitAction(
   return invoke("plugin:widgets|widget_action", {
     action,
     payload: payload == null ? null : payload,
-    widgetId: sessionWidgetId,
-    group: sessionGroup,
+    widgetId: session.widgetId,
+    group: session.group || null,
   }).catch(console.error);
 }
 
-export let timerIds: ReturnType<typeof setInterval>[] = [];
+/** Keep a timer with the session being rendered. */
+export function addTimer(id: ReturnType<typeof setInterval>): void {
+  current.timers.push(id);
+}
 
-export function clearTimers(): void {
-  timerIds.forEach((id) => {
+export function clearTimers(session: RenderSession = current): void {
+  session.timers.forEach((id) => {
     clearInterval(id);
   });
-  timerIds = [];
+  session.timers = [];
 }

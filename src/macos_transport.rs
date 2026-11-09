@@ -178,6 +178,40 @@ fn resolve_app_group_data_file(group: &str) -> Option<PathBuf> {
         .or_else(|| shared_container_dir(group).map(|d| d.join("widget_data.json")))
 }
 
+/// Run `f` holding an exclusive `flock` on `widget_data.json.lock` in the App Group
+/// container — the lock the widget extension takes in `appendPendingAction`, so a tap
+/// is never wiped by a host write or drained twice. Re-entrant per thread (BSD `flock`
+/// on a second descriptor of the same file would block on ourselves). Without an App
+/// Group container (ad-hoc `widgetContainer` builds) `f` runs unlocked.
+pub fn with_store_lock<T>(group: &str, f: impl FnOnce() -> T) -> T {
+    use std::cell::Cell;
+    use std::os::fd::AsRawFd;
+    extern "C" {
+        fn flock(fd: std::ffi::c_int, operation: std::ffi::c_int) -> std::ffi::c_int;
+    }
+    const LOCK_EX: std::ffi::c_int = 2;
+    thread_local!(static DEPTH: Cell<u32> = const { Cell::new(0) });
+
+    if DEPTH.with(Cell::get) > 0 {
+        return f();
+    }
+    let file = resolve_app_group_data_file(group).and_then(|data| {
+        if let Some(dir) = data.parent() {
+            let _ = std::fs::create_dir_all(dir);
+        }
+        let lock = PathBuf::from(format!("{}.lock", data.display()));
+        std::fs::OpenOptions::new().read(true).write(true).create(true).truncate(false).open(lock).ok()
+    });
+    let Some(file) = file else { return f() };
+    // Closing the descriptor (drop) releases the lock.
+    unsafe { flock(file.as_raw_fd(), LOCK_EX) };
+    DEPTH.with(|d| d.set(d.get() + 1));
+    let out = f();
+    DEPTH.with(|d| d.set(d.get() - 1));
+    drop(file);
+    out
+}
+
 // ─── Transports ───────────────────────────────────────────────────────────────
 
 struct FileTransport {

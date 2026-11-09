@@ -1,5 +1,5 @@
 import { applyStyle, resolveColor, svg, tintTrack } from "../style";
-import { emitAction } from "../ctx";
+import { boundEmit } from "../ctx";
 import { renderEl } from "./element";
 import type { ElNode } from "../types";
 
@@ -282,6 +282,7 @@ export function renderChart(d: ElNode): HTMLElement | SVGElement {
 }
 
 export function renderList(d: ElNode): HTMLElement {
+  var emitAction = boundEmit();
   var e = document.createElement("div");
   e.style.cssText =
     "display:flex;flex-direction:column;gap:" + (d.spacing || 4) + "px";

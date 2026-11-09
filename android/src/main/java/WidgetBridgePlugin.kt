@@ -100,6 +100,10 @@ class WidgetBridgePlugin(private val activity: Activity) : Plugin(activity) {
         @Volatile
         var pluginInstance: WidgetBridgePlugin? = null
             private set
+
+        /** Plugin commands run on the UI thread: image downloads and DataStore writes go here.
+         *  One thread keeps config writes in call order. */
+        private val io = java.util.concurrent.Executors.newSingleThreadExecutor()
     }
 
     private fun getMetaPrefs(): SharedPreferences {
@@ -234,6 +238,15 @@ class WidgetBridgePlugin(private val activity: Activity) : Plugin(activity) {
         pluginInstance = this
     }
 
+    override fun onDestroy() {
+        // The process can outlive the Activity: widget taps must queue, not go to a dead WebView.
+        if (pluginInstance === this) pluginInstance = null
+        super.onDestroy()
+    }
+
+    /** True while the WebView can receive events. */
+    fun isAlive(): Boolean = !activity.isFinishing && !activity.isDestroyed
+
     fun emitWidgetAction(action: String, payload: String?, widgetId: String? = null, group: String? = null) {
         val event = JSObject()
         event.put("action", action)
@@ -249,7 +262,9 @@ class WidgetBridgePlugin(private val activity: Activity) : Plugin(activity) {
     }
 
     @Command
-    fun setItems(invoke: Invoke) {
+    fun setItems(invoke: Invoke) = io.execute { setItemsNow(invoke) }
+
+    private fun setItemsNow(invoke: Invoke) {
         try {
             val args = invoke.parseArgs(SetItemsRequest::class.java)
             val safeKey = WidgetSanitizer.sanitizeKey(args.key)
@@ -308,7 +323,9 @@ class WidgetBridgePlugin(private val activity: Activity) : Plugin(activity) {
     }
 
     @Command
-    fun reloadAllTimelines(invoke: Invoke) {
+    fun reloadAllTimelines(invoke: Invoke) = io.execute { reloadAllTimelinesNow(invoke) }
+
+    private fun reloadAllTimelinesNow(invoke: Invoke) {
         try {
             Log.d(TAG, "reloadAllTimelines requested")
             reloadGenericWidgets()
@@ -320,7 +337,9 @@ class WidgetBridgePlugin(private val activity: Activity) : Plugin(activity) {
     }
 
     @Command
-    fun reloadTimelines(invoke: Invoke) {
+    fun reloadTimelines(invoke: Invoke) = io.execute { reloadTimelinesNow(invoke) }
+
+    private fun reloadTimelinesNow(invoke: Invoke) {
         try {
             val args = invoke.parseArgs(ReloadTimelinesRequest::class.java)
             Log.d(TAG, "reloadTimelines requested ofKind=${args.ofKind}")
@@ -370,7 +389,9 @@ class WidgetBridgePlugin(private val activity: Activity) : Plugin(activity) {
     }
 
     @Command
-    fun setWidgetConfig(invoke: Invoke) {
+    fun setWidgetConfig(invoke: Invoke) = io.execute { setWidgetConfigNow(invoke) }
+
+    private fun setWidgetConfigNow(invoke: Invoke) {
         try {
             val args = invoke.parseArgs(SetWidgetConfigRequest::class.java)
             if (args.widgetId.isBlank()) {
@@ -545,7 +566,9 @@ class WidgetBridgePlugin(private val activity: Activity) : Plugin(activity) {
     }
 
     @Command
-    fun pollPendingActions(invoke: Invoke) {
+    fun pollPendingActions(invoke: Invoke) = io.execute { pollPendingActionsNow(invoke) }
+
+    private fun pollPendingActionsNow(invoke: Invoke) {
         try {
             val args = invoke.parseArgs(GetWidgetConfigRequest::class.java)
             val prefs = getPrefs(args.group)

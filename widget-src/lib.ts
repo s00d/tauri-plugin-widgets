@@ -1,5 +1,5 @@
 import type { ElNode, WidgetConfig } from "./types";
-import { clearTimers, getSize, setRenderSession } from "./ctx";
+import { clearTimers, getSize, setRenderSession, type RenderSession } from "./ctx";
 import { isDark } from "./style";
 import { renderEl } from "./render/element";
 
@@ -58,12 +58,14 @@ function paintEmpty(host: HTMLElement, message: string): void {
   host.appendChild(empty);
 }
 
+/** Last render per host: re-rendering a host stops only that host's old timers. */
+const hostSessions = new WeakMap<HTMLElement, RenderSession>();
+
 function paintConfig(
   host: HTMLElement,
   cfg: WidgetConfig | null | undefined,
   chrome: boolean,
 ): void {
-  clearTimers();
   host.replaceChildren();
   if (!cfg) {
     paintEmpty(host, "No widget config");
@@ -135,17 +137,21 @@ export function renderWidget(
   const theme = (opts?.theme || "").toLowerCase();
   if (theme) host.setAttribute("data-theme", theme);
   else host.removeAttribute("data-theme");
-  setRenderSession({
+  const previous = hostSessions.get(host);
+  if (previous) clearTimers(previous);
+  const session = setRenderSession({
     size,
     theme,
     group: opts?.group,
     widgetId: opts?.widgetId,
     onAction: opts?.onAction,
   });
+  hostSessions.set(host, session);
   paintConfig(host, config, !!opts?.chrome);
   return {
     destroy() {
-      clearTimers();
+      clearTimers(session);
+      if (hostSessions.get(host) === session) hostSessions.delete(host);
       host.replaceChildren();
     },
   };

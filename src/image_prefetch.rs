@@ -37,6 +37,10 @@ mod imp {
     const MAX_BYTES: usize = 3 * 1024 * 1024;
     const TIMEOUT: Duration = Duration::from_secs(10);
     const CACHE_TTL: Duration = Duration::from_secs(300);
+    /// A failed URL is not retried before this; otherwise every updater tick waits on it.
+    const FAILURE_TTL: Duration = Duration::from_secs(60);
+    /// Memory cache bound: cache-busting URLs (`?t=…`) must not grow the heap forever.
+    const MAX_ENTRIES: usize = 64;
 
     #[derive(Clone)]
     struct CacheEntry {
@@ -45,6 +49,25 @@ mod imp {
     }
 
     static MEMORY: Mutex<Option<HashMap<String, CacheEntry>>> = Mutex::new(None);
+    static FAILED: Mutex<Option<HashMap<String, Instant>>> = Mutex::new(None);
+
+    fn recently_failed(url: &str) -> bool {
+        let mut guard = FAILED.lock().unwrap_or_else(|e| e.into_inner());
+        let map = guard.get_or_insert_with(HashMap::new);
+        map.retain(|_, at| at.elapsed() < FAILURE_TTL);
+        map.contains_key(url)
+    }
+
+    /// Drop expired entries, then the oldest ones, down to `MAX_ENTRIES - 1`.
+    fn evict(map: &mut HashMap<String, CacheEntry>) {
+        map.retain(|_, e| e.fetched_at.elapsed() < CACHE_TTL);
+        while map.len() >= MAX_ENTRIES {
+            let Some(oldest) = map.iter().min_by_key(|(_, e)| e.fetched_at).map(|(k, _)| k.clone()) else {
+                break;
+            };
+            map.remove(&oldest);
+        }
+    }
 
     fn memory() -> std::sync::MutexGuard<'static, Option<HashMap<String, CacheEntry>>> {
         MEMORY.lock().unwrap_or_else(|e| e.into_inner())
@@ -95,8 +118,12 @@ mod imp {
                     walk_el(c);
                 }
             }
-            WidgetElement::List(_)
-            | WidgetElement::Button(_)
+            WidgetElement::List(v) => {
+                for c in &mut v.children {
+                    walk_el(c);
+                }
+            }
+            WidgetElement::Button(_)
             | WidgetElement::Toggle(_)
             | WidgetElement::Text(_)
             | WidgetElement::Label(_)
@@ -133,6 +160,9 @@ mod imp {
             img.data = Some(cached);
             return;
         }
+        if recently_failed(url) {
+            return;
+        }
         // Cold miss: fetch now so the upcoming store write includes `data:`.
         // WidgetKit cannot HTTP-fetch; a background-only fill never rewrites the store.
         match fetch_as_data_uri(url) {
@@ -140,7 +170,14 @@ mod imp {
                 cache_put(url, data_uri.clone());
                 img.data = Some(data_uri);
             }
-            Err(err) => log::warn!("image.url prefetch failed for {url}: {err}"),
+            Err(err) => {
+                log::warn!("image.url prefetch failed for {url}: {err}");
+                FAILED
+                    .lock()
+                    .unwrap_or_else(|e| e.into_inner())
+                    .get_or_insert_with(HashMap::new)
+                    .insert(url.into(), Instant::now());
+            }
         }
     }
 
@@ -154,6 +191,7 @@ mod imp {
             map.remove(url);
         }
         disk_cache_get(url).map(|data_uri| {
+            evict(map);
             map.insert(
                 url.into(),
                 CacheEntry {
@@ -169,6 +207,7 @@ mod imp {
         {
             let mut guard = memory();
             let map = guard.get_or_insert_with(HashMap::new);
+            evict(map);
             map.insert(
                 url.into(),
                 CacheEntry {
@@ -252,6 +291,20 @@ mod imp {
             .unwrap_or(0);
         let _ = std::fs::write(&path, data_uri);
         let _ = std::fs::write(&meta_path, ts.to_string());
+        // Expired entries are otherwise only removed when the same URL is asked again.
+        if let Ok(entries) = std::fs::read_dir(&dir) {
+            for e in entries.flatten() {
+                let old = e
+                    .metadata()
+                    .and_then(|m| m.modified())
+                    .ok()
+                    .and_then(|t| t.elapsed().ok())
+                    .is_some_and(|age| age > CACHE_TTL);
+                if old {
+                    let _ = std::fs::remove_file(e.path());
+                }
+            }
+        }
     }
 
     fn fetch_as_data_uri(url: &str) -> Result<String, String> {

@@ -4,6 +4,7 @@ import { dirname, join, resolve } from "node:path";
 import {
   detectTauriIdentifier,
   ensurePluginsWidgets,
+  readPlatformConf,
   readTauriConf,
 } from "../lib/tauri-conf.js";
 import {
@@ -149,18 +150,18 @@ export const signing = defineCommand({
       if (widgets.transport === "appGroup" && transport === "widgetContainer") {
         applyTransport = "appGroup";
       }
-      const result = ensurePluginsWidgets(conf, {
+      // macOS-only choice: tauri.macos.conf.json, so iOS (appGroup only) is not affected.
+      const mac = readPlatformConf(conf, "macos");
+      const result = ensurePluginsWidgets(mac, {
         appGroup,
         transport: applyTransport,
         extensionBundleId,
-        force: false,
+        force: true,
       });
-      const confAfter = readTauriConf(cwd);
-      const actualTransport =
-        confAfter?.data?.plugins?.widgets?.transport ?? applyTransport;
+      const actualTransport = mac.data?.plugins?.widgets?.transport ?? applyTransport;
       console.log(
         result.wrote
-          ? `\nWrote plugins.widgets (transport=${actualTransport}, appGroup=${appGroup})`
+          ? `\nWrote plugins.widgets to ${mac.path.replace(cwd + "/", "")} (transport=${actualTransport}, appGroup=${appGroup})`
           : `\nplugins.widgets already matched (transport=${actualTransport})`,
       );
       const ents = syncMacosEntitlementsFromConf(cwd, readTauriConf(cwd));

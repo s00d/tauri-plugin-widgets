@@ -3,7 +3,8 @@ import { invoke, listen, clearTimers } from "./ctx";
 import { renderWidget } from "./lib";
 
 const params = new URLSearchParams(window.location.search);
-const GROUP = params.get("group") || "default";
+// "" = the app's default group (plugins.widgets.appGroup).
+const GROUP = params.get("group") || "";
 const SIZE = params.get("size") || "";
 const WIDGET_ID = params.get("widgetId") || "default";
 const THEME = (params.get("theme") || "").toLowerCase();
@@ -94,12 +95,12 @@ function loadConfig() {
   if (!getRoot()) return;
   Promise.all([
     invoke("plugin:widgets|get_widget_config", {
-      group: GROUP,
+      group: GROUP || null,
       widgetId: WIDGET_ID,
     }),
     invoke("plugin:widgets|get_items", {
       key: "__meta_nonce__",
-      group: GROUP,
+      group: GROUP || null,
     }).catch(function () {
       return null;
     }),
@@ -138,7 +139,7 @@ function init() {
       const p = raw as ConfigPush;
       if (!p.config) return;
       if (p.widgetId && p.widgetId !== WIDGET_ID) return;
-      if (p.group && p.group !== GROUP) return;
+      if (GROUP && p.group && p.group !== GROUP) return;
       render(p.config, "push");
     } else {
       render(raw as WidgetConfig | null, "push");

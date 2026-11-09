@@ -14,14 +14,13 @@ use crate::store::config_key;
 use crate::trace::{TraceEvent, TraceStore, WidgetTrace};
 use crate::transport::validate_mobile_transport;
 
-/// Default minimum interval between WidgetKit reload calls (**iOS/Android host only**).
+/// Default minimum interval between plugin-triggered reloads (**iOS/Android host only**): none.
 ///
-/// Override with `TAURI_WIDGET_MIN_RELOAD_SECS`. The macOS/desktop host does not
-/// use this throttle — see `desktop::Widget::set_widget_config`.
-#[cfg(debug_assertions)]
+/// Commands come from the running app, and WidgetKit does not charge reloads while the
+/// containing app is in the foreground; Android has no reload budget at all. A default
+/// throttle only left widgets stale for minutes after a tap. Set
+/// `TAURI_WIDGET_MIN_RELOAD_SECS` to throttle background-driven updates yourself.
 const DEFAULT_RELOAD_MIN_INTERVAL_SECS: u64 = 0;
-#[cfg(not(debug_assertions))]
-const DEFAULT_RELOAD_MIN_INTERVAL_SECS: u64 = 15 * 60;
 
 fn reload_min_interval_secs() -> u64 {
     match env::var("TAURI_WIDGET_MIN_RELOAD_SECS") {
@@ -43,7 +42,11 @@ pub fn init<R: Runtime>(
     app: &AppHandle<R>,
     api: PluginApi<R, Option<WidgetsPluginConfig>>,
 ) -> crate::Result<Widget<R>> {
-    let cfg = api.config().clone().unwrap_or_default();
+    let cfg = api
+        .config()
+        .clone()
+        .unwrap_or_default()
+        .with_defaults(&app.config().identifier);
     let _ = validate_mobile_transport(&cfg)?;
 
     #[cfg(target_os = "android")]

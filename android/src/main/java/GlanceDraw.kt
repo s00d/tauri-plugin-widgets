@@ -183,10 +183,28 @@ internal fun buildStyleChromeBitmap(
     return bmp
 }
 
+/** Longest side of a decoded widget image. RemoteViews reject bitmaps above the
+ *  screen-size memory budget, and a full-resolution photo is far above it. */
+private const val MAX_IMAGE_PX = 1024
+
+/** Options with `inSampleSize` so the decoded bitmap stays within [MAX_IMAGE_PX]. */
+private fun boundedOptions(probe: (BitmapFactory.Options) -> Unit): BitmapFactory.Options {
+    val bounds = BitmapFactory.Options().apply { inJustDecodeBounds = true }
+    probe(bounds)
+    var sample = 1
+    while (bounds.outWidth / (sample * 2) >= MAX_IMAGE_PX || bounds.outHeight / (sample * 2) >= MAX_IMAGE_PX) {
+        sample *= 2
+    }
+    return BitmapFactory.Options().apply { inSampleSize = sample }
+}
+
+private fun decodeBoundedFile(path: String): Bitmap? =
+    BitmapFactory.decodeFile(path, boundedOptions { BitmapFactory.decodeFile(path, it) })
+
 internal fun imageProviderFromElement(context: Context, el: JSONObject): ImageProvider? {
     val localPath = el.widgetString("localPath", "")
     if (localPath.isNotBlank()) {
-        BitmapFactory.decodeFile(localPath)?.let { return ImageProvider(it) }
+        decodeBoundedFile(localPath)?.let { return ImageProvider(it) }
     }
 
     val data = el.widgetString("data", "")
@@ -200,10 +218,10 @@ internal fun imageProviderFromElement(context: Context, el: JSONObject): ImagePr
     } else if (url.startsWith("file://")) {
         val filePath = Uri.parse(url).path.orEmpty()
         if (filePath.isNotBlank()) {
-            BitmapFactory.decodeFile(filePath)?.let { return ImageProvider(it) }
+            decodeBoundedFile(filePath)?.let { return ImageProvider(it) }
         }
     } else if (url.startsWith("/")) {
-        BitmapFactory.decodeFile(url)?.let { return ImageProvider(it) }
+        decodeBoundedFile(url)?.let { return ImageProvider(it) }
     }
 
     val systemName = el.widgetString("systemName", "")
@@ -253,7 +271,7 @@ internal fun decodeBase64Bitmap(raw: String): Bitmap? {
     }.recoverCatching {
         Base64.decode(normalized, Base64.URL_SAFE or Base64.NO_WRAP)
     }.getOrNull() ?: return null
-    val bmp = BitmapFactory.decodeByteArray(bytes, 0, bytes.size) ?: return null
+    val bmp = BitmapFactory.decodeByteArray(bytes, 0, bytes.size, boundedOptions { BitmapFactory.decodeByteArray(bytes, 0, bytes.size, it) }) ?: return null
     // Upscale tiny (1×1) fixtures so Glance Image sizing is visible.
     val out = if (bmp.width <= 2 || bmp.height <= 2) {
         Bitmap.createScaledBitmap(bmp, 32.coerceAtLeast(bmp.width * 16), 32.coerceAtLeast(bmp.height * 16), false)

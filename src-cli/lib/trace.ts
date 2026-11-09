@@ -50,7 +50,8 @@ export function findFilesNamed(dir: string, name: string, depth = 0, out: string
 export function resolveTracePaths(cwd: string, identifier: string | null): string[] {
   const candidates: string[] = [];
   const home = process.env.HOME || "";
-  const local = process.env.LOCALAPPDATA || "";
+  // Windows: Tauri's app_data_dir is %APPDATA% (Roaming); HOME is usually unset there.
+  const local = process.env.APPDATA || "";
   const xdg = process.env.XDG_DATA_HOME || (home ? join(home, ".local", "share") : "");
 
   if (identifier) {

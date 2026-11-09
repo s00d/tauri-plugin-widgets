@@ -7,6 +7,12 @@ set -euo pipefail
 # Builds and signs the .appex so `bundle.macOS.files` can copy it into
 # Contents/PlugIns/ during the normal `tauri build` (Tauri nested-codesigns PlugIns).
 
+# The hook lives in tauri.macos.conf.json; this guard covers older tauri.conf.json setups.
+if [[ "$(uname)" != "Darwin" ]]; then
+  echo "[widget] not macOS — skipping the WidgetKit extension build"
+  exit 0
+fi
+
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 CONFIGURATION="${1:-Release}"
 DERIVED_DATA="$SCRIPT_DIR/build"
@@ -45,11 +51,15 @@ gen_entitlements() {
 }
 
 if [[ -f "$CONF" ]] && command -v node >/dev/null 2>&1; then
+  # Same rule as the plugin: plugins.widgets.appGroup (tauri.macos.conf.json wins), else group.<identifier>.
   GROUP="$(node -e "
-    const fs = require('fs');
-    const conf = JSON.parse(fs.readFileSync(process.argv[1], 'utf8'));
-    const g = conf.plugins && conf.plugins.widgets && conf.plugins.widgets.appGroup;
-    if (!g) { console.error('ERROR: plugins.widgets.appGroup missing in', process.argv[1]); process.exit(1); }
+    const fs = require('fs'), path = require('path');
+    const read = (p) => (fs.existsSync(p) ? JSON.parse(fs.readFileSync(p, 'utf8')) : {});
+    const conf = read(process.argv[1]);
+    const mac = read(path.join(path.dirname(process.argv[1]), 'tauri.macos.conf.json'));
+    const pick = (c) => c.plugins && c.plugins.widgets && c.plugins.widgets.appGroup;
+    const g = pick(mac) || pick(conf) || (conf.identifier && 'group.' + conf.identifier);
+    if (!g) { console.error('ERROR: no plugins.widgets.appGroup and no identifier in', process.argv[1]); process.exit(1); }
     process.stdout.write(String(g));
   " "$CONF")"
   if [[ ! "$GROUP" =~ ^[A-Za-z0-9._-]+$ ]]; then
@@ -71,6 +81,23 @@ elif [[ -f "$EXT_ENTS" ]]; then
 else
   echo "ERROR: need plugins.widgets.appGroup in tauri.conf.json (and node on PATH) to generate entitlements" >&2
   exit 1
+fi
+
+# ─── Point project.yml at the installed TauriWidgets Swift package ───────────
+# Resolved on every build, so upgrades and other machines never see a stale path.
+
+if command -v node >/dev/null 2>&1; then
+  PKG_SWIFT="$(cd "$SCRIPT_DIR" && node -e "
+    const path = require('path');
+    try {
+      const entry = require.resolve('tauri-plugin-widgets-api', { paths: [process.cwd()] });
+      process.stdout.write(path.join(path.dirname(path.dirname(entry)), 'swift'));
+    } catch { process.exit(1); }
+  " 2>/dev/null || true)"
+  if [[ -n "$PKG_SWIFT" && -d "$PKG_SWIFT" ]]; then
+    sed -i '' -E "/^packages:/,/^targets:/ s|^( +path: ).*|\1$PKG_SWIFT|" "$SCRIPT_DIR/project.yml"
+    echo "[widget] TauriWidgets package: $PKG_SWIFT"
+  fi
 fi
 
 # ─── Generate Xcode project ─────────────────────────────────────────────────

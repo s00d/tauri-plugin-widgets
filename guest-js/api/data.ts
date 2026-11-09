@@ -19,11 +19,10 @@ import { PLUGIN_ID } from "./plugin";
 export async function setItems(
   key: string,
   value: string,
-  group: string,
+  group?: string,
 ): Promise<boolean> {
   if (!key) throw new Error("setItems: 'key' must not be empty");
-  if (!group) throw new Error("setItems: 'group' must not be empty");
-  return await invoke<boolean>(`${PLUGIN_ID}|set_items`, { key, value, group });
+  return await invoke<boolean>(`${PLUGIN_ID}|set_items`, { key, value, group: group || null });
 }
 
 /**
@@ -35,9 +34,8 @@ export async function setItems(
  */
 export async function getItems(
   key: string,
-  group: string,
+  group?: string,
 ): Promise<string | null> {
   if (!key) throw new Error("getItems: 'key' must not be empty");
-  if (!group) throw new Error("getItems: 'group' must not be empty");
-  return await invoke<string | null>(`${PLUGIN_ID}|get_items`, { key, group });
+  return await invoke<string | null>(`${PLUGIN_ID}|get_items`, { key, group: group || null });
 }

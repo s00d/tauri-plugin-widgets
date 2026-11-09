@@ -21,7 +21,7 @@ describe("runDoctor", () => {
     );
   });
 
-  it("flags empty appGroup when conf exists", async () => {
+  it("defaults an empty appGroup to group.<identifier>", async () => {
     const dir = mkdtempSync(join(tmpdir(), "tpw-doctor-ag-"));
     const st = join(dir, "src-tauri");
     mkdirSync(st, { recursive: true });
@@ -34,7 +34,7 @@ describe("runDoctor", () => {
     );
     const r = await runDoctor(dir);
     assert.ok(
-      r.items.some((i) => i.level === "bad" && /appGroup is empty/.test(i.msg)),
+      r.items.some((i) => i.level === "ok" && /appGroup = group\.com\.test\.empty-ag \(default/.test(i.msg)),
       JSON.stringify(r.items.filter((i) => i.section === "transport"), null, 2),
     );
   });

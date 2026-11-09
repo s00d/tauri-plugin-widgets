@@ -104,7 +104,7 @@ pub fn pick_freshest(maps: impl IntoIterator<Item = DataMap>) -> DataMap {
 }
 
 /// Action delivered from a native widget back to the host app.
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct WidgetActionEnvelope {
     /// Action verb (button / toggle / list row).
@@ -146,6 +146,20 @@ pub fn parse_pending_actions(raw: Option<&str>) -> Vec<WidgetActionEnvelope> {
     serde_json::from_str(s).unwrap_or_default()
 }
 
+/// Shared-file queue owned by another process (Windows provider): keep what is on disk,
+/// minus the actions this host just drained. The host never writes its own snapshot of
+/// the queue, so a stale snapshot cannot resurrect drained actions or drop new ones.
+pub fn pending_minus_drained(
+    disk_raw: Option<&str>,
+    drained: &[WidgetActionEnvelope],
+) -> crate::Result<String> {
+    let rest: Vec<_> = parse_pending_actions(disk_raw)
+        .into_iter()
+        .filter(|a| !drained.contains(a))
+        .collect();
+    encode_pending_actions(&rest)
+}
+
 /// Serialize pending actions for storage.
 pub fn encode_pending_actions(actions: &[WidgetActionEnvelope]) -> crate::Result<String> {
     Ok(serde_json::to_string(actions)?)
@@ -154,6 +168,16 @@ pub fn encode_pending_actions(actions: &[WidgetActionEnvelope]) -> crate::Result
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn pending_minus_drained_keeps_new_and_drops_drained() {
+        let a = WidgetActionEnvelope::new("a", None, "w", "g");
+        let b = WidgetActionEnvelope::new("b", Some("1".into()), "w", "g");
+        let disk = encode_pending_actions(&[a.clone(), b.clone()]).unwrap();
+        let left = pending_minus_drained(Some(&disk), &[a]).unwrap();
+        assert_eq!(parse_pending_actions(Some(&left)), vec![b]);
+        assert_eq!(pending_minus_drained(None, &[]).unwrap(), "[]");
+    }
 
     #[test]
     fn touch_meta_above_beats_stale_sibling_nonce() {

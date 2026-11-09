@@ -1,7 +1,6 @@
 import { existsSync, mkdirSync, readFileSync, readdirSync, writeFileSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
 import type { TauriConf } from "./tauri-conf.js";
-import { findApplePbxproj } from "./apple.js";
 
 export interface EntitlementsOptions {
   appGroup: string;
@@ -214,73 +213,4 @@ export function findAppGroupMentions(cwd: string, appGroup: string | null | unde
   };
   walk(root);
   return { hits };
-}
-
-export interface IosEntitlementsRels {
-  appEntRel: string;
-  widgetEntRel: string;
-}
-
-/**
- * Resolve iOS entitlements relative paths under gen/apple.
- * Prefer existing CODE_SIGN_ENTITLEMENTS / on-disk files; never invent "ExtensionExtensionExtension".
- */
-export function resolveIosEntitlementsRels(
-  cwd: string,
-  appleDir: string,
-  widgetTargets: string[],
-): IosEntitlementsRels {
-  let appEntRel: string | null = null;
-  let widgetEntRel: string | null = null;
-
-  for (const pbx of findApplePbxproj(cwd)) {
-    const raw = readFileSync(pbx, "utf-8");
-    const matches = [...raw.matchAll(/CODE_SIGN_ENTITLEMENTS = "?([^";]+\.entitlements)"?/g)].map(
-      (m) => m[1].replace(/^"/, "").replace(/"$/, ""),
-    );
-    if (!appEntRel) {
-      appEntRel = matches.find((p) => /_iOS\//.test(p) || /(^|\/)App\.entitlements$/.test(p)) || null;
-    }
-    if (!widgetEntRel) {
-      widgetEntRel =
-        matches.find((p) => /Widget/i.test(p) && !/_iOS\//.test(p)) ||
-        matches.find((p) => /Extension/i.test(p) && !/_iOS\//.test(p)) ||
-        null;
-    }
-  }
-
-  if (!appEntRel) {
-    const iosDirs = readdirSync(appleDir, { withFileTypes: true }).filter(
-      (e) => e.isDirectory() && e.name.endsWith("_iOS"),
-    );
-    if (iosDirs[0]) appEntRel = `${iosDirs[0].name}/${iosDirs[0].name}.entitlements`;
-    else appEntRel = "App.entitlements";
-  }
-
-  if (!widgetEntRel) {
-    // Prefer an existing *Extension*.entitlements on disk
-    const onDisk: string[] = [];
-    for (const e of readdirSync(appleDir, { withFileTypes: true })) {
-      if (e.isFile() && /\.entitlements$/.test(e.name) && /Extension|Widget/i.test(e.name)) {
-        onDisk.push(e.name);
-      }
-    }
-    const widgetPref = onDisk.find((n) => /Widget/i.test(n));
-    const extPref = onDisk.find((n) => /Extension/i.test(n));
-    if (widgetPref) {
-      widgetEntRel = widgetPref;
-    } else if (extPref) {
-      widgetEntRel = extPref;
-    } else if (onDisk[0]) {
-      widgetEntRel = onDisk[0];
-    } else {
-      const widgetName = widgetTargets[0] || "WidgetExtension";
-      // Target is often already named WidgetExtensionExtension — do not append another "Extension"
-      widgetEntRel = /Extension$/i.test(widgetName)
-        ? `${widgetName}.entitlements`
-        : `${widgetName}Extension.entitlements`;
-    }
-  }
-
-  return { appEntRel, widgetEntRel };
 }

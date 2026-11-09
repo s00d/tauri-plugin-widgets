@@ -10,6 +10,16 @@ public struct DynamicElementView: View {
     /// WidgetKit root: `containerBackground` already paints the canvas — skip
     /// root `background`/`shadow` or a content-sized card floats inside (looks “crooked”).
     var isWidgetRoot: Bool = false
+    /// Set by `TauriWidgetView` from the timeline entry (see `TauriWidgetEntry`).
+    @Environment(\.tauriWidgetIdentity) var identity
+
+    /// Intent tagged with this widget's own appGroup / widgetId.
+    func actionIntent(_ name: String, payload: String? = nil) -> WidgetActionIntent {
+        WidgetActionIntent(
+            actionName: name, payload: payload,
+            widgetId: identity?.widgetId, appGroup: identity?.appGroup
+        )
+    }
 
     public init(
         element: WidgetElement,

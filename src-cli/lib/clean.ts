@@ -99,8 +99,13 @@ export function runClean({ cwd, identifier, group, cacheOnly = false }: RunClean
   if (process.env.LOCALAPPDATA) {
     bases.push(join(process.env.LOCALAPPDATA, "tauri-plugin-widgets"));
   }
-  if (identifier && process.env.LOCALAPPDATA) {
-    bases.push(join(process.env.LOCALAPPDATA, identifier, "widgets"));
+  if (identifier && process.env.APPDATA) {
+    // Windows trace / receipts: app_data_dir is %APPDATA% (Roaming).
+    bases.push(join(process.env.APPDATA, identifier, "widgets"));
+  }
+  if (identifier && home && process.platform === "darwin") {
+    // transport=widgetContainer: the extension's sandbox container.
+    bases.push(join(home, "Library", "Containers", `${identifier}.widgetkit`, "Data"));
   }
   if (identifier && home) {
     bases.push(
@@ -126,7 +131,9 @@ export function runClean({ cwd, identifier, group, cacheOnly = false }: RunClean
     try {
       for (const f of readdirSync(base)) {
         // Only known widget store / cache / config keys — never wipe unrelated App Group JSON.
-        if (storeFiles.has(f) || /^config:/.test(f)) {
+        // Linux keeps one store file per group: <app_data>/widgets/<group>.json
+        const groupFile = group ? `${group.replace(/[^A-Za-z0-9.-]/g, "_")}.json` : "";
+        if (storeFiles.has(f) || /^config:/.test(f) || (groupFile && f === groupFile)) {
           const p = join(base, f);
           rmSync(p, { force: true, recursive: true });
           console.log(`  ✓ store: removed ${p}`);

@@ -46,11 +46,11 @@ class WidgetActionCallback : ActionCallback {
             if (toggled) {
                 Log.d(TAG, "action local list toggle applied action=$action")
             }
-            val plugin = WidgetBridgePlugin.pluginInstance
+            val plugin = WidgetBridgePlugin.pluginInstance?.takeIf { it.isAlive() }
             if (plugin != null) {
                 plugin.emitWidgetAction(action, payload, logicalWidgetId, group)
             } else {
-                // Queue only when the host plugin is unavailable (matches WidgetActionReceiver).
+                // No live WebView: queue; the host drains it on Ready/Resumed.
                 val prefs = context.getSharedPreferences(group, Context.MODE_PRIVATE)
                 val pendingRaw = prefs.getString(WidgetStoreKeys.PENDING_ACTIONS, "[]") ?: "[]"
                 val arr = runCatching { JSONArray(pendingRaw) }.getOrElse { JSONArray() }

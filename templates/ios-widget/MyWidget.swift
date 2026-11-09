@@ -2,18 +2,12 @@ import WidgetKit
 import SwiftUI
 import TauriWidgets
 
-// ─── Entry Point ─────────────────────────────────────────────────────────────
-// Add this file to your iOS Widget Extension target.
-// 1. Open gen/apple/*.xcodeproj in Xcode
-// 2. File → New → Target → Widget Extension
-// 3. Add TauriWidgets Swift Package as a dependency
-// 4. Replace the generated Swift code with this file
-// 5. Enable App Groups in BOTH targets (App and Widget Extension)
+// ─── Widget entry point ──────────────────────────────────────────────────────
+// `npx tauri-widgets init-ios` adds the WidgetExtension target for this folder to
+// src-tauri/gen/apple/project.yml, so this file is yours: edit it freely, init-ios
+// never overwrites it (unless --force).
 //
-// Placeholders replaced by CLI init:
-//   {{APP_GROUP}}  e.g. group.com.example.myapp
-//   {{WIDGET_KIND}} e.g. MyTauriWidget
-//   {{WIDGET_ID}}  e.g. default
+// widgetId must match the JS side: setWidgetConfig(config) uses "default".
 
 @main
 struct MyWidget: Widget {

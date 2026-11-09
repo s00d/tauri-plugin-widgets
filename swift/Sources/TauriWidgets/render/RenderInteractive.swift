@@ -49,7 +49,7 @@ extension DynamicElementView {
             .background(resolveColor(element.backgroundColor) ?? Color.accentColor)
             .cornerRadius(element.cornerRadius ?? 8)
         if let act = element.action, !act.isEmpty {
-            Button(intent: WidgetActionIntent(actionName: act)) { btnContent }.buttonStyle(.plain)
+            Button(intent: actionIntent(act)) { btnContent }.buttonStyle(.plain)
         } else if let u = element.url, !u.isEmpty, let url = URL(string: u) {
             Link(destination: url) { btnContent }
         } else {
@@ -71,7 +71,7 @@ extension DynamicElementView {
             }
         }
         if let act = element.action, !act.isEmpty {
-            Button(intent: WidgetActionIntent(actionName: act, payload: isOn ? "false" : "true")) {
+            Button(intent: actionIntent(act, payload: isOn ? "false" : "true")) {
                 content
             }.buttonStyle(.plain)
         } else {
@@ -86,7 +86,7 @@ extension DynamicElementView {
         let content = HStack(spacing: 0) { renderChildren(axis: .horizontal) }
             .fixedSize(horizontal: true, vertical: true)
         if let act = element.action, !act.isEmpty {
-            Button(intent: WidgetActionIntent(actionName: act)) { content }.buttonStyle(.plain)
+            Button(intent: actionIntent(act)) { content }.buttonStyle(.plain)
         } else if let u = element.url, !u.isEmpty, let url = URL(string: u) {
             Link(destination: url) { content }
         } else { content }

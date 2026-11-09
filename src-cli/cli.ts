@@ -1,5 +1,5 @@
-import { readFileSync } from "node:fs";
-import { join } from "node:path";
+import { existsSync, readFileSync } from "node:fs";
+import { basename, join } from "node:path";
 import { defineCommand, runMain } from "citty";
 import { initUnified } from "./commands/init.js";
 import { initMacos } from "./commands/init-macos.js";
@@ -46,5 +46,8 @@ const main = defineCommand({
     tools: toolsCmd,
   },
 });
+
+// Run from src-tauri/ works like from the project root (every path below is root-relative).
+if (basename(process.cwd()) === "src-tauri" && existsSync("tauri.conf.json")) process.chdir("..");
 
 runMain(main);

@@ -2,7 +2,7 @@ use tauri::{AppHandle, Emitter, Runtime, State};
 
 use crate::apply::ApplyOutcome;
 use crate::error::Error;
-use crate::group::validate_group;
+use crate::group::{resolve_group, validate_widget_id};
 use crate::models::{WidgetConfig, WidgetWindowConfig};
 
 #[cfg(desktop)]
@@ -11,26 +11,26 @@ use crate::desktop::Widget;
 use crate::mobile::Widget;
 
 #[tauri::command]
-pub fn set_items<R: Runtime>(
+pub async fn set_items<R: Runtime>(
     _app: AppHandle<R>,
     widget: State<'_, Widget<R>>,
     key: String,
     value: String,
-    group: String,
+    group: Option<String>,
 ) -> Result<bool, Error> {
-    let group = validate_group(&group)?;
-    widget.set_items(&key, &value, group)
+    let group = resolve_group(group.as_deref())?;
+    widget.set_items(&key, &value, &group)
 }
 
 #[tauri::command]
-pub fn get_items<R: Runtime>(
+pub async fn get_items<R: Runtime>(
     _app: AppHandle<R>,
     widget: State<'_, Widget<R>>,
     key: String,
-    group: String,
+    group: Option<String>,
 ) -> Result<Option<String>, Error> {
-    let group = validate_group(&group)?;
-    widget.get_items(&key, group)
+    let group = resolve_group(group.as_deref())?;
+    widget.get_items(&key, &group)
 }
 
 #[tauri::command]
@@ -71,10 +71,11 @@ pub fn request_widget<R: Runtime>(
 pub async fn create_widget_window<R: Runtime>(
     _app: AppHandle<R>,
     widget: State<'_, Widget<R>>,
-    config: WidgetWindowConfig,
+    mut config: WidgetWindowConfig,
 ) -> Result<bool, Error> {
-    if let Some(ref group) = config.group {
-        validate_group(group)?;
+    // Built-in renderer reads this group; default it like every other command.
+    if config.url.as_deref().map_or(true, str::is_empty) || config.group.is_some() {
+        config.group = Some(resolve_group(config.group.as_deref())?);
     }
     widget.create_widget_window(config)
 }
@@ -89,16 +90,17 @@ pub async fn close_widget_window<R: Runtime>(
 }
 
 #[tauri::command]
-pub fn set_widget_config<R: Runtime>(
+pub async fn set_widget_config<R: Runtime>(
     _app: AppHandle<R>,
     widget: State<'_, Widget<R>>,
     config: WidgetConfig,
-    group: String,
+    group: Option<String>,
     widget_id: String,
     skip_reload: Option<bool>,
 ) -> Result<ApplyOutcome, Error> {
-    let group = validate_group(&group)?;
-    widget.set_widget_config(&config, group, &widget_id, skip_reload.unwrap_or(false))
+    let group = resolve_group(group.as_deref())?;
+    validate_widget_id(&widget_id)?;
+    widget.set_widget_config(&config, &group, &widget_id, skip_reload.unwrap_or(false))
 }
 
 /// Read and deserialize a [`WidgetConfig`] JSON file from disk.
@@ -109,6 +111,20 @@ pub(crate) fn load_widget_config_from_path(path: &str) -> Result<WidgetConfig, E
     let path = path.trim();
     if path.is_empty() {
         return Err(Error::new("set_widget_config_from_path: path must not be empty"));
+    }
+    // Regular files only, bounded: `/dev/zero` or a FIFO would otherwise exhaust memory
+    // or block forever.
+    const MAX_BYTES: u64 = 4 * 1024 * 1024;
+    let meta = std::fs::metadata(path)
+        .map_err(|e| Error::Io(format!("read config from {path}: {e}")))?;
+    if !meta.is_file() {
+        return Err(Error::Io(format!("read config from {path}: not a regular file")));
+    }
+    if meta.len() > MAX_BYTES {
+        return Err(Error::Io(format!(
+            "read config from {path}: {} bytes exceeds the {MAX_BYTES} byte limit",
+            meta.len()
+        )));
     }
     let raw = std::fs::read_to_string(path).map_err(|e| {
         Error::Io(format!("read config from {path}: {e}"))
@@ -123,27 +139,29 @@ pub(crate) fn load_widget_config_from_path(path: &str) -> Result<WidgetConfig, E
 /// `path` must be readable by the app process (absolute path or resolved resource /
 /// app-data path). Network URLs are not supported.
 #[tauri::command]
-pub fn set_widget_config_from_path<R: Runtime>(
+pub async fn set_widget_config_from_path<R: Runtime>(
     _app: AppHandle<R>,
     widget: State<'_, Widget<R>>,
     path: String,
-    group: String,
+    group: Option<String>,
     widget_id: String,
     skip_reload: Option<bool>,
 ) -> Result<ApplyOutcome, Error> {
-    let group = validate_group(&group)?;
-    widget.set_widget_config_from_path(&path, group, &widget_id, skip_reload.unwrap_or(false))
+    let group = resolve_group(group.as_deref())?;
+    validate_widget_id(&widget_id)?;
+    widget.set_widget_config_from_path(&path, &group, &widget_id, skip_reload.unwrap_or(false))
 }
 
 #[tauri::command]
-pub fn get_widget_config<R: Runtime>(
+pub async fn get_widget_config<R: Runtime>(
     _app: AppHandle<R>,
     widget: State<'_, Widget<R>>,
-    group: String,
+    group: Option<String>,
     widget_id: String,
 ) -> Result<Option<WidgetConfig>, Error> {
-    let group = validate_group(&group)?;
-    widget.get_widget_config(group, &widget_id)
+    let group = resolve_group(group.as_deref())?;
+    validate_widget_id(&widget_id)?;
+    widget.get_widget_config(&group, &widget_id)
 }
 
 #[tauri::command]
@@ -154,10 +172,7 @@ pub fn widget_action<R: Runtime>(
     widget_id: Option<String>,
     group: Option<String>,
 ) -> Result<bool, Error> {
-    let group = match group.as_deref() {
-        Some(g) if !g.is_empty() => validate_group(g)?.to_string(),
-        _ => String::new(),
-    };
+    let group = resolve_group(group.as_deref()).unwrap_or_default();
     let data = serde_json::json!({
         "action": action,
         "payload": payload,
@@ -171,21 +186,23 @@ pub fn widget_action<R: Runtime>(
 }
 
 #[tauri::command]
-pub fn poll_pending_actions<R: Runtime>(
+pub async fn poll_pending_actions<R: Runtime>(
     _app: AppHandle<R>,
     widget: State<'_, Widget<R>>,
-    group: String,
+    group: Option<String>,
 ) -> Result<Vec<crate::WidgetActionEnvelope>, Error> {
-    let group = validate_group(&group)?;
-    widget.poll_pending_actions(group)
+    let group = resolve_group(group.as_deref())?;
+    widget.poll_pending_actions(&group)
 }
 
 #[tauri::command]
 pub fn report_receipt<R: Runtime>(
     _app: AppHandle<R>,
     widget: State<'_, Widget<R>>,
-    receipt: crate::receipt::WidgetRenderReceipt,
+    mut receipt: crate::receipt::WidgetRenderReceipt,
 ) -> Result<bool, Error> {
+    // The group feeds the macOS action poller: only the app's own group is accepted.
+    receipt.group = resolve_group(Some(&receipt.group))?;
     widget.report_receipt(receipt)
 }
 
@@ -193,21 +210,21 @@ pub fn report_receipt<R: Runtime>(
 pub fn get_widget_diagnostics<R: Runtime>(
     _app: AppHandle<R>,
     widget: State<'_, Widget<R>>,
-    group: String,
+    group: Option<String>,
 ) -> Result<Vec<crate::receipt::WidgetRenderReceipt>, Error> {
-    let group = validate_group(&group)?;
-    widget.get_widget_diagnostics(group)
+    let group = resolve_group(group.as_deref())?;
+    widget.get_widget_diagnostics(&group)
 }
 
 #[tauri::command]
 pub fn get_widget_trace<R: Runtime>(
     _app: AppHandle<R>,
     widget: State<'_, Widget<R>>,
-    group: String,
+    group: Option<String>,
     since_ms: Option<u64>,
 ) -> Result<crate::trace::WidgetTrace, Error> {
-    let group = validate_group(&group)?;
-    widget.get_widget_trace(group, since_ms)
+    let group = resolve_group(group.as_deref())?;
+    widget.get_widget_trace(&group, since_ms)
 }
 
 #[tauri::command]
@@ -264,6 +281,12 @@ mod from_path_tests {
     fn rejects_empty_path() {
         assert!(load_widget_config_from_path("").is_err());
         assert!(load_widget_config_from_path("   ").is_err());
+    }
+
+    #[test]
+    fn rejects_non_regular_files() {
+        assert!(load_widget_config_from_path("/dev/zero").is_err());
+        assert!(load_widget_config_from_path(env!("CARGO_MANIFEST_DIR")).is_err());
     }
 
     #[test]

@@ -235,36 +235,48 @@ public struct TauriWidgetDataStore {
         fanoutWrite(map, appGroup: appGroup)
     }
 
-    /// Replace pending_actions after merge (fan-out).
-    public static func writePendingActions(_ actions: [WidgetActionEnvelope], appGroup: String) {
+    /// Append one action to `pending_actions` under the cross-process store lock.
+    ///
+    /// The host drains the queue under the same lock, so a tap can neither be lost
+    /// (host clearing after our read) nor delivered twice (us re-writing drained items).
+    public static func appendPendingAction(_ action: WidgetActionEnvelope, appGroup: String) {
         #if os(iOS)
         guard assertAppGroupAvailable(appGroup) else { return }
         #endif
-        guard let data = try? JSONEncoder().encode(actions),
-              let str = String(data: data, encoding: .utf8) else { return }
-        // Retry RMW so concurrent widget taps don't clobber each other.
-        for _ in 0..<5 {
+        withStoreLock(appGroup: appGroup) {
             var map = loadFreshestMap(appGroup: appGroup)
-            var merged = readPendingActions(appGroup: appGroup)
-            // Caller already computed the full desired queue — prefer their list when longer
-            // or when the disk queue is empty; otherwise append unique by (action,ts,widgetId).
-            if actions.count >= merged.count {
-                merged = actions
-            } else {
-                let existing = Set(merged.map { "\($0.action)|\($0.ts)|\($0.widgetId ?? "")" })
-                for a in actions {
-                    let k = "\(a.action)|\(a.ts)|\(a.widgetId ?? "")"
-                    if !existing.contains(k) { merged.append(a) }
-                }
-            }
-            guard let out = try? JSONEncoder().encode(merged),
+            var queue = pendingActions(in: map)
+            queue.append(action)
+            guard let out = try? JSONEncoder().encode(queue),
                   let outStr = String(data: out, encoding: .utf8) else { return }
             map[TauriWidgetStoreKeys.pendingActions] = outStr
             touchMeta(&map)
             fanoutWrite(map, appGroup: appGroup)
-            return
         }
-        writeValue(str, forKey: TauriWidgetStoreKeys.pendingActions, appGroup: appGroup)
+    }
+
+    /// Exclusive `flock` on `widget_data.json.lock` next to the App Group data file,
+    /// shared with the host app (iOS plugin, macOS Rust host). Runs `body` unlocked when
+    /// there is no App Group container (ad-hoc macOS builds).
+    public static func withStoreLock<T>(appGroup: String, _ body: () -> T) -> T {
+        guard let url = dataFileURL(appGroup: appGroup) else { return body() }
+        try? FileManager.default.createDirectory(
+            at: url.deletingLastPathComponent(), withIntermediateDirectories: true)
+        let fd = open(url.path + ".lock", O_RDWR | O_CREAT, 0o644)
+        guard fd >= 0 else { return body() }
+        defer { close(fd) }
+        flock(fd, LOCK_EX)
+        defer { flock(fd, LOCK_UN) }
+        return body()
+    }
+
+    private static func pendingActions(in map: [String: String]) -> [WidgetActionEnvelope] {
+        guard let raw = map[TauriWidgetStoreKeys.pendingActions],
+              let data = raw.data(using: .utf8),
+              let arr = try? JSONDecoder().decode([WidgetActionEnvelope].self, from: data) else {
+            return []
+        }
+        return arr
     }
 
     public static func readPendingActions(appGroup: String) -> [WidgetActionEnvelope] {

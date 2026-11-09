@@ -8,8 +8,8 @@ import { PLUGIN_ID } from "./plugin";
 export interface WidgetActionPayload {
   /** The action identifier from the button config. */
   action: string;
-  /** Optional extra data (e.g. serialized JSON from the widget). */
-  payload?: string;
+  /** Optional extra data (e.g. serialized JSON from the widget). `null` when the widget sent none. */
+  payload?: string | null;
   /** Unix epoch ms when the action was enqueued / emitted. */
   ts?: number;
   /** Widget identity that emitted the action. */
@@ -71,11 +71,11 @@ export async function onWidgetAction(
 
 /** Poll pending widget actions queued by native side (Android fallback path). */
 export async function pollPendingWidgetActions(
-  group: string,
+  group?: string,
 ): Promise<WidgetActionPayload[]> {
   let res: unknown;
   try {
-    res = await invoke<unknown>(`${PLUGIN_ID}|poll_pending_actions`, { group });
+    res = await invoke<unknown>(`${PLUGIN_ID}|poll_pending_actions`, { group: group || null });
   } catch (e) {
     const msg = String(e ?? "");
     // iOS/macOS builds may not expose this Android-specific command path.

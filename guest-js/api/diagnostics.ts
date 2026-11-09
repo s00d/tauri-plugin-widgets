@@ -82,11 +82,10 @@ export async function reportReceipt(receipt: WidgetRenderReceipt): Promise<boole
  * Live widget instances that recently rendered for `group`.
  */
 export async function getWidgetDiagnostics(
-  group: string,
+  group?: string,
 ): Promise<WidgetRenderReceipt[]> {
-  if (!group) throw new Error("getWidgetDiagnostics: 'group' must not be empty");
   return await invoke<WidgetRenderReceipt[]>(`${PLUGIN_ID}|get_widget_diagnostics`, {
-    group,
+    group: group || null,
   });
 }
 
@@ -95,12 +94,11 @@ export async function getWidgetDiagnostics(
  * Active in debug builds or when `WIDGET_DEBUG=1`.
  */
 export async function getWidgetTrace(
-  group: string,
+  group?: string,
   opts?: { since?: number },
 ): Promise<WidgetTrace> {
-  if (!group) throw new Error("getWidgetTrace: 'group' must not be empty");
   return await invoke<WidgetTrace>(`${PLUGIN_ID}|get_widget_trace`, {
-    group,
+    group: group || null,
     sinceMs: opts?.since ?? null,
   });
 }
