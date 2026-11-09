@@ -4,7 +4,6 @@ import { existsSync, mkdirSync, readFileSync, readdirSync, writeFileSync } from 
 import { join, relative, resolve } from "node:path";
 import { pluginRoot } from "../lib/paths.js";
 import { detectTauriIdentifier, effectiveAppGroup, ensurePluginsWidgets, readTauriConf } from "../lib/tauri-conf.js";
-import { mergeAppGroupIntoEntitlements } from "../lib/entitlements.js";
 import { copyTemplate, widgetTemplateReplacements } from "../lib/templates.js";
 
 export interface InitIosOptions {
@@ -63,17 +62,39 @@ export function initIosAction(opts: InitIosOptions): void {
     return;
   }
   let spec = readFileSync(specPath, "utf-8");
-  const appTarget = spec.match(/^targets:\n {2}([^\s:]+):/m)?.[1];
+  // Only under `targets:` (targetTemplates also has `type: application`).
+  const targetsAt = () => spec.indexOf("\ntargets:\n");
+  const appTarget = spec.slice(targetsAt()).match(/^ {2}([^\s:#]+):\n {4}type: application$/m)?.[1];
   if (!appTarget) {
     console.error(`ERROR: no app target found in ${specPath}`);
     process.exit(1);
   }
 
-  // Main app entitlements: merge the group (keeps push, associated domains, …).
-  const appEnts = spec.match(/^ {4}entitlements:\n {6}path: (.+)$/m)?.[1]?.trim();
-  if (appEnts) {
-    mergeAppGroupIntoEntitlements(join(appleDir, appEnts), appGroup);
-    console.log(`  Merged ${appGroup} into ${appEnts}`);
+  // Main app entitlements. XcodeGen rewrites the .entitlements file from project.yml on
+  // every generate, so the group must live in `properties` there; existing keys from the
+  // file (push, associated domains, …) are carried over. YAML accepts the JSON flow form.
+  const appBlock = (() => {
+    const start = spec.indexOf(`\n  ${appTarget}:\n`, targetsAt()) + 1;
+    const next = spec.slice(start + 1).search(/\n {2}[^\s#][^\n]*:\n/);
+    return spec.slice(start, next < 0 ? undefined : start + 1 + next + 1);
+  })();
+  const entsBlock = appBlock.match(/^( {4}entitlements:\n {6}path: (.+)\n)((?: {6}properties:.*\n(?: {8,}.*\n)*)?)/m);
+  if (entsBlock && !entsBlock[3]) {
+    const file = join(appleDir, entsBlock[2].trim());
+    let props: Record<string, unknown> = { "com.apple.security.application-groups": [appGroup] };
+    try {
+      props = JSON.parse(execFileSync("plutil", ["-convert", "json", "-o", "-", file], { encoding: "utf-8" }));
+    } catch {
+      // no file / not a plist: the group alone
+    }
+    const key = "com.apple.security.application-groups";
+    const groups = Array.isArray(props[key]) ? (props[key] as string[]) : [];
+    if (!groups.includes(appGroup)) props[key] = [...groups, appGroup];
+    spec = spec.replace(appBlock, appBlock.replace(entsBlock[0], `${entsBlock[1]}      properties: ${JSON.stringify(props)}\n`));
+    writeFileSync(specPath, spec, "utf-8");
+    console.log(`  App entitlements: ${appGroup} (in project.yml)`);
+  } else if (entsBlock) {
+    console.log("  App entitlements already have properties in project.yml — add the App Group there if missing");
   }
 
   if (spec.includes(MARKER)) {
@@ -124,7 +145,7 @@ export function initIosAction(opts: InitIosOptions): void {
     spec = spec.replace(/^targets:\n/m, `targets:\n${target}`);
 
     // Embed the extension in the app: first `dependencies:` list of the app target.
-    const appStart = spec.indexOf(`\n  ${appTarget}:\n`);
+    const appStart = spec.indexOf(`\n  ${appTarget}:\n`, targetsAt());
     const depIdx = spec.indexOf("\n    dependencies:\n", appStart);
     if (appStart < 0 || depIdx < 0) {
       console.error(`ERROR: cannot find dependencies of ${appTarget} in project.yml`);
