@@ -53,48 +53,6 @@ export function writeEntitlementsFile(dest: string, opts: EntitlementsOptions): 
   writeFileSync(dest, entitlementsPlist(opts), "utf-8");
 }
 
-/** Merge appGroup into an existing entitlements plist without dropping other keys. */
-export function mergeAppGroupIntoEntitlements(path: string, appGroup: string): void {
-  assertSafeAppGroup(appGroup);
-  const escaped = xmlEscapePlist(appGroup);
-  if (!existsSync(path)) {
-    writeEntitlementsFile(path, { appGroup, sandbox: false });
-    return;
-  }
-  let raw = readFileSync(path, "utf-8");
-  const key = "com.apple.security.application-groups";
-  const tag = `<string>${escaped}</string>`;
-  if (raw.includes(tag)) return;
-
-  const emptyArrRe = new RegExp(`(<key>${key}</key>\\s*)<array\\s*/>`, "i");
-  if (emptyArrRe.test(raw)) {
-    raw = raw.replace(emptyArrRe, (_m, prefix: string) => {
-      return `${prefix}<array>\n        ${tag}\n    </array>`;
-    });
-    writeFileSync(path, raw, "utf-8");
-    return;
-  }
-
-  const arrRe = new RegExp(
-    `(<key>${key}</key>\\s*<array>)([\\s\\S]*?)(</array>)`,
-  );
-  const m = raw.match(arrRe);
-  if (m) {
-    raw = raw.replace(arrRe, `${m[1]}${m[2]}        ${tag}\n    ${m[3]}`);
-    writeFileSync(path, raw, "utf-8");
-    return;
-  }
-
-  const block = [
-    `    <key>${key}</key>`,
-    `    <array>`,
-    `        ${tag}`,
-    `    </array>`,
-  ].join("\n");
-  raw = raw.replace(/\n<\/dict>/, `\n${block}\n</dict>`);
-  writeFileSync(path, raw, "utf-8");
-}
-
 export interface SyncMacosEntitlementsResult {
   wrote: boolean;
   reason?: string;
