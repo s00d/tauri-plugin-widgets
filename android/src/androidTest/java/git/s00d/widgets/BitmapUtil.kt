@@ -31,6 +31,7 @@ internal object BitmapUtil {
         val counts = HashMap<Int, Int>()
         var opaque = 0
         var light = 0
+        var saturated = 0
         var y = 0
         while (y < bmp.height) {
             var x = 0
@@ -44,6 +45,7 @@ internal object BitmapUtil {
                     val g = (rgb shr 8) and 0xff
                     val b = rgb and 0xff
                     if (r + g + b > 500) light++
+                    if (maxOf(r, g, b) - minOf(r, g, b) > 60) saturated++
                 }
                 x += step
             }
@@ -60,7 +62,9 @@ internal object BitmapUtil {
             kotlin.math.abs(r - 26) <= 6 &&
                 kotlin.math.abs(g - 27) <= 6 &&
                 kotlin.math.abs(b - 33) <= 6
-        return glanceErrorBg && topFrac > 0.85 && light in 1..(opaque / 30) && counts.size < 80
+        // The error plate is grey on near-black; a real dark widget (e.g. #1C1C1E card with
+        // a coloured shape) is not.
+        return glanceErrorBg && saturated == 0 && topFrac > 0.85 && light in 1..(opaque / 30) && counts.size < 80
     }
 
     /** True when sampled pixels are (nearly) one color — empty/dead render. */

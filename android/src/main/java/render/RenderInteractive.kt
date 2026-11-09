@@ -100,7 +100,8 @@ internal fun RenderInteractive(scope: RenderScope, el: El, modifier: GlanceModif
                 boxMod
             }
             if (bg != null) {
-                Box(modifier = boxMod) {
+                // Label centered by default, like iOS and desktop (was start-aligned here).
+                Box(modifier = boxMod, contentAlignment = contentAlign) {
                     if (el.has("textAlignment")) {
                         Box(modifier = GlanceModifier.fillMaxWidth(), contentAlignment = contentAlign) {
                             renderElementText(context, textElement, text)
