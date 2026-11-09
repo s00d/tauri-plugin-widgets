@@ -7,7 +7,6 @@ import AppKit
 /// Level A — native macOS AppKit path (no simulator).
 /// Covers `#elseif canImport(AppKit)` branches: Color.adaptive / semantic, NSImage decode.
 final class MacRenderTests: XCTestCase {
-    private static let precision: Double = 0.98
     private static let renderScale: CGFloat = 2
 
     func testCases() throws {
@@ -71,7 +70,7 @@ final class MacRenderTests: XCTestCase {
         }
         let expected = try PixelCompare.loadPNG(goldenURL)
         let match = PixelCompare.similarity(expected, image)
-        if match < Self.precision {
+        if match < c.precision {
             throw NSError(
                 domain: "TauriWidgetsTests",
                 code: 23,
@@ -79,7 +78,7 @@ final class MacRenderTests: XCTestCase {
                     NSLocalizedDescriptionKey: String(
                         format: "golden mismatch \(c.name): similarity %.4f < %.2f (actual → \(actualURL.path))",
                         match,
-                        Self.precision,
+                        c.precision,
                     ),
                 ],
             )

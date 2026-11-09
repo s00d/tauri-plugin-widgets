@@ -34,7 +34,11 @@ pub fn trace_enabled() -> bool {
 
 /// One journal entry.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
-#[serde(tag = "kind", rename_all = "camelCase")]
+#[serde(
+    tag = "kind",
+    rename_all = "camelCase",
+    rename_all_fields = "camelCase"
+)]
 pub enum TraceEvent {
     /// Host applied (or skipped) a config write.
     ConfigSet {
@@ -198,7 +202,14 @@ impl TraceStore {
         };
         let mut g = self.inner.lock().unwrap();
         g.events.clear();
-        for e in list.into_iter().rev().take(RING_CAP).collect::<Vec<_>>().into_iter().rev() {
+        for e in list
+            .into_iter()
+            .rev()
+            .take(RING_CAP)
+            .collect::<Vec<_>>()
+            .into_iter()
+            .rev()
+        {
             g.events.push_back(e);
         }
         g.dirty = false;

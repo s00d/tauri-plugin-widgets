@@ -19,10 +19,13 @@
       ]
     },
     "transport": {
-      "description": "Host→widget transport driver.",
-      "allOf": [
+      "description": "Host→widget transport driver. Unset: `widgetContainer` on macOS (a Developer ID extension without a provisioning profile cannot open a `group.*` container), `appGroup` elsewhere.",
+      "anyOf": [
         {
           "$ref": "#/definitions/TransportKind"
+        },
+        {
+          "type": "null"
         }
       ]
     }

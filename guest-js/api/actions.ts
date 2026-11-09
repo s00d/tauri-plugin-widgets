@@ -1,4 +1,4 @@
-import { invoke } from "@tauri-apps/api/core";
+import { addPluginListener, invoke, type PluginListener } from "@tauri-apps/api/core";
 import { listen, type UnlistenFn } from "@tauri-apps/api/event";
 import { PLUGIN_ID } from "./plugin";
 
@@ -8,8 +8,8 @@ import { PLUGIN_ID } from "./plugin";
 export interface WidgetActionPayload {
   /** The action identifier from the button config. */
   action: string;
-  /** Optional extra data (e.g. serialized JSON from the widget). */
-  payload?: string;
+  /** Optional extra data (e.g. serialized JSON from the widget). `null` when the widget sent none. */
+  payload?: string | null;
   /** Unix epoch ms when the action was enqueued / emitted. */
   ts?: number;
   /** Widget identity that emitted the action. */
@@ -64,18 +64,35 @@ export async function widgetAction(
 export async function onWidgetAction(
   callback: (data: WidgetActionPayload) => void,
 ): Promise<UnlistenFn> {
-  return await listen<WidgetActionPayload>("widget-action", (event) => {
+  const unlisten = await listen<WidgetActionPayload>("widget-action", (event) => {
     callback(event.payload);
   });
+  // Android: a tap while the app runs only wakes the plugin ("widget-action-pending").
+  // Drain the queue and re-emit through Rust so every `widget-action` listener gets each
+  // action once. Other platforms have no such plugin event: registration just fails.
+  let pending: PluginListener | null = null;
+  try {
+    pending = await addPluginListener<{ group?: string }>("widgets", "widget-action-pending", async (e) => {
+      for (const a of await pollPendingWidgetActions(e?.group || undefined)) {
+        await widgetAction(a.action, a.payload ?? undefined, { widgetId: a.widgetId, group: a.group });
+      }
+    });
+  } catch {
+    // desktop / iOS
+  }
+  return () => {
+    unlisten();
+    void pending?.unregister();
+  };
 }
 
 /** Poll pending widget actions queued by native side (Android fallback path). */
 export async function pollPendingWidgetActions(
-  group: string,
+  group?: string,
 ): Promise<WidgetActionPayload[]> {
   let res: unknown;
   try {
-    res = await invoke<unknown>(`${PLUGIN_ID}|poll_pending_actions`, { group });
+    res = await invoke<unknown>(`${PLUGIN_ID}|poll_pending_actions`, { group: group || null });
   } catch (e) {
     const msg = String(e ?? "");
     // iOS/macOS builds may not expose this Android-specific command path.

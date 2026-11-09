@@ -2,7 +2,7 @@ import { defineCommand } from "citty";
 import { existsSync, readdirSync } from "node:fs";
 import { join, resolve } from "node:path";
 import { pluginRoot } from "../lib/paths.js";
-import { detectTauriIdentifier, readTauriConf } from "../lib/tauri-conf.js";
+import { detectTauriIdentifier, effectiveAppGroup, readTauriConf } from "../lib/tauri-conf.js";
 import {
   codesignIdentities,
   codesignIsAdHoc,
@@ -17,7 +17,6 @@ import {
 } from "../lib/entitlements.js";
 import { findBuiltApps } from "../lib/fsx.js";
 import { loadTraceFile } from "../lib/trace.js";
-import { checkReceiptSchemaSkew } from "../lib/receipt.js";
 import { validatePluginWidgets } from "../lib/validate.js";
 import { createReport, type Report } from "../lib/report.js";
 
@@ -31,18 +30,15 @@ export async function runDoctor(cwd: string): Promise<Report> {
     report.bad("tauri.conf.json not found under src-tauri/ or cwd");
   } else {
     const widgets = conf.data?.plugins?.widgets || {};
-    const transport = widgets.transport || "auto";
-    const appGroup = widgets.appGroup || "";
+    const transport = widgets.transport || "default";
+    const appGroup = effectiveAppGroup(conf);
     report.ok(`${conf.path}`);
-    report.ok(`plugins.widgets.transport = ${transport}`);
-    if (!appGroup) report.bad("plugins.widgets.appGroup is empty");
-    else report.ok(`appGroup = ${appGroup}`);
+    report.ok(`transport = ${transport}${widgets.transport ? "" : " (widgetContainer on macOS, appGroup on iOS/Android)"}`);
+    if (!appGroup) report.bad("no plugins.widgets.appGroup and no identifier");
+    else report.ok(`appGroup = ${appGroup}${widgets.appGroup ? "" : " (default group.<identifier>)"}`);
 
     if (transport === "widgetContainer") {
       report.warn("widgetContainer is macOS ad-hoc friendly; invalid on iOS (use appGroup)");
-    }
-    if (transport === "appGroup" && !appGroup) {
-      report.bad("transport=appGroup requires plugins.widgets.appGroup");
     }
     if (transport === "auto") {
       report.warn("transport=auto is for local dev — pin appGroup or widgetContainer before release");
@@ -50,8 +46,8 @@ export async function runDoctor(cwd: string): Promise<Report> {
   }
 
   report.section("entitlements"); // no leading blank line — matches original doctor output
-  const appGroupConf = conf?.data?.plugins?.widgets?.appGroup || "";
-  const transportKind = conf?.data?.plugins?.widgets?.transport || "auto";
+  const appGroupConf = effectiveAppGroup(conf) || "";
+  const transportKind = conf?.data?.plugins?.widgets?.transport || "widgetContainer";
   const identifier = detectTauriIdentifier(conf) || "";
   const ents = findEntitlementsFiles(cwd);
   if (!ents.length) report.warn("no .entitlements files found under src-tauri");
@@ -118,14 +114,12 @@ export async function runDoctor(cwd: string): Promise<Report> {
           `transport=${transportKind} but no Team ID certificate — use widgetContainer or install a Development/Developer ID identity`,
         );
       } else {
-        report.ok(`Team ID available → ${transportKind} is plausible`);
+        report.warn(
+          `transport=${transportKind} on macOS needs a provisioning profile for the group (Mac App Store / Xcode); Developer ID builds: use widgetContainer`,
+        );
       }
     } else if (transportKind === "widgetContainer") {
-      if (hasTeam) {
-        report.warn(`transport=widgetContainer while Team ID exists — switch to appGroup for release / MAS`);
-      } else {
-        report.ok(`widgetContainer matches ad-hoc / no-team setup`);
-      }
+      report.ok("widgetContainer works ad-hoc and Developer ID (host app must not be sandboxed)");
     } else if (transportKind === "auto") {
       report.warn(`transport=auto — pin to ${recommended} (from identities)`);
     }
@@ -226,9 +220,6 @@ export async function runDoctor(cwd: string): Promise<Report> {
       report.warn("no render events in trace (native/desktop widget may not have painted)");
     }
   }
-
-  report.section("\nschema");
-  checkReceiptSchemaSkew(root, report);
 
   report.section("\nplugin-config");
   const widgetsBlock = conf?.data?.plugins?.widgets;

@@ -3,7 +3,12 @@
 //! Source of truth for what each renderer supports. Used for docs generation
 //! and non-blocking warnings on [`crate::Widget::set_widget_config`](set path).
 
-use crate::models::{WidgetConfig, WidgetElement, VStackElement, HStackElement, ZStackElement, GridElement, ContainerElement, TextElement, ImageElement, ProgressElement, GaugeElement, ButtonElement, ToggleElement, DividerElement, DateElement, ChartElement, ListElement, LinkElement, ShapeElement, TimerElement, CanvasElement, LabelElement};
+use crate::models::{
+    ButtonElement, CanvasElement, ChartElement, ContainerElement, DateElement, DividerElement,
+    GaugeElement, GridElement, HStackElement, ImageElement, LabelElement, LinkElement, ListElement,
+    ProgressElement, ShapeElement, TextElement, TimerElement, ToggleElement, VStackElement,
+    WidgetConfig, WidgetElement, ZStackElement,
+};
 
 /// Target renderer family.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
@@ -214,12 +219,7 @@ pub fn capability_table() -> Vec<CapabilityEntry> {
     ));
 
     out.extend_from_slice(&apple_full("chart"));
-    out.push(cell(
-        "chart",
-        Android,
-        Full,
-        "bitmap bar/line/area/pie",
-    ));
+    out.push(cell("chart", Android, Full, "bitmap bar/line/area/pie"));
     out.push(cell("chart", Desktop, Full, "SVG"));
     out.push(cell("chart", Windows, Degraded, "rasterized PNG"));
 
@@ -646,10 +646,7 @@ pub fn measure_element_coverage(
         let Ok(case): Result<Value, _> = serde_json::from_str(&raw) else {
             continue;
         };
-        let fixture = case
-            .get("fixture")
-            .and_then(|v| v.as_str())
-            .unwrap_or("");
+        let fixture = case.get("fixture").and_then(|v| v.as_str()).unwrap_or("");
         if fixture.is_empty() {
             continue;
         }
@@ -690,8 +687,7 @@ pub fn measure_element_coverage(
                 continue;
             }
             for ty in &types {
-                *out
-                    .entry(ty.clone())
+                *out.entry(ty.clone())
                     .or_default()
                     .entry(platform.clone())
                     .or_default() += 1;
@@ -879,9 +875,9 @@ fn partition_by_full<'a>(
     let mut full = Vec::new();
     let mut watch = Vec::new();
     for el in els {
-        let all_full = platforms.iter().all(|p| {
-            support_for(el, *p).support == Support::Full
-        });
+        let all_full = platforms
+            .iter()
+            .all(|p| support_for(el, *p).support == Support::Full);
         if all_full {
             full.push(*el);
         } else {
@@ -967,10 +963,7 @@ mod tests {
             "{warns:?}"
         );
         // Full cells do not emit warnings.
-        assert!(
-            !warns.iter().any(|w| w.element == "image.url"),
-            "{warns:?}"
-        );
+        assert!(!warns.iter().any(|w| w.element == "image.url"), "{warns:?}");
     }
 
     #[test]

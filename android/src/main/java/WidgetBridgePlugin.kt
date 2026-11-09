@@ -93,13 +93,14 @@ class WidgetBridgePlugin(private val activity: Activity) : Plugin(activity) {
         private val CONFIG_STATE_KEY = stringPreferencesKey(CONFIG_STATE_KEY_NAME)
         private val NONCE_STATE_KEY = stringPreferencesKey(NONCE_STATE_KEY_NAME)
 
-        const val ACTION_WIDGET_EVENT = "git.s00d.widgets.WIDGET_EVENT_TO_APP"
-        const val EXTRA_EVENT_ACTION = "event_action"
-        const val EXTRA_EVENT_PAYLOAD = "event_payload"
 
         @Volatile
         var pluginInstance: WidgetBridgePlugin? = null
             private set
+
+        /** Plugin commands run on the UI thread: image downloads and DataStore writes go here.
+         *  One thread keeps config writes in call order. */
+        private val io = java.util.concurrent.Executors.newSingleThreadExecutor()
     }
 
     private fun getMetaPrefs(): SharedPreferences {
@@ -234,22 +235,25 @@ class WidgetBridgePlugin(private val activity: Activity) : Plugin(activity) {
         pluginInstance = this
     }
 
-    fun emitWidgetAction(action: String, payload: String?, widgetId: String? = null, group: String? = null) {
-        val event = JSObject()
-        event.put("action", action)
-        event.put("payload", payload)
-        event.put("ts", System.currentTimeMillis())
-        event.put("widgetId", widgetId ?: "")
-        event.put("group", group ?: "")
-        runCatching {
-            activity.runOnUiThread { trigger("widget-action", event) }
-        }.onFailure {
-            trigger("widget-action", event)
-        }
+    override fun onDestroy() {
+        // The process can outlive the Activity: widget taps must queue, not go to a dead WebView.
+        if (pluginInstance === this) pluginInstance = null
+        super.onDestroy()
+    }
+
+    /** True while the WebView can receive events. */
+    fun isAlive(): Boolean = !activity.isFinishing && !activity.isDestroyed
+
+    /** Plugin event to the WebView: the JS side drains the queue and emits `widget-action`. */
+    fun notifyPendingActions(group: String) {
+        val event = JSObject().put("group", group)
+        activity.runOnUiThread { trigger("widget-action-pending", event) }
     }
 
     @Command
-    fun setItems(invoke: Invoke) {
+    fun setItems(invoke: Invoke) = io.execute { setItemsNow(invoke) }
+
+    private fun setItemsNow(invoke: Invoke) {
         try {
             val args = invoke.parseArgs(SetItemsRequest::class.java)
             val safeKey = WidgetSanitizer.sanitizeKey(args.key)
@@ -308,7 +312,9 @@ class WidgetBridgePlugin(private val activity: Activity) : Plugin(activity) {
     }
 
     @Command
-    fun reloadAllTimelines(invoke: Invoke) {
+    fun reloadAllTimelines(invoke: Invoke) = io.execute { reloadAllTimelinesNow(invoke) }
+
+    private fun reloadAllTimelinesNow(invoke: Invoke) {
         try {
             Log.d(TAG, "reloadAllTimelines requested")
             reloadGenericWidgets()
@@ -320,7 +326,9 @@ class WidgetBridgePlugin(private val activity: Activity) : Plugin(activity) {
     }
 
     @Command
-    fun reloadTimelines(invoke: Invoke) {
+    fun reloadTimelines(invoke: Invoke) = io.execute { reloadTimelinesNow(invoke) }
+
+    private fun reloadTimelinesNow(invoke: Invoke) {
         try {
             val args = invoke.parseArgs(ReloadTimelinesRequest::class.java)
             Log.d(TAG, "reloadTimelines requested ofKind=${args.ofKind}")
@@ -370,7 +378,9 @@ class WidgetBridgePlugin(private val activity: Activity) : Plugin(activity) {
     }
 
     @Command
-    fun setWidgetConfig(invoke: Invoke) {
+    fun setWidgetConfig(invoke: Invoke) = io.execute { setWidgetConfigNow(invoke) }
+
+    private fun setWidgetConfigNow(invoke: Invoke) {
         try {
             val args = invoke.parseArgs(SetWidgetConfigRequest::class.java)
             if (args.widgetId.isBlank()) {
@@ -545,12 +555,23 @@ class WidgetBridgePlugin(private val activity: Activity) : Plugin(activity) {
     }
 
     @Command
-    fun pollPendingActions(invoke: Invoke) {
+    fun pollPendingActions(invoke: Invoke) = io.execute { pollPendingActionsNow(invoke) }
+
+    private fun pollPendingActionsNow(invoke: Invoke) {
         try {
             val args = invoke.parseArgs(GetWidgetConfigRequest::class.java)
             val prefs = getPrefs(args.group)
-            val pending = prefs.getString(WidgetStoreKeys.PENDING_ACTIONS, "[]") ?: "[]"
-            val arr = try { org.json.JSONArray(pending) } catch (_: Exception) { org.json.JSONArray() }
+            val arr = synchronized(WidgetStoreKeys.QUEUE_LOCK) {
+                val pending = prefs.getString(WidgetStoreKeys.PENDING_ACTIONS, "[]") ?: "[]"
+                val taken = try { org.json.JSONArray(pending) } catch (_: Exception) { org.json.JSONArray() }
+                if (taken.length() > 0) {
+                    val editor = prefs.edit()
+                    editor.putString(WidgetStoreKeys.PENDING_ACTIONS, "[]")
+                    bumpMetaNonce(editor, prefs)
+                    editor.commit()
+                }
+                taken
+            }
             val out = org.json.JSONArray()
             if (arr.length() > 0) {
                 for (i in 0 until arr.length()) {
@@ -582,10 +603,6 @@ class WidgetBridgePlugin(private val activity: Activity) : Plugin(activity) {
                     event.put("group", group)
                     out.put(event)
                 }
-                val editor = prefs.edit()
-                editor.putString(WidgetStoreKeys.PENDING_ACTIONS, "[]")
-                bumpMetaNonce(editor, prefs)
-                editor.apply()
             }
             invoke.resolve(JSObject().put("results", out))
         } catch (e: Exception) {

@@ -1,20 +1,9 @@
 import { defineCommand } from "citty";
-import { existsSync, mkdirSync, writeFileSync } from "node:fs";
-import { basename, dirname, join, resolve } from "node:path";
+import { execFileSync } from "node:child_process";
+import { existsSync, mkdirSync, readFileSync, readdirSync, writeFileSync } from "node:fs";
+import { join, relative, resolve } from "node:path";
 import { pluginRoot } from "../lib/paths.js";
-import { detectTauriIdentifier, ensurePluginsWidgets, readTauriConf } from "../lib/tauri-conf.js";
-import {
-  findApplePbxproj,
-  findIosWidgetEntryFiles,
-  findIosWidgetTargetNames,
-  patchIosCodeSignEntitlements,
-  renderIosWidgetSwift,
-} from "../lib/apple.js";
-import {
-  mergeAppGroupIntoEntitlements,
-  resolveIosEntitlementsRels,
-  writeEntitlementsFile,
-} from "../lib/entitlements.js";
+import { detectTauriIdentifier, effectiveAppGroup, ensurePluginsWidgets, readTauriConf } from "../lib/tauri-conf.js";
 import { copyTemplate, widgetTemplateReplacements } from "../lib/templates.js";
 
 export interface InitIosOptions {
@@ -23,170 +12,193 @@ export interface InitIosOptions {
   force: boolean;
 }
 
+/** Marks the block init-ios owns in gen/apple/project.yml. */
+const MARKER = "# tauri-plugin-widgets: widget extension";
+const TARGET = "WidgetExtension";
+
+/**
+ * Add the WidgetKit extension to the XcodeGen spec Tauri generates (gen/apple/project.yml)
+ * and regenerate the Xcode project: no manual "New Target", "Add Package" or entitlements
+ * clicks. The widget Swift code lives in src-tauri/ios-widget, outside gen/.
+ */
 export function initIosAction(opts: InitIosOptions): void {
   const cwd = process.cwd();
   const conf = readTauriConf(cwd);
-
-  const confAppGroup = conf?.data?.plugins?.widgets?.appGroup;
-  let appGroup = opts.appGroup || confAppGroup;
-  const identifier = conf ? detectTauriIdentifier(conf) : null;
-
-  if (!appGroup) {
-    if (!conf) {
-      console.error("ERROR: Could not find tauri.conf.json. Run from your Tauri project root, or pass --app-group explicitly.");
-      process.exit(1);
-    }
-    if (!identifier) {
-      console.error("ERROR: tauri.conf.json is missing 'identifier'. Set it, or pass --app-group explicitly.");
-      process.exit(1);
-    }
-    appGroup = "group." + identifier;
-    console.log(`  Auto-detected app-group: ${appGroup}`);
-  } else if (!opts.appGroup && confAppGroup) {
-    console.log(`  Using app-group from plugins.widgets: ${appGroup}`);
+  if (!conf) {
+    console.error("ERROR: tauri.conf.json not found. Run from your Tauri project root.");
+    process.exit(1);
+  }
+  const identifier = detectTauriIdentifier(conf);
+  if (!identifier) {
+    console.error("ERROR: tauri.conf.json is missing 'identifier'.");
+    process.exit(1);
+  }
+  const appGroup = opts.appGroup || effectiveAppGroup(conf)!;
+  if (opts.appGroup && opts.appGroup !== `group.${identifier}`) {
+    ensurePluginsWidgets(conf, { appGroup, explicitAppGroup: true });
+    console.log(`  Wrote plugins.widgets.appGroup = ${appGroup}`);
   }
 
-  const targetDir = resolve(cwd, opts.dir);
-  const root = pluginRoot();
-  const templateDir = join(root, "templates", "ios-widget");
+  // 1. Widget code — written once, never overwritten without --force.
+  const widgetDir = resolve(cwd, opts.dir);
+  const widgetFile = join(widgetDir, "MyWidget.swift");
+  mkdirSync(widgetDir, { recursive: true });
+  if (!existsSync(widgetFile) || opts.force) {
+    copyTemplate(
+      join(pluginRoot(), "templates", "ios-widget", "MyWidget.swift"),
+      widgetFile,
+      widgetTemplateReplacements(appGroup),
+    );
+    console.log(`  Wrote ${opts.dir}/MyWidget.swift`);
+  } else {
+    console.log(`  Kept ${opts.dir}/MyWidget.swift`);
+  }
+
+  // 2. Xcode project
   const appleDir = join(cwd, "src-tauri", "gen", "apple");
-  const bundleId = identifier || "com.example.app";
-  const widgetBundleId = `${bundleId}.WidgetExtension`;
+  const specPath = join(appleDir, "project.yml");
+  if (!existsSync(specPath)) {
+    console.log("\n  gen/apple/project.yml missing: run `pnpm tauri ios init`, then init-ios again.");
+    return;
+  }
+  let spec = readFileSync(specPath, "utf-8");
+  // Only under `targets:` (targetTemplates also has `type: application`).
+  const targetsAt = () => spec.indexOf("\ntargets:\n");
+  const appTarget = spec.slice(targetsAt()).match(/^ {2}([^\s:#]+):\n {4}type: application$/m)?.[1];
+  if (!appTarget) {
+    console.error(`ERROR: no app target found in ${specPath}`);
+    process.exit(1);
+  }
 
-  console.log(`\nPreparing iOS widget template in ${opts.dir}...\n`);
+  // Main app entitlements. XcodeGen rewrites the .entitlements file from project.yml on
+  // every generate, so the group must live in `properties` there; existing keys from the
+  // file (push, associated domains, …) are carried over. YAML accepts the JSON flow form.
+  const appBlock = (() => {
+    const start = spec.indexOf(`\n  ${appTarget}:\n`, targetsAt()) + 1;
+    const next = spec.slice(start + 1).search(/\n {2}[^\s#][^\n]*:\n/);
+    return spec.slice(start, next < 0 ? undefined : start + 1 + next + 1);
+  })();
+  const entsBlock = appBlock.match(/^( {4}entitlements:\n {6}path: (.+)\n)((?: {6}properties:.*\n(?: {8,}.*\n)*)?)/m);
+  if (entsBlock && !entsBlock[3]) {
+    const file = join(appleDir, entsBlock[2].trim());
+    let props: Record<string, unknown> = { "com.apple.security.application-groups": [appGroup] };
+    try {
+      props = JSON.parse(execFileSync("plutil", ["-convert", "json", "-o", "-", file], { encoding: "utf-8" }));
+    } catch {
+      // no file / not a plist: the group alone
+    }
+    const key = "com.apple.security.application-groups";
+    const groups = Array.isArray(props[key]) ? (props[key] as string[]) : [];
+    if (!groups.includes(appGroup)) props[key] = [...groups, appGroup];
+    spec = spec.replace(appBlock, appBlock.replace(entsBlock[0], `${entsBlock[1]}      properties: ${JSON.stringify(props)}\n`));
+    writeFileSync(specPath, spec, "utf-8");
+    console.log(`  App entitlements: ${appGroup} (in project.yml)`);
+  } else if (entsBlock) {
+    console.log("  App entitlements already have properties in project.yml — add the App Group there if missing");
+  }
 
-  mkdirSync(targetDir, { recursive: true });
-
-  const templatePath = join(templateDir, "MyWidget.swift");
-  const localTemplatePath = join(targetDir, "MyWidget.swift");
-
-  if (!existsSync(localTemplatePath) || opts.force) {
-    copyTemplate(templatePath, localTemplatePath, widgetTemplateReplacements(appGroup));
-    console.log("  Wrote ios-widget/MyWidget.swift");
+  if (spec.includes(MARKER)) {
+    console.log("  project.yml already has the widget extension");
   } else {
-    console.log("  Kept existing ios-widget/MyWidget.swift (use --force to overwrite)");
+    const team =
+      spec.match(/DEVELOPMENT_TEAM: (\S+)/)?.[1] ||
+      String((conf.data.bundle as { iOS?: { developmentTeam?: string } } | undefined)?.iOS?.developmentTeam || "");
+    const swiftPkg = relative(appleDir, join(cwd, "node_modules", "tauri-plugin-widgets-api", "swift"));
+    const sources = relative(appleDir, widgetDir);
+
+    const packages = `${MARKER} (package)\npackages:\n  TauriWidgets:\n    path: ${swiftPkg}\n`;
+    spec = /^packages:/m.test(spec)
+      ? spec.replace(/^packages:\n/m, `packages:\n  TauriWidgets:\n    path: ${swiftPkg}\n`)
+      : spec.replace(/^targets:\n/m, `${packages}targets:\n`);
+
+    const target = [
+      `  ${MARKER}`,
+      `  ${TARGET}:`,
+      "    type: app-extension",
+      "    platform: iOS",
+      "    deploymentTarget: \"17.0\"",
+      "    sources:",
+      `      - path: ${sources}`,
+      "    info:",
+      `      path: ${TARGET}/Info.plist`,
+      "      properties:",
+      "        CFBundleDisplayName: Widgets",
+      "        NSExtension:",
+      "          NSExtensionPointIdentifier: com.apple.widgetkit-extension",
+      "    entitlements:",
+      `      path: ${TARGET}/${TARGET}.entitlements`,
+      "      properties:",
+      "        com.apple.security.application-groups:",
+      `          - ${appGroup}`,
+      "    settings:",
+      "      base:",
+      `        PRODUCT_BUNDLE_IDENTIFIER: ${identifier}.${TARGET}`,
+      "        CODE_SIGN_STYLE: Automatic",
+      ...(team ? [`        DEVELOPMENT_TEAM: ${team}`] : []),
+      "        SWIFT_VERSION: \"5.9\"",
+      "        TARGETED_DEVICE_FAMILY: \"1,2\"",
+      "        SKIP_INSTALL: YES",
+      "    dependencies:",
+      "      - package: TauriWidgets",
+      "",
+    ].join("\n");
+    spec = spec.replace(/^targets:\n/m, `targets:\n${target}`);
+
+    // Embed the extension in the app: first `dependencies:` list of the app target.
+    const appStart = spec.indexOf(`\n  ${appTarget}:\n`, targetsAt());
+    const depIdx = spec.indexOf("\n    dependencies:\n", appStart);
+    if (appStart < 0 || depIdx < 0) {
+      console.error(`ERROR: cannot find dependencies of ${appTarget} in project.yml`);
+      process.exit(1);
+    }
+    const at = depIdx + "\n    dependencies:\n".length;
+    spec = `${spec.slice(0, at)}      - target: ${TARGET}\n        embed: true\n${spec.slice(at)}`;
+
+    writeFileSync(specPath, spec, "utf-8");
+    console.log(`  Added ${TARGET} target + TauriWidgets package to project.yml`);
   }
 
-  const xcodeWidgetFiles = findIosWidgetEntryFiles(cwd);
-  const widgetTargets = findIosWidgetTargetNames(cwd);
-  if (xcodeWidgetFiles.length) {
-    for (const filePath of xcodeWidgetFiles) {
-      const rendered = renderIosWidgetSwift(templatePath, filePath, appGroup);
-      writeFileSync(filePath, rendered, "utf-8");
-      const pretty = filePath.replace(cwd + "/", "");
-      console.log(`  Synced ${pretty}`);
-    }
-  } else {
-    console.log("  No WidgetExtension swift file detected in src-tauri/gen/apple (create target in Xcode, then run init-ios again)");
+  try {
+    execFileSync("xcodegen", ["generate", "--spec", "project.yml"], { cwd: appleDir, stdio: "inherit" });
+  } catch {
+    console.error("\nERROR: xcodegen failed or is not installed (brew install xcodegen).");
+    process.exit(1);
   }
 
-  // Entitlements + CODE_SIGN_ENTITLEMENTS (when gen/apple exists)
-  if (existsSync(appleDir)) {
-    const { appEntRel, widgetEntRel } = resolveIosEntitlementsRels(cwd, appleDir, widgetTargets);
-    const appEntPath = join(appleDir, appEntRel);
-    const widgetEntPath = join(appleDir, widgetEntRel);
-    if (existsSync(appEntPath) && !opts.force) {
-      mergeAppGroupIntoEntitlements(appEntPath, appGroup);
-      console.log(`  Merged app-group into ${appEntRel}`);
-    } else {
-      writeEntitlementsFile(appEntPath, { appGroup, sandbox: false });
-      console.log(`  Wrote ${appEntRel}`);
-    }
-    if (existsSync(widgetEntPath) && !opts.force) {
-      mergeAppGroupIntoEntitlements(widgetEntPath, appGroup);
-      console.log(`  Merged app-group into ${widgetEntRel}`);
-    } else {
-      writeEntitlementsFile(widgetEntPath, { appGroup, sandbox: false });
-      console.log(`  Wrote ${widgetEntRel}`);
-    }
-
-    const widgetTargetFilter = (name: string) =>
-      /Widget/i.test(name) || widgetTargets.some((t) => t === name);
-
-    for (const pbx of findApplePbxproj(cwd)) {
-      const { patched } = patchIosCodeSignEntitlements(
-        pbx,
-        {
-          "com.apple.product-type.application": appEntRel,
-          "com.apple.product-type.app-extension": widgetEntRel,
-        },
-        { targetNameFilter: widgetTargetFilter },
-      );
-      if (patched) {
-        console.log(`  Patched CODE_SIGN_ENTITLEMENTS in ${basename(dirname(pbx))} (${patched} configs)`);
-      } else {
-        console.log(`  CODE_SIGN_ENTITLEMENTS already points at entitlements (${basename(dirname(pbx))})`);
-      }
-    }
-  } else {
-    console.log("  gen/apple missing — run `pnpm tauri ios init` then re-run init-ios for entitlements");
+  const handMade = readdirSync(appleDir).filter((n) => n !== TARGET && /Widget/i.test(n) && !n.includes("."));
+  if (handMade.length) {
+    console.log(`\n  Note: ${handMade.join(", ")} looks like a widget target made in Xcode earlier.`);
+    console.log("  It is no longer in the project; move any custom code into", opts.dir, "and delete it.");
   }
 
-  if (conf) {
-    const result = ensurePluginsWidgets(conf, {
-      appGroup,
-      transport: "appGroup",
-      force: true,
-      explicitAppGroup: Boolean(opts.appGroup),
-    });
-    if (result.wrote) {
-      console.log("  Wrote plugins.widgets (transport=appGroup — required on iOS)");
-    } else if (conf.data?.plugins?.widgets) {
-      console.log(`  Kept existing plugins.widgets (transport=${conf.data.plugins.widgets.transport})`);
-    }
-  }
-
-  const portalIds = `https://developer.apple.com/account/resources/identifiers/list`;
   console.log(`
-Done! Next steps:
+Done. Widget code: ${opts.dir}/MyWidget.swift (widgetId "default", App Group ${appGroup})
 
-  1. Run: pnpm tauri ios init   (if gen/apple is missing)
-
-  2. Open Xcode:
-     open src-tauri/gen/apple/*.xcodeproj
-
-  3. File → New → Target → Widget Extension  (skip if already created)
-
-  4. Add TauriWidgets Swift Package:
-     File → Add Package Dependencies → Add Local →
-     select node_modules/tauri-plugin-widgets-api/swift/
-     Add to Target: ${widgetTargets.length ? widgetTargets.join(", ") : "WidgetExtension (or WidgetExtensionExtension)"}
-
-  5. Re-run after creating the Widget Extension target:
-     npx tauri-widgets init-ios
-     (syncs Swift + entitlements + CODE_SIGN_ENTITLEMENTS)
-
-  6. Developer portal (browser — two checkboxes):
-     ${portalIds}
-     • Register App Group:  ${appGroup}
-     • App ID ${bundleId}           → enable App Groups → tick ${appGroup}
-     • App ID ${widgetBundleId}     → enable App Groups → tick ${appGroup}
-
-  7. Run: pnpm tauri ios dev
-
-  Note: Widgets on a physical iOS device require a paid Apple Developer account —
-  free provisioning cannot grant App Groups. Simulator works without a paid seat.
+  Simulator: pnpm tauri ios dev
+  Device:    needs a paid Apple Developer account (App Groups). Register the group once:
+             https://developer.apple.com/account/resources/identifiers/list
+             (Automatic signing in Xcode usually does it for you on the first device build.)
 `);
 }
 
 export const initIos = defineCommand({
   meta: {
     name: "init-ios",
-    description: "Copy iOS widget extension template to your project",
+    description: "Add the WidgetKit extension target to src-tauri/gen/apple (XcodeGen)",
   },
   args: {
     "app-group": {
       type: "string",
-      description: "App Group identifier (e.g. group.com.example.myapp). Auto-detected from tauri.conf.json if omitted.",
+      description: "App Group id. Default: plugins.widgets.appGroup, else group.<identifier>.",
     },
     dir: {
       type: "string",
-      description: "Target directory for the widget Swift file (default: src-tauri/ios-widget)",
+      description: "Widget Swift sources (default: src-tauri/ios-widget)",
       default: "src-tauri/ios-widget",
     },
     force: {
       type: "boolean",
-      description: "Overwrite existing files",
+      description: "Overwrite MyWidget.swift with the template",
       default: false,
     },
   },

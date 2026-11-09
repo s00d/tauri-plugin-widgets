@@ -16,9 +16,21 @@ import {
  * sibling widget instead of losing actions to whichever updater happened to
  * poll first.
  */
-const pendingActionHandlers = new Map<string, Map<string, (data: WidgetActionPayload) => void>>();
+type ActionRoute = { widgetId: string; handler: (data: WidgetActionPayload) => void };
+/** Keyed by group ("" = default group). A Set, so two updaters for the same widget
+ *  (HMR / StrictMode remount) each keep their own route until their own stop(). */
+const pendingActionHandlers = new Map<string, Set<ActionRoute>>();
 /** In-flight poll per group, so concurrent ticks share a single drain. */
 const pendingActionPolls = new Map<string, Promise<void>>();
+
+function dispatch(route: ActionRoute, item: WidgetActionPayload) {
+  try {
+    route.handler(item);
+  } catch (e) {
+    // One failing handler must not drop the rest of the drained batch.
+    console.error("[widget-updater] onAction handler threw:", e);
+  }
+}
 
 function pollAndDispatchPendingActions(group: string): Promise<void> {
   const inFlight = pendingActionPolls.get(group);
@@ -26,7 +38,7 @@ function pollAndDispatchPendingActions(group: string): Promise<void> {
   const promise = (async () => {
     let pending: WidgetActionPayload[];
     try {
-      pending = await pollPendingWidgetActions(group);
+      pending = await pollPendingWidgetActions(group || undefined);
     } catch (e) {
       console.debug("[widget-updater] pollPendingWidgetActions failed:", e);
       return;
@@ -34,10 +46,9 @@ function pollAndDispatchPendingActions(group: string): Promise<void> {
     const handlers = pendingActionHandlers.get(group);
     if (!handlers || handlers.size === 0) return;
     for (const item of pending) {
-      for (const [widgetId, handler] of handlers) {
-        if (item.widgetId && item.widgetId !== widgetId) continue;
-        if (item.group && item.group !== group) continue;
-        handler(item);
+      for (const route of handlers) {
+        if (item.widgetId && item.widgetId !== route.widgetId) continue;
+        dispatch(route, item);
       }
     }
   })();
@@ -109,10 +120,11 @@ function pollAndDispatchPendingActions(group: string): Promise<void> {
  */
 export async function startWidgetUpdater(
   builder: () => WidgetConfig | Promise<WidgetConfig>,
-  group: string,
-  widgetId: string,
+  /** Omit to use `plugins.widgets.appGroup`. */
+  group?: string,
+  widgetId = "default",
   options?: {
-    /** Tick interval in ms.  Use `0` for a one-shot call (no periodic updates). Default: `1000`. */
+    /** Tick interval in ms.  Use `0` for a one-shot call (no periodic updates). Default: `5000`. */
     intervalMs?: number;
     /** Call `builder` immediately before starting the interval. Default: `true`. */
     immediate?: boolean;
@@ -129,18 +141,28 @@ export async function startWidgetUpdater(
   const immediate = options?.immediate ?? true;
   const reload = options?.reload ?? false;
 
+  const groupKey = group ?? "";
   let running = false;
   let cancelled = false;
 
+  let route: ActionRoute | null = null;
   if (options?.onAction) {
-    const handler = options.onAction;
-    let handlers = pendingActionHandlers.get(group);
+    const onAction = options.onAction;
+    route = { widgetId, handler: (item) => onAction(item.action, item.payload ?? undefined) };
+    let handlers = pendingActionHandlers.get(groupKey);
     if (!handlers) {
-      handlers = new Map();
-      pendingActionHandlers.set(group, handlers);
+      handlers = new Set();
+      pendingActionHandlers.set(groupKey, handlers);
     }
-    handlers.set(widgetId, (item) => handler(item.action, item.payload));
+    handlers.add(route);
   }
+  const removeRoute = () => {
+    if (!route) return;
+    const handlers = pendingActionHandlers.get(groupKey);
+    handlers?.delete(route);
+    if (handlers && handlers.size === 0) pendingActionHandlers.delete(groupKey);
+    route = null;
+  };
 
   async function tick() {
     if (cancelled || running) return;
@@ -150,7 +172,7 @@ export async function startWidgetUpdater(
       // Only poll when an action handler is registered — otherwise draining
       // would silently discard actions nobody is listening for.
       if (options?.onAction) {
-        await pollAndDispatchPendingActions(group);
+        await pollAndDispatchPendingActions(groupKey);
         if (cancelled) return;
       }
 
@@ -174,14 +196,19 @@ export async function startWidgetUpdater(
   // Register the event listener BEFORE the immediate tick so a macOS
   // background poller / host emit cannot win the race and drop actions.
   let actionUnsub: (() => void) | null = null;
-  if (!cancelled && options?.onAction) {
-    const handler = options.onAction;
-    actionUnsub = await onWidgetAction((data) => {
-      if (cancelled) return;
-      if (data.widgetId && data.widgetId !== widgetId) return;
-      if (data.group && data.group !== group) return;
-      handler(data.action, data.payload);
-    });
+  if (route) {
+    const live = route;
+    try {
+      actionUnsub = await onWidgetAction((data) => {
+        if (cancelled) return;
+        if (data.widgetId && data.widgetId !== widgetId) return;
+        if (group && data.group && data.group !== group) return;
+        dispatch(live, data);
+      });
+    } catch (e) {
+      removeRoute();
+      throw e;
+    }
   }
 
   if (immediate) {
@@ -194,10 +221,6 @@ export async function startWidgetUpdater(
     cancelled = true;
     if (id !== null) clearInterval(id);
     if (actionUnsub) { actionUnsub(); actionUnsub = null; }
-    const handlers = pendingActionHandlers.get(group);
-    if (handlers) {
-      handlers.delete(widgetId);
-      if (handlers.size === 0) pendingActionHandlers.delete(group);
-    }
+    removeRoute();
   };
 }

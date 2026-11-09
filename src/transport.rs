@@ -5,11 +5,11 @@
 
 use crate::config::{effective_transport, TransportKind, WidgetsPluginConfig};
 use crate::error::Error;
-use crate::store::{self, DataMap};
 #[cfg(any(target_os = "macos", test))]
 use crate::store::map_nonce;
 #[cfg(test)]
 use crate::store::touch_meta;
+use crate::store::{self, DataMap};
 use serde::{Deserialize, Serialize};
 use std::sync::atomic::{AtomicBool, AtomicU64, Ordering};
 use std::sync::{Arc, Mutex};
@@ -361,7 +361,7 @@ mod tests {
     #[test]
     fn explicit_appgroup_fails_loudly_when_container_missing() {
         let cfg = WidgetsPluginConfig {
-            transport: TransportKind::AppGroup,
+            transport: Some(TransportKind::AppGroup),
             app_group: Some("group.test.missing".into()),
             extension_bundle_id: None,
         };

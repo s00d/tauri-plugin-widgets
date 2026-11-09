@@ -13,9 +13,7 @@ use crate::config::WidgetsPluginConfig;
 use crate::error::Error;
 use crate::models::{WidgetConfig, WidgetWindowConfig};
 use crate::receipt::{receipts_path, ReceiptStore, WidgetRenderReceipt};
-use crate::store::{
-    self, config_key, parse_pending_actions, DataMap, PENDING_ACTIONS_KEY,
-};
+use crate::store::{self, config_key, parse_pending_actions, DataMap, PENDING_ACTIONS_KEY};
 use crate::trace::{trace_path, TraceEvent, TraceStore, WidgetTrace};
 
 #[cfg(target_os = "macos")]
@@ -60,34 +58,20 @@ fn builtin_widget_url(group: &str, size: &str, widget_id: &str) -> WebviewUrl {
     WebviewUrl::External(url_str.parse().expect("invalid built-in widget URL"))
 }
 
-#[cfg(test)]
-mod builtin_url_tests {
-    use super::encode_query_component;
-
-    #[test]
-    fn encodes_ampersand_and_equals() {
-        assert_eq!(
-            encode_query_component("small&widgetId=hijack"),
-            "small%26widgetId%3Dhijack"
-        );
-        assert_eq!(encode_query_component("a=b&c"), "a%3Db%26c");
-    }
-
-    #[test]
-    fn leaves_unreserved_alone() {
-        assert_eq!(
-            encode_query_component("group.com.example.app"),
-            "group.com.example.app"
-        );
-        assert_eq!(encode_query_component("weather_1"), "weather_1");
-    }
+/// The process main thread runs the event loop on every desktop platform.
+fn on_main_thread() -> bool {
+    std::thread::current().name() == Some("main")
 }
 
 pub fn init<R: Runtime>(
     app: &AppHandle<R>,
     api: PluginApi<R, Option<WidgetsPluginConfig>>,
 ) -> crate::Result<Widget<R>> {
-    let cfg = api.config().clone().unwrap_or_default();
+    let cfg = api
+        .config()
+        .clone()
+        .unwrap_or_default()
+        .with_defaults(&app.config().identifier);
     init_with_config(app, cfg)
 }
 
@@ -102,8 +86,19 @@ pub(crate) fn init_with_config<R: Runtime>(
         trace.load_from_path(&trace_path(&dir));
     }
 
+    // An unsigned / ad-hoc dev build has no App Group container: fall back to the widget
+    // extension's own container instead of aborting the whole app at startup.
     #[cfg(target_os = "macos")]
-    let macos_driver = crate::transport::resolve_driver(&cfg)?;
+    let macos_driver = match crate::transport::resolve_driver(&cfg) {
+        Ok(driver) => driver,
+        Err(e) => {
+            log::warn!(
+                "widgets: {e}\nFalling back to transport=widgetContainer (works for ad-hoc signed \
+                 builds). Sign with a Team ID and App Groups for transport=appGroup."
+            );
+            crate::transport::build_driver(crate::config::TransportKind::WidgetContainer, &cfg)?
+        }
+    };
 
     let widget = Widget {
         app: app.clone(),
@@ -221,10 +216,11 @@ impl<R: Runtime> Widget<R> {
             if !dir.exists() {
                 fs::create_dir_all(&dir)?;
             }
+            // validate_group already limits the charset; keep '-' so `a-b` and `a_b` differ.
             let safe: String = group
                 .chars()
                 .map(|c| {
-                    if c.is_alphanumeric() || c == '.' {
+                    if c.is_alphanumeric() || c == '.' || c == '-' {
                         c
                     } else {
                         '_'
@@ -270,7 +266,7 @@ impl<R: Runtime> Widget<R> {
     /// wipe attempt so a mid-clear tap is not dropped.
     fn persist_map(&self, group: &str, map: &DataMap) -> crate::Result<()> {
         #[cfg(target_os = "macos")]
-        {
+        crate::macos_transport::with_store_lock(group, || {
             let mut out = map.clone();
             crate::macos_transport::merge_pending_into_map(&mut out, group);
             crate::macos_transport::clear_sibling_transports(
@@ -278,12 +274,12 @@ impl<R: Runtime> Widget<R> {
                 self.macos_driver.name(),
                 &mut out,
             );
-            self.macos_driver.write(&out)?;
-        }
+            self.macos_driver.write(&out)
+        })?;
         #[cfg(target_os = "windows")]
         {
             let path = self.storage_path(group)?;
-            persist_windows_shared_map(&path, map)?;
+            persist_windows_shared_map(&path, map, &[])?;
         }
         #[cfg(all(not(target_os = "macos"), not(target_os = "windows")))]
         {
@@ -346,21 +342,27 @@ impl<R: Runtime> Widget<R> {
             }
         }
 
+        // Called from the main thread (e.g. `setup`): the queued task cannot run until we
+        // return, so waiting would only stall. Report the build error in the log.
+        if on_main_thread() {
+            self.app
+                .run_on_main_thread(move || {
+                    if let Err(e) = Self::create_widget_window_on_main(&app, config) {
+                        log::error!("{e}");
+                    }
+                })
+                .map_err(|e| Error::new(format!("main thread dispatch: {e}")))?;
+            return Ok(true);
+        }
+
         let (tx, rx) = std::sync::mpsc::sync_channel(1);
         self.app
             .run_on_main_thread(move || {
                 let _ = tx.send(Self::create_widget_window_on_main(&app, config));
             })
             .map_err(|e| Error::new(format!("main thread dispatch: {e}")))?;
-
-        match rx.recv_timeout(std::time::Duration::from_secs(8)) {
-            Ok(result) => result,
-            // Setup on non-Linux (or before the loop pumps): task is queued.
-            Err(std::sync::mpsc::RecvTimeoutError::Timeout) => Ok(true),
-            Err(std::sync::mpsc::RecvTimeoutError::Disconnected) => {
-                Err(Error::new("create_widget_window: main thread dropped"))
-            }
-        }
+        rx.recv()
+            .map_err(|_| Error::new("create_widget_window: main thread dropped"))?
     }
 
     fn create_widget_window_on_main(
@@ -371,16 +373,42 @@ impl<R: Runtime> Widget<R> {
         let url = match config.url.as_deref() {
             Some(u) if !u.is_empty() => WebviewUrl::App(u.into()),
             _ => {
-                let group = config.group.as_deref().unwrap_or("default");
+                let group = config
+                    .group
+                    .clone()
+                    .or_else(|| crate::group::default_group().map(String::from))
+                    .unwrap_or_default();
+                let group = group.as_str();
                 let size = config.size.as_deref().unwrap_or("small");
                 let widget_id = config.widget_id.as_deref().unwrap_or("default");
                 builtin_widget_url(group, size, widget_id)
             }
         };
         let skip_taskbar = config.skip_taskbar;
-        // Close any prior window with this label so rebuilds (watch/inbox) succeed.
+        // Same label again (watch / rebuild): reuse the window. `close()` is asynchronous,
+        // so building a new one right after it fails with "label already exists".
         if let Some(prev) = app.get_webview_window(&config.label) {
-            let _ = prev.close();
+            let url = match url {
+                WebviewUrl::External(u) | WebviewUrl::CustomProtocol(u) => u,
+                WebviewUrl::App(path) => prev
+                    .url()
+                    .map_err(|e| Error::new(e.to_string()))?
+                    .join(&path.to_string_lossy())
+                    .map_err(|e| Error::new(e.to_string()))?,
+                _ => return Err(Error::new("create_widget_window: unsupported url")),
+            };
+            prev.navigate(url).map_err(|e| Error::new(e.to_string()))?;
+            prev.set_size(tauri::LogicalSize::new(config.width, config.height))
+                .map_err(|e| Error::new(e.to_string()))?;
+            if let (Some(x), Some(y)) = (config.x, config.y) {
+                prev.set_position(tauri::LogicalPosition::new(x, y))
+                    .map_err(|e| Error::new(e.to_string()))?;
+            }
+            prev.set_always_on_top(config.always_on_top)
+                .map_err(|e| Error::new(e.to_string()))?;
+            prev.show().map_err(|e| Error::new(e.to_string()))?;
+            log::debug!("reused widget window '{label_log}'");
+            return Ok(true);
         }
         let mut builder = WebviewWindowBuilder::new(app, &config.label, url)
             // Label doubles as WM_NAME so harnesses can find the window (xdotool).
@@ -423,6 +451,9 @@ impl<R: Runtime> Widget<R> {
             }
         }
 
+        if on_main_thread() {
+            return Self::close_widget_window_on_main(&app, &label);
+        }
         let (tx, rx) = std::sync::mpsc::sync_channel(1);
         self.app
             .run_on_main_thread(move || {
@@ -430,13 +461,8 @@ impl<R: Runtime> Widget<R> {
             })
             .map_err(|e| Error::new(format!("main thread dispatch: {e}")))?;
 
-        match rx.recv_timeout(std::time::Duration::from_secs(3)) {
-            Ok(result) => result,
-            Err(std::sync::mpsc::RecvTimeoutError::Timeout) => Ok(true),
-            Err(std::sync::mpsc::RecvTimeoutError::Disconnected) => {
-                Err(Error::new("close_widget_window: main thread dropped"))
-            }
-        }
+        rx.recv()
+            .map_err(|_| Error::new("close_widget_window: main thread dropped"))?
     }
 
     fn close_widget_window_on_main(app: &AppHandle<R>, label: &str) -> crate::Result<bool> {
@@ -461,21 +487,28 @@ impl<R: Runtime> Widget<R> {
     }
 
     pub fn reload_all_timelines(&self) -> crate::Result<bool> {
-        #[cfg(target_os = "macos")]
-        {
-            let _ = unsafe { macos_widget_reload_all() };
-        }
         let _ = self.app.emit("widget-reload", "all");
+        #[cfg(target_os = "macos")]
+        if !unsafe { macos_widget_reload_all() } {
+            return Err(Error::Unsupported(
+                "WidgetKit reload needs macOS 11+".into(),
+            ));
+        }
         Ok(true)
     }
 
     pub fn reload_timelines(&self, of_kind: &str) -> crate::Result<bool> {
+        let _ = self.app.emit("widget-reload", of_kind);
         #[cfg(target_os = "macos")]
         {
-            let c = CString::new(of_kind).unwrap_or_default();
-            let _ = unsafe { macos_widget_reload_kind(c.as_ptr()) };
+            let c = CString::new(of_kind)
+                .map_err(|_| Error::new("reload_timelines: kind contains a NUL byte"))?;
+            if !unsafe { macos_widget_reload_kind(c.as_ptr()) } {
+                return Err(Error::Unsupported(
+                    "WidgetKit reload needs macOS 11+".into(),
+                ));
+            }
         }
-        let _ = self.app.emit("widget-reload", of_kind);
         Ok(true)
     }
 
@@ -504,9 +537,9 @@ impl<R: Runtime> Widget<R> {
             return Err(Error::new("widget_id must not be empty"));
         }
         let path = path.as_ref();
-        let path_str = path.to_str().ok_or_else(|| {
-            Error::new(format!("invalid UTF-8 path: {}", path.display()))
-        })?;
+        let path_str = path
+            .to_str()
+            .ok_or_else(|| Error::new(format!("invalid UTF-8 path: {}", path.display())))?;
         let config = crate::commands::load_widget_config_from_path(path_str)?;
         self.set_widget_config(&config, group, widget_id, skip_reload)
     }
@@ -523,11 +556,9 @@ impl<R: Runtime> Widget<R> {
         }
         self.remember_group(group);
 
-        let mut config = crate::normalize::normalize(
-            config,
-            crate::capabilities::WidgetPlatform::current(),
-        )
-        .config;
+        let mut config =
+            crate::normalize::normalize(config, crate::capabilities::WidgetPlatform::current())
+                .config;
         crate::image_prefetch::prefetch_remote_images(&mut config);
 
         let json = serde_json::to_string(&config)
@@ -601,8 +632,7 @@ impl<R: Runtime> Widget<R> {
             // Widgets Board: single Adaptive Card from the medium IR branch.
             // Package Size capability is medium-only (templates/windows-widget).
             // Desktop webview (widget.html) remains the fallback outside Widget Board.
-            if let Some(result) =
-                crate::adaptive_card::to_adaptive_card_for_size(&config, "medium")
+            if let Some(result) = crate::adaptive_card::to_adaptive_card_for_size(&config, "medium")
             {
                 let template = serde_json::to_string(&result.card)
                     .map_err(|e| Error::new(format!("serialize adaptive card: {e}")))?;
@@ -696,8 +726,21 @@ impl<R: Runtime> Widget<R> {
         Ok(freshest)
     }
 
-    /// Drain pending actions for a group (CAS clear under store lock).
+    /// Drain pending actions for a group. On macOS the whole read-drain-write runs under
+    /// the App Group file lock the widget extension appends under.
     pub fn poll_pending_actions(
+        &self,
+        group: &str,
+    ) -> crate::Result<Vec<crate::WidgetActionEnvelope>> {
+        #[cfg(target_os = "macos")]
+        return crate::macos_transport::with_store_lock(group, || {
+            self.drain_pending_actions(group)
+        });
+        #[cfg(not(target_os = "macos"))]
+        self.drain_pending_actions(group)
+    }
+
+    fn drain_pending_actions(
         &self,
         group: &str,
     ) -> crate::Result<Vec<crate::WidgetActionEnvelope>> {
@@ -766,6 +809,9 @@ impl<R: Runtime> Widget<R> {
         let snapshot = map.clone();
         drop(store);
 
+        #[cfg(target_os = "windows")]
+        persist_windows_shared_map(&self.storage_path(group)?, &snapshot, &actions)?;
+        #[cfg(not(target_os = "windows"))]
         self.persist_map(group, &snapshot)?;
         #[cfg(target_os = "macos")]
         {
@@ -777,17 +823,16 @@ impl<R: Runtime> Widget<R> {
 
     pub fn report_receipt(&self, receipt: WidgetRenderReceipt) -> crate::Result<bool> {
         self.remember_group(&receipt.group);
-        let trigger = receipt
-            .trigger
-            .clone()
-            .unwrap_or_else(|| "timeline".into());
+        let trigger = receipt.trigger.clone().unwrap_or_else(|| "timeline".into());
         let lag_ms = {
             let since = self.trace.list_since(None);
             since
                 .iter()
                 .rev()
                 .find_map(|e| match &e.event {
-                    TraceEvent::ConfigSet { nonce, .. } if *nonce == receipt.nonce && *nonce > 0 => {
+                    TraceEvent::ConfigSet { nonce, .. }
+                        if *nonce == receipt.nonce && *nonce > 0 =>
+                    {
                         Some(receipt.ts.saturating_sub(e.ts))
                     }
                     _ => None,
@@ -852,26 +897,24 @@ impl<R: Runtime> Widget<R> {
         *started = true;
 
         let groups_handle = self.app.clone();
-        std::thread::spawn(move || {
-            loop {
-                std::thread::sleep(std::time::Duration::from_millis(500));
-                let Some(widget) = groups_handle.try_state::<Widget<R>>() else {
-                    continue;
-                };
-                widget.inner().maybe_flush_trace();
-                let groups = widget.inner().known_groups.lock().unwrap().clone();
-                for group in groups {
-                    match widget.inner().poll_pending_actions(&group) {
-                        Ok(actions) if !actions.is_empty() => {
-                            widget.inner().trace.push(TraceEvent::Poll {
-                                count: actions.len(),
-                            });
-                            for action in actions {
-                                let _ = groups_handle.emit("widget-action", action);
-                            }
+        std::thread::spawn(move || loop {
+            std::thread::sleep(std::time::Duration::from_millis(500));
+            let Some(widget) = groups_handle.try_state::<Widget<R>>() else {
+                continue;
+            };
+            widget.inner().maybe_flush_trace();
+            let groups = widget.inner().known_groups.lock().unwrap().clone();
+            for group in groups {
+                match widget.inner().poll_pending_actions(&group) {
+                    Ok(actions) if !actions.is_empty() => {
+                        widget.inner().trace.push(TraceEvent::Poll {
+                            count: actions.len(),
+                        });
+                        for action in actions {
+                            let _ = groups_handle.emit("widget-action", action);
                         }
-                        _ => {}
                     }
+                    _ => {}
                 }
             }
         });
@@ -924,7 +967,11 @@ fn atomic_write(path: &PathBuf, data: &[u8]) -> std::io::Result<()> {
 /// Match `WidgetStore.PersistUnlocked`: exclusive `.lock` + merge under it so
 /// provider-enqueued `pending_actions` are not wiped by a concurrent host write.
 #[cfg(target_os = "windows")]
-fn persist_windows_shared_map(path: &PathBuf, map: &DataMap) -> crate::Result<()> {
+fn persist_windows_shared_map(
+    path: &PathBuf,
+    map: &DataMap,
+    drained: &[crate::WidgetActionEnvelope],
+) -> crate::Result<()> {
     use std::fs::OpenOptions;
     use std::os::windows::fs::OpenOptionsExt;
     use std::thread;
@@ -978,15 +1025,10 @@ fn persist_windows_shared_map(path: &PathBuf, map: &DataMap) -> crate::Result<()
 
     for (k, v) in map {
         if k == PENDING_ACTIONS_KEY {
-            let host_empty = v.trim().is_empty() || v.trim() == "[]";
-            let disk_empty = merged
-                .get(k)
-                .map(|s| s.trim().is_empty() || s.trim() == "[]")
-                .unwrap_or(true);
-            if host_empty && !disk_empty {
-                // Provider enqueued actions after our in-memory snapshot was taken.
-                continue;
-            }
+            // The provider owns the queue: keep the disk copy minus what we drained.
+            let rest = store::pending_minus_drained(merged.get(k).map(String::as_str), drained)?;
+            merged.insert(k.clone(), rest);
+            continue;
         }
         merged.insert(k.clone(), v.clone());
     }
@@ -1002,4 +1044,27 @@ fn persist_windows_shared_map(path: &PathBuf, map: &DataMap) -> crate::Result<()
     let json = serde_json::to_string_pretty(&merged).map_err(|e| Error::new(e.to_string()))?;
     atomic_write(path, json.as_bytes()).map_err(|e| Error::Io(e.to_string()))?;
     Ok(())
+}
+
+#[cfg(test)]
+mod builtin_url_tests {
+    use super::encode_query_component;
+
+    #[test]
+    fn encodes_ampersand_and_equals() {
+        assert_eq!(
+            encode_query_component("small&widgetId=hijack"),
+            "small%26widgetId%3Dhijack"
+        );
+        assert_eq!(encode_query_component("a=b&c"), "a%3Db%26c");
+    }
+
+    #[test]
+    fn leaves_unreserved_alone() {
+        assert_eq!(
+            encode_query_component("group.com.example.app"),
+            "group.com.example.app"
+        );
+        assert_eq!(encode_query_component("weather_1"), "weather_1");
+    }
 }

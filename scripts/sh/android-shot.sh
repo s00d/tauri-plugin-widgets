@@ -57,6 +57,8 @@ GRADLE_ARGS=(
   :connectedDebugAndroidTest
   "-Pandroid.testInstrumentationRunnerArguments.class=git.s00d.widgets.WidgetRenderTest"
   "-Pcase=${CASE}"
+  # Keep the test APK (and its files dir with actual / recorded PNGs) for adb pull below.
+  "-Pandroid.injected.androidTest.leaveApksInstalledAfterRun=true"
 )
 if [[ "$RECORD" == "1" || "$RECORD" == "true" ]]; then
   GRADLE_ARGS+=(-Pgolden.record=true)
@@ -90,8 +92,7 @@ if [[ "$RECORD" == "1" || "$RECORD" == "true" ]]; then
   if [[ "$CODE" -ne 0 ]]; then
     echo "android-shot: record aborted (test exit=$CODE) — golden not updated" >&2
   else
-    adb pull "${DEVICE_GOLDEN}/${CASE}.png" "${HOST_GOLDEN}/${CASE}.png" >/dev/null 2>&1 || true
-    if [[ -f "${HOST_GOLDEN}/${CASE}.png" ]]; then
+    if adb pull "${DEVICE_GOLDEN}/${CASE}.png" "${HOST_GOLDEN}/${CASE}.png" >/dev/null 2>&1; then
       cp -f "${HOST_GOLDEN}/${CASE}.png" "${HOST_OUT}/${CASE}.actual.png"
       echo "android-shot: recorded → tests/golden/android/${CASE}.png"
     else

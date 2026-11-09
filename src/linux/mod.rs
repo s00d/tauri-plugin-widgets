@@ -144,5 +144,10 @@ fn apply_layer_shell<R: Runtime>(win: &WebviewWindow<R>) -> Result<(), String> {
     layer_win.set_default_size(w, h);
     layer_win.show_all();
 
+    // The webview now lives in `layer_win`; close it together with the (hidden) Tauri
+    // window, otherwise close_widget_window leaves it on screen.
+    let layer = layer_win.clone();
+    old.connect_destroy(move |_| layer.close());
+
     Ok(())
 }

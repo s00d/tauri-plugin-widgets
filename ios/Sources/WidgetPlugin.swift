@@ -91,6 +91,19 @@ class WidgetPlugin: Plugin {
         return url
     }
 
+    /// Exclusive `flock` on `widget_data.json.lock`, shared with the widget extension
+    /// (`TauriWidgetDataStore.withStoreLock`): every read-modify-write of the map runs
+    /// under it, so a widget tap is never wiped by a host write or drained twice.
+    private func withStoreLock<T>(group: String, _ body: () throws -> T) throws -> T {
+        let url = try dataFileURL(group: group)
+        let fd = open(url.path + ".lock", O_RDWR | O_CREAT, 0o644)
+        guard fd >= 0 else { return try body() }
+        defer { close(fd) }
+        flock(fd, LOCK_EX)
+        defer { flock(fd, LOCK_UN) }
+        return try body()
+    }
+
     private func readDataMap(group: String) throws -> [String: String] {
         let url = try dataFileURL(group: group)
         guard let data = try? Data(contentsOf: url),
@@ -128,10 +141,12 @@ class WidgetPlugin: Plugin {
     @objc func setItems(_ invoke: Invoke) throws {
         let args = try invoke.parseArgs(SetItemsArgs.self)
         let safeKey = sanitize(args.key)
-        var map = try readDataMap(group: args.group)
-        map[safeKey] = args.value
-        touchMeta(&map)
-        try writeDataMap(map, group: args.group)
+        try withStoreLock(group: args.group) {
+            var map = try readDataMap(group: args.group)
+            map[safeKey] = args.value
+            touchMeta(&map)
+            try writeDataMap(map, group: args.group)
+        }
         invoke.resolve(["results": true])
     }
 
@@ -162,10 +177,12 @@ class WidgetPlugin: Plugin {
             invoke.reject("widgetId must not be empty")
             return
         }
-        var map = try readDataMap(group: args.group)
-        map[configKey(args.widgetId)] = args.config
-        touchMeta(&map)
-        try writeDataMap(map, group: args.group)
+        try withStoreLock(group: args.group) {
+            var map = try readDataMap(group: args.group)
+            map[configKey(args.widgetId)] = args.config
+            touchMeta(&map)
+            try writeDataMap(map, group: args.group)
+        }
         invoke.resolve(["results": true])
     }
 
@@ -185,33 +202,19 @@ class WidgetPlugin: Plugin {
 
     @objc func pollPendingActions(_ invoke: Invoke) throws {
         let args = try invoke.parseArgs(GroupArgs.self)
-        // Read → take → write with retry so a concurrent Intent append is not wiped.
-        var out: [[String: Any]] = []
-        for _ in 0..<5 {
+        // Take the whole queue under the store lock: the extension appends under it too.
+        let claimed: [[String: Any]] = try withStoreLock(group: args.group) {
             var map = try readDataMap(group: args.group)
             let raw = map[pendingActionsKey] ?? "[]"
-            var claimed: [[String: Any]] = []
-            if let data = raw.data(using: .utf8),
-               let arr = try? JSONSerialization.jsonObject(with: data) as? [[String: Any]] {
-                claimed = arr
-            }
+            guard let data = raw.data(using: .utf8),
+                  let arr = try? JSONSerialization.jsonObject(with: data) as? [[String: Any]],
+                  !arr.isEmpty else { return [] }
             map[pendingActionsKey] = "[]"
             touchMeta(&map)
             try writeDataMap(map, group: args.group)
-            // Re-read: if producer appended after our read, merge leftovers back.
-            var again = try readDataMap(group: args.group)
-            let againRaw = again[pendingActionsKey] ?? "[]"
-            if let data = againRaw.data(using: .utf8),
-               let arr = try? JSONSerialization.jsonObject(with: data) as? [[String: Any]],
-               !arr.isEmpty {
-                // We cleared; producer wrote after us — keep their queue, return what we claimed.
-                out = claimed
-                break
-            }
-            out = claimed
-            break
+            return arr
         }
-        invoke.resolve(["results": out])
+        invoke.resolve(["results": claimed])
     }
 
     @objc func reloadAllTimelines(_ invoke: Invoke) throws {

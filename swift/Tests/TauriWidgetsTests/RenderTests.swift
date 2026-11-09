@@ -8,7 +8,6 @@ import AppKit
 /// Level-2 visual stand: declarative cases → SwiftUI chrome → PNG golden assert.
 /// Not SpringBoard — WidgetKit chrome (background + corner mask) is simulated.
 final class RenderTests: XCTestCase {
-    private static let precision: Double = 0.98
 
     func testCases() async throws {
         let filter = ProcessInfo.processInfo.environment["CASE"]
@@ -88,7 +87,7 @@ final class RenderTests: XCTestCase {
         }
         let expected = try PixelCompare.loadPNG(goldenURL)
         let match = PixelCompare.similarity(expected, image)
-        if match < Self.precision {
+        if match < c.precision {
             throw NSError(
                 domain: "TauriWidgetsTests",
                 code: 13,
@@ -96,7 +95,7 @@ final class RenderTests: XCTestCase {
                     NSLocalizedDescriptionKey: String(
                         format: "golden mismatch \(c.name): similarity %.4f < %.2f (actual → \(actualURL.path))",
                         match,
-                        Self.precision,
+                        c.precision,
                     ),
                 ],
             )

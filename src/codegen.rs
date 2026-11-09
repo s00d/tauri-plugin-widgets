@@ -300,10 +300,7 @@ pub fn emit_wire_catalog_kotlin() -> String {
     );
     for spec in IR_ELEMENTS {
         let const_name = kotlin_const_name(spec.wire);
-        out.push_str(&format!(
-            "    const val {const_name} = \"{}\"\n",
-            spec.wire
-        ));
+        out.push_str(&format!("    const val {const_name} = \"{}\"\n", spec.wire));
     }
     out.push_str("    const val SPACER = \"spacer\"\n\n");
     out.push_str("    val ALL: Set<String> = setOf(\n");

@@ -112,10 +112,7 @@ impl ReceiptStore {
             .unwrap()
             .get(group)
             .map(|m| {
-                let mut v: Vec<_> = m
-                    .values()
-                    .filter_map(|q| q.back().cloned())
-                    .collect();
+                let mut v: Vec<_> = m.values().filter_map(|q| q.back().cloned()).collect();
                 v.sort_by_key(|r| std::cmp::Reverse(r.ts));
                 v
             })

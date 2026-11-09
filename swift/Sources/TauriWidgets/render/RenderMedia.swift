@@ -1,4 +1,5 @@
 import SwiftUI
+import ImageIO
 
 // MARK: - Image / Shape / Canvas
 
@@ -38,15 +39,37 @@ extension DynamicElementView {
         return Data(base64Encoded: s)
     }
 
+    /// Decode at most ~2× the widget point size: a full-resolution photo (12 MP ≈ 48 MB)
+    /// makes WidgetKit reject the archive or kills the extension.
+    func downsampledCGImage(_ raw: Data, size: CGFloat) -> CGImage? {
+        let options = [kCGImageSourceShouldCache: false] as CFDictionary
+        guard let source = CGImageSourceCreateWithData(raw as CFData, options) else { return nil }
+        let thumb = [
+            kCGImageSourceCreateThumbnailFromImageAlways: true,
+            kCGImageSourceCreateThumbnailWithTransform: true,
+            kCGImageSourceShouldCacheImmediately: true,
+            kCGImageSourceThumbnailMaxPixelSize: max(64, min(1024, Int(size * 3))),
+        ] as CFDictionary
+        return CGImageSourceCreateThumbnailAtIndex(source, 0, thumb)
+    }
+
     @ViewBuilder func decodedImageView(_ raw: Data, size: CGFloat) -> some View {
         #if canImport(UIKit)
-        if let uiImage = UIImage(data: raw) {
+        if let cg = downsampledCGImage(raw, size: size) {
+            Image(uiImage: UIImage(cgImage: cg)).resizable()
+                .aspectRatio(contentMode: element.contentMode == "fill" ? .fill : .fit)
+                .frame(width: size, height: size)
+        } else if let uiImage = UIImage(data: raw) {
             Image(uiImage: uiImage).resizable()
                 .aspectRatio(contentMode: element.contentMode == "fill" ? .fill : .fit)
                 .frame(width: size, height: size)
         } else { placeholderImage(size) }
         #elseif canImport(AppKit)
-        if let nsImage = NSImage(data: raw) {
+        if let cg = downsampledCGImage(raw, size: size) {
+            Image(nsImage: NSImage(cgImage: cg, size: .zero)).resizable()
+                .aspectRatio(contentMode: element.contentMode == "fill" ? .fill : .fit)
+                .frame(width: size, height: size)
+        } else if let nsImage = NSImage(data: raw) {
             Image(nsImage: nsImage).resizable()
                 .aspectRatio(contentMode: element.contentMode == "fill" ? .fill : .fit)
                 .frame(width: size, height: size)

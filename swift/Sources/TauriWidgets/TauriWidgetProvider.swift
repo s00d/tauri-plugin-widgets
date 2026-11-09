@@ -8,9 +8,32 @@ public struct TauriWidgetEntry: TimelineEntry {
     public let date: Date
     public let config: WidgetUIConfig?
     public let family: WidgetFamily
+    /// Which widget produced this entry: its actions carry these ids, so several
+    /// widgets in one `WidgetBundle` do not report each other's widgetId.
+    public let appGroup: String
+    public let widgetId: String
 
-    public init(date: Date, config: WidgetUIConfig?, family: WidgetFamily) {
+    public init(
+        date: Date,
+        config: WidgetUIConfig?,
+        family: WidgetFamily,
+        appGroup: String = TauriWidgetsConfig.appGroup,
+        widgetId: String = TauriWidgetsConfig.widgetId
+    ) {
         self.date = date; self.config = config; self.family = family
+        self.appGroup = appGroup; self.widgetId = widgetId
+    }
+}
+
+/// Environment for intents built deep in the element tree.
+struct TauriWidgetIdentityKey: EnvironmentKey {
+    static let defaultValue: (appGroup: String, widgetId: String)? = nil
+}
+
+extension EnvironmentValues {
+    var tauriWidgetIdentity: (appGroup: String, widgetId: String)? {
+        get { self[TauriWidgetIdentityKey.self] }
+        set { self[TauriWidgetIdentityKey.self] = newValue }
     }
 }
 
@@ -31,7 +54,7 @@ public struct TauriWidgetProvider: TimelineProvider {
     }
 
     public func placeholder(in context: Context) -> TauriWidgetEntry {
-        TauriWidgetEntry(date: Date(), config: nil, family: context.family)
+        TauriWidgetEntry(date: Date(), config: nil, family: context.family, appGroup: appGroup, widgetId: widgetId)
     }
 
     public func getSnapshot(in context: Context, completion: @escaping (TauriWidgetEntry) -> Void) {
@@ -45,7 +68,7 @@ public struct TauriWidgetProvider: TimelineProvider {
             cfg = loaded
             writeProviderReceipt(context: context, source: source, nonce: nonce, config: loaded, trigger: context.isPreview ? "added" : "snapshot")
         }
-        completion(TauriWidgetEntry(date: Date(), config: cfg, family: context.family))
+        completion(TauriWidgetEntry(date: Date(), config: cfg, family: context.family, appGroup: appGroup, widgetId: widgetId))
     }
 
     public func getTimeline(in context: Context, completion: @escaping (Timeline<TauriWidgetEntry>) -> Void) {
@@ -53,7 +76,7 @@ public struct TauriWidgetProvider: TimelineProvider {
             appGroup: appGroup, widgetId: widgetId
         )
         writeProviderReceipt(context: context, source: source, nonce: nonce, config: cfg, trigger: "timeline")
-        let entry = TauriWidgetEntry(date: Date(), config: cfg, family: context.family)
+        let entry = TauriWidgetEntry(date: Date(), config: cfg, family: context.family, appGroup: appGroup, widgetId: widgetId)
         let nextUpdate = Calendar.current.date(byAdding: .minute, value: refreshMinutes, to: Date()) ?? Date()
         completion(Timeline(entries: [entry], policy: .after(nextUpdate)))
     }
@@ -108,6 +131,7 @@ public struct TauriWidgetView: View {
     public var body: some View {
         if let el = layoutForFamily() {
             DynamicElementView(element: el, isWidgetRoot: true)
+                .environment(\.tauriWidgetIdentity, (entry.appGroup, entry.widgetId))
                 // Pin to top — default center left a fake “top padding” when content is shorter than the canvas.
                 .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
                 .containerBackground(for: .widget) { WidgetChrome.background(for: el) }

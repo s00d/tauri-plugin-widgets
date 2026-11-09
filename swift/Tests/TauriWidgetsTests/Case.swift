@@ -27,6 +27,8 @@ struct VisualCase: Equatable {
     let points: CGSize
     /// Native macOS WidgetKit canvas — separate from iOS points.
     let macosPoints: MacosPoints
+    /// Minimum pixel similarity; lower only for cases whose content depends on the clock.
+    let precision: Double
 
     func config(fixturesRoot: URL) throws -> WidgetUIConfig {
         let url = fixturesRoot.appendingPathComponent("\(fixture).json")
@@ -97,6 +99,7 @@ struct VisualCase: Equatable {
                     locale: (obj["locale"] as? String) ?? "en_US",
                     points: iosPoints,
                     macosPoints: macos,
+                    precision: (obj["precision"] as? Double) ?? 0.98,
                 )
             )
         }

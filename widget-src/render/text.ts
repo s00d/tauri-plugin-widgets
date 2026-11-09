@@ -5,7 +5,7 @@ import {
   TEXT_STYLE_BOLD,
   TEXT_STYLE_SIZES,
 } from "../style";
-import { timerIds } from "../ctx";
+import { addTimer } from "../ctx";
 import type { ElNode, ParentAxis } from "../types";
 
 export function formatRelativeDate(date: Date): string {
@@ -159,7 +159,7 @@ export function renderTimer(d: ElNode): HTMLElement {
       String(s).padStart(2, "0");
   }
   tick();
-  timerIds.push(setInterval(tick, 1000));
+  addTimer(setInterval(tick, 1000));
   applyStyle(e, d);
   return e;
 }

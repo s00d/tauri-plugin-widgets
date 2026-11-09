@@ -5,9 +5,7 @@
 //! Layout (flex, Dynamic Type reflow) stays on the native renderer.
 
 use crate::capabilities::{support_for, Support, WidgetPlatform};
-use crate::models::{
-    ColorValue, FontWeight, TextElement, TextStyle, WidgetConfig, WidgetElement,
-};
+use crate::models::{ColorValue, FontWeight, TextElement, TextStyle, WidgetConfig, WidgetElement};
 
 /// Result of [`normalize`]: config with resolved defaults + recorded degradations.
 #[derive(Debug, Clone)]

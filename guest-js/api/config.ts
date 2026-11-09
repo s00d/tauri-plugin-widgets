@@ -66,16 +66,17 @@ export interface ApplyOutcome {
  */
 export async function setWidgetConfig(
   config: WidgetConfig,
-  group: string,
-  widgetId: string,
+  /** Widget group. Omit to use `plugins.widgets.appGroup` (default `group.<identifier>`). */
+  group?: string,
+  /** Widget id within the group; must match the native widget's `widgetId`. */
+  widgetId = "default",
   /** Skip native widget reload (WidgetKit / AppWidgetManager).
    *  Desktop widget windows are always updated instantly via eval push. */
   skipReload = false,
 ): Promise<ApplyOutcome> {
-  if (!group) throw new Error("setWidgetConfig: 'group' must not be empty");
   if (!widgetId) throw new Error("setWidgetConfig: 'widgetId' must not be empty");
   return await invoke<ApplyOutcome>(`${PLUGIN_ID}|set_widget_config`, {
-    config, group, widgetId, skipReload,
+    config, group: group || null, widgetId, skipReload,
   });
 }
 
@@ -97,21 +98,20 @@ export async function setWidgetConfig(
  */
 export async function setWidgetConfigFromPath(
   path: string,
-  group: string,
-  widgetId: string,
+  group?: string,
+  widgetId = "default",
   skipReload = false,
 ): Promise<ApplyOutcome> {
   const trimmedPath = path?.trim() ?? "";
   if (!trimmedPath) {
     throw new Error("setWidgetConfigFromPath: 'path' must not be empty");
   }
-  if (!group) throw new Error("setWidgetConfigFromPath: 'group' must not be empty");
   if (!widgetId) {
     throw new Error("setWidgetConfigFromPath: 'widgetId' must not be empty");
   }
   return await invoke<ApplyOutcome>(`${PLUGIN_ID}|set_widget_config_from_path`, {
     path: trimmedPath,
-    group,
+    group: group || null,
     widgetId,
     skipReload,
   });
@@ -120,18 +120,17 @@ export async function setWidgetConfigFromPath(
 /**
  * Read the current widget UI configuration from the data store.
  *
- * @param group - Widget group identifier.
- * @param widgetId - Widget identity within the group.
+ * @param group - Widget group identifier. Omit to use `plugins.widgets.appGroup` (default `group.<identifier>`).
+ * @param widgetId - Widget identity within the group (default `"default"`).
  * @returns The current `WidgetConfig`, or `null` if none has been set.
  */
 export async function getWidgetConfig(
-  group: string,
-  widgetId: string,
+  group?: string,
+  widgetId = "default",
 ): Promise<WidgetConfig | null> {
-  if (!group) throw new Error("getWidgetConfig: 'group' must not be empty");
   if (!widgetId) throw new Error("getWidgetConfig: 'widgetId' must not be empty");
   return await invoke<WidgetConfig | null>(`${PLUGIN_ID}|get_widget_config`, {
-    group,
+    group: group || null,
     widgetId,
   });
 }

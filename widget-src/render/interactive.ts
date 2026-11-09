@@ -1,9 +1,10 @@
 import { applyStyle, resolveColor } from "../style";
-import { emitAction } from "../ctx";
+import { boundEmit } from "../ctx";
 import { renderEl } from "./element";
 import type { ElNode } from "../types";
 
 export function renderButton(d: ElNode): HTMLElement {
+  var emitAction = boundEmit();
   var e = document.createElement("div");
   e.textContent = d.label || "";
   var align = (d.textAlignment || d.alignment || "center").toLowerCase();
@@ -83,6 +84,7 @@ export function renderButton(d: ElNode): HTMLElement {
 }
 
 export function renderToggle(d: ElNode): HTMLElement {
+  var emitAction = boundEmit();
   var e = document.createElement("div");
   e.style.cssText = "display:flex;align-items:center;gap:6px";
   var tint = d.tint ? resolveColor(d.tint) : "#4CAF50";
@@ -124,6 +126,7 @@ function openHttpUrl(url: string): void {
 }
 
 export function renderLink(d: ElNode): HTMLElement {
+  var emitAction = boundEmit();
   var e = document.createElement("div");
   e.style.cursor = "pointer";
   e.onclick = function () {

@@ -123,8 +123,8 @@ fn action_roundtrip() {
 #[test]
 fn clear_pending_everywhere_keeps_undrained_and_skips_meta_bump() {
     use tauri_plugin_widgets::store::{
-        encode_pending_actions, map_nonce, parse_pending_actions, DataMap, PENDING_ACTIONS_KEY,
-        WidgetActionEnvelope,
+        encode_pending_actions, map_nonce, parse_pending_actions, DataMap, WidgetActionEnvelope,
+        PENDING_ACTIONS_KEY,
     };
 
     let _lock = env_lock().lock().unwrap();
@@ -168,8 +168,8 @@ fn clear_pending_everywhere_keeps_undrained_and_skips_meta_bump() {
 #[test]
 fn merge_pending_then_clear_leftover_preserves_sibling_taps() {
     use tauri_plugin_widgets::store::{
-        encode_pending_actions, map_has_config, parse_pending_actions, DataMap, PENDING_ACTIONS_KEY,
-        WidgetActionEnvelope,
+        encode_pending_actions, map_has_config, parse_pending_actions, DataMap,
+        WidgetActionEnvelope, PENDING_ACTIONS_KEY,
     };
 
     let _lock = env_lock().lock().unwrap();
