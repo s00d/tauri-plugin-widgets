@@ -2,6 +2,26 @@
 
 ## Unreleased
 
+### Setup is simpler
+- No `plugins.widgets` block needed: `appGroup` defaults to `group.<identifier>`, `transport` to `widgetContainer` on macOS and `appGroup` on iOS. JS `group` is optional (defaults to the App Group), `widgetId` defaults to `"default"`.
+- `init-macos` writes `tauri.macos.conf.json` (Linux / Windows builds no longer run `build-widget.sh`); the Swift package path is resolved on every build instead of baked into `project.yml`.
+- `init-ios` adds the widget extension target and the TauriWidgets package to `gen/apple/project.yml` (XcodeGen) and keeps app entitlements: no manual Xcode steps. Widget code lives in `src-tauri/ios-widget`.
+- `init` detects platforms from the host OS and `gen/apple`; `--platforms` overrides.
+
+### Fixed
+- macOS: Developer ID builds showed "No configuration" (the sandboxed extension cannot open a `group.*` container without a provisioning profile). Default transport is now `widgetContainer`.
+- Widget taps lost or delivered twice: cross-process lock on the Apple store; Android queues every tap and notifies a running app (`widget-action-pending`); Windows clears drained actions on disk.
+- iOS widget pinned to a stale copy in its own container.
+- Android: plugin commands off the UI thread (remote images loaded, no `NetworkOnMainThreadException`); reload throttle removed; builds with AGP 9 / Kotlin 2 apps from the current `tauri android init`; button labels centered.
+- Images downsampled before decode (Swift, Android); image prefetch walks `List.children`, caches failures, evicts old entries.
+- `set_widget_config` no longer blocks the main thread; `set_widget_config_from_path` reads regular files up to 4 MB only.
+- `createWidgetWindow`: works without `group`, reuses a window with the same label.
+- Linux layer-shell window closes with `closeWidgetWindow`.
+- Trace JSON fields are camelCase (matched the TS types).
+- `startWidgetUpdater`: several updaters per widget, throwing handlers no longer drop the batch.
+- Render library: several `renderWidget` hosts no longer share timers and handlers.
+- CLI: Windows data paths (Roaming), `clean` covers Linux and the macOS container, `preview --open` on Windows, runs from inside `src-tauri`, reads `tauri.conf.json5` / platform confs.
+
 ### Changed
 - Docs site moved from VitePress to Nuxt (Nuxt UI + Nuxt Content), same URLs. JS reference, Tauri commands, permissions and changelog pages are generated from the sources at build time; diagrams are committed SVGs instead of client-side mermaid. Element anchors are now `#vstack` (was `#el-vstack`).
 

@@ -62,8 +62,8 @@
 //! 4. `build-widget.sh` runs via `beforeBundleCommand` (builds + signs `.appex`)
 //! 5. `bundle.macOS.files` copies the `.appex` into `Contents/PlugIns/`
 //!    during a normal `tauri build` (Tauri nested-codesigns PlugIns)
-//! 6. Set `plugins.widgets.transport` (`appGroup` with Team ID, or
-//!    `widgetContainer` for ad-hoc) and `plugins.widgets.appGroup`
+//! 6. `plugins.widgets.transport` defaults to `widgetContainer` on macOS (works ad-hoc
+//!    and Developer ID); set `appGroup` only for a sandboxed Mac App Store host
 //!
 //! ## Rust API
 //!
@@ -120,10 +120,10 @@ pub mod config;
 pub mod error;
 /// Fail-closed validation for widget `group` identifiers.
 pub mod group;
-/// Host-side remote image prefetch for WidgetKit / desktop store writes.
-pub mod image_prefetch;
 /// SF Symbol → Material / emoji resolve for non-Apple hosts.
 pub mod icons;
+/// Host-side remote image prefetch for WidgetKit / desktop store writes.
+pub mod image_prefetch;
 /// Widget IR models (`WidgetConfig`, `WidgetElement`, …).
 ///
 /// Element structs and their fields carry rustdoc used by `schemars` / docs site.

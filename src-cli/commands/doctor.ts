@@ -30,10 +30,10 @@ export async function runDoctor(cwd: string): Promise<Report> {
     report.bad("tauri.conf.json not found under src-tauri/ or cwd");
   } else {
     const widgets = conf.data?.plugins?.widgets || {};
-    const transport = widgets.transport || "appGroup";
+    const transport = widgets.transport || "default";
     const appGroup = effectiveAppGroup(conf);
     report.ok(`${conf.path}`);
-    report.ok(`transport = ${transport}${widgets.transport ? "" : " (default; macOS falls back to widgetContainer when unsigned)"}`);
+    report.ok(`transport = ${transport}${widgets.transport ? "" : " (widgetContainer on macOS, appGroup on iOS/Android)"}`);
     if (!appGroup) report.bad("no plugins.widgets.appGroup and no identifier");
     else report.ok(`appGroup = ${appGroup}${widgets.appGroup ? "" : " (default group.<identifier>)"}`);
 
@@ -47,7 +47,7 @@ export async function runDoctor(cwd: string): Promise<Report> {
 
   report.section("entitlements"); // no leading blank line — matches original doctor output
   const appGroupConf = effectiveAppGroup(conf) || "";
-  const transportKind = conf?.data?.plugins?.widgets?.transport || "auto";
+  const transportKind = conf?.data?.plugins?.widgets?.transport || "widgetContainer";
   const identifier = detectTauriIdentifier(conf) || "";
   const ents = findEntitlementsFiles(cwd);
   if (!ents.length) report.warn("no .entitlements files found under src-tauri");
@@ -114,14 +114,12 @@ export async function runDoctor(cwd: string): Promise<Report> {
           `transport=${transportKind} but no Team ID certificate — use widgetContainer or install a Development/Developer ID identity`,
         );
       } else {
-        report.ok(`Team ID available → ${transportKind} is plausible`);
+        report.warn(
+          `transport=${transportKind} on macOS needs a provisioning profile for the group (Mac App Store / Xcode); Developer ID builds: use widgetContainer`,
+        );
       }
     } else if (transportKind === "widgetContainer") {
-      if (hasTeam) {
-        report.warn(`transport=widgetContainer while Team ID exists — switch to appGroup for release / MAS`);
-      } else {
-        report.ok(`widgetContainer matches ad-hoc / no-team setup`);
-      }
+      report.ok("widgetContainer works ad-hoc and Developer ID (host app must not be sandboxed)");
     } else if (transportKind === "auto") {
       report.warn(`transport=auto — pin to ${recommended} (from identities)`);
     }

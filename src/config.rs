@@ -56,9 +56,11 @@ impl TransportKind {
 #[cfg_attr(feature = "schema", derive(JsonSchema))]
 #[serde(rename_all = "camelCase")]
 pub struct WidgetsPluginConfig {
-    /// Host→widget transport driver.
+    /// Host→widget transport driver. Unset: `widgetContainer` on macOS (a Developer ID
+    /// extension without a provisioning profile cannot open a `group.*` container),
+    /// `appGroup` elsewhere.
     #[serde(default)]
-    pub transport: TransportKind,
+    pub transport: Option<TransportKind>,
     /// App Group id, e.g. `group.com.example.app`.
     pub app_group: Option<String>,
     /// Widget extension bundle id (macOS container path). Default: `{app_id}.widgetkit`.
@@ -69,7 +71,12 @@ impl WidgetsPluginConfig {
     /// Fill `appGroup` with `group.<identifier>` when the app did not set it, and make it
     /// the default group for commands that omit `group`.
     pub fn with_defaults(mut self, identifier: &str) -> Self {
-        let missing = self.app_group.as_deref().map(str::trim).unwrap_or("").is_empty();
+        let missing = self
+            .app_group
+            .as_deref()
+            .map(str::trim)
+            .unwrap_or("")
+            .is_empty();
         if missing && !identifier.trim().is_empty() {
             self.app_group = Some(format!("group.{}", identifier.trim()));
         }
@@ -90,7 +97,13 @@ pub fn env_transport_override() -> Option<TransportKind> {
 
 /// Merge conf + env into the effective kind.
 pub fn effective_transport(cfg: &WidgetsPluginConfig) -> TransportKind {
-    env_transport_override().unwrap_or(cfg.transport)
+    env_transport_override()
+        .or(cfg.transport)
+        .unwrap_or(if cfg!(target_os = "macos") {
+            TransportKind::WidgetContainer
+        } else {
+            TransportKind::AppGroup
+        })
 }
 
 #[cfg(test)]
@@ -143,7 +156,7 @@ mod tests {
     #[test]
     fn env_overrides_conf() {
         let cfg = WidgetsPluginConfig {
-            transport: TransportKind::AppGroup,
+            transport: Some(TransportKind::AppGroup),
             ..Default::default()
         };
         // SAFETY: serial tests; we restore afterwards.

@@ -40,8 +40,10 @@ export function recommendTransport(
   identities: Identity[],
   { forIos = false }: { forIos?: boolean } = {},
 ): string {
-  if (forIos) return "appGroup";
-  return identitiesHaveTeam(identities) ? "appGroup" : "widgetContainer";
+  void identities;
+  // macOS: a sandboxed extension opens a group.* container only with a provisioning
+  // profile (Mac App Store / Xcode-managed). widgetContainer works ad-hoc and Developer ID.
+  return forIos ? "appGroup" : "widgetContainer";
 }
 
 export function pickPreferredIdentity(identities: Identity[]): Identity | null {
