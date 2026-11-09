@@ -6,5 +6,7 @@
   "macos": {
     "width": 338,
     "height": 158
-  }
+  },
+  "precision": 0.93,
+  "precisionReason": "relative date and live countdown text change on every run"
 }
