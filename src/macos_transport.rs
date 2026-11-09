@@ -200,7 +200,13 @@ pub fn with_store_lock<T>(group: &str, f: impl FnOnce() -> T) -> T {
             let _ = std::fs::create_dir_all(dir);
         }
         let lock = PathBuf::from(format!("{}.lock", data.display()));
-        std::fs::OpenOptions::new().read(true).write(true).create(true).truncate(false).open(lock).ok()
+        std::fs::OpenOptions::new()
+            .read(true)
+            .write(true)
+            .create(true)
+            .truncate(false)
+            .open(lock)
+            .ok()
     });
     let Some(file) = file else { return f() };
     // Closing the descriptor (drop) releases the lock.
@@ -548,8 +554,7 @@ pub fn clear_pending_actions_everywhere(
             };
             let disk_nonce = map_nonce(&m_disk);
             let disk_pending = m_disk.get(PENDING_ACTIONS_KEY).cloned();
-            if (disk_nonce > nonce_at_read || disk_pending != pending_snapshot) && attempt + 1 < 5
-            {
+            if (disk_nonce > nonce_at_read || disk_pending != pending_snapshot) && attempt + 1 < 5 {
                 continue;
             }
 

@@ -4,10 +4,10 @@
 //! backgrounds that Adaptive Cards cannot express natively.
 
 use crate::models::{
-    CanvasDrawCommand, ChartDataPoint, ChartType, ColorValue, ElementStyle, GaugeStyle,
-    GradientConfig, GradientDirection, GradientType, ProgressElement, ProgressStyle, ShapeType,
-    WidgetElement, GaugeElement, ChartElement, ShapeElement, CanvasElement, TextElement,
-    ImageElement, ZStackElement, BackgroundValue,
+    BackgroundValue, CanvasDrawCommand, CanvasElement, ChartDataPoint, ChartElement, ChartType,
+    ColorValue, ElementStyle, GaugeElement, GaugeStyle, GradientConfig, GradientDirection,
+    GradientType, ImageElement, ProgressElement, ProgressStyle, ShapeElement, ShapeType,
+    TextElement, WidgetElement, ZStackElement,
 };
 use std::f64::consts::PI;
 
@@ -54,9 +54,9 @@ pub fn element_to_svg(el: &WidgetElement) -> Option<String> {
             total,
             tint,
             label,
-            bar_style,
+            bar_style: Some(ProgressStyle::Circular),
             ..
-        }) if matches!(bar_style, Some(ProgressStyle::Circular)) => Some(gauge_svg(
+        }) => Some(gauge_svg(
             *value,
             0.0,
             if *total <= 0.0 { 1.0 } else { *total },

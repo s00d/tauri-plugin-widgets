@@ -13,9 +13,7 @@ use crate::config::WidgetsPluginConfig;
 use crate::error::Error;
 use crate::models::{WidgetConfig, WidgetWindowConfig};
 use crate::receipt::{receipts_path, ReceiptStore, WidgetRenderReceipt};
-use crate::store::{
-    self, config_key, parse_pending_actions, DataMap, PENDING_ACTIONS_KEY,
-};
+use crate::store::{self, config_key, parse_pending_actions, DataMap, PENDING_ACTIONS_KEY};
 use crate::trace::{trace_path, TraceEvent, TraceStore, WidgetTrace};
 
 #[cfg(target_os = "macos")]
@@ -58,29 +56,6 @@ fn builtin_widget_url(group: &str, size: &str, widget_id: &str) -> WebviewUrl {
         BUILTIN_PROTOCOL, group, size, widget_id
     );
     WebviewUrl::External(url_str.parse().expect("invalid built-in widget URL"))
-}
-
-#[cfg(test)]
-mod builtin_url_tests {
-    use super::encode_query_component;
-
-    #[test]
-    fn encodes_ampersand_and_equals() {
-        assert_eq!(
-            encode_query_component("small&widgetId=hijack"),
-            "small%26widgetId%3Dhijack"
-        );
-        assert_eq!(encode_query_component("a=b&c"), "a%3Db%26c");
-    }
-
-    #[test]
-    fn leaves_unreserved_alone() {
-        assert_eq!(
-            encode_query_component("group.com.example.app"),
-            "group.com.example.app"
-        );
-        assert_eq!(encode_query_component("weather_1"), "weather_1");
-    }
 }
 
 /// The process main thread runs the event loop on every desktop platform.
@@ -515,7 +490,9 @@ impl<R: Runtime> Widget<R> {
         let _ = self.app.emit("widget-reload", "all");
         #[cfg(target_os = "macos")]
         if !unsafe { macos_widget_reload_all() } {
-            return Err(Error::Unsupported("WidgetKit reload needs macOS 11+".into()));
+            return Err(Error::Unsupported(
+                "WidgetKit reload needs macOS 11+".into(),
+            ));
         }
         Ok(true)
     }
@@ -527,7 +504,9 @@ impl<R: Runtime> Widget<R> {
             let c = CString::new(of_kind)
                 .map_err(|_| Error::new("reload_timelines: kind contains a NUL byte"))?;
             if !unsafe { macos_widget_reload_kind(c.as_ptr()) } {
-                return Err(Error::Unsupported("WidgetKit reload needs macOS 11+".into()));
+                return Err(Error::Unsupported(
+                    "WidgetKit reload needs macOS 11+".into(),
+                ));
             }
         }
         Ok(true)
@@ -558,9 +537,9 @@ impl<R: Runtime> Widget<R> {
             return Err(Error::new("widget_id must not be empty"));
         }
         let path = path.as_ref();
-        let path_str = path.to_str().ok_or_else(|| {
-            Error::new(format!("invalid UTF-8 path: {}", path.display()))
-        })?;
+        let path_str = path
+            .to_str()
+            .ok_or_else(|| Error::new(format!("invalid UTF-8 path: {}", path.display())))?;
         let config = crate::commands::load_widget_config_from_path(path_str)?;
         self.set_widget_config(&config, group, widget_id, skip_reload)
     }
@@ -577,11 +556,9 @@ impl<R: Runtime> Widget<R> {
         }
         self.remember_group(group);
 
-        let mut config = crate::normalize::normalize(
-            config,
-            crate::capabilities::WidgetPlatform::current(),
-        )
-        .config;
+        let mut config =
+            crate::normalize::normalize(config, crate::capabilities::WidgetPlatform::current())
+                .config;
         crate::image_prefetch::prefetch_remote_images(&mut config);
 
         let json = serde_json::to_string(&config)
@@ -655,8 +632,7 @@ impl<R: Runtime> Widget<R> {
             // Widgets Board: single Adaptive Card from the medium IR branch.
             // Package Size capability is medium-only (templates/windows-widget).
             // Desktop webview (widget.html) remains the fallback outside Widget Board.
-            if let Some(result) =
-                crate::adaptive_card::to_adaptive_card_for_size(&config, "medium")
+            if let Some(result) = crate::adaptive_card::to_adaptive_card_for_size(&config, "medium")
             {
                 let template = serde_json::to_string(&result.card)
                     .map_err(|e| Error::new(format!("serialize adaptive card: {e}")))?;
@@ -757,7 +733,9 @@ impl<R: Runtime> Widget<R> {
         group: &str,
     ) -> crate::Result<Vec<crate::WidgetActionEnvelope>> {
         #[cfg(target_os = "macos")]
-        return crate::macos_transport::with_store_lock(group, || self.drain_pending_actions(group));
+        return crate::macos_transport::with_store_lock(group, || {
+            self.drain_pending_actions(group)
+        });
         #[cfg(not(target_os = "macos"))]
         self.drain_pending_actions(group)
     }
@@ -845,17 +823,16 @@ impl<R: Runtime> Widget<R> {
 
     pub fn report_receipt(&self, receipt: WidgetRenderReceipt) -> crate::Result<bool> {
         self.remember_group(&receipt.group);
-        let trigger = receipt
-            .trigger
-            .clone()
-            .unwrap_or_else(|| "timeline".into());
+        let trigger = receipt.trigger.clone().unwrap_or_else(|| "timeline".into());
         let lag_ms = {
             let since = self.trace.list_since(None);
             since
                 .iter()
                 .rev()
                 .find_map(|e| match &e.event {
-                    TraceEvent::ConfigSet { nonce, .. } if *nonce == receipt.nonce && *nonce > 0 => {
+                    TraceEvent::ConfigSet { nonce, .. }
+                        if *nonce == receipt.nonce && *nonce > 0 =>
+                    {
                         Some(receipt.ts.saturating_sub(e.ts))
                     }
                     _ => None,
@@ -920,26 +897,24 @@ impl<R: Runtime> Widget<R> {
         *started = true;
 
         let groups_handle = self.app.clone();
-        std::thread::spawn(move || {
-            loop {
-                std::thread::sleep(std::time::Duration::from_millis(500));
-                let Some(widget) = groups_handle.try_state::<Widget<R>>() else {
-                    continue;
-                };
-                widget.inner().maybe_flush_trace();
-                let groups = widget.inner().known_groups.lock().unwrap().clone();
-                for group in groups {
-                    match widget.inner().poll_pending_actions(&group) {
-                        Ok(actions) if !actions.is_empty() => {
-                            widget.inner().trace.push(TraceEvent::Poll {
-                                count: actions.len(),
-                            });
-                            for action in actions {
-                                let _ = groups_handle.emit("widget-action", action);
-                            }
+        std::thread::spawn(move || loop {
+            std::thread::sleep(std::time::Duration::from_millis(500));
+            let Some(widget) = groups_handle.try_state::<Widget<R>>() else {
+                continue;
+            };
+            widget.inner().maybe_flush_trace();
+            let groups = widget.inner().known_groups.lock().unwrap().clone();
+            for group in groups {
+                match widget.inner().poll_pending_actions(&group) {
+                    Ok(actions) if !actions.is_empty() => {
+                        widget.inner().trace.push(TraceEvent::Poll {
+                            count: actions.len(),
+                        });
+                        for action in actions {
+                            let _ = groups_handle.emit("widget-action", action);
                         }
-                        _ => {}
                     }
+                    _ => {}
                 }
             }
         });
@@ -1069,4 +1044,27 @@ fn persist_windows_shared_map(
     let json = serde_json::to_string_pretty(&merged).map_err(|e| Error::new(e.to_string()))?;
     atomic_write(path, json.as_bytes()).map_err(|e| Error::Io(e.to_string()))?;
     Ok(())
+}
+
+#[cfg(test)]
+mod builtin_url_tests {
+    use super::encode_query_component;
+
+    #[test]
+    fn encodes_ampersand_and_equals() {
+        assert_eq!(
+            encode_query_component("small&widgetId=hijack"),
+            "small%26widgetId%3Dhijack"
+        );
+        assert_eq!(encode_query_component("a=b&c"), "a%3Db%26c");
+    }
+
+    #[test]
+    fn leaves_unreserved_alone() {
+        assert_eq!(
+            encode_query_component("group.com.example.app"),
+            "group.com.example.app"
+        );
+        assert_eq!(encode_query_component("weather_1"), "weather_1");
+    }
 }

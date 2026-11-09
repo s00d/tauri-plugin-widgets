@@ -62,7 +62,11 @@ mod imp {
     fn evict(map: &mut HashMap<String, CacheEntry>) {
         map.retain(|_, e| e.fetched_at.elapsed() < CACHE_TTL);
         while map.len() >= MAX_ENTRIES {
-            let Some(oldest) = map.iter().min_by_key(|(_, e)| e.fetched_at).map(|(k, _)| k.clone()) else {
+            let Some(oldest) = map
+                .iter()
+                .min_by_key(|(_, e)| e.fetched_at)
+                .map(|(k, _)| k.clone())
+            else {
                 break;
             };
             map.remove(&oldest);
@@ -229,11 +233,8 @@ mod imp {
     fn dirs_next_cache() -> Option<std::path::PathBuf> {
         #[cfg(target_os = "macos")]
         {
-            std::env::var_os("HOME").map(|h| {
-                std::path::PathBuf::from(h)
-                    .join("Library")
-                    .join("Caches")
-            })
+            std::env::var_os("HOME")
+                .map(|h| std::path::PathBuf::from(h).join("Library").join("Caches"))
         }
         #[cfg(target_os = "windows")]
         {
@@ -267,10 +268,7 @@ mod imp {
         let meta_path = path.with_extension("meta");
         let meta = std::fs::read_to_string(&meta_path).ok()?;
         let ts: u64 = meta.trim().parse().ok()?;
-        let now = SystemTime::now()
-            .duration_since(UNIX_EPOCH)
-            .ok()?
-            .as_secs();
+        let now = SystemTime::now().duration_since(UNIX_EPOCH).ok()?.as_secs();
         if now.saturating_sub(ts) > CACHE_TTL.as_secs() {
             let _ = std::fs::remove_file(&path);
             let _ = std::fs::remove_file(&meta_path);

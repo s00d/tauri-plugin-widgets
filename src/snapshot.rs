@@ -1,6 +1,10 @@
 //! Canonical layout dump for core WidgetConfig snapshot tests.
 
-use crate::models::{WidgetConfig, WidgetElement, VStackElement, HStackElement, ZStackElement, GridElement, ContainerElement, TextElement, ImageElement, ProgressElement, ButtonElement, DividerElement, SpacerElement, LinkElement, ShapeElement};
+use crate::models::{
+    ButtonElement, ContainerElement, DividerElement, GridElement, HStackElement, ImageElement,
+    LinkElement, ProgressElement, ShapeElement, SpacerElement, TextElement, VStackElement,
+    WidgetConfig, WidgetElement, ZStackElement,
+};
 use serde_json::{json, Value};
 
 /// Core elements present on every platform with preserved IR semantics.

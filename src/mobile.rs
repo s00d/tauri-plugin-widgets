@@ -270,9 +270,9 @@ impl<R: Runtime> Widget<R> {
             return Err(crate::Error::new("widget_id must not be empty"));
         }
         let path = path.as_ref();
-        let path_str = path.to_str().ok_or_else(|| {
-            crate::Error::new(format!("invalid UTF-8 path: {}", path.display()))
-        })?;
+        let path_str = path
+            .to_str()
+            .ok_or_else(|| crate::Error::new(format!("invalid UTF-8 path: {}", path.display())))?;
         let config = crate::commands::load_widget_config_from_path(path_str)?;
         self.set_widget_config(&config, group, widget_id, skip_reload)
     }
@@ -289,11 +289,9 @@ impl<R: Runtime> Widget<R> {
         }
         self.remember_group(group);
 
-        let mut config = crate::normalize::normalize(
-            config,
-            crate::capabilities::WidgetPlatform::current(),
-        )
-        .config;
+        let mut config =
+            crate::normalize::normalize(config, crate::capabilities::WidgetPlatform::current())
+                .config;
         crate::image_prefetch::prefetch_remote_images(&mut config);
 
         let json = serde_json::to_string(&config)
@@ -445,10 +443,7 @@ impl<R: Runtime> Widget<R> {
 
     pub fn report_receipt(&self, receipt: WidgetRenderReceipt) -> crate::Result<bool> {
         self.remember_group(&receipt.group);
-        let trigger = receipt
-            .trigger
-            .clone()
-            .unwrap_or_else(|| "timeline".into());
+        let trigger = receipt.trigger.clone().unwrap_or_else(|| "timeline".into());
         self.trace.push(TraceEvent::Render {
             instance: receipt.instance.clone(),
             nonce: receipt.nonce,

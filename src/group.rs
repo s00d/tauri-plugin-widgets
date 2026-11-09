@@ -75,7 +75,10 @@ pub fn default_group() -> Option<&'static str> {
 /// is built for it, so another group is rejected instead of silently writing into the
 /// configured group's store.
 pub fn resolve_group(requested: Option<&str>) -> Result<String> {
-    resolve_with(requested.map(str::trim).filter(|s| !s.is_empty()), default_group())
+    resolve_with(
+        requested.map(str::trim).filter(|s| !s.is_empty()),
+        default_group(),
+    )
 }
 
 fn resolve_with(requested: Option<&str>, default: Option<&str>) -> Result<String> {
@@ -110,7 +113,10 @@ mod tests {
 
     #[test]
     fn resolve_uses_default_when_omitted() {
-        assert_eq!(resolve_with(None, Some("group.com.a")).unwrap(), "group.com.a");
+        assert_eq!(
+            resolve_with(None, Some("group.com.a")).unwrap(),
+            "group.com.a"
+        );
         assert!(resolve_with(None, None).is_err());
     }
 
@@ -121,7 +127,10 @@ mod tests {
         assert!(other.is_err());
         #[cfg(not(any(target_os = "macos", target_os = "ios")))]
         assert_eq!(other.unwrap(), "group.com.b");
-        assert_eq!(resolve_with(Some("group.com.a"), Some("group.com.a")).unwrap(), "group.com.a");
+        assert_eq!(
+            resolve_with(Some("group.com.a"), Some("group.com.a")).unwrap(),
+            "group.com.a"
+        );
     }
 
     #[test]

@@ -603,8 +603,7 @@ mod tests {
 
     #[test]
     fn border_config_default_width() {
-        let b: BorderConfig =
-            serde_json::from_str(r##"{"color":"#ffffff"}"##).unwrap();
+        let b: BorderConfig = serde_json::from_str(r##"{"color":"#ffffff"}"##).unwrap();
         assert!((b.width - 1.0).abs() < f64::EPSILON);
         assert_eq!(b.color, "#ffffff");
     }

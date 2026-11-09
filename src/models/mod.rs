@@ -409,11 +409,7 @@ pub struct ProgressElement {
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub color: Option<ColorValue>,
     /// `linear` (default) or `circular`.
-    #[serde(
-        rename = "barStyle",
-        default,
-        skip_serializing_if = "Option::is_none"
-    )]
+    #[serde(rename = "barStyle", default, skip_serializing_if = "Option::is_none")]
     pub bar_style: Option<ProgressStyle>,
     #[serde(flatten)]
     /// Shared visual style (padding, background, frame, …).

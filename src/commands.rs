@@ -110,15 +110,19 @@ pub async fn set_widget_config<R: Runtime>(
 pub(crate) fn load_widget_config_from_path(path: &str) -> Result<WidgetConfig, Error> {
     let path = path.trim();
     if path.is_empty() {
-        return Err(Error::new("set_widget_config_from_path: path must not be empty"));
+        return Err(Error::new(
+            "set_widget_config_from_path: path must not be empty",
+        ));
     }
     // Regular files only, bounded: `/dev/zero` or a FIFO would otherwise exhaust memory
     // or block forever.
     const MAX_BYTES: u64 = 4 * 1024 * 1024;
-    let meta = std::fs::metadata(path)
-        .map_err(|e| Error::Io(format!("read config from {path}: {e}")))?;
+    let meta =
+        std::fs::metadata(path).map_err(|e| Error::Io(format!("read config from {path}: {e}")))?;
     if !meta.is_file() {
-        return Err(Error::Io(format!("read config from {path}: not a regular file")));
+        return Err(Error::Io(format!(
+            "read config from {path}: not a regular file"
+        )));
     }
     if meta.len() > MAX_BYTES {
         return Err(Error::Io(format!(
@@ -126,12 +130,10 @@ pub(crate) fn load_widget_config_from_path(path: &str) -> Result<WidgetConfig, E
             meta.len()
         )));
     }
-    let raw = std::fs::read_to_string(path).map_err(|e| {
-        Error::Io(format!("read config from {path}: {e}"))
-    })?;
-    serde_json::from_str(&raw).map_err(|e| {
-        Error::SerdeJson(format!("parse WidgetConfig from {path}: {e}"))
-    })
+    let raw = std::fs::read_to_string(path)
+        .map_err(|e| Error::Io(format!("read config from {path}: {e}")))?;
+    serde_json::from_str(&raw)
+        .map_err(|e| Error::SerdeJson(format!("parse WidgetConfig from {path}: {e}")))
 }
 
 /// Load a [`WidgetConfig`] JSON file from disk, then apply it like [`set_widget_config`].
@@ -274,7 +276,10 @@ mod from_path_tests {
             .expect("stress-nest.json parses");
         let root = cfg.large.expect("large root");
         let n = find_list_children(&root).expect("list node present");
-        assert_eq!(n, 3, "rich list children must survive from_path deserialize");
+        assert_eq!(
+            n, 3,
+            "rich list children must survive from_path deserialize"
+        );
     }
 
     #[test]
