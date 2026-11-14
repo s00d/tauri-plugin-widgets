@@ -6,6 +6,19 @@ use tauri::{Runtime, WebviewWindow};
 use crate::desktop::placement::WindowModes;
 use crate::models::{WidgetWindowConfig, WindowLayer};
 
+/// A native handle query; `Err` when it fails or panics.
+pub(crate) fn native<T, E: std::fmt::Display>(
+    what: &str,
+    f: impl FnOnce() -> Result<T, E>,
+) -> Result<T, String> {
+    // ponytail: MockRuntime's `gtk_window` / `default_vbox` are `unimplemented!()` (as its
+    // monitor queries, see `window::monitor_query`); without the catch a widget or activity
+    // command panics and never answers under `tauri::test`.
+    std::panic::catch_unwind(std::panic::AssertUnwindSafe(f))
+        .map_err(|_| format!("{what}: not available"))?
+        .map_err(|e| format!("{what}: {e}"))
+}
+
 /// Pin a **not yet shown** widget window.
 ///
 /// - **Wayland** (`feature = "layer-shell"`, layer other than `normal`): the webview moves
@@ -54,7 +67,7 @@ fn apply_gtk_hints<R: Runtime>(
     island: bool,
 ) -> Result<(), String> {
     use gtk::prelude::*;
-    let gw = win.gtk_window().map_err(|e| format!("gtk_window: {e}"))?;
+    let gw = native("gtk_window", || win.gtk_window())?;
     if modes.layer == WindowLayer::Desktop {
         gw.set_type_hint(gtk::gdk::WindowTypeHint::Desktop);
     }
@@ -106,13 +119,11 @@ fn apply_layer_shell<R: Runtime>(
     };
 
     // The Tauri window is still unmapped: init_layer_shell needs that.
-    let old = win.gtk_window().map_err(|e| format!("gtk_window: {e}"))?;
+    let old = native("gtk_window", || win.gtk_window())?;
     let app = old
         .application()
         .ok_or_else(|| "gtk window has no application".to_string())?;
-    let vbox = win
-        .default_vbox()
-        .map_err(|e| format!("default_vbox: {e}"))?;
+    let vbox = native("default_vbox", || win.default_vbox())?;
     old.remove(&vbox);
 
     let layer_win = gtk::ApplicationWindow::new(&app);

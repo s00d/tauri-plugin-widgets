@@ -372,8 +372,7 @@ pub(crate) fn place<R: Runtime>(win: &WebviewWindow<R>, r: Rect) {
     #[cfg(all(target_os = "linux", feature = "layer-shell"))]
     {
         use gtk::prelude::*;
-        if let Some(top) = win
-            .default_vbox()
+        if let Some(top) = crate::linux::native("default_vbox", || win.default_vbox())
             .ok()
             .and_then(|v| v.toplevel())
             .and_then(|t| t.downcast::<gtk::Window>().ok())

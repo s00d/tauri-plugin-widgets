@@ -103,10 +103,23 @@ jobs:
       - uses: actions/setup-dotnet@v4
         with:
           dotnet-version: 8.0.x
+      # The template has `{{...}}` placeholders that `init-windows` fills (as scripts/win/pack.ps1):
+      # build a filled copy.
       - name: dotnet build templates/windows-widget
         shell: bash
         run: |
-          for proj in templates/windows-widget/*/*.csproj; do
+          work="$RUNNER_TEMP/windows-widget"
+          cp -R templates/windows-widget "$work"
+          find "$work" -type f \( -name '*.cs' -o -name '*.csproj' -o -name '*.xml' -o -name '*.json' -o -name '*.appxmanifest' \) -exec sed -i \
+            -e 's/{{WIDGET_PROVIDER_CLSID}}/6f1d6c1e-3b8a-4c55-9a5e-2f4d8b7c9a10/g' \
+            -e 's/{{WIDGET_DISPLAY_NAME}}/TauriWidgets/g' \
+            -e 's/{{PACKAGE_NAME}}/TauriWidgets/g' \
+            -e 's/{{WIDGET_EXTENSION_ID}}/TauriWidgets.Widgets/g' \
+            -e 's/{{WIDGET_DEFINITION_ID}}/TauriWidgets.Widget/g' {} +
+          if grep -rn '{{[A-Z_]*}}' "$work" --include='*.cs' --include='*.csproj' --include='*.xml' --include='*.json' --include='*.appxmanifest'; then
+            echo "::error::unfilled template placeholder"; exit 1
+          fi
+          for proj in "$work"/*/*.csproj; do
             dotnet build "$proj" -c Release -p:Platform=x64
           done
 

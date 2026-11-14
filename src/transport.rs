@@ -56,9 +56,9 @@ pub fn resolve_driver(cfg: &WidgetsPluginConfig) -> crate::Result<Arc<dyn Transp
     #[cfg(not(target_os = "macos"))]
     {
         let _ = cfg;
-        return Err(Error::new(
+        Err(Error::new(
             "Apple transport drivers are only available on macOS host builds",
-        ));
+        ))
     }
     #[cfg(target_os = "macos")]
     {
@@ -86,9 +86,9 @@ pub fn build_driver(
     #[cfg(not(target_os = "macos"))]
     {
         let _ = kind;
-        return Err(Error::new(
+        Err(Error::new(
             "Apple transport drivers are only available on macOS host builds",
-        ));
+        ))
     }
     #[cfg(target_os = "macos")]
     {
