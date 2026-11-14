@@ -375,26 +375,33 @@ impl<R: Runtime> Widget<R> {
         path: &PathBuf,
         group: &str,
     ) -> &'a mut DataMap {
-        store.entry(group.to_string()).or_insert_with(|| {
-            let mut maps = Vec::new();
-            if path.exists() {
-                if let Some(m) = fs::read_to_string(path)
-                    .ok()
-                    .and_then(|s| serde_json::from_str(&s).ok())
-                {
-                    maps.push(m);
-                }
-            }
-            #[cfg(target_os = "macos")]
-            {
-                for t in crate::macos_transport::all_transports(group) {
-                    if let Some(m) = t.read() {
+        #[cfg(not(target_os = "macos"))]
+        let _ = group; // macOS also reads the group's transports below
+                       // Keyed by file, not group: groups that share a file (Windows: one widget_data.json
+                       // for Widgets Board) must share the map, or one group's cached copy overwrites the
+                       // other's writes and misses them when comparing.
+        store
+            .entry(path.to_string_lossy().into_owned())
+            .or_insert_with(|| {
+                let mut maps = Vec::new();
+                if path.exists() {
+                    if let Some(m) = fs::read_to_string(path)
+                        .ok()
+                        .and_then(|s| serde_json::from_str(&s).ok())
+                    {
                         maps.push(m);
                     }
                 }
-            }
-            store::pick_freshest(maps)
-        })
+                #[cfg(target_os = "macos")]
+                {
+                    for t in crate::macos_transport::all_transports(group) {
+                        if let Some(m) = t.read() {
+                            maps.push(m);
+                        }
+                    }
+                }
+                store::pick_freshest(maps)
+            })
     }
 
     /// The cached map is the host's last write; a higher nonce on disk means the widget

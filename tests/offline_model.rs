@@ -578,6 +578,8 @@ fn group_ok(g: Grp) -> Result<bool, ()> {
     match g {
         Grp::Default | Grp::Blank => Ok(false),
         Grp::Other if APPLE => Err(()),
+        // Windows keeps one widget_data.json (what Widgets Board reads): every group shares it.
+        Grp::Other if cfg!(windows) => Ok(false),
         Grp::Other => Ok(true),
         Grp::Bad => Err(()),
     }
