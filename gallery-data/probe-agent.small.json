@@ -1,0 +1,35 @@
+{
+  "$schema": "https://s00d.github.io/tauri-plugin-widgets/schemas/widget-config.v1.json",
+  "version": 1,
+  "small": {
+    "type": "vstack",
+    "padding": 12,
+    "spacing": 10,
+    "cornerRadius": 16,
+    "background": "#0f172a",
+    "alignment": "center",
+    "children": [
+      {
+        "type": "text",
+        "content": "AGENT",
+        "fontSize": 12,
+        "fontWeight": "semibold",
+        "color": "#38bdf8"
+      },
+      {
+        "type": "text",
+        "content": "OK",
+        "fontSize": 40,
+        "fontWeight": "bold",
+        "color": "#f8fafc"
+      },
+      {
+        "type": "progress",
+        "value": 0.42,
+        "total": 1,
+        "label": "probe",
+        "tint": "#f59e0b"
+      }
+    ]
+  }
+}

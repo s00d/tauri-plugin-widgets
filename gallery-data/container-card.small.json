@@ -1,0 +1,37 @@
+{
+  "$schema": "https://s00d.github.io/tauri-plugin-widgets/schemas/widget-config.v1.json",
+  "version": 1,
+  "small": {
+    "type": "container",
+    "contentAlignment": "center",
+    "padding": 12,
+    "cornerRadius": 16,
+    "background": "#1C1C1E",
+    "frame": {
+      "width": 146,
+      "height": 146
+    },
+    "children": [
+      {
+        "type": "vstack",
+        "spacing": 8,
+        "alignment": "center",
+        "children": [
+          {
+            "type": "shape",
+            "shapeType": "circle",
+            "size": 36,
+            "fill": "#3b82f6"
+          },
+          {
+            "type": "text",
+            "content": "Card",
+            "fontSize": 15,
+            "fontWeight": "semibold",
+            "color": "#FFFFFF"
+          }
+        ]
+      }
+    ]
+  }
+}

@@ -1,0 +1,220 @@
+{
+  "$schema": "https://s00d.github.io/tauri-plugin-widgets/schemas/widget-config.v1.json",
+  "version": 1,
+  "large": {
+    "type": "vstack",
+    "padding": 12,
+    "spacing": 8,
+    "cornerRadius": 16,
+    "background": "#0f172a",
+    "children": [
+      {
+        "type": "hstack",
+        "spacing": 10,
+        "alignment": "center",
+        "children": [
+          {
+            "type": "zstack",
+            "alignment": "center",
+            "children": [
+              {
+                "type": "shape",
+                "shapeType": "circle",
+                "fill": "#334155",
+                "size": 44
+              },
+              {
+                "type": "text",
+                "content": "42",
+                "fontSize": 16,
+                "fontWeight": "bold",
+                "color": "#fff"
+              }
+            ]
+          },
+          {
+            "type": "vstack",
+            "spacing": 2,
+            "alignment": "leading",
+            "children": [
+              {
+                "type": "text",
+                "content": "Nested Dashboard",
+                "fontSize": 16,
+                "fontWeight": "bold",
+                "color": "#f8fafc",
+                "lineLimit": 1
+              },
+              {
+                "type": "text",
+                "content": "hstack → zstack + grid + list",
+                "fontSize": 11,
+                "color": "#94a3b8",
+                "lineLimit": 1
+              }
+            ]
+          },
+          {
+            "type": "spacer"
+          },
+          {
+            "type": "button",
+            "label": "Sync",
+            "action": "dash_sync",
+            "backgroundColor": "#2563eb",
+            "color": "#fff",
+            "fontSize": 12,
+            "cornerRadius": 8
+          }
+        ]
+      },
+      {
+        "type": "divider",
+        "color": "#334155"
+      },
+      {
+        "type": "grid",
+        "columns": 2,
+        "spacing": 8,
+        "rowSpacing": 8,
+        "children": [
+          {
+            "type": "vstack",
+            "padding": 8,
+            "spacing": 4,
+            "cornerRadius": 10,
+            "background": "#1e293b",
+            "children": [
+              {
+                "type": "text",
+                "content": "CPU",
+                "fontSize": 11,
+                "color": "#94a3b8"
+              },
+              {
+                "type": "text",
+                "content": "38%",
+                "fontSize": 22,
+                "fontWeight": "bold",
+                "color": "#22c55e"
+              },
+              {
+                "type": "progress",
+                "value": 0.38,
+                "tint": "#22c55e"
+              }
+            ]
+          },
+          {
+            "type": "vstack",
+            "padding": 8,
+            "spacing": 4,
+            "cornerRadius": 10,
+            "background": "#1e293b",
+            "children": [
+              {
+                "type": "text",
+                "content": "RAM",
+                "fontSize": 11,
+                "color": "#94a3b8"
+              },
+              {
+                "type": "text",
+                "content": "62%",
+                "fontSize": 22,
+                "fontWeight": "bold",
+                "color": "#f59e0b"
+              },
+              {
+                "type": "progress",
+                "value": 0.62,
+                "tint": "#f59e0b"
+              }
+            ]
+          },
+          {
+            "type": "vstack",
+            "padding": 8,
+            "spacing": 4,
+            "cornerRadius": 10,
+            "background": "#1e293b",
+            "children": [
+              {
+                "type": "text",
+                "content": "Disk",
+                "fontSize": 11,
+                "color": "#94a3b8"
+              },
+              {
+                "type": "text",
+                "content": "81%",
+                "fontSize": 22,
+                "fontWeight": "bold",
+                "color": "#ef4444"
+              },
+              {
+                "type": "progress",
+                "value": 0.81,
+                "tint": "#ef4444"
+              }
+            ]
+          },
+          {
+            "type": "vstack",
+            "padding": 8,
+            "spacing": 4,
+            "cornerRadius": 10,
+            "background": "#1e293b",
+            "children": [
+              {
+                "type": "text",
+                "content": "Net",
+                "fontSize": 11,
+                "color": "#94a3b8"
+              },
+              {
+                "type": "text",
+                "content": "12MB/s",
+                "fontSize": 18,
+                "fontWeight": "bold",
+                "color": "#38bdf8"
+              },
+              {
+                "type": "progress",
+                "value": 0.24,
+                "tint": "#38bdf8"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "type": "divider",
+        "color": "#334155"
+      },
+      {
+        "type": "list",
+        "spacing": 3,
+        "fontSize": 12,
+        "color": "#e2e8f0",
+        "items": [
+          {
+            "text": "api-gateway",
+            "checked": true
+          },
+          {
+            "text": "worker-pool",
+            "checked": true
+          },
+          {
+            "text": "cache-redis",
+            "checked": false
+          },
+          {
+            "text": "queue-amqp"
+          }
+        ]
+      }
+    ]
+  }
+}

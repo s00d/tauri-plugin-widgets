@@ -1,0 +1,107 @@
+{
+  "$schema": "https://s00d.github.io/tauri-plugin-widgets/schemas/widget-config.v1.json",
+  "version": 1,
+  "medium": {
+    "type": "hstack",
+    "padding": 10,
+    "spacing": 10,
+    "background": "#111827",
+    "children": [
+      {
+        "type": "chart",
+        "chartType": "line",
+        "flex": 1,
+        "showLegend": true,
+        "showYAxis": true,
+        "yMin": 0,
+        "yMax": 10,
+        "interpolation": "monotone",
+        "chartData": [
+          {
+            "label": "M",
+            "value": 2,
+            "series": "A"
+          },
+          {
+            "label": "T",
+            "value": 6,
+            "series": "A"
+          },
+          {
+            "label": "W",
+            "value": 4,
+            "series": "A"
+          },
+          {
+            "label": "M",
+            "value": 5,
+            "series": "B",
+            "color": "#f472b6"
+          },
+          {
+            "label": "T",
+            "value": 3,
+            "series": "B",
+            "color": "#f472b6"
+          },
+          {
+            "label": "W",
+            "value": 8,
+            "series": "B",
+            "color": "#f472b6"
+          }
+        ]
+      },
+      {
+        "type": "chart",
+        "chartType": "pie",
+        "innerRadius": 0.6,
+        "frame": {
+          "width": 90,
+          "height": 90
+        },
+        "chartData": [
+          {
+            "label": "a",
+            "value": 3,
+            "color": "#22c55e"
+          },
+          {
+            "label": "b",
+            "value": 2,
+            "color": "#3b82f6"
+          },
+          {
+            "label": "c",
+            "value": 1,
+            "color": "#f59e0b"
+          }
+        ]
+      },
+      {
+        "type": "chart",
+        "chartType": "point",
+        "flex": 1,
+        "showXAxis": false,
+        "chartData": [
+          {
+            "label": "1",
+            "value": 1
+          },
+          {
+            "label": "2",
+            "value": 4
+          },
+          {
+            "label": "3",
+            "value": 2
+          },
+          {
+            "label": "4",
+            "value": 5
+          }
+        ]
+      }
+    ]
+  }
+}

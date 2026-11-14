@@ -1,0 +1,112 @@
+{
+  "$schema": "https://s00d.github.io/tauri-plugin-widgets/schemas/widget-config.v1.json",
+  "version": 1,
+  "medium": {
+    "type": "vstack",
+    "padding": 12,
+    "spacing": 8,
+    "cornerRadius": 16,
+    "background": {
+      "light": "#F8FAFC",
+      "dark": "#0f172a"
+    },
+    "children": [
+      {
+        "type": "hstack",
+        "spacing": 8,
+        "alignment": "center",
+        "children": [
+          {
+            "type": "text",
+            "content": "Payments",
+            "fontSize": 16,
+            "fontWeight": "bold",
+            "color": {
+              "light": "#0f172a",
+              "dark": "#f8fafc"
+            },
+            "flex": 1
+          },
+          {
+            "type": "text",
+            "content": "Today",
+            "fontSize": 12,
+            "color": {
+              "light": "#64748b",
+              "dark": "#94a3b8"
+            }
+          }
+        ]
+      },
+      {
+        "type": "hstack",
+        "spacing": 10,
+        "alignment": "center",
+        "padding": 10,
+        "cornerRadius": 12,
+        "background": {
+          "light": "#EEF2FF",
+          "dark": "#1e1b4b"
+        },
+        "children": [
+          {
+            "type": "shape",
+            "shapeType": "capsule",
+            "fill": "#6366f1",
+            "frame": {
+              "width": 6,
+              "height": 36
+            }
+          },
+          {
+            "type": "vstack",
+            "spacing": 2,
+            "flex": 1,
+            "children": [
+              {
+                "type": "text",
+                "content": "Netflix",
+                "fontSize": 14,
+                "fontWeight": "semibold",
+                "color": {
+                  "light": "#1e1b4b",
+                  "dark": "#e0e7ff"
+                }
+              },
+              {
+                "type": "text",
+                "content": "Subscription · due soon",
+                "fontSize": 11,
+                "color": {
+                  "light": "#6366f1",
+                  "dark": "#a5b4fc"
+                }
+              }
+            ]
+          },
+          {
+            "type": "text",
+            "content": "$15.99",
+            "fontSize": 14,
+            "fontWeight": "bold",
+            "color": {
+              "light": "#312e81",
+              "dark": "#c7d2fe"
+            }
+          }
+        ]
+      },
+      {
+        "type": "progress",
+        "value": 0.65,
+        "total": 1,
+        "label": "Budget used",
+        "tint": "#6366f1",
+        "color": {
+          "light": "#64748b",
+          "dark": "#94a3b8"
+        }
+      }
+    ]
+  }
+}

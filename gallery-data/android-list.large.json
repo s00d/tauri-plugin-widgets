@@ -1,0 +1,41 @@
+{
+  "$schema": "https://s00d.github.io/tauri-plugin-widgets/schemas/widget-config.v1.json",
+  "version": 1,
+  "small": null,
+  "medium": null,
+  "large": {
+    "type": "list",
+    "items": [
+      {
+        "text": "Alpha",
+        "checked": true,
+        "action": "row",
+        "payload": "a"
+      },
+      {
+        "text": "Beta",
+        "checked": false,
+        "action": "row",
+        "payload": "b"
+      },
+      {
+        "text": "Gamma",
+        "checked": null,
+        "action": null,
+        "payload": null
+      }
+    ],
+    "spacing": 2,
+    "fontSize": 14,
+    "color": null,
+    "padding": null,
+    "background": null,
+    "cornerRadius": null,
+    "opacity": null,
+    "frame": null,
+    "border": null,
+    "shadow": null,
+    "clipShape": null,
+    "flex": null
+  }
+}

@@ -1,0 +1,43 @@
+{
+  "$schema": "https://s00d.github.io/tauri-plugin-widgets/schemas/widget-config.v1.json",
+  "version": 1,
+  "small": {
+    "type": "vstack",
+    "padding": 10,
+    "spacing": 6,
+    "cornerRadius": 14,
+    "background": "#111827",
+    "children": [
+      {
+        "type": "text",
+        "content": "Headline",
+        "textStyle": "headline",
+        "fontWeight": "semibold",
+        "color": {
+          "light": "#0f172a",
+          "dark": "#f8fafc"
+        }
+      },
+      {
+        "type": "text",
+        "content": "mono 0123",
+        "fontDesign": "monospaced",
+        "fontSize": 13,
+        "color": "#38bdf8"
+      },
+      {
+        "type": "text",
+        "content": "Serif body",
+        "fontDesign": "serif",
+        "fontSize": 14,
+        "color": "#e2e8f0"
+      },
+      {
+        "type": "text",
+        "content": "Caption line",
+        "textStyle": "caption",
+        "color": "#94a3b8"
+      }
+    ]
+  }
+}

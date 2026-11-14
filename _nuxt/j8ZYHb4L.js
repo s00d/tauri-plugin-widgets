@@ -1,0 +1,1 @@
+import{m as e}from"./SzUnadGC.js";import{t}from"./BDNMzG2s.js";var n={};function r(t,n){return e(``,!0)}var i=Object.assign(t(n,[[`render`,r]]),{__name:`ProseH1`});export{i as default};

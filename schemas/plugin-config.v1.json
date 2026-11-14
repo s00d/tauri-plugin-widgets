@@ -1,0 +1,81 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "WidgetsPluginConfig",
+  "description": "`plugins.widgets` object from `tauri.conf.json`.",
+  "type": "object",
+  "properties": {
+    "activitySurface": {
+      "description": "Desktop surface for live activities: `\"island\"` (default) a Dynamic-Island pill at the top centre of the primary display (around the notch on notched Macs, expands on hover); `\"window\"` a small always-on-top window in the top-right corner; `\"notification\"` a system notification (feature `notify`, Linux / Windows).",
+      "default": null,
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "appGroup": {
+      "description": "App Group id, e.g. `group.com.example.app`.",
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "extensionBundleId": {
+      "description": "Widget extension bundle id (macOS container path). Default: `{app_id}.widgetkit`.",
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "restoreWindowsOnStart": {
+      "description": "Desktop: reopen the widget windows that were open when the app last quit.",
+      "default": false,
+      "type": "boolean"
+    },
+    "transport": {
+      "description": "Host→widget transport driver. Unset: `widgetContainer` on macOS (a Developer ID extension without a provisioning profile cannot open a `group.*` container), `appGroup` elsewhere.",
+      "anyOf": [
+        {
+          "$ref": "#/definitions/TransportKind"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    }
+  },
+  "definitions": {
+    "TransportKind": {
+      "description": "Which Apple host→widget channel to use.\n\nPick this at build time (you know your signing). Do not rely on runtime fan-out.",
+      "oneOf": [
+        {
+          "description": "App Group shared container file (`widget_data.json`). Needs a real Team ID. Production-safe default; use `auto` explicitly for ad-hoc probing.",
+          "type": "string",
+          "enum": [
+            "appGroup"
+          ]
+        },
+        {
+          "description": "App Group `UserDefaults` suite. Same signing requirements as [`AppGroup`].",
+          "type": "string",
+          "enum": [
+            "userDefaults"
+          ]
+        },
+        {
+          "description": "Widget extension container file. Works with ad-hoc signing; macOS host must not be sandboxed.",
+          "type": "string",
+          "enum": [
+            "widgetContainer"
+          ]
+        },
+        {
+          "description": "One-shot probe at startup (dev only). Prefer pinning an explicit driver in conf.",
+          "type": "string",
+          "enum": [
+            "auto"
+          ]
+        }
+      ]
+    }
+  }
+}

@@ -1,0 +1,751 @@
+{
+  "$schema": "https://s00d.github.io/tauri-plugin-widgets/schemas/widget-config.v1.json",
+  "version": 1,
+  "small": {
+    "type": "vstack",
+    "padding": 14,
+    "spacing": 10,
+    "cornerRadius": 16,
+    "background": {
+      "light": "#F2F2F7",
+      "dark": "#1C1C1E"
+    },
+    "children": [
+      {
+        "type": "divider",
+        "color": "#3878FA",
+        "thickness": 4
+      },
+      {
+        "type": "hstack",
+        "spacing": 10,
+        "alignment": "center",
+        "children": [
+          {
+            "type": "zstack",
+            "alignment": "center",
+            "children": [
+              {
+                "type": "shape",
+                "shapeType": "rectangle",
+                "fill": "#1F59E0",
+                "size": 44,
+                "cornerRadius": 10
+              },
+              {
+                "type": "text",
+                "content": "S",
+                "fontSize": 18,
+                "fontWeight": "bold",
+                "fontDesign": "rounded",
+                "color": "#FFFFFF"
+              }
+            ]
+          },
+          {
+            "type": "vstack",
+            "spacing": 2,
+            "alignment": "leading",
+            "flex": 1,
+            "children": [
+              {
+                "type": "text",
+                "content": "Streaming",
+                "fontSize": 15,
+                "fontWeight": "bold",
+                "fontDesign": "rounded",
+                "color": "label",
+                "lineLimit": 1
+              },
+              {
+                "type": "text",
+                "content": "Jun 1",
+                "fontSize": 11,
+                "fontWeight": "semibold",
+                "color": "secondaryLabel",
+                "lineLimit": 1
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "type": "spacer"
+      },
+      {
+        "type": "text",
+        "content": "$12.50",
+        "fontSize": 22,
+        "fontWeight": "bold",
+        "fontDesign": "rounded",
+        "color": "#3878FA",
+        "alignment": "leading",
+        "lineLimit": 1
+      }
+    ]
+  },
+  "medium": {
+    "type": "vstack",
+    "padding": 10,
+    "spacing": 4,
+    "cornerRadius": 16,
+    "background": {
+      "light": "#F2F2F7",
+      "dark": "#1C1C1E"
+    },
+    "children": [
+      {
+        "type": "label",
+        "text": "Upcoming",
+        "systemName": "calendar.badge.clock",
+        "fontSize": 11,
+        "fontWeight": "bold",
+        "color": "label",
+        "iconColor": "#3878FA",
+        "spacing": 4
+      },
+      {
+        "type": "grid",
+        "columns": 2,
+        "spacing": 8,
+        "rowSpacing": 6,
+        "children": [
+          {
+            "type": "hstack",
+            "spacing": 6,
+            "alignment": "center",
+            "children": [
+              {
+                "type": "zstack",
+                "alignment": "center",
+                "children": [
+                  {
+                    "type": "shape",
+                    "shapeType": "rectangle",
+                    "fill": "#1F59E0",
+                    "size": 20,
+                    "cornerRadius": 5
+                  },
+                  {
+                    "type": "text",
+                    "content": "S",
+                    "fontSize": 9,
+                    "fontWeight": "bold",
+                    "color": "#FFFFFF"
+                  }
+                ]
+              },
+              {
+                "type": "vstack",
+                "spacing": 0,
+                "alignment": "leading",
+                "flex": 1,
+                "children": [
+                  {
+                    "type": "text",
+                    "content": "Streaming",
+                    "fontSize": 10,
+                    "fontWeight": "semibold",
+                    "color": "label",
+                    "lineLimit": 1
+                  },
+                  {
+                    "type": "text",
+                    "content": "Jun 1",
+                    "fontSize": 8,
+                    "color": "secondaryLabel",
+                    "lineLimit": 1
+                  }
+                ]
+              },
+              {
+                "type": "text",
+                "content": "$12.50",
+                "fontSize": 10,
+                "fontWeight": "bold",
+                "color": "#3878FA",
+                "lineLimit": 1
+              }
+            ]
+          },
+          {
+            "type": "hstack",
+            "spacing": 6,
+            "alignment": "center",
+            "children": [
+              {
+                "type": "zstack",
+                "alignment": "center",
+                "children": [
+                  {
+                    "type": "shape",
+                    "shapeType": "rectangle",
+                    "fill": "#1F59E0",
+                    "size": 20,
+                    "cornerRadius": 5
+                  },
+                  {
+                    "type": "text",
+                    "content": "C",
+                    "fontSize": 9,
+                    "fontWeight": "bold",
+                    "color": "#FFFFFF"
+                  }
+                ]
+              },
+              {
+                "type": "vstack",
+                "spacing": 0,
+                "alignment": "leading",
+                "flex": 1,
+                "children": [
+                  {
+                    "type": "text",
+                    "content": "Cloud Pro",
+                    "fontSize": 10,
+                    "fontWeight": "semibold",
+                    "color": "label",
+                    "lineLimit": 1
+                  },
+                  {
+                    "type": "text",
+                    "content": "Today",
+                    "fontSize": 8,
+                    "color": "secondaryLabel",
+                    "lineLimit": 1
+                  }
+                ]
+              },
+              {
+                "type": "text",
+                "content": "$9.99",
+                "fontSize": 10,
+                "fontWeight": "bold",
+                "color": "#3878FA",
+                "lineLimit": 1
+              }
+            ]
+          },
+          {
+            "type": "hstack",
+            "spacing": 6,
+            "alignment": "center",
+            "children": [
+              {
+                "type": "zstack",
+                "alignment": "center",
+                "children": [
+                  {
+                    "type": "shape",
+                    "shapeType": "rectangle",
+                    "fill": "#1F59E0",
+                    "size": 20,
+                    "cornerRadius": 5
+                  },
+                  {
+                    "type": "text",
+                    "content": "M",
+                    "fontSize": 9,
+                    "fontWeight": "bold",
+                    "color": "#FFFFFF"
+                  }
+                ]
+              },
+              {
+                "type": "vstack",
+                "spacing": 0,
+                "alignment": "leading",
+                "flex": 1,
+                "children": [
+                  {
+                    "type": "text",
+                    "content": "Music Plus",
+                    "fontSize": 10,
+                    "fontWeight": "semibold",
+                    "color": "label",
+                    "lineLimit": 1
+                  },
+                  {
+                    "type": "text",
+                    "content": "Tomorrow",
+                    "fontSize": 8,
+                    "color": "secondaryLabel",
+                    "lineLimit": 1
+                  }
+                ]
+              },
+              {
+                "type": "text",
+                "content": "$4.99",
+                "fontSize": 10,
+                "fontWeight": "bold",
+                "color": "#3878FA",
+                "lineLimit": 1
+              }
+            ]
+          },
+          {
+            "type": "hstack",
+            "spacing": 6,
+            "alignment": "center",
+            "children": [
+              {
+                "type": "zstack",
+                "alignment": "center",
+                "children": [
+                  {
+                    "type": "shape",
+                    "shapeType": "rectangle",
+                    "fill": "#1F59E0",
+                    "size": 20,
+                    "cornerRadius": 5
+                  },
+                  {
+                    "type": "text",
+                    "content": "N",
+                    "fontSize": 9,
+                    "fontWeight": "bold",
+                    "color": "#FFFFFF"
+                  }
+                ]
+              },
+              {
+                "type": "vstack",
+                "spacing": 0,
+                "alignment": "leading",
+                "flex": 1,
+                "children": [
+                  {
+                    "type": "text",
+                    "content": "News Daily",
+                    "fontSize": 10,
+                    "fontWeight": "semibold",
+                    "color": "label",
+                    "lineLimit": 1
+                  },
+                  {
+                    "type": "text",
+                    "content": "Jun 5",
+                    "fontSize": 8,
+                    "color": "secondaryLabel",
+                    "lineLimit": 1
+                  }
+                ]
+              },
+              {
+                "type": "text",
+                "content": "$2.99",
+                "fontSize": 10,
+                "fontWeight": "bold",
+                "color": "#3878FA",
+                "lineLimit": 1
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "type": "spacer",
+        "minLength": 2
+      },
+      {
+        "type": "text",
+        "content": "+2 more",
+        "fontSize": 9,
+        "fontWeight": "bold",
+        "color": "secondaryLabel",
+        "lineLimit": 1
+      }
+    ]
+  },
+  "large": {
+    "type": "vstack",
+    "padding": 12,
+    "spacing": 4,
+    "cornerRadius": 16,
+    "background": {
+      "light": "#F2F2F7",
+      "dark": "#1C1C1E"
+    },
+    "children": [
+      {
+        "type": "label",
+        "text": "Upcoming",
+        "systemName": "calendar.badge.clock",
+        "fontSize": 11,
+        "fontWeight": "bold",
+        "color": "label",
+        "iconColor": "#3878FA",
+        "spacing": 4
+      },
+      {
+        "type": "grid",
+        "columns": 2,
+        "spacing": 10,
+        "rowSpacing": 8,
+        "children": [
+          {
+            "type": "hstack",
+            "spacing": 6,
+            "alignment": "center",
+            "children": [
+              {
+                "type": "zstack",
+                "alignment": "center",
+                "children": [
+                  {
+                    "type": "shape",
+                    "shapeType": "rectangle",
+                    "fill": "#1F59E0",
+                    "size": 24,
+                    "cornerRadius": 6
+                  },
+                  {
+                    "type": "text",
+                    "content": "S",
+                    "fontSize": 11,
+                    "fontWeight": "bold",
+                    "color": "#FFFFFF"
+                  }
+                ]
+              },
+              {
+                "type": "vstack",
+                "spacing": 0,
+                "alignment": "leading",
+                "flex": 1,
+                "children": [
+                  {
+                    "type": "text",
+                    "content": "Streaming",
+                    "fontSize": 11,
+                    "fontWeight": "semibold",
+                    "color": "label",
+                    "lineLimit": 1
+                  },
+                  {
+                    "type": "text",
+                    "content": "Jun 1",
+                    "fontSize": 9,
+                    "color": "secondaryLabel",
+                    "lineLimit": 1
+                  }
+                ]
+              },
+              {
+                "type": "text",
+                "content": "$12.50",
+                "fontSize": 11,
+                "fontWeight": "bold",
+                "color": "#3878FA",
+                "lineLimit": 1
+              }
+            ]
+          },
+          {
+            "type": "hstack",
+            "spacing": 6,
+            "alignment": "center",
+            "children": [
+              {
+                "type": "zstack",
+                "alignment": "center",
+                "children": [
+                  {
+                    "type": "shape",
+                    "shapeType": "rectangle",
+                    "fill": "#1F59E0",
+                    "size": 24,
+                    "cornerRadius": 6
+                  },
+                  {
+                    "type": "text",
+                    "content": "C",
+                    "fontSize": 11,
+                    "fontWeight": "bold",
+                    "color": "#FFFFFF"
+                  }
+                ]
+              },
+              {
+                "type": "vstack",
+                "spacing": 0,
+                "alignment": "leading",
+                "flex": 1,
+                "children": [
+                  {
+                    "type": "text",
+                    "content": "Cloud Pro",
+                    "fontSize": 11,
+                    "fontWeight": "semibold",
+                    "color": "label",
+                    "lineLimit": 1
+                  },
+                  {
+                    "type": "text",
+                    "content": "Today",
+                    "fontSize": 9,
+                    "color": "secondaryLabel",
+                    "lineLimit": 1
+                  }
+                ]
+              },
+              {
+                "type": "text",
+                "content": "$9.99",
+                "fontSize": 11,
+                "fontWeight": "bold",
+                "color": "#3878FA",
+                "lineLimit": 1
+              }
+            ]
+          },
+          {
+            "type": "hstack",
+            "spacing": 6,
+            "alignment": "center",
+            "children": [
+              {
+                "type": "zstack",
+                "alignment": "center",
+                "children": [
+                  {
+                    "type": "shape",
+                    "shapeType": "rectangle",
+                    "fill": "#1F59E0",
+                    "size": 24,
+                    "cornerRadius": 6
+                  },
+                  {
+                    "type": "text",
+                    "content": "M",
+                    "fontSize": 11,
+                    "fontWeight": "bold",
+                    "color": "#FFFFFF"
+                  }
+                ]
+              },
+              {
+                "type": "vstack",
+                "spacing": 0,
+                "alignment": "leading",
+                "flex": 1,
+                "children": [
+                  {
+                    "type": "text",
+                    "content": "Music Plus",
+                    "fontSize": 11,
+                    "fontWeight": "semibold",
+                    "color": "label",
+                    "lineLimit": 1
+                  },
+                  {
+                    "type": "text",
+                    "content": "Tomorrow",
+                    "fontSize": 9,
+                    "color": "secondaryLabel",
+                    "lineLimit": 1
+                  }
+                ]
+              },
+              {
+                "type": "text",
+                "content": "$4.99",
+                "fontSize": 11,
+                "fontWeight": "bold",
+                "color": "#3878FA",
+                "lineLimit": 1
+              }
+            ]
+          },
+          {
+            "type": "hstack",
+            "spacing": 6,
+            "alignment": "center",
+            "children": [
+              {
+                "type": "zstack",
+                "alignment": "center",
+                "children": [
+                  {
+                    "type": "shape",
+                    "shapeType": "rectangle",
+                    "fill": "#1F59E0",
+                    "size": 24,
+                    "cornerRadius": 6
+                  },
+                  {
+                    "type": "text",
+                    "content": "N",
+                    "fontSize": 11,
+                    "fontWeight": "bold",
+                    "color": "#FFFFFF"
+                  }
+                ]
+              },
+              {
+                "type": "vstack",
+                "spacing": 0,
+                "alignment": "leading",
+                "flex": 1,
+                "children": [
+                  {
+                    "type": "text",
+                    "content": "News Daily",
+                    "fontSize": 11,
+                    "fontWeight": "semibold",
+                    "color": "label",
+                    "lineLimit": 1
+                  },
+                  {
+                    "type": "text",
+                    "content": "Jun 5",
+                    "fontSize": 9,
+                    "color": "secondaryLabel",
+                    "lineLimit": 1
+                  }
+                ]
+              },
+              {
+                "type": "text",
+                "content": "$2.99",
+                "fontSize": 11,
+                "fontWeight": "bold",
+                "color": "#3878FA",
+                "lineLimit": 1
+              }
+            ]
+          },
+          {
+            "type": "hstack",
+            "spacing": 6,
+            "alignment": "center",
+            "children": [
+              {
+                "type": "zstack",
+                "alignment": "center",
+                "children": [
+                  {
+                    "type": "shape",
+                    "shapeType": "rectangle",
+                    "fill": "#1F59E0",
+                    "size": 24,
+                    "cornerRadius": 6
+                  },
+                  {
+                    "type": "text",
+                    "content": "G",
+                    "fontSize": 11,
+                    "fontWeight": "bold",
+                    "color": "#FFFFFF"
+                  }
+                ]
+              },
+              {
+                "type": "vstack",
+                "spacing": 0,
+                "alignment": "leading",
+                "flex": 1,
+                "children": [
+                  {
+                    "type": "text",
+                    "content": "Gym Club",
+                    "fontSize": 11,
+                    "fontWeight": "semibold",
+                    "color": "label",
+                    "lineLimit": 1
+                  },
+                  {
+                    "type": "text",
+                    "content": "Jun 8",
+                    "fontSize": 9,
+                    "color": "secondaryLabel",
+                    "lineLimit": 1
+                  }
+                ]
+              },
+              {
+                "type": "text",
+                "content": "$29.00",
+                "fontSize": 11,
+                "fontWeight": "bold",
+                "color": "#3878FA",
+                "lineLimit": 1
+              }
+            ]
+          },
+          {
+            "type": "hstack",
+            "spacing": 6,
+            "alignment": "center",
+            "children": [
+              {
+                "type": "zstack",
+                "alignment": "center",
+                "children": [
+                  {
+                    "type": "shape",
+                    "shapeType": "rectangle",
+                    "fill": "#1F59E0",
+                    "size": 24,
+                    "cornerRadius": 6
+                  },
+                  {
+                    "type": "text",
+                    "content": "V",
+                    "fontSize": 11,
+                    "fontWeight": "bold",
+                    "color": "#FFFFFF"
+                  }
+                ]
+              },
+              {
+                "type": "vstack",
+                "spacing": 0,
+                "alignment": "leading",
+                "flex": 1,
+                "children": [
+                  {
+                    "type": "text",
+                    "content": "VPN Secure",
+                    "fontSize": 11,
+                    "fontWeight": "semibold",
+                    "color": "label",
+                    "lineLimit": 1
+                  },
+                  {
+                    "type": "text",
+                    "content": "Jun 12",
+                    "fontSize": 9,
+                    "color": "secondaryLabel",
+                    "lineLimit": 1
+                  }
+                ]
+              },
+              {
+                "type": "text",
+                "content": "$6.49",
+                "fontSize": 11,
+                "fontWeight": "bold",
+                "color": "#3878FA",
+                "lineLimit": 1
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "type": "spacer",
+        "minLength": 4
+      },
+      {
+        "type": "text",
+        "content": "+4 more",
+        "fontSize": 9,
+        "fontWeight": "bold",
+        "color": "secondaryLabel",
+        "lineLimit": 1
+      }
+    ]
+  }
+}
