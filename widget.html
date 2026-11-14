@@ -393,6 +393,16 @@
         return e;
     }
 
+    let impl = null;
+    function setRenderEl(f) {
+        impl = f;
+    }
+    function renderEl$1(d, parentAxis) {
+        if (!impl)
+            throw new Error("renderEl used before render/element.ts was loaded");
+        return impl(d, parentAxis);
+    }
+
     /**
      * SwiftUI flexibility: does `c` take all the space offered along `dim` ("w" / "h") when its
      * parent lays out on `parentAxis`? Flexible views share an HStack's leftover width equally
@@ -492,7 +502,7 @@
         if (dir === "row" && parentAxis === "vertical" && !d.justify && !greedy(d, "w", undefined))
             e.style.justifyContent = "center";
         (d.children || []).forEach(function (c) {
-            var k = renderEl(c, axis);
+            var k = renderEl$1(c, axis);
             if (dir === "row") {
                 if (c.type === "spacer") {
                     if (flexKids)
@@ -552,7 +562,7 @@
                 w.style.display = "flex";
                 w.style.flexDirection = "column";
             }
-            var child = renderEl(c);
+            var child = renderEl$1(c);
             if (fill) {
                 child.style.flex = "1";
                 child.style.width = "100%";
@@ -574,7 +584,7 @@
         e.style.placeItems = "center";
         applyStyle(e, d);
         (d.children || []).forEach(function (c) {
-            var k = renderEl(c);
+            var k = renderEl$1(c);
             // `flex` here is SwiftUI's maxWidth:.infinity frame — it centers, never resizes the view.
             if (greedy(Object.assign({}, c, { flex: 0 }), "w", undefined))
                 k.style.justifySelf = "stretch";
@@ -608,7 +618,7 @@
         e.style.justifyContent = horiz[a] || "center";
         applyStyle(e, d);
         (d.children || []).forEach(function (ch) {
-            e.appendChild(renderEl(ch));
+            e.appendChild(renderEl$1(ch));
         });
         return e;
     }
@@ -1728,7 +1738,7 @@
         // Rich rows (children) or typed items.
         if (d.children && d.children.length) {
             d.children.forEach(function (c) {
-                e.appendChild(renderEl(c, "vertical"));
+                e.appendChild(renderEl$1(c, "vertical"));
             });
             applyStyle(e, d);
             return e;
@@ -1947,7 +1957,7 @@
         };
         applyStyle(e, d);
         (d.children || []).forEach(function (c) {
-            e.appendChild(renderEl(c));
+            e.appendChild(renderEl$1(c));
         });
         return e;
     }
@@ -1990,6 +2000,7 @@
             el.setAttribute("data-node", String(d.__node));
         return el;
     }
+    setRenderEl(renderEl);
     function build(d, parentAxis) {
         switch (d.type) {
             case "vstack":
