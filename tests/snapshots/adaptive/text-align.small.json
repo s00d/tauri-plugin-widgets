@@ -2,6 +2,10 @@
   "$schema": "http://adaptivecards.io/schemas/adaptive-card.json",
   "body": [
     {
+      "backgroundImage": {
+        "fillMode": "repeat",
+        "url": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAAEElEQVR4AQEFAPr/ABEREf8BnQEzjV7LqQAAAABJRU5ErkJggg=="
+      },
       "id": "card:#111",
       "items": [
         {
@@ -17,7 +21,7 @@
         {
           "color": "Light",
           "horizontalAlignment": "Center",
-          "id": "fg:#fff",
+          "id": "fg:#fff;#2",
           "size": "Default",
           "text": "Center",
           "type": "TextBlock",
@@ -27,7 +31,7 @@
         {
           "color": "Light",
           "horizontalAlignment": "Right",
-          "id": "fg:#fff",
+          "id": "fg:#fff;#3",
           "size": "Default",
           "text": "Trailing",
           "type": "TextBlock",

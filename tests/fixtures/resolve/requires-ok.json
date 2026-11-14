@@ -1,0 +1,10 @@
+{
+  "about": "`requires.resolve` at or below the contract version (3) renders normally; `requires`, `fallback`, `templates` never reach the output.",
+  "config": {
+    "requires": { "resolve": 2 },
+    "small": { "type": "text", "content": "ok" },
+    "fallback": { "small": { "type": "text", "content": "Update the app" } }
+  },
+  "ctx": { "nowMs": 0, "locale": "en" },
+  "expected": { "version": 1, "small": { "type": "text", "content": "ok" } }
+}

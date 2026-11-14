@@ -25,6 +25,9 @@ elif [[ -f "tests/fixtures/$FX.json" ]]; then
 elif [[ -f "tests/cases/$FX.json" ]]; then
   fixture_rel=$(jq -r '.fixture' "tests/cases/$FX.json")
   SIZE=$(jq -r --arg s "$SIZE" '.size // $s' "tests/cases/$FX.json")
+  # Case theme (default dark, like tests/desktop/cases.ts): WebKitGTK follows the GTK
+  # theme variant for prefers-color-scheme.
+  THEME=$(jq -r '.theme // "dark"' "tests/cases/$FX.json")
   SRC="tests/fixtures/${fixture_rel}.json"
   OUT_STEM="$FX"
 else
@@ -53,6 +56,7 @@ docker run --rm \
   -e WEBKIT_DISABLE_COMPOSITING_MODE=1 \
   -e WEBKIT_DISABLE_DMABUF_RENDERER=1 \
   -e GSK_RENDERER=cairo \
+  -e GTK_THEME="$([[ "${THEME:-light}" == "dark" ]] && echo Adwaita:dark || echo Adwaita)" \
   -e CARGO_BUILD_JOBS="${CARGO_BUILD_JOBS:-2}" \
   -e CARGO_INCREMENTAL=0 \
   -e CARGO_TARGET_DIR=/tmp/widget-probe-target \

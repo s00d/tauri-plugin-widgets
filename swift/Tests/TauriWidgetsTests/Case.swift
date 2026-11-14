@@ -123,3 +123,64 @@ enum RepoPaths {
     static var outIos: URL { root().appendingPathComponent("out/ios") }
     static var outMacos: URL { root().appendingPathComponent("out/macos") }
 }
+
+// MARK: - Shared helpers for the store / resolve chains
+
+func obj(_ json: String) -> [String: Any] {
+    (try! JSONSerialization.jsonObject(with: Data(json.utf8))) as! [String: Any]
+}
+
+/// Canonical JSON (NSNumber / Bool / key order differences do not matter); nil and NSNull → "null".
+func canon(_ v: Any?) -> String {
+    guard let v, !(v is NSNull) else { return "null" }
+    let d = try! JSONSerialization.data(withJSONObject: v, options: [.sortedKeys, .fragmentsAllowed])
+    return String(decoding: d, as: UTF8.self)
+}
+
+/// Private App Group for one test: a unique group id, temp store files via the env
+/// overrides, all restored / removed by `restore()`.
+final class StoreSandbox {
+    let root: URL
+    let group: String
+    private var saved: [String: String?] = [:]
+
+    /// `rustLayout`: own-container file at `{root}/Library/Containers/{bundle}/Data`
+    /// (the layout `tests/transports.rs` writes), else a plain `own/` file.
+    init(_ name: String, rustLayout: Bool = false) {
+        root = FileManager.default.temporaryDirectory.appendingPathComponent("tauri-widgets-\(name)-\(UUID().uuidString)")
+        group = "group.test.\(name).\(UUID().uuidString)"
+        try? FileManager.default.createDirectory(at: root, withIntermediateDirectories: true)
+        set("WIDGET_APP_GROUP_DATA_FILE", root.appendingPathComponent("appgroup/widget_data.json").path)
+        if rustLayout {
+            set("WIDGET_SANDBOX_DATA_FILE", nil)
+            set("WIDGET_CONTAINER_ROOT", root.path)
+            set("WIDGET_EXTENSION_BUNDLE", "test.app.widgetkit")
+        } else {
+            set("WIDGET_SANDBOX_DATA_FILE", root.appendingPathComponent("own/widget_data.json").path)
+        }
+    }
+
+    var appGroupFile: URL { URL(fileURLWithPath: ProcessInfo.processInfo.environment["WIDGET_APP_GROUP_DATA_FILE"]!) }
+    var ownFile: URL { URL(fileURLWithPath: TauriWidgetDataStore.ownContainerDataPath()) }
+
+    func writeMap(_ map: [String: String], to url: URL) throws {
+        try FileManager.default.createDirectory(at: url.deletingLastPathComponent(), withIntermediateDirectories: true)
+        try JSONSerialization.data(withJSONObject: map, options: [.prettyPrinted]).write(to: url, options: .atomic)
+    }
+
+    func restore() {
+        for (k, v) in saved {
+            if let v { setenv(k, v, 1) } else { unsetenv(k) }
+        }
+        saved.removeAll()
+        for suite in [group, String(group.dropFirst(6))] {
+            UserDefaults.standard.removePersistentDomain(forName: suite)
+        }
+        try? FileManager.default.removeItem(at: root)
+    }
+
+    private func set(_ key: String, _ value: String?) {
+        if saved[key] == nil { saved[key] = .some(getenv(key).map { String(cString: $0) }) }
+        if let value { setenv(key, value, 1) } else { unsetenv(key) }
+    }
+}

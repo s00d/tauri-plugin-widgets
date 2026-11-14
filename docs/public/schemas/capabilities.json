@@ -323,6 +323,28 @@
         "support": "full"
       }
     },
+    "repeat": {
+      "android": {
+        "note": "expanded before rendering",
+        "support": "full"
+      },
+      "desktop": {
+        "note": "expanded before rendering",
+        "support": "full"
+      },
+      "ios": {
+        "note": "expanded before rendering",
+        "support": "full"
+      },
+      "macos": {
+        "note": "expanded before rendering",
+        "support": "full"
+      },
+      "windows": {
+        "note": "expanded before rendering",
+        "support": "full"
+      }
+    },
     "shape": {
       "android": {
         "note": "",
@@ -433,6 +455,28 @@
         "support": "full"
       }
     },
+    "use": {
+      "android": {
+        "note": "expanded before rendering",
+        "support": "full"
+      },
+      "desktop": {
+        "note": "expanded before rendering",
+        "support": "full"
+      },
+      "ios": {
+        "note": "expanded before rendering",
+        "support": "full"
+      },
+      "macos": {
+        "note": "expanded before rendering",
+        "support": "full"
+      },
+      "windows": {
+        "note": "expanded before rendering",
+        "support": "full"
+      }
+    },
     "vstack": {
       "android": {
         "note": "",
@@ -489,6 +533,72 @@
     "label"
   ],
   "features": {
+    "activity": {
+      "android": {
+        "note": "ongoing notification; Live Update chip on Android 16",
+        "support": "full"
+      },
+      "desktop": {
+        "note": "top-centre island pill (default) or corner window; no Lock Screen",
+        "support": "degraded"
+      },
+      "ios": {
+        "note": "Live Activity + Dynamic Island (iOS 16.2+)",
+        "support": "full"
+      },
+      "macos": {
+        "note": "island pill at the notch (default) or corner window; no Lock Screen",
+        "support": "degraded"
+      },
+      "windows": {
+        "note": "top-centre island pill (default) or corner window; no Lock Screen",
+        "support": "degraded"
+      }
+    },
+    "activity.island": {
+      "android": {
+        "note": "no island; the Live Update chip shows shortCriticalText",
+        "support": "unsupported"
+      },
+      "desktop": {
+        "note": "top-centre pill: X11 dock window, Wayland layer-shell overlay",
+        "support": "full"
+      },
+      "ios": {
+        "note": "Dynamic Island compact / minimal / expanded regions",
+        "support": "full"
+      },
+      "macos": {
+        "note": "pill around the notch, under the menu bar without one; hover expands",
+        "support": "full"
+      },
+      "windows": {
+        "note": "top-centre topmost pill, no taskbar button, no focus steal",
+        "support": "full"
+      }
+    },
+    "activity.template": {
+      "android": {
+        "note": "layout stored on the device, data-only updates",
+        "support": "full"
+      },
+      "desktop": {
+        "note": "layout stored on the device, data-only updates",
+        "support": "full"
+      },
+      "ios": {
+        "note": "layout stored on the device, data-only updates",
+        "support": "full"
+      },
+      "macos": {
+        "note": "layout stored on the device, data-only updates",
+        "support": "full"
+      },
+      "windows": {
+        "note": "layout stored on the device, data-only updates",
+        "support": "full"
+      }
+    },
     "background.gradient": {
       "android": {
         "note": "baked bitmap at LocalSize / frame",
@@ -533,6 +643,116 @@
         "support": "degraded"
       }
     },
+    "config.entries": {
+      "android": {
+        "note": "inexact alarm redraw (may run late in Doze)",
+        "support": "full"
+      },
+      "desktop": {
+        "note": "renderer timer",
+        "support": "full"
+      },
+      "ios": {
+        "note": "WidgetKit timeline entries",
+        "support": "full"
+      },
+      "macos": {
+        "note": "WidgetKit timeline entries",
+        "support": "full"
+      },
+      "windows": {
+        "note": "card rebuilt by the host while the app runs",
+        "support": "degraded"
+      }
+    },
+    "config.instance": {
+      "android": {
+        "note": "appWidgetId",
+        "support": "full"
+      },
+      "desktop": {
+        "note": "window instance / label",
+        "support": "full"
+      },
+      "ios": {
+        "note": "Edit Widget choice (TauriInstanceIntent)",
+        "support": "full"
+      },
+      "macos": {
+        "note": "Edit Widget choice (TauriInstanceIntent)",
+        "support": "full"
+      },
+      "windows": {
+        "note": "Widgets Board id",
+        "support": "full"
+      }
+    },
+    "config.source": {
+      "android": {
+        "note": "fetched on redraw, alarm when due",
+        "support": "full"
+      },
+      "desktop": {
+        "note": "fetched while the window is open",
+        "support": "full"
+      },
+      "ios": {
+        "note": "fetched in the timeline (8 s budget)",
+        "support": "full"
+      },
+      "macos": {
+        "note": "fetched in the timeline (8 s budget)",
+        "support": "full"
+      },
+      "windows": {
+        "note": "board cannot fetch; push setWidgetData from the app",
+        "support": "unsupported"
+      }
+    },
+    "config.state": {
+      "android": {
+        "note": "set taps handled by the widget's broadcast receiver",
+        "support": "full"
+      },
+      "desktop": {
+        "note": "set taps handled by the widget window",
+        "support": "full"
+      },
+      "ios": {
+        "note": "set taps run an AppIntent in the extension (iOS 17 / macOS 14)",
+        "support": "full"
+      },
+      "macos": {
+        "note": "set taps run an AppIntent in the extension (iOS 17 / macOS 14)",
+        "support": "full"
+      },
+      "windows": {
+        "note": "Widgets Board shows the state; set taps are not handled",
+        "support": "degraded"
+      }
+    },
+    "config.strings": {
+      "android": {
+        "note": "",
+        "support": "full"
+      },
+      "desktop": {
+        "note": "",
+        "support": "full"
+      },
+      "ios": {
+        "note": "",
+        "support": "full"
+      },
+      "macos": {
+        "note": "",
+        "support": "full"
+      },
+      "windows": {
+        "note": "",
+        "support": "full"
+      }
+    },
     "image.systemName": {
       "android": {
         "note": "SF→Material / emoji map (not SF Symbols)",
@@ -574,6 +794,116 @@
       },
       "windows": {
         "note": "Adaptive Cards Image.url",
+        "support": "full"
+      }
+    },
+    "style.accessibilityLabel": {
+      "android": {
+        "note": "Glance semantics contentDescription",
+        "support": "full"
+      },
+      "desktop": {
+        "note": "aria-label",
+        "support": "full"
+      },
+      "ios": {
+        "note": "",
+        "support": "full"
+      },
+      "macos": {
+        "note": "",
+        "support": "full"
+      },
+      "windows": {
+        "note": "",
+        "support": "unsupported"
+      }
+    },
+    "style.bind": {
+      "android": {
+        "note": "",
+        "support": "full"
+      },
+      "desktop": {
+        "note": "",
+        "support": "full"
+      },
+      "ios": {
+        "note": "",
+        "support": "full"
+      },
+      "macos": {
+        "note": "",
+        "support": "full"
+      },
+      "windows": {
+        "note": "",
+        "support": "full"
+      }
+    },
+    "style.privacySensitive": {
+      "android": {
+        "note": "no home-screen redaction",
+        "support": "unsupported"
+      },
+      "desktop": {
+        "note": "data-privacy-sensitive attribute only",
+        "support": "unsupported"
+      },
+      "ios": {
+        "note": ".privacySensitive()",
+        "support": "full"
+      },
+      "macos": {
+        "note": ".privacySensitive()",
+        "support": "full"
+      },
+      "windows": {
+        "note": "no redaction",
+        "support": "unsupported"
+      }
+    },
+    "style.transition": {
+      "android": {
+        "note": "ignored (Glance has no content transitions)",
+        "support": "unsupported"
+      },
+      "desktop": {
+        "note": "animation when the content changes",
+        "support": "full"
+      },
+      "ios": {
+        "note": "contentTransition(.numericText()) / .transition",
+        "support": "full"
+      },
+      "macos": {
+        "note": "contentTransition(.numericText()) / .transition",
+        "support": "full"
+      },
+      "windows": {
+        "note": "ignored (Adaptive Cards)",
+        "support": "unsupported"
+      }
+    },
+    "style.when": {
+      "android": {
+        "note": "evaluated before rendering",
+        "support": "full"
+      },
+      "desktop": {
+        "note": "evaluated before rendering",
+        "support": "full"
+      },
+      "ios": {
+        "note": "evaluated before rendering",
+        "support": "full"
+      },
+      "macos": {
+        "note": "evaluated before rendering",
+        "support": "full"
+      },
+      "windows": {
+        "note": "evaluated before rendering",
         "support": "full"
       }
     },

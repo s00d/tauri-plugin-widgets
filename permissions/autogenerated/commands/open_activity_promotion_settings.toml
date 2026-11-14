@@ -1,0 +1,13 @@
+# Automatically generated - DO NOT EDIT!
+
+"$schema" = "../../schemas/schema.json"
+
+[[permission]]
+identifier = "allow-open-activity-promotion-settings"
+description = "Enables the open_activity_promotion_settings command without any pre-configured scope."
+commands.allow = ["open_activity_promotion_settings"]
+
+[[permission]]
+identifier = "deny-open-activity-promotion-settings"
+description = "Denies the open_activity_promotion_settings command without any pre-configured scope."
+commands.deny = ["open_activity_promotion_settings"]

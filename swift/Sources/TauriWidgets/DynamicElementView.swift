@@ -5,6 +5,8 @@ import SwiftUI
 public struct DynamicElementView: View {
     public let element: WidgetElement
     var parentAxis: Axis? = nil
+    /// Parent VStack `alignment` (nil = stretch) — places full-width rows' content.
+    var parentAlign: String? = nil
     /// When true, text must not expand to maxWidth (breaks ZStack badge centering).
     var inZStack: Bool = false
     /// WidgetKit root: `containerBackground` already paints the canvas — skip
@@ -21,19 +23,39 @@ public struct DynamicElementView: View {
         )
     }
 
+    /// `set` + optional `action` as one in-extension state write (contract v3).
+    func stateIntent(_ patch: [String: Any], action: String? = nil, payload: String? = nil) -> WidgetStateIntent {
+        WidgetStateIntent(
+            patch: patch, actionName: action, payload: payload,
+            widgetId: identity?.widgetId, instance: identity?.instance, appGroup: identity?.appGroup
+        )
+    }
+
+    /// The element's `set` object, when non-empty.
+    var statePatch: [String: Any]? {
+        guard let m = element.set?.values, !m.isEmpty else { return nil }
+        return m
+    }
+
     public init(
         element: WidgetElement,
         parentAxis: Axis? = nil,
+        parentAlign: String? = nil,
         inZStack: Bool = false,
         isWidgetRoot: Bool = false
     ) {
         self.element = element
         self.parentAxis = parentAxis
+        self.parentAlign = parentAlign
         self.inZStack = inZStack
         self.isWidgetRoot = isWidgetRoot
     }
 
-    public var body: some View { applyStyle(to: renderElement(), element: element) }
+    public var body: some View {
+        applyStyle(to: renderElement(), element: element)
+            .modifier(A11yMod(label: element.accessibilityLabel, privacy: element.privacySensitive == true))
+            .modifier(TransitionMod(kind: element.transition))
+    }
 
     @ViewBuilder
     private func renderElement() -> some View {
@@ -67,6 +89,7 @@ public struct DynamicElementView: View {
         let base = view
             .modifier(FlexMod(flex: el.flex))
             .modifier(PaddingMod(p: outerPad))
+            .ifLet(el.aspectRatio) { $0.aspectRatio(CGFloat($1), contentMode: .fit) }
             .modifier(FrameMod(f: el.frame))
         let styled: AnyView = {
             if inZStack && isStack {
@@ -78,9 +101,12 @@ public struct DynamicElementView: View {
         }()
         if isWidgetRoot {
             // Keep padding/frame; chrome comes from WidgetKit containerBackground.
+            // A root border outlines the whole canvas (desktop/Android), not the content box.
             styled
+                .ifLet(el.border) { v, _ in v.frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading) }
                 .modifier(BorderMod(b: el.border, cr: el.cornerRadius))
                 .modifier(OpacityMod(o: el.opacity))
+                .modifier(PlacementMod(el: el))
         } else {
             styled
                 .modifier(BgMod(bg: el.background, cr: el.cornerRadius))
@@ -88,6 +114,7 @@ public struct DynamicElementView: View {
                 .modifier(ClipShapeMod(shape: el.clipShape, cr: el.cornerRadius))
                 .modifier(OpacityMod(o: el.opacity))
                 .modifier(ShadowMod(s: el.shadow))
+                .modifier(PlacementMod(el: el))
         }
     }
 
@@ -138,4 +165,11 @@ public struct DynamicElementView: View {
         default: return .center
         }
     }
+}
+
+/// Type-erased `Encodable` (an existential cannot be passed to `JSONEncoder.encode`).
+struct AnyEncodable: Encodable {
+    let value: Encodable
+    init(_ value: Encodable) { self.value = value }
+    func encode(to encoder: Encoder) throws { try value.encode(to: encoder) }
 }

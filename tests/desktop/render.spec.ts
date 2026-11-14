@@ -2,16 +2,20 @@ import { test, expect, type Page } from "@playwright/test";
 import crypto from "node:crypto";
 import fs from "node:fs";
 import path from "node:path";
+import { createRequire } from "node:module";
 import {
   CASE_FILTER,
   FIXED_NOW_MS,
   GOLDEN_RECORD,
   GOLDEN_RECORD_ALL,
+  GOLDEN_STRICT,
   goldenPath,
+  goldenPlatform,
   loadCases,
   outPaths,
 } from "./cases.js";
 import {
+  REPO_ROOT,
   SIZE_VIEWPORTS,
   UPDATE_SNAPSHOTS,
   assertNoLiteralNullText,
@@ -134,17 +138,12 @@ async function awaitStable(page: Page, deadlineMs = 15_000): Promise<Buffer> {
   throw new Error(`widget #root did not stabilize within ${deadlineMs}ms`);
 }
 
-function mismatchFraction(a: Buffer, b: Buffer): number {
-  // Structural: if lengths differ a lot, fail. Byte-level on PNG compressed data is
-  // unstable; decode via playwright's raw is better — use exact buffer equality first,
-  // then soft byte compare on compressed streams is useless.
-  // For pixel compare we use sharp when available; else require identical buffers.
-  return a.equals(b) ? 0 : 1;
-}
+// sharp is a dependency of the `scripts` workspace (audit sheets); load it from there. A
+// missing sharp must fail loudly: a byte-compare fallback made every 1-pixel change "100%".
+const sharp = createRequire(path.join(REPO_ROOT, "scripts/package.json"))("sharp") as typeof import("sharp");
 
 async function pixelMismatch(a: Buffer, b: Buffer): Promise<{ frac: number; diff?: Buffer }> {
-  try {
-    const sharp = (await import("sharp")).default;
+  {
     const ia = sharp(a).ensureAlpha().raw();
     const ib = sharp(b).ensureAlpha().raw();
     const [ma, mb] = await Promise.all([ia.metadata(), ib.metadata()]);
@@ -173,8 +172,6 @@ async function pixelMismatch(a: Buffer, b: Buffer): Promise<{ frac: number; diff
       .png()
       .toBuffer();
     return { frac: bad / n, diff: diffPng };
-  } catch {
-    return { frac: mismatchFraction(a, b) };
   }
 }
 
@@ -209,10 +206,13 @@ for (const c of cases) {
 
     // Geometry Level-1: still updatable via UPDATE_SNAPSHOTS (bulk ok for geometry).
     // Skip compare when recording pixels — glyph/text changes fail text-leaf asserts first.
-    if (UPDATE_SNAPSHOTS) {
+    // `*.desktop.json` are the macOS etalon (Android is diffed against them): other hosts'
+    // fonts move text leaves by a few px, so there the pixel golden alone gates layout.
+    const geometryHost = goldenPlatform() === "desktop";
+    if (UPDATE_SNAPSHOTS && geometryHost) {
       fs.mkdirSync(path.dirname(expectedGeom), { recursive: true });
       fs.writeFileSync(expectedGeom, JSON.stringify(tree, null, 2) + "\n");
-    } else if (!GOLDEN_RECORD && fs.existsSync(expectedGeom)) {
+    } else if (!GOLDEN_RECORD && geometryHost && fs.existsSync(expectedGeom)) {
       const expected = JSON.parse(fs.readFileSync(expectedGeom, "utf8")) as GeometryNode;
       const errs = diffTrees(tree!, expected, 2);
       expect(errs, errs.join("\n")).toEqual([]);
@@ -229,6 +229,14 @@ for (const c of cases) {
     }
 
     if (!fs.existsSync(golden)) {
+      if (GOLDEN_STRICT) {
+        fs.mkdirSync(outs.dir, { recursive: true });
+        fs.writeFileSync(outs.actual, png);
+        throw new Error(
+          `missing golden ${path.relative(process.cwd(), golden)} (actual → ${outs.actual}); ` +
+            `record it: GOLDEN_RECORD=1 CASE=${c.name}`,
+        );
+      }
       test.info().annotations.push({
         type: "note",
         description: `no golden yet: ${golden} (GOLDEN_RECORD=1 CASE=${c.name})`,

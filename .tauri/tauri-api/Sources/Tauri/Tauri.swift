@@ -112,13 +112,13 @@ extension PluginManager: NSCopying {
 private var stdoutRedirector: StdoutRedirector?
 
 @_cdecl("log_stdout")
-public func logStdout() {
+func logStdout() {
   stdoutRedirector = StdoutRedirector()
   stdoutRedirector!.start()
 }
 
 @_cdecl("register_plugin")
-public func registerPlugin(name: SRString, plugin: NSObject, config: SRString, webview: WKWebView?) {
+func registerPlugin(name: SRString, plugin: NSObject, config: SRString, webview: WKWebView?) {
   PluginManager.shared.load(
     name: name.toString(),
     plugin: plugin as! Plugin,
@@ -128,13 +128,13 @@ public func registerPlugin(name: SRString, plugin: NSObject, config: SRString, w
 }
 
 @_cdecl("on_webview_created")
-public func onWebviewCreated(webview: WKWebView, viewController: UIViewController) {
+func onWebviewCreated(webview: WKWebView, viewController: UIViewController) {
   PluginManager.shared.viewController = viewController
   PluginManager.shared.onWebviewCreated(webview)
 }
 
 @_cdecl("run_plugin_command")
-public func runCommand(
+func runCommand(
   id: Int,
   name: SRString,
   command: SRString,

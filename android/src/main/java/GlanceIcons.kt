@@ -10,8 +10,21 @@ import androidx.compose.ui.graphics.toArgb
 import java.util.Locale
 
 
+/**
+ * Glyph for an SF Symbol name. Unknown names fall back to their shorter prefix
+ * (`cloud.sun.rain.fill` -> `cloud.sun.rain` -> `cloud.sun` ...), like the desktop renderer.
+ */
 internal fun iconGlyph(systemName: String): String {
-    val key = systemName.lowercase(Locale.US)
+    var key = systemName.lowercase(Locale.US).trim()
+    while (key.isNotEmpty()) {
+        glyphExact(key)?.let { return it }
+        key = key.substringBeforeLast('.', "")
+    }
+    // Never take(1) — that rendered a random letter.
+    return "\u25CF"
+}
+
+private fun glyphExact(key: String): String? {
     return when (key) {
         "star" -> "\u2B50"
         "star.fill" -> "\u2B50"
@@ -48,6 +61,7 @@ internal fun iconGlyph(systemName: String): String {
         "cloud.sun.fill" -> "\u26C5"
         "cloud.rain.fill" -> "\u2614"
         "cloud.bolt.fill" -> "\u26A1"
+        "cloud.sun.rain" -> "\uD83C\uDF26"
         "sun.max" -> "\u2600"
         "sun.max.fill" -> "\u2600"
         "moon.fill" -> "\u263E"
@@ -121,10 +135,7 @@ internal fun iconGlyph(systemName: String): String {
         "stop.fill" -> "\u23F9"
         "forward.fill" -> "\u23E9"
         "backward.fill" -> "\u23EA"
-        else -> {
-            // Never take(1) — that rendered a random letter. Neutral bullet + Material ligature name.
-            if (systemName.isBlank()) "\u25CF" else "\u25CF"
-        }
+        else -> null
     }
 }
 
@@ -293,6 +304,37 @@ internal fun drawGlyphBitmap(
     val x = px / 2f
     val y = px / 2f - (paint.descent() + paint.ascent()) / 2f
     canvas.drawText(glyph, x, y, paint)
+    return bmp
+}
+
+/** Toggle mark like Apple's `checkmark.circle.fill` / `circle`: a filled disc with a white
+ *  check when on, a ring when off. */
+internal fun drawCheckCircleBitmap(context: Context, on: Boolean, argb: Int, sizeDp: Int): Bitmap {
+    val px = dpToPx(context, sizeDp.toFloat()).coerceAtLeast(16)
+    val bmp = Bitmap.createBitmap(px, px, Bitmap.Config.ARGB_8888)
+    val canvas = Canvas(bmp)
+    val c = px / 2f
+    val paint = Paint(Paint.ANTI_ALIAS_FLAG).apply { color = argb }
+    if (on) {
+        canvas.drawCircle(c, c, c, paint)
+        paint.apply {
+            color = android.graphics.Color.WHITE
+            style = Paint.Style.STROKE
+            strokeWidth = px * 0.11f
+            strokeCap = Paint.Cap.ROUND
+            strokeJoin = Paint.Join.ROUND
+        }
+        val path = android.graphics.Path().apply {
+            moveTo(px * 0.28f, px * 0.52f)
+            lineTo(px * 0.44f, px * 0.67f)
+            lineTo(px * 0.73f, px * 0.36f)
+        }
+        canvas.drawPath(path, paint)
+    } else {
+        paint.style = Paint.Style.STROKE
+        paint.strokeWidth = px * 0.08f
+        canvas.drawCircle(c, c, c - paint.strokeWidth / 2f, paint)
+    }
     return bmp
 }
 

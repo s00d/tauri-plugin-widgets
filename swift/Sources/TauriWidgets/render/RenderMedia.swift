@@ -18,16 +18,49 @@ extension DynamicElementView {
     @ViewBuilder func renderImage() -> some View {
         let s = element.size ?? 24
         if let sn = element.systemName {
-            let img = Image(systemName: sn).resizable()
-                .aspectRatio(contentMode: element.contentMode == "fill" ? .fill : .fit)
-                .frame(width: s, height: s)
-            if let c = resolveColor(element.color) { img.foregroundColor(c) } else { img }
+            symbolImage(sn, size: s)
         } else if let decoded = decodeImageData(element.data) {
             decodedImageView(decoded, size: s)
         } else if let url = element.url, let decoded = decodeImageData(url) {
             decodedImageView(decoded, size: s)
+        } else if let fb = element.fallbackSystemName {
+            symbolImage(fb, size: s)
         } else {
             placeholderImage(s)
+        }
+    }
+
+    /// `contentMode`: fit (default) / fill keep the ratio, stretch ignores it, center draws
+    /// at natural size, unscaled and clipped to the box.
+    @ViewBuilder func sized(_ img: Image, size s: CGFloat) -> some View {
+        switch element.contentMode {
+        case "center": img.frame(width: s, height: s).clipped()
+        case "stretch": img.resizable().frame(width: s, height: s)
+        case "fill": img.resizable().aspectRatio(contentMode: .fill).frame(width: s, height: s)
+        default: img.resizable().aspectRatio(contentMode: .fit).frame(width: s, height: s)
+        }
+    }
+
+    /// SF Symbol with `color`, `symbolRendering` (+ `paletteColors`) and `symbolWeight`.
+    @ViewBuilder func symbolImage(_ name: String, size s: CGFloat) -> some View {
+        let base = sized(Image(systemName: name), size: s)
+            .ifLet(element.symbolWeight) { $0.fontWeight(fontWeight($1)) }
+        let palette = (element.paletteColors ?? []).compactMap { resolveColor($0) }
+        switch element.symbolRendering {
+        case "palette" where !palette.isEmpty:
+            let p2 = palette.count > 1 ? palette[1] : palette[0]
+            let p3 = palette.count > 2 ? palette[2] : p2
+            base.symbolRenderingMode(.palette).foregroundStyle(palette[0], p2, p3)
+        case "multicolor":
+            base.symbolRenderingMode(.multicolor)
+        case "hierarchical":
+            base.symbolRenderingMode(.hierarchical)
+                .foregroundStyle(resolveColor(element.color) ?? .primary)
+        case "monochrome":
+            base.symbolRenderingMode(.monochrome)
+                .ifLet(resolveColor(element.color)) { $0.foregroundColor($1) }
+        default:
+            if let c = resolveColor(element.color) { base.foregroundColor(c) } else { base }
         }
     }
 
@@ -56,23 +89,19 @@ extension DynamicElementView {
     @ViewBuilder func decodedImageView(_ raw: Data, size: CGFloat) -> some View {
         #if canImport(UIKit)
         if let cg = downsampledCGImage(raw, size: size) {
-            Image(uiImage: UIImage(cgImage: cg)).resizable()
-                .aspectRatio(contentMode: element.contentMode == "fill" ? .fill : .fit)
-                .frame(width: size, height: size)
+            sized(Image(uiImage: UIImage(cgImage: cg)), size: size)
         } else if let uiImage = UIImage(data: raw) {
-            Image(uiImage: uiImage).resizable()
-                .aspectRatio(contentMode: element.contentMode == "fill" ? .fill : .fit)
-                .frame(width: size, height: size)
+            sized(Image(uiImage: uiImage), size: size)
+        } else if let fb = element.fallbackSystemName {
+            symbolImage(fb, size: size)
         } else { placeholderImage(size) }
         #elseif canImport(AppKit)
         if let cg = downsampledCGImage(raw, size: size) {
-            Image(nsImage: NSImage(cgImage: cg, size: .zero)).resizable()
-                .aspectRatio(contentMode: element.contentMode == "fill" ? .fill : .fit)
-                .frame(width: size, height: size)
+            sized(Image(nsImage: NSImage(cgImage: cg, size: .zero)), size: size)
         } else if let nsImage = NSImage(data: raw) {
-            Image(nsImage: nsImage).resizable()
-                .aspectRatio(contentMode: element.contentMode == "fill" ? .fill : .fit)
-                .frame(width: size, height: size)
+            sized(Image(nsImage: nsImage), size: size)
+        } else if let fb = element.fallbackSystemName {
+            symbolImage(fb, size: size)
         } else { placeholderImage(size) }
         #endif
     }
@@ -87,8 +116,9 @@ extension DynamicElementView {
     @ViewBuilder func renderShape() -> some View {
         let fc = resolveColor(element.fill) ?? Color.accentColor
         let sc = resolveColor(element.stroke); let sw = element.strokeWidth ?? 1
-        let frameW = element.frame?.width
-        let frameH = element.frame?.height
+        // Shapes have no intrinsic size: `minWidth`/`minHeight` seed a missing side and
+        // `aspectRatio` derives the other (same rule as Android `frameSizeDp`).
+        let (frameW, frameH) = Self.shapeFrame(element)
         let explicitSize = element.size
         switch element.shapeType {
         case "circle":
@@ -96,6 +126,22 @@ extension DynamicElementView {
             ZStack {
                 Circle().fill(fc).frame(width: s, height: s)
                 if let c = sc { Circle().stroke(c, lineWidth: sw).frame(width: s, height: s) }
+            }
+        case "ellipse":
+            // size → circle-sized; frame w/h → oval; nothing → fill the slot.
+            if explicitSize == nil && frameW == nil && frameH == nil {
+                ZStack {
+                    Ellipse().fill(fc)
+                    if let c = sc { Ellipse().stroke(c, lineWidth: sw) }
+                }
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+            } else {
+                let w = frameW ?? explicitSize ?? frameH ?? 24
+                let h = frameH ?? explicitSize ?? frameW ?? 24
+                ZStack {
+                    Ellipse().fill(fc).frame(width: w, height: h)
+                    if let c = sc { Ellipse().stroke(c, lineWidth: sw).frame(width: w, height: h) }
+                }
             }
         case "capsule":
             // Prefer explicit frame (accent bar 6×36). size-only keeps width=2*size contract.
@@ -113,6 +159,7 @@ extension DynamicElementView {
                 }
             }
         default:
+            // rectangle / roundedRectangle: both honor `cornerRadius`.
             let cr = element.cornerRadius ?? 0
             // No size/frame → fill proposed size (zstack underlay). Otherwise hug.
             if explicitSize == nil && frameW == nil && frameH == nil {
@@ -135,6 +182,15 @@ extension DynamicElementView {
                 }
             }
         }
+    }
+
+    static func shapeFrame(_ el: WidgetElement) -> (CGFloat?, CGFloat?) {
+        var w = el.frame?.width ?? el.frame?.minWidth
+        var h = el.frame?.height ?? el.frame?.minHeight
+        if let r = el.aspectRatio, r > 0 {
+            if let fw = w, h == nil { h = fw / r } else if let fh = h, w == nil { w = fh * r }
+        }
+        return (w, h)
     }
 
     // MARK: Canvas

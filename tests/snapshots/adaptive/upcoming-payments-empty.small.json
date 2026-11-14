@@ -2,7 +2,11 @@
   "$schema": "http://adaptivecards.io/schemas/adaptive-card.json",
   "body": [
     {
-      "id": "card:#1c1c1e;gap:10",
+      "backgroundImage": {
+        "fillMode": "repeat",
+        "url": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAAEElEQVR4AQEFAPr/ABwcHv8CBAFWW3W0KwAAAABJRU5ErkJggg=="
+      },
+      "id": "card:#1c1c1e",
       "items": [
         {
           "spacing": "Medium",
@@ -11,7 +15,7 @@
         },
         {
           "horizontalAlignment": "Center",
-          "id": "badge:overlay",
+          "id": "badge:overlay;gap:10",
           "items": [
             {
               "spacing": "None",
@@ -27,25 +31,29 @@
               "wrap": true
             }
           ],
-          "spacing": "None",
+          "spacing": "Medium",
           "type": "Container"
         },
         {
           "color": "Light",
           "horizontalAlignment": "Center",
+          "id": "gap:10",
+          "maxLines": 2,
           "size": "Default",
+          "spacing": "Medium",
           "text": "No upcoming payments",
           "type": "TextBlock",
           "weight": "Bolder",
           "wrap": true
         },
         {
+          "id": "gap:10;#2",
           "spacing": "Medium",
           "text": " ",
           "type": "TextBlock"
         }
       ],
-      "spacing": "Medium",
+      "spacing": "None",
       "style": "emphasis",
       "type": "Container"
     }

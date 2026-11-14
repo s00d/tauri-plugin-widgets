@@ -1,0 +1,227 @@
+{
+  "kind": "div",
+  "rect": [
+    0,
+    0,
+    360,
+    170
+  ],
+  "children": [
+    {
+      "kind": "div",
+      "rect": [
+        0,
+        0,
+        360,
+        170
+      ],
+      "children": [
+        {
+          "kind": "div",
+          "rect": [
+            10,
+            10,
+            340,
+            31
+          ],
+          "children": [
+            {
+              "kind": "div",
+              "rect": [
+                10,
+                11,
+                85,
+                29
+              ],
+              "text": "Bordered",
+              "px": 14,
+              "color": "#2196F3"
+            },
+            {
+              "kind": "div",
+              "rect": [
+                101,
+                11,
+                78,
+                29
+              ],
+              "children": [
+                {
+                  "kind": "span",
+                  "rect": [
+                    123,
+                    18,
+                    11,
+                    14
+                  ],
+                  "text": "▶",
+                  "px": 14,
+                  "color": "#FFFFFF"
+                }
+              ]
+            },
+            {
+              "kind": "div",
+              "rect": [
+                185,
+                11,
+                78,
+                29
+              ],
+              "text": "Plain",
+              "px": 14,
+              "color": "#2196F3"
+            },
+            {
+              "kind": "div",
+              "rect": [
+                269,
+                10,
+                80,
+                31
+              ],
+              "text": "Off",
+              "px": 14,
+              "color": "#2196F3"
+            }
+          ]
+        },
+        {
+          "kind": "div",
+          "rect": [
+            10,
+            49,
+            340,
+            18
+          ],
+          "children": [
+            {
+              "kind": "div",
+              "rect": [
+                10,
+                49,
+                67,
+                18
+              ],
+              "children": [
+                {
+                  "kind": "div",
+                  "rect": [
+                    10,
+                    49,
+                    18,
+                    18
+                  ],
+                  "children": [
+                    {
+                      "kind": "span",
+                      "rect": [
+                        13,
+                        50,
+                        10,
+                        15
+                      ],
+                      "text": "✓",
+                      "px": 12,
+                      "color": "#FFFFFF"
+                    }
+                  ]
+                },
+                {
+                  "kind": "span",
+                  "rect": [
+                    34,
+                    49,
+                    43,
+                    17
+                  ],
+                  "text": "Switch",
+                  "px": 14,
+                  "color": "#E5E7EB"
+                }
+              ]
+            },
+            {
+              "kind": "div",
+              "rect": [
+                89,
+                49,
+                62,
+                17
+              ],
+              "children": [
+                {
+                  "kind": "div",
+                  "rect": [
+                    89,
+                    50,
+                    16,
+                    16
+                  ]
+                },
+                {
+                  "kind": "span",
+                  "rect": [
+                    111,
+                    49,
+                    40,
+                    17
+                  ],
+                  "text": "Check",
+                  "px": 14,
+                  "color": "#E5E7EB"
+                }
+              ]
+            },
+            {
+              "kind": "div",
+              "rect": [
+                164,
+                49,
+                78,
+                17
+              ],
+              "children": [
+                {
+                  "kind": "div",
+                  "rect": [
+                    164,
+                    50,
+                    16,
+                    16
+                  ],
+                  "children": [
+                    {
+                      "kind": "span",
+                      "rect": [
+                        167,
+                        50,
+                        10,
+                        15
+                      ],
+                      "text": "✓",
+                      "px": 12,
+                      "color": "#FFFFFF"
+                    }
+                  ]
+                },
+                {
+                  "kind": "span",
+                  "rect": [
+                    186,
+                    49,
+                    56,
+                    17
+                  ],
+                  "text": "Checked",
+                  "px": 14,
+                  "color": "#E5E7EB"
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

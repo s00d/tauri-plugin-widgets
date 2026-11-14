@@ -1,0 +1,180 @@
+{
+  "about": "`repeat` splices one copy of `template` per item into the parent array; `{{as.field}}`, `bind` with `as.`, `{{index}}` (innermost loop, 0-based); `when` inside the template filters items; `limit` caps (and 50 is the hard cap); a non-array `each` produces nothing. Loop variables shadow built-in roots (`t` here is a task, not the strings table).",
+  "config": {
+    "data": {
+      "tasks": [
+        {
+          "title": "A",
+          "done": true,
+          "sub": [
+            "x",
+            "y"
+          ]
+        },
+        {
+          "title": "B",
+          "done": false,
+          "sub": []
+        },
+        {
+          "title": "C",
+          "done": true,
+          "sub": [
+            "z"
+          ]
+        }
+      ],
+      "notList": 5
+    },
+    "small": {
+      "type": "vstack",
+      "children": [
+        {
+          "type": "text",
+          "content": "head"
+        },
+        {
+          "type": "repeat",
+          "each": "data.tasks",
+          "as": "task",
+          "template": {
+            "type": "hstack",
+            "children": [
+              {
+                "type": "toggle",
+                "isOn": false,
+                "label": "{{index}}. {{task.title}}",
+                "bind": {
+                  "isOn": "task.done"
+                }
+              },
+              {
+                "type": "repeat",
+                "each": "task.sub",
+                "as": "s",
+                "template": {
+                  "type": "text",
+                  "content": "{{task.title}}/{{s}}#{{index}}"
+                }
+              }
+            ]
+          }
+        },
+        {
+          "type": "repeat",
+          "each": "data.tasks",
+          "as": "t",
+          "limit": 1,
+          "template": {
+            "type": "text",
+            "content": "first {{t.title}}"
+          }
+        },
+        {
+          "type": "repeat",
+          "each": "data.tasks",
+          "as": "t",
+          "template": {
+            "type": "text",
+            "content": "done {{t.title}}",
+            "when": {
+              "path": "t.done"
+            }
+          }
+        },
+        {
+          "type": "repeat",
+          "each": "data.notList",
+          "as": "t",
+          "template": {
+            "type": "text",
+            "content": "never"
+          }
+        },
+        {
+          "type": "text",
+          "content": "tail"
+        }
+      ]
+    },
+    "strings": {
+      "en": {
+        "title": "STRING"
+      }
+    }
+  },
+  "ctx": {
+    "nowMs": 0,
+    "locale": "en"
+  },
+  "expected": {
+    "version": 1,
+    "small": {
+      "type": "vstack",
+      "children": [
+        {
+          "type": "text",
+          "content": "head"
+        },
+        {
+          "type": "hstack",
+          "children": [
+            {
+              "type": "toggle",
+              "isOn": true,
+              "label": "0. A"
+            },
+            {
+              "type": "text",
+              "content": "A/x#0"
+            },
+            {
+              "type": "text",
+              "content": "A/y#1"
+            }
+          ]
+        },
+        {
+          "type": "hstack",
+          "children": [
+            {
+              "type": "toggle",
+              "isOn": false,
+              "label": "1. B"
+            }
+          ]
+        },
+        {
+          "type": "hstack",
+          "children": [
+            {
+              "type": "toggle",
+              "isOn": true,
+              "label": "2. C"
+            },
+            {
+              "type": "text",
+              "content": "C/z#0"
+            }
+          ]
+        },
+        {
+          "type": "text",
+          "content": "first A"
+        },
+        {
+          "type": "text",
+          "content": "done A"
+        },
+        {
+          "type": "text",
+          "content": "done C"
+        },
+        {
+          "type": "text",
+          "content": "tail"
+        }
+      ]
+    }
+  }
+}

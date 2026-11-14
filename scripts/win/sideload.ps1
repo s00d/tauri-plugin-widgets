@@ -8,7 +8,7 @@ $ErrorActionPreference = "Stop"
 
 $devMode = (Get-ItemProperty -Path "HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\AppModelUnlock" -Name AllowDevelopmentWithoutDevLicense -ErrorAction SilentlyContinue).AllowDevelopmentWithoutDevLicense
 if ($devMode -ne 1) {
-  Write-Host "WARNING: Developer Mode may be off. Enable Settings → Privacy & security → For developers → Developer Mode"
+  Write-Host "WARNING: Developer Mode may be off. Enable Settings -> Privacy & security -> For developers -> Developer Mode"
 }
 
 if (-not (Test-Path $PackagePath)) {

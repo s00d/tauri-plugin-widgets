@@ -1,4 +1,4 @@
-import { applyStyle, resolveColor, svg } from "../style";
+import { applyStyle, fw, resolveColor, svg } from "../style";
 import type { ElNode } from "../types";
 
 export function systemGlyph(name: string | null | undefined): string {
@@ -8,10 +8,10 @@ export function systemGlyph(name: string | null | undefined): string {
     "star.fill": "\u2b50",
     heart: "\u2764",
     "heart.fill": "\u2764",
-    person: "\u1f464",
-    "person.fill": "\u1f464",
-    "person.2.fill": "\u1f465",
-    "person.badge.plus": "\u1f464",
+    person: "\u{1f464}",
+    "person.fill": "\u{1f464}",
+    "person.2.fill": "\u{1f465}",
+    "person.badge.plus": "\u{1f464}",
     gear: "\u2699",
     gearshape: "\u2699",
     "gearshape.fill": "\u2699",
@@ -24,21 +24,22 @@ export function systemGlyph(name: string | null | undefined): string {
     "plus.circle": "+",
     minus: "\u2212",
     "minus.circle": "\u2212",
-    bell: "\u1f514",
-    "bell.fill": "\u1f514",
+    bell: "\u{1f514}",
+    "bell.fill": "\u{1f514}",
     house: "\u2302",
     "house.fill": "\u2302",
-    magnifyingglass: "\u1f50d",
-    calendar: "\u1f4c5",
-    "calendar.badge.clock": "\u1f4c5",
-    "calendar.circle": "\u1f4c5",
+    magnifyingglass: "\u{1f50d}",
+    calendar: "\u{1f4c5}",
+    "calendar.badge.clock": "\u{1f4c5}",
+    "calendar.circle": "\u{1f4c5}",
     clock: "\u23f1",
     "clock.fill": "\u23f1",
-    globe: "\u1f310",
+    globe: "\u{1f310}",
     "cloud.fill": "\u2601",
     "cloud.sun.fill": "\u26c5",
     "cloud.rain.fill": "\u2614",
     "cloud.bolt.fill": "\u26a1",
+    "cloud.sun.rain": "\u{1f326}\ufe0f", // VS16: text-default emoji, colour on WebKitGTK too
     "sun.max": "\u2600",
     "sun.max.fill": "\u2600",
     "moon.fill": "\u263e",
@@ -46,7 +47,7 @@ export function systemGlyph(name: string | null | undefined): string {
     bolt: "\u26a1",
     "bolt.fill": "\u26a1",
     "location.fill": "\u2302",
-    "flame.fill": "\u1f525",
+    "flame.fill": "\u{1f525}",
     "drop.fill": "\u25cf",
     "leaf.fill": "\u273f",
     "eye.fill": "\u25c9",
@@ -71,29 +72,29 @@ export function systemGlyph(name: string | null | undefined): string {
     envelope: "\u2709",
     "phone.fill": "\u260e",
     phone: "\u260e",
-    "message.fill": "\u1f4ac",
-    trash: "\u1f5d1",
-    "trash.fill": "\u1f5d1",
-    folder: "\u1f4c1",
-    "folder.fill": "\u1f4c1",
-    doc: "\u1f4c4",
-    "doc.fill": "\u1f4c4",
-    photo: "\u1f5bc",
-    "photo.fill": "\u1f5bc",
-    camera: "\u1f4f7",
-    "camera.fill": "\u1f4f7",
-    map: "\u1f5fa",
-    "map.fill": "\u1f5fa",
-    cart: "\u1f6d2",
-    "cart.fill": "\u1f6d2",
-    creditcard: "\u1f4b3",
-    "creditcard.fill": "\u1f4b3",
-    wifi: "\u1f4f6",
-    "antenna.radiowaves.left.and.right": "\u1f4e1",
-    "lock.fill": "\u1f512",
-    lock: "\u1f512",
-    "lock.open.fill": "\u1f513",
-    "key.fill": "\u1f511",
+    "message.fill": "\u{1f4ac}",
+    trash: "\u{1f5d1}",
+    "trash.fill": "\u{1f5d1}",
+    folder: "\u{1f4c1}",
+    "folder.fill": "\u{1f4c1}",
+    doc: "\u{1f4c4}",
+    "doc.fill": "\u{1f4c4}",
+    photo: "\u{1f5bc}\ufe0f",
+    "photo.fill": "\u{1f5bc}\ufe0f",
+    camera: "\u{1f4f7}",
+    "camera.fill": "\u{1f4f7}",
+    map: "\u{1f5fa}",
+    "map.fill": "\u{1f5fa}",
+    cart: "\u{1f6d2}",
+    "cart.fill": "\u{1f6d2}",
+    creditcard: "\u{1f4b3}",
+    "creditcard.fill": "\u{1f4b3}",
+    wifi: "\u{1f4f6}",
+    "antenna.radiowaves.left.and.right": "\u{1f4e1}",
+    "lock.fill": "\u{1f512}",
+    lock: "\u{1f512}",
+    "lock.open.fill": "\u{1f513}",
+    "key.fill": "\u{1f511}",
     "paperplane.fill": "\u27a4",
     "arrow.right": "\u2192",
     "arrow.left": "\u2190",
@@ -113,9 +114,28 @@ export function systemGlyph(name: string | null | undefined): string {
     "forward.fill": "\u23e9",
     "backward.fill": "\u23ea",
   };
-  if (map[n]) return map[n];
-  // Never first-letter fallback — looks like a bug.
+  // Variants share the base glyph: `cloud.sun.rain.fill` → `cloud.sun.rain`,
+  // `person.circle.fill` → `person`. Never first-letter fallback — looks like a bug.
+  for (; n; n = n.slice(0, Math.max(0, n.lastIndexOf(".")))) if (Object.prototype.hasOwnProperty.call(map, n)) return map[n];
   return "\u25CF";
+}
+
+var OBJECT_FIT: Record<string, string> = { fill: "cover", stretch: "fill", center: "none" };
+
+/** Symbol glyph in `e` (sized box, tint; palette → first color, symbolWeight → font weight). */
+function paintSymbol(e: HTMLElement, name: string, d: ElNode): void {
+  var sz = d.size || 24;
+  e.textContent = systemGlyph(name);
+  e.style.fontSize = sz + "px";
+  e.style.lineHeight = "1";
+  e.style.width = sz + "px";
+  e.style.height = sz + "px";
+  e.style.minWidth = sz + "px";
+  e.style.flexShrink = "0";
+  e.style.boxSizing = "border-box";
+  var c = d.color || (d.symbolRendering === "palette" && d.paletteColors && d.paletteColors[0]);
+  e.style.color = c ? resolveColor(c) : "inherit";
+  if (d.symbolWeight) e.style.fontWeight = String(fw(d.symbolWeight));
 }
 
 export function renderImage(d: ElNode): HTMLElement {
@@ -123,34 +143,24 @@ export function renderImage(d: ElNode): HTMLElement {
   e.style.display = "inline-flex";
   e.style.alignItems = "center";
   e.style.justifyContent = "center";
-  if (d.data) {
+  if (d.data || d.url) {
     var img = document.createElement("img");
-    img.src =
-      String(d.data).indexOf("data:") === 0
+    img.src = d.data
+      ? String(d.data).indexOf("data:") === 0
         ? d.data
-        : "data:image/png;base64," + d.data;
+        : "data:image/png;base64," + d.data
+      : d.url;
     img.width = d.size || 24;
     img.height = d.size || 24;
-    img.style.objectFit = d.contentMode === "fill" ? "cover" : "contain";
-    e.appendChild(img);
-  } else if (d.url) {
-    var img = document.createElement("img");
-    img.src = d.url;
-    img.width = d.size || 24;
-    img.height = d.size || 24;
-    img.style.objectFit = d.contentMode === "fill" ? "cover" : "contain";
+    img.style.objectFit = OBJECT_FIT[d.contentMode] || "contain";
+    if (d.fallbackSystemName) {
+      img.onerror = function () {
+        paintSymbol(e, d.fallbackSystemName, d);
+      };
+    }
     e.appendChild(img);
   } else if (d.systemName) {
-    var sz = d.size || 24;
-    e.textContent = systemGlyph(d.systemName);
-    e.style.fontSize = sz + "px";
-    e.style.lineHeight = "1";
-    e.style.width = sz + "px";
-    e.style.height = sz + "px";
-    e.style.minWidth = sz + "px";
-    e.style.flexShrink = "0";
-    e.style.boxSizing = "border-box";
-    e.style.color = d.color ? resolveColor(d.color) : "inherit";
+    paintSymbol(e, d.systemName, d);
   } else {
     e.textContent = "\u25CF";
     e.style.fontSize = (d.size || 24) + "px";
@@ -189,10 +199,16 @@ export function renderShape(d: ElNode): HTMLElement {
     e.style.width = cw + "px";
     e.style.height = ch + "px";
     e.style.borderRadius = Math.min(cw, ch) / 2 + "px";
+  } else if (d.shapeType === "ellipse") {
+    e.style.width = sz + "px";
+    e.style.height = sz + "px";
+    e.style.borderRadius = "50%";
   } else {
     e.style.width = sz + "px";
     e.style.height = sz + "px";
-    if (d.cornerRadius) e.style.borderRadius = d.cornerRadius + "px";
+    // roundedRectangle without cornerRadius: a SwiftUI-like default.
+    var rr = d.cornerRadius || (d.shapeType === "roundedRectangle" ? Math.round(sz / 5) : 0);
+    if (rr) e.style.borderRadius = rr + "px";
   }
   applyStyle(e, d);
   return e;

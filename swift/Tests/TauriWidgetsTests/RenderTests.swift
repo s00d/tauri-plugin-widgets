@@ -9,6 +9,7 @@ import AppKit
 /// Not SpringBoard — WidgetKit chrome (background + corner mask) is simulated.
 final class RenderTests: XCTestCase {
 
+    /// Given the visual cases, when each renders in simulated WidgetKit chrome, then it matches its PNG golden.
     func testCases() async throws {
         let filter = ProcessInfo.processInfo.environment["CASE"]
         let cases = try VisualCase.loadAll(casesRoot: RepoPaths.cases, filter: filter)
@@ -35,6 +36,7 @@ final class RenderTests: XCTestCase {
         XCTAssertTrue(failures.isEmpty, failures.joined(separator: "\n"))
     }
 
+    /// Given the `null-fields` case, when it renders, then the image is not uniform (no literal null / blank).
     func testNullFieldsNeverRenderLiteralNull() async throws {
         let cases = try VisualCase.loadAll(casesRoot: RepoPaths.cases, filter: "null-fields.small")
         guard let c = cases.first else {
@@ -112,6 +114,7 @@ final class RenderTests: XCTestCase {
         )
         .environment(\.colorScheme, scheme)
         .environment(\.locale, Locale(identifier: c.locale.replacingOccurrences(of: "_", with: "-")))
+        .environment(\.timeZone, TimeZone(identifier: "UTC")!)
         .environment(\.sizeCategory, .large)
 
         let renderer = ImageRenderer(content: view)

@@ -192,12 +192,18 @@ pub fn receipts_path(app_data: &Path) -> PathBuf {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use proptest::prelude::*;
+    use proptest_state_machine::{prop_state_machine, ReferenceStateMachine, StateMachineTest};
+    use std::collections::BTreeMap;
 
-    fn sample(nonce: u64, ts: u64) -> WidgetRenderReceipt {
+    const GROUPS: [&str; 2] = ["group.a", "group.b"];
+    const INSTANCES: [&str; 2] = ["1", "2"];
+
+    fn sample(group: &str, instance: &str, nonce: u64, ts: u64) -> WidgetRenderReceipt {
         WidgetRenderReceipt {
             widget_id: "weather".into(),
-            group: "group.test".into(),
-            instance: "42".into(),
+            group: group.into(),
+            instance: instance.into(),
             nonce,
             size: Some("small".into()),
             theme: None,
@@ -210,17 +216,191 @@ mod tests {
         }
     }
 
+    #[derive(Clone, Debug)]
+    enum Op {
+        /// A renderer reports a paint (ts strictly increasing, so ordering is total).
+        Upsert {
+            group: usize,
+            instance: usize,
+            nonce: u64,
+            ts: u64,
+        },
+        /// Persist, then load into a fresh store (app restart).
+        SaveAndRestart,
+        /// A corrupt file on disk is ignored by load.
+        LoadCorrupt,
+    }
+
+    /// Model: (group, instance) → history of (nonce, ts), oldest first, capped.
+    #[derive(Clone, Debug, Default)]
+    struct Model {
+        rings: BTreeMap<(usize, usize), Vec<(u64, u64)>>,
+        next_ts: u64,
+    }
+
+    impl ReferenceStateMachine for Model {
+        type State = Model;
+        type Transition = Op;
+
+        fn init_state() -> BoxedStrategy<Model> {
+            Just(Model {
+                next_ts: 1,
+                ..Default::default()
+            })
+            .boxed()
+        }
+
+        fn transitions(state: &Model) -> BoxedStrategy<Op> {
+            let ts = state.next_ts;
+            prop_oneof![
+                // Most upserts hit one placement, so its ring passes the cap of 32 within
+                // ~55 steps (uniform over 4 placements needed ~150).
+                10 => (prop_oneof![8 => Just((0, 0)), 3 => (0..GROUPS.len(), 0..INSTANCES.len())], 0u64..1000)
+                    .prop_map(move |((group, instance), nonce)| Op::Upsert { group, instance, nonce, ts }),
+                1 => Just(Op::SaveAndRestart),
+                1 => Just(Op::LoadCorrupt),
+            ]
+            .boxed()
+        }
+
+        fn apply(mut state: Model, op: &Op) -> Model {
+            if let Op::Upsert {
+                group,
+                instance,
+                nonce,
+                ts,
+            } = *op
+            {
+                let ring = state.rings.entry((group, instance)).or_default();
+                ring.push((nonce, ts));
+                if ring.len() > HISTORY_CAP {
+                    ring.remove(0);
+                }
+                state.next_ts = ts + 1;
+            }
+            state
+        }
+    }
+
+    struct Sut {
+        store: ReceiptStore,
+        dir: tempfile::TempDir,
+    }
+
+    struct ReceiptMachine;
+
+    impl StateMachineTest for ReceiptMachine {
+        type SystemUnderTest = Sut;
+        type Reference = Model;
+
+        fn init_test(_: &Model) -> Sut {
+            Sut {
+                store: ReceiptStore::new(),
+                dir: tempfile::tempdir().unwrap(),
+            }
+        }
+
+        fn apply(mut sut: Sut, _: &Model, op: Op) -> Sut {
+            let path = receipts_path(sut.dir.path());
+            match op {
+                Op::Upsert {
+                    group,
+                    instance,
+                    nonce,
+                    ts,
+                } => sut
+                    .store
+                    .upsert(sample(GROUPS[group], INSTANCES[instance], nonce, ts)),
+                Op::SaveAndRestart => {
+                    sut.store.save_to_path(&path).unwrap();
+                    assert!(
+                        !path.with_extension("tmp").exists(),
+                        "temp file left behind"
+                    );
+                    let fresh = ReceiptStore::new();
+                    fresh.load_from_path(&path);
+                    sut.store = fresh;
+                }
+                Op::LoadCorrupt => {
+                    let bad = sut.dir.path().join("corrupt.json");
+                    fs::write(&bad, "{not json").unwrap();
+                    sut.store.load_from_path(&bad);
+                    sut.store
+                        .load_from_path(&sut.dir.path().join("missing.json"));
+                }
+            }
+            sut
+        }
+
+        fn check_invariants(sut: &Sut, model: &Model) {
+            for (g, group) in GROUPS.iter().enumerate() {
+                // history: every kept paint of the group, oldest → newest.
+                let mut want: Vec<(u64, u64)> = model
+                    .rings
+                    .iter()
+                    .filter(|((mg, _), _)| *mg == g)
+                    .flat_map(|(_, r)| r.iter().copied())
+                    .collect();
+                want.sort_by_key(|&(_, ts)| ts);
+                let got: Vec<(u64, u64)> = sut
+                    .store
+                    .history(group)
+                    .iter()
+                    .map(|r| (r.nonce, r.ts))
+                    .collect();
+                assert_eq!(got, want, "history({group})");
+                // list: latest paint per instance, newest first.
+                let mut latest: Vec<(String, u64, u64)> = model
+                    .rings
+                    .iter()
+                    .filter(|((mg, _), _)| *mg == g)
+                    .filter_map(|((_, i), r)| {
+                        r.last().map(|&(n, ts)| (INSTANCES[*i].to_string(), n, ts))
+                    })
+                    .collect();
+                latest.sort_by_key(|&(_, _, ts)| std::cmp::Reverse(ts));
+                let got: Vec<(String, u64, u64)> = sut
+                    .store
+                    .list(group)
+                    .into_iter()
+                    .map(|r| (r.instance, r.nonce, r.ts))
+                    .collect();
+                assert_eq!(got, latest, "list({group})");
+            }
+            assert!(sut.store.list("group.none").is_empty());
+        }
+    }
+
+    prop_state_machine! {
+        #![proptest_config(ProptestConfig { cases: 64, ..ProptestConfig::default() })]
+        /// Receipt bag vs a model: per-instance rings capped at 32, `list` = latest per
+        /// instance newest first, `history` = all oldest first, restart via disk keeps both,
+        /// corrupt / missing files are ignored.
+        #[test]
+        fn receipt_store_follows_the_model(sequential 1..80 => ReceiptMachine);
+    }
+
+    /// Liveness: a receipt without `ts` is stamped now → `live_instances` keeps recent
+    /// paints of that widget only (old paints and other widgets are dropped).
     #[test]
-    fn upsert_keeps_history() {
+    fn untimed_receipts_are_stamped_and_count_as_live() {
         let store = ReceiptStore::new();
-        store.upsert(sample(1, 100));
-        store.upsert(sample(2, 200));
-        let list = store.list("group.test");
-        assert_eq!(list.len(), 1);
-        assert_eq!(list[0].nonce, 2);
-        let hist = store.history("group.test");
-        assert_eq!(hist.len(), 2);
-        assert_eq!(hist[0].nonce, 1);
-        assert_eq!(hist[1].nonce, 2);
+        store.upsert(sample("g", "fresh", 1, 0));
+        store.upsert(sample("g", "stale", 2, 1));
+        let mut other = sample("g", "other", 3, 0);
+        other.widget_id = "clock".into();
+        store.upsert(other);
+        let fresh = store
+            .list("g")
+            .into_iter()
+            .find(|r| r.instance == "fresh")
+            .unwrap();
+        assert!(
+            now_ms().saturating_sub(fresh.ts) < 60_000,
+            "ts {}",
+            fresh.ts
+        );
+        assert_eq!(store.live_instances("g", "weather", 60_000), ["fresh"]);
+        assert_eq!(sample("g", "x", 0, 7).touch_ts().ts, 7);
     }
 }

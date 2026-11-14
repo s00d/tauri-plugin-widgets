@@ -1,0 +1,9 @@
+{
+  "about": "Numbers outside 1e-6 <= |x| < 1e21 print with an exponent like JavaScript; 1e21 itself is exponent form.",
+  "config": {
+    "data": { "a": -4e-323, "b": 1e-7, "c": 1.5e21, "d": 1e21, "e": 0.000001 },
+    "small": { "type": "text", "content": "{{data.a}}|{{data.b}}|{{data.c}}|{{data.d}}|{{data.e}}" }
+  },
+  "ctx": { "nowMs": 0, "locale": "en" },
+  "expected": { "version": 1, "small": { "type": "text", "content": "-4e-323|1e-7|1.5e+21|1e+21|0.000001" } }
+}

@@ -41,10 +41,15 @@ function defaultLabel(prop) {
 function tierOf(name) {
   if (CORE_ELEMENTS.includes(name)) return "core";
   if (EXTENDED_ELEMENTS.includes(name)) return "extended";
+  // Expanded before rendering by every port (src/resolve.rs), so no renderer sees them.
+  if (RESOLVE_ELEMENTS.includes(name)) return "resolve";
   return "other";
 }
 
+const RESOLVE_ELEMENTS = ["repeat", "use"];
+
 function groupHref(name) {
+  if (RESOLVE_ELEMENTS.includes(name)) return `/features/dynamic-content#${name === "use" ? "reusable-parts-templates-use" : "lists-from-data-repeat"}`;
   for (const g of Object.values(ELEMENT_GROUPS)) {
     if (g.types.includes(name)) return `/elements/${g.file.split("/").pop().replace(/^\d+\./, "").replace(".md", "")}#${name}`;
   }

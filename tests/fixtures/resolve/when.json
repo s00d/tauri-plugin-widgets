@@ -1,0 +1,47 @@
+{
+  "about": "Structured `when`: false removes the element from its parent array; operators eq/ne/gt/gte/lt/lte/exists/in, combinators all/any/not; a bare path tests truthiness; ordering on non-numbers is false; missing values are false (true under not); `when` is stripped.",
+  "config": {
+    "data": { "n": 3, "s": "ok", "flag": false, "zero": 0, "list": [], "tags": ["a", "b"] },
+    "small": {
+      "type": "vstack",
+      "children": [
+        { "type": "text", "content": "gt", "when": { "path": "data.n", "gt": 2 } },
+        { "type": "text", "content": "gt-no", "when": { "path": "data.n", "gt": 3 } },
+        { "type": "text", "content": "gte", "when": { "path": "data.n", "gte": 3 } },
+        { "type": "text", "content": "lt-str-no", "when": { "path": "data.s", "lt": 5 } },
+        { "type": "text", "content": "eq", "when": { "path": "data.s", "eq": "ok" } },
+        { "type": "text", "content": "eq-num", "when": { "path": "data.n", "eq": 3.0 } },
+        { "type": "text", "content": "ne", "when": { "path": "data.s", "ne": "x" } },
+        { "type": "text", "content": "exists", "when": { "path": "data.flag", "exists": true } },
+        { "type": "text", "content": "missing-no", "when": { "path": "data.nope", "eq": 1 } },
+        { "type": "text", "content": "not-missing", "when": { "not": { "path": "data.nope", "exists": true } } },
+        { "type": "text", "content": "in", "when": { "path": "data.s", "in": ["ok", "fine"] } },
+        { "type": "text", "content": "truthy", "when": { "path": "data.tags" } },
+        { "type": "text", "content": "falsy-no", "when": { "any": [{ "path": "data.flag" }, { "path": "data.zero" }, { "path": "data.list" }] } },
+        { "type": "text", "content": "all", "when": { "all": [{ "path": "data.n", "lt": 10 }, { "path": "locale", "eq": "en" }] } },
+        { "type": "text", "content": "bad-shape-no", "when": "data.n" },
+        { "type": "text", "content": "always" }
+      ]
+    }
+  },
+  "ctx": { "nowMs": 0, "locale": "en" },
+  "expected": {
+    "version": 1,
+    "small": {
+      "type": "vstack",
+      "children": [
+        { "type": "text", "content": "gt" },
+        { "type": "text", "content": "gte" },
+        { "type": "text", "content": "eq" },
+        { "type": "text", "content": "eq-num" },
+        { "type": "text", "content": "ne" },
+        { "type": "text", "content": "exists" },
+        { "type": "text", "content": "not-missing" },
+        { "type": "text", "content": "in" },
+        { "type": "text", "content": "truthy" },
+        { "type": "text", "content": "all" },
+        { "type": "text", "content": "always" }
+      ]
+    }
+  }
+}

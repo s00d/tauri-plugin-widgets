@@ -61,16 +61,16 @@
                     36,
                     121,
                     438,
-                    267
+                    213
                   ],
                   "children": [
                     {
                       "kind": "ImageView",
                       "rect": [
-                        111,
+                        135,
                         0,
-                        216,
-                        267
+                        168,
+                        213
                       ]
                     }
                   ]
@@ -79,7 +79,7 @@
                   "kind": "FrameLayout",
                   "rect": [
                     36,
-                    388,
+                    334,
                     438,
                     24
                   ]
@@ -88,7 +88,7 @@
                   "kind": "LinearLayout",
                   "rect": [
                     36,
-                    412,
+                    358,
                     438,
                     62
                   ],
@@ -98,7 +98,7 @@
                       "rect": [
                         0,
                         0,
-                        438,
+                        207,
                         62
                       ],
                       "children": [
@@ -107,29 +107,40 @@
                           "rect": [
                             0,
                             0,
-                            438,
+                            207,
                             62
                           ],
                           "children": [
                             {
-                              "kind": "TextView",
+                              "kind": "LinearLayout",
                               "rect": [
-                                189,
                                 0,
-                                60,
-                                57
+                                0,
+                                207,
+                                44
                               ],
-                              "text": "Cal",
-                              "px": 42,
-                              "color": "#FF94A3B8"
+                              "children": [
+                                {
+                                  "kind": "TextView",
+                                  "rect": [
+                                    0,
+                                    0,
+                                    207,
+                                    44
+                                  ],
+                                  "text": "Cal",
+                                  "px": 33,
+                                  "color": "#FF94A3B8"
+                                }
+                              ]
                             },
                             {
                               "kind": "ImageView",
                               "rect": [
                                 0,
-                                57,
-                                438,
-                                36
+                                44,
+                                207,
+                                18
                               ]
                             }
                           ]
@@ -139,7 +150,7 @@
                     {
                       "kind": "FrameLayout",
                       "rect": [
-                        438,
+                        207,
                         0,
                         24,
                         62
@@ -148,9 +159,9 @@
                     {
                       "kind": "FrameLayout",
                       "rect": [
-                        462,
+                        231,
                         0,
-                        0,
+                        207,
                         62
                       ],
                       "children": [
@@ -159,29 +170,40 @@
                           "rect": [
                             0,
                             0,
-                            0,
+                            207,
                             62
                           ],
                           "children": [
                             {
-                              "kind": "TextView",
+                              "kind": "LinearLayout",
                               "rect": [
                                 0,
                                 0,
-                                0,
-                                62
+                                207,
+                                44
                               ],
-                              "text": "H2O",
-                              "px": 42,
-                              "color": "#FF94A3B8"
+                              "children": [
+                                {
+                                  "kind": "TextView",
+                                  "rect": [
+                                    0,
+                                    0,
+                                    207,
+                                    44
+                                  ],
+                                  "text": "H2O",
+                                  "px": 33,
+                                  "color": "#FF94A3B8"
+                                }
+                              ]
                             },
                             {
                               "kind": "ImageView",
                               "rect": [
                                 0,
-                                62,
-                                0,
-                                36
+                                44,
+                                207,
+                                18
                               ]
                             }
                           ]

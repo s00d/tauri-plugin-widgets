@@ -1,0 +1,178 @@
+{
+  "$schema": "http://adaptivecards.io/schemas/adaptive-card.json",
+  "body": [
+    {
+      "backgroundImage": {
+        "fillMode": "repeat",
+        "url": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAAEElEQVR4AQEFAPr/AA8XKv8B2QFQSio/GgAAAABJRU5ErkJggg=="
+      },
+      "id": "card:#0f172a",
+      "items": [
+        {
+          "columns": [
+            {
+              "items": [
+                {
+                  "color": "Light",
+                  "id": "fg:#0f172a",
+                  "size": "Default",
+                  "text": "Payments",
+                  "type": "TextBlock",
+                  "weight": "Bolder",
+                  "wrap": true
+                }
+              ],
+              "type": "Column",
+              "width": 100
+            },
+            {
+              "id": "gap:8",
+              "items": [
+                {
+                  "color": "Light",
+                  "id": "fg:#64748b",
+                  "size": "Small",
+                  "text": "Today",
+                  "type": "TextBlock",
+                  "weight": "Default",
+                  "wrap": true
+                }
+              ],
+              "spacing": "Default",
+              "type": "Column",
+              "width": "auto"
+            }
+          ],
+          "spacing": "None",
+          "type": "ColumnSet"
+        },
+        {
+          "backgroundImage": {
+            "fillMode": "repeat",
+            "url": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAAEElEQVR4AQEFAPr/AB4bS/8CYwGEpfF6wQAAAABJRU5ErkJggg=="
+          },
+          "id": "card:#1e1b4b;gap:8",
+          "items": [
+            {
+              "columns": [
+                {
+                  "items": [
+                    {
+                      "spacing": "None",
+                      "text": "",
+                      "type": "TextBlock"
+                    }
+                  ],
+                  "type": "Column",
+                  "width": "auto"
+                },
+                {
+                  "id": "gap:10",
+                  "items": [
+                    {
+                      "items": [
+                        {
+                          "color": "Light",
+                          "id": "fg:#1e1b4b",
+                          "size": "Default",
+                          "text": "Netflix",
+                          "type": "TextBlock",
+                          "weight": "Bolder",
+                          "wrap": true
+                        },
+                        {
+                          "color": "Accent",
+                          "id": "fg:#6366f1;gap:2",
+                          "size": "Small",
+                          "spacing": "Small",
+                          "text": "Subscription · due soon",
+                          "type": "TextBlock",
+                          "weight": "Default",
+                          "wrap": true
+                        }
+                      ],
+                      "spacing": "None",
+                      "type": "Container"
+                    }
+                  ],
+                  "spacing": "Medium",
+                  "type": "Column",
+                  "width": 100
+                },
+                {
+                  "id": "gap:10;#2",
+                  "items": [
+                    {
+                      "color": "Light",
+                      "id": "fg:#312e81",
+                      "size": "Default",
+                      "text": "$15.99",
+                      "type": "TextBlock",
+                      "weight": "Bolder",
+                      "wrap": true
+                    }
+                  ],
+                  "spacing": "Medium",
+                  "type": "Column",
+                  "width": "auto"
+                }
+              ],
+              "spacing": "None",
+              "type": "ColumnSet"
+            }
+          ],
+          "spacing": "Default",
+          "style": "emphasis",
+          "type": "Container"
+        },
+        {
+          "id": "gap:8;#2",
+          "items": [
+            {
+              "color": "Light",
+              "size": "Small",
+              "text": "Budget used",
+              "type": "TextBlock",
+              "wrap": true
+            },
+            {
+              "columns": [
+                {
+                  "backgroundImage": {
+                    "fillMode": "repeat",
+                    "url": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAAEElEQVR4AQEFAPr/AGNm8f8FpAK6RzGJbAAAAABJRU5ErkJggg=="
+                  },
+                  "id": "fill:#6366f1",
+                  "items": [],
+                  "minHeight": "6px",
+                  "type": "Column",
+                  "width": 65
+                },
+                {
+                  "backgroundImage": {
+                    "fillMode": "repeat",
+                    "url": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAAEElEQVR4AQEFAPr/AGNm8UAE5QH7NrS0/gAAAABJRU5ErkJggg=="
+                  },
+                  "items": [],
+                  "minHeight": "6px",
+                  "spacing": "None",
+                  "type": "Column",
+                  "width": 35
+                }
+              ],
+              "spacing": "Small",
+              "type": "ColumnSet"
+            }
+          ],
+          "spacing": "Default",
+          "type": "Container"
+        }
+      ],
+      "spacing": "None",
+      "style": "emphasis",
+      "type": "Container"
+    }
+  ],
+  "type": "AdaptiveCard",
+  "version": "1.5"
+}

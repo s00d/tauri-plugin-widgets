@@ -1,0 +1,20 @@
+{
+  "about": "`accessory` (Apple Lock Screen family) resolves like the size families: entries switch it, `when` and placeholders apply, and it is kept in the output.",
+  "config": {
+    "data": { "temp": 21 },
+    "small": { "type": "text", "content": "s" },
+    "accessory": { "type": "text", "content": "{{data.temp}}°" },
+    "entries": [
+      { "at": 100, "accessory": { "type": "vstack", "children": [
+        { "type": "text", "content": "hot", "when": { "path": "data.temp", "gt": 30 } },
+        { "type": "text", "content": "ok {{data.temp}}" }
+      ] } }
+    ]
+  },
+  "ctx": { "nowMs": 100, "locale": "en" },
+  "expected": {
+    "version": 1,
+    "small": { "type": "text", "content": "s" },
+    "accessory": { "type": "vstack", "children": [ { "type": "text", "content": "ok 21" } ] }
+  }
+}

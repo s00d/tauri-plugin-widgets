@@ -1,0 +1,14 @@
+{
+  "about": "An entry at 0 is active from the start; the next change is the smallest future at, whatever the order.",
+  "config": {
+    "small": { "type": "text", "content": "base" },
+    "entries": [
+      { "at": 0, "small": { "type": "text", "content": "zero" } },
+      { "at": 300, "small": { "type": "text", "content": "c" } },
+      { "at": 100, "small": { "type": "text", "content": "a" } }
+    ]
+  },
+  "ctx": { "nowMs": 50, "locale": "en" },
+  "expected": { "version": 1, "small": { "type": "text", "content": "zero" } },
+  "nextChangeMs": 100
+}

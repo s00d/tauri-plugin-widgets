@@ -11,6 +11,9 @@ const active = ref<(typeof platforms)[number]>("desktop");
 const missing = ref(false);
 
 const src = computed(() => withBase(`/shots/${active.value}/${props.case}.png`, base));
+// Goldens differ in pixel density (desktop / linux 1x, iOS / macOS 2x, Android 3x): show every
+// platform at the widget's logical width so tabs compare like for like and dense ones stay sharp.
+const width = computed(() => (/\.small$/.test(props.case) ? 170 : 360));
 
 watch(src, () => {
   missing.value = false;
@@ -45,6 +48,7 @@ function onLoad() {
         :key="src"
         :src="src"
         :alt="`${props.case} on ${active}`"
+        :style="{ width: `${width}px`, maxWidth: '100%', height: 'auto' }"
         @error="onError"
         @load="onLoad"
       />

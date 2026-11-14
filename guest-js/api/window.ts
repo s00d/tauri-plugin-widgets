@@ -37,10 +37,62 @@ export interface WidgetWindowConfig {
    */
   widgetId?: string;
   /**
+   * Placement id: the built-in renderer reads `config:{widgetId}#{instance}` first,
+   * fills `{{instance}}`, and `getActiveWidgets` reports it. Default: the window label.
+   */
+  instance?: string;
+  /**
    * Size family the built-in renderer should display:
    * `"small"`, `"medium"`, or `"large"`.  Defaults to `"small"`.
    */
   size?: "small" | "medium" | "large";
+  /**
+   * Stacking layer. Default: `"top"` when `alwaysOnTop`, else `"desktop"` on Linux and
+   * `"normal"` on macOS / Windows. `"desktop"`: X11 DESKTOP type, Wayland layer-shell
+   * Background, macOS desktop level, Windows behind the desktop icons.
+   */
+  layer?: WidgetWindowLayer;
+  /** Let clicks pass through to whatever is below. Default `false`. */
+  clickThrough?: boolean;
+  /** Whether the window can take keyboard focus. Default `true`. */
+  focusable?: boolean;
+  /** Show on every virtual desktop / Space. Default: `true` for the `desktop` layer. */
+  allWorkspaces?: boolean;
+  /** System window shadow (macOS / Windows). */
+  shadow?: boolean;
+  /** Backdrop material hint (needs a transparent window; ignored on Linux). */
+  effects?: "vibrancy" | "mica" | "acrylic" | "blur";
+  /** Place relative to a monitor's work area instead of `x` / `y`. */
+  placement?: WidgetPlacement;
+  /**
+   * Remember where the user moved the window (per label) and reopen it there while that
+   * spot is on a connected monitor. Default `true`.
+   */
+  rememberPosition?: boolean;
+}
+
+/** Stacking layer of a desktop widget window. */
+export type WidgetWindowLayer = "normal" | "top" | "bottom" | "desktop";
+
+/** Monitor-relative placement for {@link WidgetWindowConfig.placement}. */
+export interface WidgetPlacement {
+  /** Monitor index (`availableMonitors` order) or name. Default: primary. */
+  monitor?: number | string;
+  /** Work-area corner / edge. Default `"top-left"`. */
+  anchor?:
+    | "top-left"
+    | "top"
+    | "top-right"
+    | "left"
+    | "center"
+    | "right"
+    | "bottom-left"
+    | "bottom"
+    | "bottom-right";
+  /** Logical px inward from the anchored vertical edge. Default 0. */
+  offsetX?: number;
+  /** Logical px inward from the anchored horizontal edge. Default 0. */
+  offsetY?: number;
 }
 
 /**

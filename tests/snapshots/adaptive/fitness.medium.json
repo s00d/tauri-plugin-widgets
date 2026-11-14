@@ -2,152 +2,203 @@
   "$schema": "http://adaptivecards.io/schemas/adaptive-card.json",
   "body": [
     {
-      "columns": [
+      "backgroundImage": {
+        "fillMode": "repeat",
+        "url": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAAEElEQVR4AQEFAPr/AA0RF/8BmQE1nnkBOQAAAABJRU5ErkJggg=="
+      },
+      "id": "card:#0d1117",
+      "items": [
         {
-          "items": [
+          "columns": [
             {
-              "horizontalAlignment": "Center",
-              "id": "gap:6",
               "items": [
                 {
+                  "horizontalAlignment": "Center",
+                  "items": [
+                    {
+                      "spacing": "None",
+                      "text": "",
+                      "type": "TextBlock"
+                    },
+                    {
+                      "color": "Light",
+                      "id": "fg:#94a3b8;gap:6",
+                      "size": "Small",
+                      "spacing": "Default",
+                      "text": "7,200 / 10k",
+                      "type": "TextBlock",
+                      "weight": "Default",
+                      "wrap": true
+                    }
+                  ],
                   "spacing": "None",
-                  "text": "",
-                  "type": "TextBlock"
-                },
-                {
-                  "color": "Light",
-                  "id": "fg:#94a3b8",
-                  "size": "Small",
-                  "text": "7,200 / 10k",
-                  "type": "TextBlock",
-                  "weight": "Default",
-                  "wrap": true
+                  "type": "Container"
                 }
               ],
-              "spacing": "Default",
-              "type": "Container"
-            }
-          ],
-          "type": "Column",
-          "width": "auto"
-        },
-        {
-          "items": [
+              "type": "Column",
+              "width": "auto"
+            },
             {
-              "id": "rule:#334155",
-              "items": [],
-              "separator": true,
-              "spacing": "Medium",
-              "type": "Container"
-            }
-          ],
-          "type": "Column",
-          "width": "auto"
-        },
-        {
-          "items": [
+              "id": "gap:16",
+              "items": [
+                {
+                  "id": "rule:#334155",
+                  "items": [],
+                  "separator": true,
+                  "spacing": "Medium",
+                  "type": "Container"
+                }
+              ],
+              "spacing": "Large",
+              "type": "Column",
+              "width": "auto"
+            },
             {
-              "id": "gap:6",
+              "id": "gap:16;#2",
               "items": [
                 {
                   "items": [
                     {
-                      "color": "Light",
-                      "size": "Small",
-                      "text": "Calories",
-                      "type": "TextBlock",
-                      "wrap": true
-                    },
-                    {
-                      "columns": [
+                      "items": [
                         {
-                          "id": "fill:#4ecdc4",
-                          "items": [],
-                          "style": "default",
-                          "type": "Column",
-                          "width": 45
+                          "color": "Light",
+                          "size": "Small",
+                          "text": "Calories",
+                          "type": "TextBlock",
+                          "wrap": true
                         },
                         {
-                          "items": [],
-                          "type": "Column",
-                          "width": 55
+                          "columns": [
+                            {
+                              "backgroundImage": {
+                                "fillMode": "repeat",
+                                "url": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAAEElEQVR4AQEFAPr/AE7NxP8GKwLf8V2J5QAAAABJRU5ErkJggg=="
+                              },
+                              "id": "fill:#4ecdc4",
+                              "items": [],
+                              "minHeight": "6px",
+                              "type": "Column",
+                              "width": 45
+                            },
+                            {
+                              "backgroundImage": {
+                                "fillMode": "repeat",
+                                "url": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAAEElEQVR4AQEFAPr/AE7NxEAFbAIgKajNBgAAAABJRU5ErkJggg=="
+                              },
+                              "items": [],
+                              "minHeight": "6px",
+                              "spacing": "None",
+                              "type": "Column",
+                              "width": 55
+                            }
+                          ],
+                          "spacing": "Small",
+                          "type": "ColumnSet"
                         }
                       ],
-                      "type": "ColumnSet"
-                    }
-                  ],
-                  "type": "Container"
-                },
-                {
-                  "items": [
-                    {
-                      "color": "Light",
-                      "size": "Small",
-                      "text": "Water",
-                      "type": "TextBlock",
-                      "wrap": true
+                      "type": "Container"
                     },
                     {
-                      "columns": [
+                      "id": "gap:6",
+                      "items": [
                         {
-                          "id": "fill:#ffe66d",
-                          "items": [],
-                          "style": "default",
-                          "type": "Column",
-                          "width": 88
+                          "color": "Light",
+                          "size": "Small",
+                          "text": "Water",
+                          "type": "TextBlock",
+                          "wrap": true
                         },
                         {
-                          "items": [],
-                          "type": "Column",
-                          "width": 12
+                          "columns": [
+                            {
+                              "backgroundImage": {
+                                "fillMode": "repeat",
+                                "url": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAAEElEQVR4AQEFAPr/AP/mbf8IjANSrlKAlgAAAABJRU5ErkJggg=="
+                              },
+                              "id": "fill:#ffe66d",
+                              "items": [],
+                              "minHeight": "6px",
+                              "type": "Column",
+                              "width": 88
+                            },
+                            {
+                              "backgroundImage": {
+                                "fillMode": "repeat",
+                                "url": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAAEElEQVR4AQEFAPr/AP/mbUAHzQKT4IYrlQAAAABJRU5ErkJggg=="
+                              },
+                              "items": [],
+                              "minHeight": "6px",
+                              "spacing": "None",
+                              "type": "Column",
+                              "width": 12
+                            }
+                          ],
+                          "spacing": "Small",
+                          "type": "ColumnSet"
                         }
                       ],
-                      "type": "ColumnSet"
-                    }
-                  ],
-                  "type": "Container"
-                },
-                {
-                  "items": [
-                    {
-                      "color": "Light",
-                      "size": "Small",
-                      "text": "Exercise",
-                      "type": "TextBlock",
-                      "wrap": true
+                      "spacing": "Default",
+                      "type": "Container"
                     },
                     {
-                      "columns": [
+                      "id": "gap:6;#2",
+                      "items": [
                         {
-                          "id": "fill:#ff6b6b",
-                          "items": [],
-                          "style": "attention",
-                          "type": "Column",
-                          "width": 33
+                          "color": "Light",
+                          "size": "Small",
+                          "text": "Exercise",
+                          "type": "TextBlock",
+                          "wrap": true
                         },
                         {
-                          "items": [],
-                          "type": "Column",
-                          "width": 67
+                          "columns": [
+                            {
+                              "backgroundImage": {
+                                "fillMode": "repeat",
+                                "url": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAAEElEQVR4AQEFAPr/AP9ra/8HFwLVUiiIPAAAAABJRU5ErkJggg=="
+                              },
+                              "id": "fill:#ff6b6b",
+                              "items": [],
+                              "minHeight": "6px",
+                              "type": "Column",
+                              "width": 33
+                            },
+                            {
+                              "backgroundImage": {
+                                "fillMode": "repeat",
+                                "url": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAAEElEQVR4AQEFAPr/AP9ra0AGWAIWAagpawAAAABJRU5ErkJggg=="
+                              },
+                              "items": [],
+                              "minHeight": "6px",
+                              "spacing": "None",
+                              "type": "Column",
+                              "width": 67
+                            }
+                          ],
+                          "spacing": "Small",
+                          "type": "ColumnSet"
                         }
                       ],
-                      "type": "ColumnSet"
+                      "spacing": "Default",
+                      "type": "Container"
                     }
                   ],
+                  "spacing": "None",
                   "type": "Container"
                 }
               ],
-              "spacing": "Default",
-              "type": "Container"
+              "spacing": "Large",
+              "type": "Column",
+              "width": "stretch"
             }
           ],
-          "type": "Column",
-          "width": "auto"
+          "spacing": "None",
+          "type": "ColumnSet"
         }
       ],
-      "id": "gap:16",
-      "spacing": "Large",
-      "type": "ColumnSet"
+      "spacing": "None",
+      "style": "emphasis",
+      "type": "Container"
     }
   ],
   "type": "AdaptiveCard",

@@ -1,0 +1,165 @@
+{
+  "$schema": "http://adaptivecards.io/schemas/adaptive-card.json",
+  "body": [
+    {
+      "backgroundImage": {
+        "fillMode": "repeat",
+        "url": "data:image/png;base64,<png>"
+      },
+      "id": "card:#111827",
+      "items": [
+        {
+          "color": "Light",
+          "id": "fg:#e5e7eb",
+          "size": "Default",
+          "text": "Truncated in the middle of a long line of text",
+          "type": "TextBlock",
+          "weight": "Default",
+          "wrap": false
+        },
+        {
+          "color": "Light",
+          "id": "fg:#e5e7eb;gap:6",
+          "size": "Default",
+          "spacing": "Default",
+          "text": "Head truncation of a very long line of text",
+          "type": "TextBlock",
+          "weight": "Default",
+          "wrap": false
+        },
+        {
+          "color": "Light",
+          "id": "fg:#e5e7eb;gap:6;#2",
+          "size": "Medium",
+          "spacing": "Default",
+          "text": "Shrinks to fit this long title line",
+          "type": "TextBlock",
+          "weight": "Default",
+          "wrap": false
+        },
+        {
+          "columns": [
+            {
+              "items": [
+                {
+                  "id": "fg:#e5e7eb;#2",
+                  "inlines": [
+                    {
+                      "color": "Light",
+                      "size": "Default",
+                      "text": "Under",
+                      "type": "TextRun",
+                      "underline": true,
+                      "weight": "Default"
+                    }
+                  ],
+                  "type": "RichTextBlock"
+                }
+              ],
+              "type": "Column",
+              "width": "auto"
+            },
+            {
+              "id": "gap:10",
+              "items": [
+                {
+                  "id": "fg:#e5e7eb;#3",
+                  "inlines": [
+                    {
+                      "color": "Light",
+                      "size": "Default",
+                      "strikethrough": true,
+                      "text": "Strike",
+                      "type": "TextRun",
+                      "weight": "Default"
+                    }
+                  ],
+                  "type": "RichTextBlock"
+                }
+              ],
+              "spacing": "Medium",
+              "type": "Column",
+              "width": "auto"
+            },
+            {
+              "id": "gap:10;#2",
+              "items": [
+                {
+                  "id": "fg:#e5e7eb;#4",
+                  "inlines": [
+                    {
+                      "color": "Light",
+                      "italic": true,
+                      "size": "Default",
+                      "text": "Italic",
+                      "type": "TextRun",
+                      "weight": "Default"
+                    }
+                  ],
+                  "type": "RichTextBlock"
+                }
+              ],
+              "spacing": "Medium",
+              "type": "Column",
+              "width": "auto"
+            },
+            {
+              "id": "gap:10;#3",
+              "items": [
+                {
+                  "color": "Light",
+                  "fontType": "Monospace",
+                  "id": "fg:#e5e7eb;#5",
+                  "size": "Default",
+                  "text": "12,345.67",
+                  "type": "TextBlock",
+                  "weight": "Default",
+                  "wrap": true
+                }
+              ],
+              "spacing": "Medium",
+              "type": "Column",
+              "width": "auto"
+            },
+            {
+              "id": "gap:10;#4",
+              "items": [
+                {
+                  "color": "Light",
+                  "id": "fg:#e5e7eb;#6",
+                  "size": "Default",
+                  "text": "S p a c e",
+                  "type": "TextBlock",
+                  "weight": "Default",
+                  "wrap": true
+                }
+              ],
+              "spacing": "Medium",
+              "type": "Column",
+              "width": "auto"
+            }
+          ],
+          "id": "gap:6",
+          "spacing": "Default",
+          "type": "ColumnSet"
+        },
+        {
+          "color": "Light",
+          "id": "fg:#e5e7eb;gap:6;#3",
+          "maxLines": 2,
+          "size": "Default",
+          "spacing": "Default",
+          "text": "Line height 22 for two wrapped lines of body text here",
+          "type": "TextBlock",
+          "weight": "Default",
+          "wrap": true
+        }
+      ],
+      "spacing": "None",
+      "style": "emphasis",
+      "type": "Container"
+    }
+  ],
+  "type": "AdaptiveCard",
+  "version": "1.5"
+}

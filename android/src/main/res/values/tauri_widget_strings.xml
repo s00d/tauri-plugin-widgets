@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Apps override these by defining the same names in their own res/values. -->
+<resources>
+    <string name="tauri_widget_description">Shows information from the app</string>
+    <string name="tauri_widget_loading">Loading…</string>
+    <string name="tauri_widget_error">Widget could not be drawn. Tap to open the app.</string>
+    <string name="tauri_widget_configure_title">Choose what to show</string>
+</resources>

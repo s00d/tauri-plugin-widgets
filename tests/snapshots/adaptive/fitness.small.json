@@ -2,7 +2,11 @@
   "$schema": "http://adaptivecards.io/schemas/adaptive-card.json",
   "body": [
     {
-      "id": "card:#0d1117;gap:8",
+      "backgroundImage": {
+        "fillMode": "repeat",
+        "url": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAAEElEQVR4AQEFAPr/AA0RF/8BmQE1nnkBOQAAAABJRU5ErkJggg=="
+      },
+      "id": "card:#0d1117",
       "items": [
         {
           "color": "Light",
@@ -14,7 +18,8 @@
           "wrap": true
         },
         {
-          "spacing": "None",
+          "id": "gap:8",
+          "spacing": "Default",
           "text": "",
           "type": "TextBlock"
         },
@@ -34,18 +39,29 @@
                     {
                       "columns": [
                         {
+                          "backgroundImage": {
+                            "fillMode": "repeat",
+                            "url": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAAEElEQVR4AQEFAPr/AE7NxP8GKwLf8V2J5QAAAABJRU5ErkJggg=="
+                          },
                           "id": "fill:#4ecdc4",
                           "items": [],
-                          "style": "default",
+                          "minHeight": "6px",
                           "type": "Column",
                           "width": 45
                         },
                         {
+                          "backgroundImage": {
+                            "fillMode": "repeat",
+                            "url": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAAEElEQVR4AQEFAPr/AE7NxEAFbAIgKajNBgAAAABJRU5ErkJggg=="
+                          },
                           "items": [],
+                          "minHeight": "6px",
+                          "spacing": "None",
                           "type": "Column",
                           "width": 55
                         }
                       ],
+                      "spacing": "Small",
                       "type": "ColumnSet"
                     }
                   ],
@@ -53,9 +69,10 @@
                 }
               ],
               "type": "Column",
-              "width": "auto"
+              "width": "stretch"
             },
             {
+              "id": "gap:8;#3",
               "items": [
                 {
                   "items": [
@@ -69,34 +86,46 @@
                     {
                       "columns": [
                         {
+                          "backgroundImage": {
+                            "fillMode": "repeat",
+                            "url": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAAEElEQVR4AQEFAPr/AP/mbf8IjANSrlKAlgAAAABJRU5ErkJggg=="
+                          },
                           "id": "fill:#ffe66d",
                           "items": [],
-                          "style": "default",
+                          "minHeight": "6px",
                           "type": "Column",
                           "width": 88
                         },
                         {
+                          "backgroundImage": {
+                            "fillMode": "repeat",
+                            "url": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAAEElEQVR4AQEFAPr/AP/mbUAHzQKT4IYrlQAAAABJRU5ErkJggg=="
+                          },
                           "items": [],
+                          "minHeight": "6px",
+                          "spacing": "None",
                           "type": "Column",
                           "width": 12
                         }
                       ],
+                      "spacing": "Small",
                       "type": "ColumnSet"
                     }
                   ],
                   "type": "Container"
                 }
               ],
+              "spacing": "Default",
               "type": "Column",
-              "width": "auto"
+              "width": "stretch"
             }
           ],
-          "id": "gap:8",
+          "id": "gap:8;#2",
           "spacing": "Default",
           "type": "ColumnSet"
         }
       ],
-      "spacing": "Default",
+      "spacing": "None",
       "style": "emphasis",
       "type": "Container"
     }

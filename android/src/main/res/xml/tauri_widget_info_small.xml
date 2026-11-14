@@ -9,6 +9,11 @@
     android:targetCellWidth="2"
     android:targetCellHeight="2"
     android:updatePeriodMillis="1800000"
-    android:initialLayout="@layout/tauri_widget_container"
+    android:initialLayout="@layout/tauri_widget_loading"
+    android:previewLayout="@layout/tauri_widget_preview"
+    android:previewImage="@drawable/tauri_widget_preview"
+    android:description="@string/tauri_widget_description"
+    android:configure="git.s00d.widgets.WidgetConfigActivity"
+    android:widgetFeatures="reconfigurable|configuration_optional"
     android:resizeMode="horizontal|vertical"
-    android:widgetCategory="home_screen" />
+    android:widgetCategory="home_screen|keyguard" />

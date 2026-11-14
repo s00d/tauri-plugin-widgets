@@ -9,10 +9,16 @@ public struct WidgetUIConfig: Codable {
     public let small: WidgetElement?
     public let medium: WidgetElement?
     public let large: WidgetElement?
+    /// Lock Screen / watch-style families (`accessoryCircular` / `Rectangular` / `Inline`).
+    public let accessory: WidgetElement?
+    /// How content changes between entries: `none` | `opacity` | `slide` | `numeric`.
+    public let transition: String?
 
     public init(version: Int? = nil, small: WidgetElement? = nil,
-                medium: WidgetElement? = nil, large: WidgetElement? = nil) {
+                medium: WidgetElement? = nil, large: WidgetElement? = nil,
+                accessory: WidgetElement? = nil, transition: String? = nil) {
         self.version = version; self.small = small; self.medium = medium; self.large = large
+        self.accessory = accessory; self.transition = transition
     }
 }
 
@@ -41,99 +47,10 @@ public enum ColorValue: Codable {
     private struct AdaptivePair: Codable { let light: String; let dark: String }
 }
 
-// MARK: - Element (flat Codable struct)
+// MARK: - Element
 
-public struct WidgetElement: Codable {
-    public let type: String
+// `WidgetElement` is generated from the Rust IR: Generated/WidgetElement.swift (`pnpm codegen`).
 
-    // Container
-    public let contentAlignment: String?
-
-    // Stack containers
-    public let children: [WidgetElement]?
-    public let spacing: CGFloat?
-    public let alignment: String?
-    public let columns: Int?
-    public let rowSpacing: CGFloat?
-
-    // Text / Label
-    public let content: String?
-    public let text: String?
-    public let fontSize: CGFloat?
-    public let fontWeight: String?
-    public let fontDesign: String?
-    public let textStyle: String?
-    public let lineLimit: Int?
-
-    // Image / Label
-    public let systemName: String?
-    public let data: String?
-    public let url: String?
-    public let size: CGFloat?
-    public let contentMode: String?
-    public let iconColor: ColorValue?
-
-    // Progress / Gauge
-    public let value: Double?
-    public let total: Double?
-    public let barStyle: String?
-    public let tint: ColorValue?
-    public let label: String?
-    public let min: Double?
-    public let max: Double?
-    public let currentValueLabel: String?
-    public let gaugeStyle: String?
-
-    // Button
-    public let backgroundColor: ColorValue?
-    public let textAlignment: String?
-
-    // Toggle
-    public let isOn: Bool?
-    public let action: String?
-
-    // Divider
-    public let thickness: CGFloat?
-
-    // Spacer
-    public let minLength: CGFloat?
-
-    // Date
-    public let date: String?
-    public let dateStyle: String?
-
-    // Chart
-    public let chartType: String?
-    public let chartData: [ChartDataPoint]?
-    public let items: [ListItem]?
-
-    // Shape
-    public let shapeType: String?
-    public let fill: ColorValue?
-    public let stroke: ColorValue?
-    public let strokeWidth: CGFloat?
-
-    // Timer
-    public let targetDate: String?
-    public let counting: String?
-
-    // Canvas
-    public let width: CGFloat?
-    public let height: CGFloat?
-    public let elements: [CanvasDrawCommand]?
-
-    // Common style
-    public let color: ColorValue?
-    public let padding: PaddingValue?
-    public let background: BackgroundValue?
-    public let cornerRadius: CGFloat?
-    public let opacity: Double?
-    public let frame: FrameConfig?
-    public let border: BorderConfig?
-    public let shadow: ShadowConfig?
-    public let clipShape: String?
-    public let flex: CGFloat?
-}
 
 // MARK: - Supporting types
 
@@ -145,7 +62,7 @@ public enum BackgroundValue: Codable {
     public init(from decoder: Decoder) throws {
         let c = try decoder.singleValueContainer()
         if let s = try? c.decode(String.self) { self = .solid(s); return }
-        if let g = try? GradientConfig(from: decoder), !g.colors.isEmpty { self = .gradient(g); return }
+        if let g = try? GradientConfig(from: decoder), !g.isEmpty { self = .gradient(g); return }
         let obj = try AdaptivePair(from: decoder)
         self = .adaptive(light: obj.light, dark: obj.dark)
     }
@@ -169,8 +86,34 @@ public struct GradientConfig: Codable {
     public let gradientType: String
     public let colors: [String]
     public let direction: String?
+    /// Colors at explicit positions; replace `colors` when set.
+    public let stops: [GradientStop]?
+    /// Unit-space start / end points; override `direction` (linear only).
+    public let startPoint: GradientPoint?
+    public let endPoint: GradientPoint?
+
+    public init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        gradientType = try c.decode(String.self, forKey: .gradientType)
+        colors = try c.decodeIfPresent([String].self, forKey: .colors) ?? []
+        direction = try c.decodeIfPresent(String.self, forKey: .direction)
+        stops = try c.decodeIfPresent([GradientStop].self, forKey: .stops)
+        startPoint = try c.decodeIfPresent(GradientPoint.self, forKey: .startPoint)
+        endPoint = try c.decodeIfPresent(GradientPoint.self, forKey: .endPoint)
+    }
+
+    /// No colors at all (neither `colors` nor `stops`): not a gradient.
+    public var isEmpty: Bool { colors.isEmpty && (stops ?? []).isEmpty }
+
+    public var gradient: Gradient {
+        if let stops, !stops.isEmpty {
+            return Gradient(stops: stops.map { .init(color: Color(hex: $0.color), location: $0.location) })
+        }
+        return Gradient(colors: colors.map { Color(hex: $0) })
+    }
 
     public var linearStart: UnitPoint {
+        if let p = startPoint { return UnitPoint(x: p.x, y: p.y) }
         switch direction {
         case "bottomToTop": return .bottom
         case "leadingToTrailing": return .leading
@@ -182,6 +125,7 @@ public struct GradientConfig: Codable {
     }
 
     public var linearEnd: UnitPoint {
+        if let p = endPoint { return UnitPoint(x: p.x, y: p.y) }
         switch direction {
         case "bottomToTop": return .top
         case "leadingToTrailing": return .trailing
@@ -194,30 +138,39 @@ public struct GradientConfig: Codable {
 
     @ViewBuilder
     public func asView() -> some View {
-        let stops = colors.map { Color(hex: $0) }
         switch gradientType.lowercased() {
         case "radial":
-            RadialGradient(colors: stops, center: .center, startRadius: 0, endRadius: 160)
+            RadialGradient(gradient: gradient, center: .center, startRadius: 0, endRadius: 160)
         case "angular":
-            AngularGradient(colors: stops, center: .center)
+            AngularGradient(gradient: gradient, center: .center)
         default:
-            LinearGradient(colors: stops, startPoint: linearStart, endPoint: linearEnd)
+            LinearGradient(gradient: gradient, startPoint: linearStart, endPoint: linearEnd)
         }
     }
 
     @ViewBuilder
     public func filledShape(cornerRadius: CGFloat) -> some View {
         let shape = RoundedRectangle(cornerRadius: cornerRadius)
-        let stops = colors.map { Color(hex: $0) }
         switch gradientType.lowercased() {
         case "radial":
-            shape.fill(RadialGradient(colors: stops, center: .center, startRadius: 0, endRadius: 160))
+            shape.fill(RadialGradient(gradient: gradient, center: .center, startRadius: 0, endRadius: 160))
         case "angular":
-            shape.fill(AngularGradient(colors: stops, center: .center))
+            shape.fill(AngularGradient(gradient: gradient, center: .center))
         default:
-            shape.fill(LinearGradient(colors: stops, startPoint: linearStart, endPoint: linearEnd))
+            shape.fill(LinearGradient(gradient: gradient, startPoint: linearStart, endPoint: linearEnd))
         }
     }
+}
+
+public struct GradientStop: Codable {
+    public let color: String
+    public let location: CGFloat
+}
+
+/// Unit-space point (`0…1`, origin top leading).
+public struct GradientPoint: Codable {
+    public let x: CGFloat
+    public let y: CGFloat
 }
 
 public struct ShadowConfig: Codable {
@@ -256,6 +209,8 @@ public struct FrameConfig: Codable {
     public let height: CGFloat?
     public let maxWidth: FlexDimension?
     public let maxHeight: FlexDimension?
+    public let minWidth: CGFloat?
+    public let minHeight: CGFloat?
 }
 
 public enum FlexDimension: Codable {
@@ -287,6 +242,8 @@ public struct ChartDataPoint: Codable {
     public let label: String
     public let value: Double
     public let color: ColorValue?
+    /// Points with the same series form one line / bar group.
+    public let series: String?
 }
 
 public struct ListItem: Codable {

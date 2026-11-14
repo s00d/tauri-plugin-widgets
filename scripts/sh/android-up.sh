@@ -68,7 +68,7 @@ resolve_serial() {
 SERIAL="$(resolve_serial || true)"
 if [[ -z "${SERIAL:-}" ]]; then
   # nohup/disown: agent shells otherwise SIGHUP the qemu child on exit.
-  nohup emulator -avd "$AVD_NAME" -no-window -no-audio -no-snapshot \
+  nohup emulator -avd "$AVD_NAME" -no-window -no-audio -no-snapshot -timezone Etc/UTC \
     >/tmp/widgets-emulator.log 2>&1 &
   disown || true
   echo "emulator starting (log: /tmp/widgets-emulator.log)"

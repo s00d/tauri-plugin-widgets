@@ -1,0 +1,13 @@
+# Automatically generated - DO NOT EDIT!
+
+"$schema" = "../../schemas/schema.json"
+
+[[permission]]
+identifier = "allow-can-promote-activities"
+description = "Enables the can_promote_activities command without any pre-configured scope."
+commands.allow = ["can_promote_activities"]
+
+[[permission]]
+identifier = "deny-can-promote-activities"
+description = "Denies the can_promote_activities command without any pre-configured scope."
+commands.deny = ["can_promote_activities"]

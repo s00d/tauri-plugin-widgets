@@ -78,13 +78,7 @@ mod imp {
     }
 
     pub(super) fn prefetch_remote_images_inner(config: &mut WidgetConfig) {
-        if let Some(el) = config.small.as_mut() {
-            walk_el(el);
-        }
-        if let Some(el) = config.medium.as_mut() {
-            walk_el(el);
-        }
-        if let Some(el) = config.large.as_mut() {
+        for el in config.layouts_mut() {
             walk_el(el);
         }
     }
@@ -92,6 +86,7 @@ mod imp {
     fn walk_el(el: &mut WidgetElement) {
         match el {
             WidgetElement::Image(img) => prefetch_image(img),
+            WidgetElement::Repeat(r) => walk_el(&mut r.template),
             WidgetElement::VStack(v) => {
                 for c in &mut v.children {
                     walk_el(c);
@@ -131,6 +126,7 @@ mod imp {
             | WidgetElement::Toggle(_)
             | WidgetElement::Text(_)
             | WidgetElement::Label(_)
+            | WidgetElement::Use(_)
             | WidgetElement::Progress(_)
             | WidgetElement::Gauge(_)
             | WidgetElement::Divider(_)
@@ -194,7 +190,7 @@ mod imp {
             }
             map.remove(url);
         }
-        disk_cache_get(url).map(|data_uri| {
+        disk_cache_get(url).inspect(|data_uri| {
             evict(map);
             map.insert(
                 url.into(),
@@ -203,7 +199,6 @@ mod imp {
                     fetched_at: Instant::now(),
                 },
             );
-            data_uri
         })
     }
 
@@ -357,98 +352,237 @@ mod imp {
             "image/png"
         }
     }
+    #[cfg(test)]
+    mod imp_tests {
+        use super::*;
+        use std::io::{Read as _, Write as _};
+        use std::net::TcpListener;
+
+        /// One-shot local HTTP server: answers every request with `content_type` + `body`.
+        fn serve(content_type: &'static str, body: Vec<u8>, hits: usize) -> String {
+            let listener = TcpListener::bind("127.0.0.1:0").unwrap();
+            let port = listener.local_addr().unwrap().port();
+            std::thread::spawn(move || {
+                for stream in listener.incoming().take(hits) {
+                    let mut s = stream.unwrap();
+                    let mut req = [0u8; 2048];
+                    let _ = s.read(&mut req);
+                    let head = format!(
+                        "HTTP/1.1 200 OK\r\nContent-Type: {content_type}\r\nContent-Length: {}\r\nConnection: close\r\n\r\n",
+                        body.len()
+                    );
+                    let _ = s.write_all(head.as_bytes());
+                    let _ = s.write_all(&body);
+                }
+            });
+            format!("http://127.0.0.1:{port}")
+        }
+
+        fn decoded_len(uri: &str) -> usize {
+            use base64::Engine;
+            let b64 = uri.split_once(',').unwrap().1;
+            base64::engine::general_purpose::STANDARD
+                .decode(b64)
+                .unwrap()
+                .len()
+        }
+
+        fn entry(age: Duration) -> CacheEntry {
+            CacheEntry {
+                data_uri: "d".into(),
+                fetched_at: Instant::now().checked_sub(age).unwrap(),
+            }
+        }
+
+        fn age_memory(url: &str, age: Duration) {
+            memory()
+                .get_or_insert_with(HashMap::new)
+                .get_mut(url)
+                .expect("cached in memory")
+                .fetched_at = Instant::now().checked_sub(age).unwrap();
+        }
+
+        /// Fetch rules: the 3 MiB limit (2 MiB and exactly 3 MiB pass, one byte more fails),
+        /// image content types only (octet-stream guesses the type from the URL), empty
+        /// bodies fail, and the URL-based MIME guess table.
+        #[test]
+        fn fetch_limits_types_and_mime_guess() {
+            // 2 MiB must pass: catches a limit computed wrong (e.g. 3 + 1024 * 1024).
+            let base = serve("image/png", vec![1u8; 2 * 1024 * 1024], 1);
+            assert!(fetch_as_data_uri(&format!("{base}/a.png")).is_ok());
+            let base = serve("image/png; charset=x", vec![1u8; MAX_BYTES], 1);
+            let uri = fetch_as_data_uri(&format!("{base}/a.png")).unwrap();
+            assert!(uri.starts_with("data:image/png;base64,"), "{}", &uri[..30]);
+            assert_eq!(decoded_len(&uri), MAX_BYTES);
+            let base = serve("image/png", vec![1u8; MAX_BYTES + 1], 1);
+            assert!(fetch_as_data_uri(&format!("{base}/a.png"))
+                .unwrap_err()
+                .contains("3 MiB"));
+
+            let base = serve("text/html", b"<html>".to_vec(), 1);
+            assert!(fetch_as_data_uri(&format!("{base}/a.png"))
+                .unwrap_err()
+                .contains("content-type"));
+            let base = serve("application/octet-stream", vec![7u8; 5000], 1);
+            let uri = fetch_as_data_uri(&format!("{base}/pic.JPG")).unwrap();
+            assert!(uri.starts_with("data:image/jpeg;base64,"));
+            assert_eq!(decoded_len(&uri), 5000);
+            let base = serve("image/gif", Vec::new(), 1);
+            assert!(fetch_as_data_uri(&format!("{base}/a.gif"))
+                .unwrap_err()
+                .contains("empty"));
+
+            assert_eq!(guess_mime("x/a.jpg"), "image/jpeg");
+            assert_eq!(guess_mime("x/a.JPEG?x=1"), "image/jpeg");
+            assert_eq!(guess_mime("x/a.webp"), "image/webp");
+            assert_eq!(guess_mime("x/a.gif"), "image/gif");
+            assert_eq!(guess_mime("x/a"), "image/png");
+        }
+
+        /// One URL through its whole life. The stub server answers once, so every later
+        /// fill proves it came from a cache: fetch → memory hit (through the public config
+        /// walk, nested, `url` kept) → memory stale → disk hit → disk stale → refetch fails →
+        /// failure remembered (no retry, blank `data` not counted as filled) → failure expires.
+        #[test]
+        fn url_lifecycle_fetch_cache_stale_failure() {
+            // 1. Cold miss: fetched now (URL trimmed), cached in memory and on disk.
+            let base = serve("image/png", vec![9u8; 10], 1);
+            let url = format!("{base}/ok.png");
+            let mut img = ImageElement {
+                url: Some(format!(" {url} ")),
+                ..Default::default()
+            };
+            prefetch_image(&mut img);
+            let data = img.data.clone().expect("filled");
+            assert!(data.starts_with("data:image/png"), "{data}");
+            let disk = disk_cache_dir().unwrap().join(cache_key(&url));
+            assert!(disk.exists() && disk.with_extension("meta").exists());
+
+            // 2. Memory hit via the public walk: nested in a stack, `url` stays for Android/AC.
+            let mut cfg: WidgetConfig = serde_json::from_value(serde_json::json!({
+                "small": {"type": "vstack", "children": [{"type": "image", "url": url}]}
+            }))
+            .unwrap();
+            prefetch_remote_images(&mut cfg);
+            let Some(WidgetElement::VStack(v)) = &cfg.small else {
+                panic!("vstack")
+            };
+            let WidgetElement::Image(got) = &v.children[0] else {
+                panic!("image")
+            };
+            assert_eq!(got.url.as_deref(), Some(url.as_str()));
+            assert_eq!(got.data.as_deref(), Some(data.as_str()));
+
+            // 3. Memory copy stale → served from disk and put back in memory.
+            age_memory(&url, CACHE_TTL + Duration::from_secs(1));
+            assert_eq!(cache_get(&url).as_deref(), Some(data.as_str()));
+            assert!(memory().as_ref().unwrap()[&url].fetched_at.elapsed() < CACHE_TTL);
+
+            // 4. Both stale → miss; the dead server fails the refetch: nothing filled, the
+            //    stale disk files are gone and the failure is remembered.
+            age_memory(&url, CACHE_TTL + Duration::from_secs(1));
+            std::fs::write(disk.with_extension("meta"), "0").unwrap();
+            let mut again = ImageElement {
+                url: Some(url.clone()),
+                ..Default::default()
+            };
+            prefetch_image(&mut again);
+            assert_eq!(again.data, None);
+            assert!(!disk.exists());
+            assert!(recently_failed(&url));
+            assert!(!recently_failed(&format!("{base}/other.png")));
+
+            // 5. Blank `data` is not "filled": it is attempted (and fails) like an empty one.
+            let mut blank = ImageElement {
+                url: Some("http://127.0.0.1:1/nothing.png".into()),
+                data: Some("  ".into()),
+                ..Default::default()
+            };
+            prefetch_image(&mut blank);
+            assert_eq!(blank.data.as_deref(), Some("  "));
+            assert!(recently_failed("http://127.0.0.1:1/nothing.png"));
+
+            // 6. The failure expires after FAILURE_TTL.
+            FAILED.lock().unwrap().as_mut().unwrap().insert(
+                url.clone(),
+                Instant::now()
+                    .checked_sub(FAILURE_TTL + Duration::from_secs(1))
+                    .unwrap(),
+            );
+            assert!(!recently_failed(&url));
+        }
+
+        /// Cache bookkeeping: memory eviction (expired first, then oldest, below the cap) →
+        /// memory-only entries are served → disk round trip, expiry and stable hashed keys
+        /// under the OS cache dir → the disk sweep removes only old files.
+        #[test]
+        fn cache_eviction_disk_store_and_sweep() {
+            // 1. Eviction.
+            let mut map = HashMap::new();
+            map.insert("old".to_string(), entry(CACHE_TTL + Duration::from_secs(1)));
+            map.insert("fresh".to_string(), entry(Duration::from_secs(1)));
+            evict(&mut map);
+            assert!(map.contains_key("fresh") && !map.contains_key("old"));
+            let mut full = HashMap::new();
+            for i in 0..MAX_ENTRIES {
+                full.insert(format!("k{i}"), entry(Duration::from_secs(10 + i as u64)));
+            }
+            evict(&mut full);
+            assert_eq!(full.len(), MAX_ENTRIES - 1);
+            assert!(!full.contains_key(&format!("k{}", MAX_ENTRIES - 1)));
+            assert!(full.contains_key("k0"));
+
+            // 2. Memory-only entry (no disk copy) and a put → get.
+            let tag = format!("{}-{:?}", std::process::id(), Instant::now());
+            let mem = format!("http://cache.test/mem-{tag}.png");
+            memory()
+                .get_or_insert_with(HashMap::new)
+                .insert(mem.clone(), entry(Duration::from_secs(1)));
+            assert_eq!(cache_get(&mem).as_deref(), Some("d"));
+            let put = format!("http://cache.test/put-{tag}.png");
+            cache_put(&put, "data:image/png;base64,AA==".into());
+            assert_eq!(
+                cache_get(&put).as_deref(),
+                Some("data:image/png;base64,AA==")
+            );
+
+            // 3. Disk store: location, round trip, expiry removes the file, keys.
+            let base = dirs_next_cache().expect("cache base");
+            #[cfg(target_os = "macos")]
+            assert!(base.ends_with("Library/Caches"), "{base:?}");
+            #[cfg(all(unix, not(target_os = "macos")))]
+            assert!(base.is_absolute() && base.as_os_str().len() > 1, "{base:?}");
+            let dir = disk_cache_dir().unwrap();
+            assert!(dir.ends_with("tauri-plugin-widgets/image-prefetch"));
+            let url = format!("http://disk.test/{}.png", std::process::id());
+            disk_cache_put(&url, "data:x");
+            assert_eq!(disk_cache_get(&url).as_deref(), Some("data:x"));
+            let path = dir.join(cache_key(&url));
+            std::fs::write(path.with_extension("meta"), "0").unwrap();
+            assert_eq!(disk_cache_get(&url), None);
+            assert!(!path.exists());
+            assert_eq!(cache_key("a").len(), 16);
+            assert_eq!(cache_key("a"), cache_key("a"));
+            assert_ne!(cache_key("a"), cache_key("b"));
+
+            // 4. Sweep on put: files older than the TTL go, fresh ones stay.
+            let old = dir.join(format!("sweep-old-{}", std::process::id()));
+            let fresh = dir.join(format!("sweep-fresh-{}", std::process::id()));
+            std::fs::write(&old, "x").unwrap();
+            std::fs::write(&fresh, "x").unwrap();
+            let f = std::fs::File::options().write(true).open(&old).unwrap();
+            f.set_modified(SystemTime::now() - CACHE_TTL - Duration::from_secs(5))
+                .unwrap();
+            disk_cache_put(
+                &format!("http://disk.test/sweep-{}.png", std::process::id()),
+                "data:y",
+            );
+            assert!(!old.exists());
+            assert!(fresh.exists());
+            let _ = std::fs::remove_file(fresh);
+        }
+    }
 }
 
 #[cfg(all(feature = "image-prefetch", not(target_os = "android")))]
 use imp::prefetch_remote_images_inner;
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-    use crate::models::ImageElement;
-
-    #[test]
-    fn leaves_non_http_url_alone() {
-        let mut cfg = WidgetConfig {
-            version: 1,
-            small: Some(WidgetElement::Image(ImageElement {
-                system_name: None,
-                data: None,
-                url: Some("data:image/png;base64,QQ==".into()),
-                size: Some(16.0),
-                color: None,
-                content_mode: None,
-                style: Default::default(),
-            })),
-            medium: None,
-            large: None,
-        };
-        prefetch_remote_images(&mut cfg);
-        match cfg.small.as_ref().unwrap() {
-            WidgetElement::Image(img) => {
-                assert_eq!(img.url.as_deref(), Some("data:image/png;base64,QQ=="));
-                assert!(img.data.is_none());
-            }
-            _ => panic!("expected image"),
-        }
-    }
-
-    #[test]
-    fn skips_when_data_already_set() {
-        let mut cfg = WidgetConfig {
-            version: 1,
-            small: Some(WidgetElement::Image(ImageElement {
-                system_name: None,
-                data: Some("data:image/png;base64,QQ==".into()),
-                url: Some("https://example.com/a.png".into()),
-                size: None,
-                color: None,
-                content_mode: None,
-                style: Default::default(),
-            })),
-            medium: None,
-            large: None,
-        };
-        prefetch_remote_images(&mut cfg);
-        match cfg.small.as_ref().unwrap() {
-            WidgetElement::Image(img) => {
-                assert_eq!(img.url.as_deref(), Some("https://example.com/a.png"));
-                assert!(img.data.as_ref().unwrap().starts_with("data:"));
-            }
-            _ => panic!("expected image"),
-        }
-    }
-
-    #[test]
-    fn keeps_url_when_serving_from_memory_cache() {
-        #[cfg(all(feature = "image-prefetch", not(target_os = "android")))]
-        {
-            imp::cache_put(
-                "https://example.com/cached.png",
-                "data:image/png;base64,QQ==".into(),
-            );
-            let mut cfg = WidgetConfig {
-                version: 1,
-                small: Some(WidgetElement::Image(ImageElement {
-                    system_name: None,
-                    data: None,
-                    url: Some("https://example.com/cached.png".into()),
-                    size: None,
-                    color: None,
-                    content_mode: None,
-                    style: Default::default(),
-                })),
-                medium: None,
-                large: None,
-            };
-            prefetch_remote_images(&mut cfg);
-            match cfg.small.as_ref().unwrap() {
-                WidgetElement::Image(img) => {
-                    assert_eq!(img.url.as_deref(), Some("https://example.com/cached.png"));
-                    assert_eq!(img.data.as_deref(), Some("data:image/png;base64,QQ=="));
-                }
-                _ => panic!("expected image"),
-            }
-        }
-    }
-}

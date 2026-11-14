@@ -2,7 +2,6 @@
   "$schema": "http://adaptivecards.io/schemas/adaptive-card.json",
   "body": [
     {
-      "id": "gap:6",
       "items": [
         {
           "size": "Medium",
@@ -12,58 +11,67 @@
           "wrap": true
         },
         {
-          "horizontalAlignment": "Left",
-          "items": [
+          "columns": [
             {
-              "items": [
-                {
-                  "columns": [
-                    {
-                      "id": "mark:col",
-                      "items": [
-                        {
-                          "color": "Light",
-                          "horizontalAlignment": "Center",
-                          "size": "Small",
-                          "text": "○",
-                          "type": "TextBlock",
-                          "wrap": false
-                        }
-                      ],
-                      "type": "Column",
-                      "width": "auto"
-                    },
-                    {
-                      "items": [
-                        {
-                          "color": "Light",
-                          "horizontalAlignment": "Left",
-                          "size": "Small",
-                          "text": "Buy milk",
-                          "type": "TextBlock",
-                          "wrap": true
-                        }
-                      ],
-                      "type": "Column",
-                      "width": "stretch"
-                    }
-                  ],
-                  "type": "ColumnSet"
-                }
-              ],
-              "selectAction": {
-                "data": {
-                  "payload": null
-                },
-                "type": "Action.Execute",
-                "verb": "toggle"
-              },
-              "type": "Container"
+              "width": 1
             },
             {
-              "columns": [
+              "width": 5
+            }
+          ],
+          "firstRowAsHeaders": false,
+          "id": "gap:6",
+          "rows": [
+            {
+              "cells": [
                 {
-                  "id": "mark:col",
+                  "items": [
+                    {
+                      "color": "Light",
+                      "horizontalAlignment": "Center",
+                      "size": "Small",
+                      "text": "○",
+                      "type": "TextBlock",
+                      "wrap": false
+                    }
+                  ],
+                  "selectAction": {
+                    "data": {
+                      "payload": null
+                    },
+                    "type": "Action.Execute",
+                    "verb": "toggle"
+                  },
+                  "type": "TableCell",
+                  "verticalContentAlignment": "Center"
+                },
+                {
+                  "items": [
+                    {
+                      "color": "Light",
+                      "horizontalAlignment": "Left",
+                      "size": "Small",
+                      "text": "Buy milk",
+                      "type": "TextBlock",
+                      "wrap": true
+                    }
+                  ],
+                  "selectAction": {
+                    "data": {
+                      "payload": null
+                    },
+                    "type": "Action.Execute",
+                    "verb": "toggle"
+                  },
+                  "type": "TableCell",
+                  "verticalContentAlignment": "Center"
+                }
+              ],
+              "type": "TableRow"
+            },
+            {
+              "cells": [
+                {
                   "items": [
                     {
                       "color": "Good",
@@ -74,8 +82,8 @@
                       "wrap": false
                     }
                   ],
-                  "type": "Column",
-                  "width": "auto"
+                  "type": "TableCell",
+                  "verticalContentAlignment": "Center"
                 },
                 {
                   "items": [
@@ -88,20 +96,19 @@
                       "wrap": true
                     }
                   ],
-                  "type": "Column",
-                  "width": "stretch"
+                  "type": "TableCell",
+                  "verticalContentAlignment": "Center"
                 }
               ],
-              "id": "gap:4",
-              "spacing": "Default",
-              "type": "ColumnSet"
+              "type": "TableRow"
             }
           ],
-          "spacing": "None",
-          "type": "Container"
+          "showGridLines": false,
+          "spacing": "Default",
+          "type": "Table"
         }
       ],
-      "spacing": "Default",
+      "spacing": "None",
       "type": "Container"
     }
   ],

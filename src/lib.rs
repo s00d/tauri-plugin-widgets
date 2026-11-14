@@ -135,6 +135,8 @@ pub mod normalize;
 pub mod rasterize;
 /// Render receipts written by native / desktop surfaces.
 pub mod receipt;
+/// Render-time resolution: scheduled entries and `{{…}}` placeholders.
+pub mod resolve;
 /// Canonical layout dumps for snapshot tests.
 pub mod snapshot;
 /// Shared key-value store helpers and action envelopes.
@@ -206,6 +208,21 @@ pub fn init<R: Runtime>() -> TauriPlugin<R, Option<WidgetsPluginConfig>> {
             commands::get_widget_diagnostics,
             commands::get_widget_trace,
             commands::flush_widget_trace,
+            commands::set_widget_data,
+            commands::set_widget_instances,
+            commands::get_active_widgets,
+            commands::start_activity,
+            commands::update_activity,
+            commands::end_activity,
+            commands::list_activities,
+            commands::activity_island,
+            commands::get_activity_push_to_start_token,
+            commands::set_widget_state,
+            commands::get_widget_state,
+            commands::register_activity_template,
+            commands::get_widget_push_token,
+            commands::can_promote_activities,
+            commands::open_activity_promotion_settings,
         ])
         .setup(|app, api| {
             #[cfg(mobile)]
@@ -224,6 +241,17 @@ pub fn init<R: Runtime>() -> TauriPlugin<R, Option<WidgetsPluginConfig>> {
             }
         }
         _ => {}
+    });
+
+    // macOS: host writes go to the App Group files from a writer thread; finish them
+    // before the process ends.
+    #[cfg(target_os = "macos")]
+    let builder = builder.on_event(|app, event| {
+        if let tauri::RunEvent::Exit = event {
+            if let Some(widget) = app.try_state::<Widget<R>>() {
+                widget.inner().flush_store();
+            }
+        }
     });
 
     #[cfg(desktop)]

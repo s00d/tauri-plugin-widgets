@@ -8,8 +8,10 @@ import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.unit.sp
 import androidx.glance.layout.Alignment
 import androidx.glance.layout.ContentScale
+import androidx.glance.text.FontStyle
 import androidx.glance.text.FontWeight
 import androidx.glance.text.TextAlign
+import androidx.glance.text.TextDecoration
 import androidx.glance.text.TextStyle
 import androidx.glance.unit.ColorProvider
 import org.json.JSONObject
@@ -26,17 +28,14 @@ internal fun resolveBackgroundProvider(context: Context, value: Any?): ColorProv
     if (value is String) return colorProviderFromString(context, value)
     if (value !is JSONObject) return null
 
-    if (value.has("light") || value.has("dark")) {
-        val isDark = surfaceIsDark(context)
-        val pick = if (isDark) value.widgetString("dark", value.widgetString("light", "")) else value.widgetString("light", value.widgetString("dark", ""))
-        return colorProviderFromString(context, pick)
-    }
-    if (value.has("colors")) {
-        val arr = value.optJSONArray("colors")
-        if (arr != null && arr.length() > 0) {
+    if (value.has("light") || value.has("dark")) return adaptiveColorProvider(context, value)
+    if (value.has("colors") || value.has("stops")) {
+        val first = value.optJSONArray("stops")?.optJSONObject(0)?.widgetString("color", "")
+            ?: value.optJSONArray("colors")?.optString(0, "")
+        if (!first.isNullOrEmpty()) {
             // Glance has no gradient brush here — degrade to first stop explicitly.
             Log.d("TauriGlanceWidget", "background gradient degraded to first color stop (Glance limitation)")
-            return colorProviderFromString(context, arr.optString(0, ""))
+            return colorProviderFromString(context, first)
         }
     }
     return null
@@ -46,16 +45,39 @@ internal fun resolveColorProvider(context: Context, value: Any?): ColorProvider?
     if (value == null) return null
     if (value is String) return colorProviderFromString(context, value)
     if (value is JSONObject) {
-        if (value.has("light") || value.has("dark")) {
-            val isDark = surfaceIsDark(context)
-            val pick = if (isDark) value.widgetString("dark", value.widgetString("light", "")) else value.widgetString("light", value.widgetString("dark", ""))
-            return colorProviderFromString(context, pick)
-        }
+        if (value.has("light") || value.has("dark")) return adaptiveColorProvider(context, value)
     }
     return null
 }
 
+/**
+ * `{light, dark}`: a day / night provider the launcher resolves with its own night mode when
+ * nothing pins the surface ([WIDGET_SURFACE_DARK] unset); otherwise the side that contrasts
+ * with the widget's explicit background.
+ */
+internal fun adaptiveColorProvider(context: Context, value: JSONObject): ColorProvider? {
+    val light = value.widgetString("light", value.widgetString("dark", ""))
+    val dark = value.widgetString("dark", light)
+    WIDGET_SURFACE_DARK.get()?.let { pinned -> return colorProviderFromString(context, if (pinned) dark else light) }
+    val day = parseColor(context, light) ?: return null
+    val night = parseColor(context, dark) ?: day
+    return androidx.glance.color.ColorProvider(day = day, night = night)
+}
+
+/** Semantic IR color → library color resource (day / night, dynamic accent on 12+). */
+internal fun semanticColorRes(raw: String): Int? = when (raw.lowercase(Locale.US)) {
+    "label" -> R.color.tauri_color_label
+    "secondarylabel" -> R.color.tauri_color_secondarylabel
+    "separator" -> R.color.tauri_color_separator
+    "systembackground" -> R.color.tauri_color_systembackground
+    "secondarysystembackground" -> R.color.tauri_color_secondarysystembackground
+    "accent" -> R.color.tauri_color_accent
+    else -> null
+}
+
 internal fun colorProviderFromString(context: Context, raw: String): ColorProvider? {
+    // No explicit widget background: semantic colors follow the launcher (night, wallpaper).
+    if (WIDGET_SURFACE_DARK.get() == null) semanticColorRes(raw.trim())?.let { return ColorProvider(it) }
     val c = parseColor(context, raw) ?: return null
     return ColorProvider(c)
 }
@@ -83,6 +105,8 @@ internal fun parseColor(context: Context, raw: String): Color? {
             s.startsWith("#") -> Color(android.graphics.Color.parseColor(s))
             s.equals("white", true) -> Color.White
             s.equals("black", true) -> Color.Black
+            // Not in android.graphics.Color's named set (parse would fail → caller fallback).
+            s.equals("transparent", true) || s.equals("clear", true) -> Color.Transparent
             s.equals("red", true) -> Color(0xFFE53935)
             s.equals("green", true) -> Color(0xFF43A047)
             s.equals("blue", true) -> Color(0xFF1E88E5)
@@ -126,6 +150,7 @@ internal fun semanticColor(context: Context, raw: String): Color? {
         "secondarylabel" -> if (dark) Color(0xFFC7C7CC) else Color(0xFF555555)
         "separator" -> if (dark) Color(0xFF3A3A3C) else Color(0xFFD1D1D6)
         "systembackground" -> if (dark) Color(0xFF1C1C1E) else Color(0xFFFFFFFF)
+        "secondarysystembackground" -> if (dark) Color(0xFF2C2C2E) else Color(0xFFF2F2F7)
         "accent", "systemblue" -> if (dark) Color(0xFF89B4FA) else Color(0xFF2563EB)
         "systemred" -> if (dark) Color(0xFFF87171) else Color(0xFFDC2626)
         "systemgreen" -> if (dark) Color(0xFF86EFAC) else Color(0xFF16A34A)
@@ -213,10 +238,17 @@ internal fun textStyleFromElement(context: Context, el: JSONObject): TextStyle {
         "trailing", "right", "end" -> TextAlign.End
         else -> TextAlign.Start
     }
+    val fontStyle = if (el.optBoolean(WireField.ITALIC, false)) FontStyle.Italic else null
+    val decorations = listOfNotNull(
+        TextDecoration.Underline.takeIf { el.optBoolean(WireField.UNDERLINE, false) },
+        TextDecoration.LineThrough.takeIf { el.optBoolean(WireField.STRIKETHROUGH, false) },
+    )
+    val decoration = if (decorations.isEmpty()) null else TextDecoration.combine(decorations)
+    // monospacedDigit: Roboto (the Android system font) already draws tabular digits.
     return if (size > 0) {
-        TextStyle(color = color, fontSize = size.toFloat().sp, fontWeight = weight, textAlign = align)
+        TextStyle(color = color, fontSize = size.toFloat().sp, fontWeight = weight, fontStyle = fontStyle, textAlign = align, textDecoration = decoration)
     } else {
-        TextStyle(color = color, fontWeight = weight, textAlign = align)
+        TextStyle(color = color, fontWeight = weight, fontStyle = fontStyle, textAlign = align, textDecoration = decoration)
     }
 }
 
@@ -243,6 +275,18 @@ internal fun semanticLabelProvider(context: Context): ColorProvider {
 
 internal fun semanticSecondaryProvider(context: Context): ColorProvider {
     return ColorProvider(if (surfaceIsDark(context)) Color(0xFFC7C7CC) else Color(0xFF555555))
+}
+
+/**
+ * Framework media icon for a transport-glyph label (`⏮` `⏸` `▶` `⏭`): the glyphs are color
+ * emoji in Noto, so buttons draw the tinted system icon instead; null for any other label.
+ */
+internal fun mediaIconRes(label: String): Int? = when (mediaGlyphFallback(label)) {
+    "||" -> android.R.drawable.ic_media_pause
+    ">" -> android.R.drawable.ic_media_play
+    "|<" -> android.R.drawable.ic_media_previous
+    ">|" -> android.R.drawable.ic_media_next
+    else -> null
 }
 
 internal fun mediaGlyphFallback(label: String): String {
@@ -300,6 +344,7 @@ internal fun parseContentScale(mode: String): ContentScale {
         "fill" -> ContentScale.Crop
         "fit" -> ContentScale.Fit
         "stretch" -> ContentScale.FillBounds
+        // "center" (natural size, no scaling): Glance has no ContentScale.None → Fit.
         else -> ContentScale.Fit
     }
 }

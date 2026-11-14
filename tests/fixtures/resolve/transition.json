@@ -1,0 +1,11 @@
+{
+  "about": "`transition` (contract v3) is a renderer hint: resolve passes it through on the config's elements unchanged and drops the config-level one with everything that is not `version` / a size family. `requires: {resolve: 3}` renders the real layout on v3 ports.",
+  "config": {
+    "requires": { "resolve": 3 },
+    "fallback": { "small": { "type": "text", "content": "old" } },
+    "transition": "opacity",
+    "small": { "type": "text", "content": "{{data.n}}", "transition": "numeric" }
+  },
+  "ctx": { "nowMs": 0, "locale": "en", "data": { "n": 5 } },
+  "expected": { "version": 1, "small": { "type": "text", "content": "5", "transition": "numeric" } }
+}

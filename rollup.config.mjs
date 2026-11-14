@@ -124,6 +124,8 @@ export type RenderWidgetOptions = {
   group?: string;
   widgetId?: string;
   chrome?: boolean;
+  /** Root background when the layout sets none (default: the theme's surface). */
+  surface?: string;
   onAction?: (action: string, payload?: string | null) => void;
 };
 export type RenderHandle = { destroy(): void };

@@ -16,6 +16,12 @@ buildscript {
     if (!kotlinVersion.startsWith("1.")) {
         dependencies { classpath("org.jetbrains.kotlin:compose-compiler-gradle-plugin:$kotlinVersion") }
     }
+    // Mutation testing (maintainers): only with `-Ppitest=true`, so apps that include this
+    // module never resolve the plugin.
+    if (project.findProperty("pitest")?.toString() == "true") {
+        repositories { gradlePluginPortal() }
+        dependencies { classpath("pl.droidsonroids.pitest:pl.droidsonroids.pitest.gradle.plugin:0.2.25") }
+    }
 }
 
 plugins {
@@ -26,15 +32,23 @@ plugins {
 val kotlin2 = !(extra["kotlinVersion"] as String).startsWith("1.")
 if (kotlin2) apply(plugin = "org.jetbrains.kotlin.plugin.compose")
 
+// PIT: `./gradlew pitestDebug -Ppitest=true` (pnpm mutants:kotlin); config in pitest.gradle.
+if (project.findProperty("pitest")?.toString() == "true") {
+    apply(plugin = "pl.droidsonroids.pitest")
+    apply(from = "pitest.gradle")
+}
+
 // A plain path: AGP 9 rejects Providers in the source-set API.
 val visualAssetsDir = layout.buildDirectory.dir("generated/visualAssets").get().asFile
 
 android {
     namespace = "git.s00d.widgets"
-    compileSdk = 34
+    // 35: Glance 1.2 (generated picker previews) requires it; the app must compile with 35+ too.
+    compileSdk = 35
 
     defaultConfig {
-        minSdk = 21
+        // 23: Glance testing / 1.2 need it; Tauri apps start at 24.
+        minSdk = 23
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         consumerProguardFiles("consumer-rules.pro")
@@ -110,14 +124,21 @@ dependencies {
     testImplementation("org.robolectric:robolectric:4.13")
     testImplementation("org.jetbrains.kotlinx:kotlinx-coroutines-test:1.7.3")
     testImplementation("androidx.test:core:1.5.0")
+    // Property / model-based chains (`checkAll` + `Arb` from plain JUnit4/Robolectric tests).
+    testImplementation("io.kotest:kotest-property:5.9.1")
     androidTestImplementation("androidx.test.ext:junit:1.1.5")
     androidTestImplementation("androidx.test.espresso:espresso-core:3.5.1")
     androidTestImplementation("androidx.test:runner:1.5.2")
     androidTestImplementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.7.3")
     implementation(project(":tauri-android"))
-    implementation("androidx.glance:glance-appwidget:1.1.1")
-    implementation("androidx.glance:glance-material3:1.1.1")
+    implementation("androidx.glance:glance-appwidget:1.2.0")
+    implementation("androidx.glance:glance-material3:1.2.0")
     implementation("androidx.datastore:datastore-preferences:1.1.1")
+    // `source` fetch off the render path (network constraint, backoff); Glance already uses it.
+    implementation("androidx.work:work-runtime-ktx:2.9.1")
+    testImplementation("androidx.work:work-testing:2.9.1")
+    testImplementation("androidx.glance:glance-appwidget-testing:1.2.0")
+    androidTestImplementation("androidx.work:work-testing:2.9.1")
     if (!kotlin2) add("kotlinCompilerPluginClasspath", "androidx.compose.compiler:compiler:1.5.15")
 }
 

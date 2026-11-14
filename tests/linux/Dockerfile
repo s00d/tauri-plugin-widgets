@@ -16,7 +16,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
       xvfb openbox x11-utils xdotool imagemagick \
       dbus-x11 at-spi2-core \
       libgl1-mesa-dri mesa-utils \
-      fonts-noto-core fonts-noto-color-emoji \
+      fonts-noto-core fonts-noto-cjk fonts-noto-color-emoji \
       sway grim \
       patchelf file lld \
  && rm -rf /var/lib/apt/lists/*

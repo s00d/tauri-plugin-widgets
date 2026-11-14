@@ -1,0 +1,146 @@
+{
+  "$schema": "http://adaptivecards.io/schemas/adaptive-card.json",
+  "body": [
+    {
+      "backgroundImage": {
+        "fillMode": "repeat",
+        "url": "data:image/png;base64,<png>"
+      },
+      "id": "card:#111827",
+      "items": [
+        {
+          "columns": [
+            {
+              "items": [
+                {
+                  "actions": [
+                    {
+                      "title": "Bordered",
+                      "type": "Action.Execute",
+                      "verb": "a"
+                    }
+                  ],
+                  "type": "ActionSet"
+                }
+              ],
+              "type": "Column",
+              "width": "auto"
+            },
+            {
+              "id": "gap:6",
+              "items": [
+                {
+                  "actions": [
+                    {
+                      "iconUrl": "data:image/png;base64,<png>",
+                      "id": "bg:#2563eb",
+                      "style": "positive",
+                      "title": "Go",
+                      "type": "Action.Execute",
+                      "verb": "b"
+                    }
+                  ],
+                  "type": "ActionSet"
+                }
+              ],
+              "spacing": "Default",
+              "type": "Column",
+              "width": "auto"
+            },
+            {
+              "id": "gap:6;#2",
+              "items": [
+                {
+                  "actions": [
+                    {
+                      "title": "Plain",
+                      "type": "Action.Execute",
+                      "verb": "c"
+                    }
+                  ],
+                  "type": "ActionSet"
+                }
+              ],
+              "spacing": "Default",
+              "type": "Column",
+              "width": "auto"
+            },
+            {
+              "id": "gap:6;#3",
+              "items": [
+                {
+                  "actions": [
+                    {
+                      "isEnabled": false,
+                      "title": "Off",
+                      "type": "Action.Execute",
+                      "verb": "d"
+                    }
+                  ],
+                  "type": "ActionSet"
+                }
+              ],
+              "spacing": "Default",
+              "type": "Column",
+              "width": "auto"
+            }
+          ],
+          "spacing": "None",
+          "type": "ColumnSet"
+        },
+        {
+          "columns": [
+            {
+              "items": [
+                {
+                  "size": "Default",
+                  "text": "✓ Switch",
+                  "type": "TextBlock",
+                  "wrap": true
+                }
+              ],
+              "type": "Column",
+              "width": "auto"
+            },
+            {
+              "id": "gap:12",
+              "items": [
+                {
+                  "size": "Default",
+                  "text": "☐ Check",
+                  "type": "TextBlock",
+                  "wrap": true
+                }
+              ],
+              "spacing": "Medium",
+              "type": "Column",
+              "width": "auto"
+            },
+            {
+              "id": "gap:12;#2",
+              "items": [
+                {
+                  "size": "Default",
+                  "text": "☑ Checked",
+                  "type": "TextBlock",
+                  "wrap": true
+                }
+              ],
+              "spacing": "Medium",
+              "type": "Column",
+              "width": "auto"
+            }
+          ],
+          "id": "gap:8",
+          "spacing": "Default",
+          "type": "ColumnSet"
+        }
+      ],
+      "spacing": "None",
+      "style": "emphasis",
+      "type": "Container"
+    }
+  ],
+  "type": "AdaptiveCard",
+  "version": "1.5"
+}

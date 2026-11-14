@@ -12,11 +12,20 @@ import { renderDivider, renderSpacer } from "./spacing";
 import type { ElNode, ParentAxis } from "../types";
 
 export function renderEl(d: ElNode, parentAxis?: ParentAxis): HTMLElement | SVGElement {
+  const el = build(d, parentAxis);
+  // `transition` hint: `renderWidget` animates marked elements whose content changed.
+  if (typeof d.transition === "string" && d.transition !== "none") el.setAttribute("data-transition", d.transition);
+  // Editor marker (docs widget constructor): maps a drawn element back to its tree node.
+  if (d.__node != null) el.setAttribute("data-node", String(d.__node));
+  return el;
+}
+
+function build(d: ElNode, parentAxis?: ParentAxis): HTMLElement | SVGElement {
   switch (d.type) {
     case "vstack":
-      return renderStack(d, "column");
+      return renderStack(d, "column", parentAxis);
     case "hstack":
-      return renderStack(d, "row");
+      return renderStack(d, "row", parentAxis);
     case "zstack":
       return renderZStack(d);
     case "grid":

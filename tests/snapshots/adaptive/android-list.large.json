@@ -2,106 +2,113 @@
   "$schema": "http://adaptivecards.io/schemas/adaptive-card.json",
   "body": [
     {
-      "horizontalAlignment": "Left",
-      "items": [
+      "columns": [
         {
-          "items": [
-            {
-              "columns": [
-                {
-                  "id": "mark:col",
-                  "items": [
-                    {
-                      "color": "Good",
-                      "horizontalAlignment": "Center",
-                      "size": "Small",
-                      "text": "✓",
-                      "type": "TextBlock",
-                      "wrap": false
-                    }
-                  ],
-                  "type": "Column",
-                  "width": "auto"
-                },
-                {
-                  "items": [
-                    {
-                      "color": "Light",
-                      "horizontalAlignment": "Left",
-                      "size": "Small",
-                      "text": "Alpha",
-                      "type": "TextBlock",
-                      "wrap": true
-                    }
-                  ],
-                  "type": "Column",
-                  "width": "stretch"
-                }
-              ],
-              "type": "ColumnSet"
-            }
-          ],
-          "selectAction": {
-            "data": {
-              "payload": "a"
-            },
-            "type": "Action.Execute",
-            "verb": "row"
-          },
-          "type": "Container"
+          "width": 1
         },
         {
-          "id": "gap:2",
-          "items": [
+          "width": 5
+        }
+      ],
+      "firstRowAsHeaders": false,
+      "rows": [
+        {
+          "cells": [
             {
-              "columns": [
+              "items": [
                 {
-                  "id": "mark:col",
-                  "items": [
-                    {
-                      "color": "Light",
-                      "horizontalAlignment": "Center",
-                      "size": "Small",
-                      "text": "○",
-                      "type": "TextBlock",
-                      "wrap": false
-                    }
-                  ],
-                  "type": "Column",
-                  "width": "auto"
-                },
-                {
-                  "items": [
-                    {
-                      "color": "Light",
-                      "horizontalAlignment": "Left",
-                      "size": "Small",
-                      "text": "Beta",
-                      "type": "TextBlock",
-                      "wrap": true
-                    }
-                  ],
-                  "type": "Column",
-                  "width": "stretch"
+                  "color": "Good",
+                  "horizontalAlignment": "Center",
+                  "size": "Small",
+                  "text": "✓",
+                  "type": "TextBlock",
+                  "wrap": false
                 }
               ],
-              "type": "ColumnSet"
+              "selectAction": {
+                "data": {
+                  "payload": "a"
+                },
+                "type": "Action.Execute",
+                "verb": "row"
+              },
+              "type": "TableCell",
+              "verticalContentAlignment": "Center"
+            },
+            {
+              "items": [
+                {
+                  "color": "Light",
+                  "horizontalAlignment": "Left",
+                  "size": "Small",
+                  "text": "Alpha",
+                  "type": "TextBlock",
+                  "wrap": true
+                }
+              ],
+              "selectAction": {
+                "data": {
+                  "payload": "a"
+                },
+                "type": "Action.Execute",
+                "verb": "row"
+              },
+              "type": "TableCell",
+              "verticalContentAlignment": "Center"
             }
           ],
-          "selectAction": {
-            "data": {
-              "payload": "b"
-            },
-            "type": "Action.Execute",
-            "verb": "row"
-          },
-          "spacing": "Small",
-          "type": "Container"
+          "type": "TableRow"
         },
         {
-          "columns": [
+          "cells": [
             {
-              "id": "mark:col",
+              "items": [
+                {
+                  "color": "Light",
+                  "horizontalAlignment": "Center",
+                  "size": "Small",
+                  "text": "○",
+                  "type": "TextBlock",
+                  "wrap": false
+                }
+              ],
+              "selectAction": {
+                "data": {
+                  "payload": "b"
+                },
+                "type": "Action.Execute",
+                "verb": "row"
+              },
+              "type": "TableCell",
+              "verticalContentAlignment": "Center"
+            },
+            {
+              "items": [
+                {
+                  "color": "Light",
+                  "horizontalAlignment": "Left",
+                  "size": "Small",
+                  "text": "Beta",
+                  "type": "TextBlock",
+                  "wrap": true
+                }
+              ],
+              "selectAction": {
+                "data": {
+                  "payload": "b"
+                },
+                "type": "Action.Execute",
+                "verb": "row"
+              },
+              "type": "TableCell",
+              "verticalContentAlignment": "Center"
+            }
+          ],
+          "type": "TableRow"
+        },
+        {
+          "cells": [
+            {
               "items": [
                 {
                   "color": "Light",
@@ -112,8 +119,8 @@
                   "wrap": false
                 }
               ],
-              "type": "Column",
-              "width": "auto"
+              "type": "TableCell",
+              "verticalContentAlignment": "Center"
             },
             {
               "items": [
@@ -126,17 +133,15 @@
                   "wrap": true
                 }
               ],
-              "type": "Column",
-              "width": "stretch"
+              "type": "TableCell",
+              "verticalContentAlignment": "Center"
             }
           ],
-          "id": "gap:2",
-          "spacing": "Small",
-          "type": "ColumnSet"
+          "type": "TableRow"
         }
       ],
-      "spacing": "None",
-      "type": "Container"
+      "showGridLines": false,
+      "type": "Table"
     }
   ],
   "type": "AdaptiveCard",

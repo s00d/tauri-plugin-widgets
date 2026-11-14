@@ -36,6 +36,29 @@
 }
 .shot-grid__frame img { display: inline-block; max-width: 100%; height: auto; }
 
+/* Widget goldens in prose (element pages, index table): Nuxt UI's ProseImg adds `w-full`,
+   which blew a 170 px small widget up to the column width. Keep the widget's logical size
+   (small 170, medium / large 360) and a thumbnail inside tables. */
+img[src*="/shots/"] { max-width: 100%; height: auto; }
+img[src*="/shots/"][src*=".small."] { width: 170px; }
+img[src*="/shots/"][src*=".medium."],
+img[src*="/shots/"][src*=".large."] { width: 360px; }
+td img[src*="/shots/"][src*=".small."] { width: 120px; }
+td img[src*="/shots/"][src*=".medium."],
+td img[src*="/shots/"][src*=".large."] { width: 240px; }
+
+/* Recorded demos (::demo-video): real renderer captures, shown at their recorded size. */
+.demo-video { margin: 1.25rem 0 1.75rem; text-align: center; }
+.demo-video video {
+  display: inline-block;
+  max-width: 100%;
+  height: auto;
+  border-radius: 12px;
+  border: 1px solid var(--ui-border);
+  background: #0b0b0f;
+}
+.demo-video figcaption { margin-top: 0.5rem; font-size: 0.85rem; color: var(--ui-text-muted); }
+
 /* Playground: the desktop renderer in a fixed widget-size frame + an editable config. */
 .playground { display: grid; gap: 0.75rem; margin: 1rem 0 1.5rem; }
 .playground__frame { border: 1px solid var(--ui-border); border-radius: 8px; overflow: hidden; background: #18181b; margin: 0 auto; }

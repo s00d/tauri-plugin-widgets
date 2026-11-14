@@ -30,11 +30,9 @@ private fun isExpandingSpacer(child: JSONObject): Boolean {
  * ZStack children that need the full slot (so Column spacers expand) vs badges that must
  * keep intrinsic size for [Box] contentAlignment.
  */
-private fun zstackChildModifier(child: JSONObject): GlanceModifier {
+private fun zstackChildFills(child: JSONObject): Boolean {
     val type = child.widgetString("type", "")
-    if (type in setOf("vstack", "hstack", "container", "grid", "zstack")) {
-        return GlanceModifier.fillMaxSize()
-    }
+    if (type in setOf("vstack", "hstack", "container", "grid", "zstack")) return true
     if (type == "shape") {
         val frame = child.optJSONObject("frame")
         val hasFrame =
@@ -42,12 +40,15 @@ private fun zstackChildModifier(child: JSONObject): GlanceModifier {
                 (frame?.optDouble("height", -1.0) ?: -1.0) > 0
         val hasSize = child.optDouble("size", -1.0) > 0
         // Bare rectangle underlay (stress-align) → fill; sized circle/capsule → hug.
-        if (!hasFrame && !hasSize) return GlanceModifier.fillMaxSize()
+        if (!hasFrame && !hasSize) return true
         val shapeType = child.widgetString("shapeType", "circle").lowercase(Locale.US)
-        if (shapeType == "rectangle" && !hasFrame) return GlanceModifier.fillMaxSize()
+        if (shapeType == "rectangle" && !hasFrame) return true
     }
-    return GlanceModifier
+    return false
 }
+
+private fun zstackChildModifier(child: JSONObject): GlanceModifier =
+    if (zstackChildFills(child)) GlanceModifier.fillMaxSize() else GlanceModifier
 
 @Composable
 internal fun RenderLayout(scope: RenderScope, el: El, modifier: GlanceModifier) {
@@ -67,6 +68,7 @@ internal fun RenderLayout(scope: RenderScope, el: El, modifier: GlanceModifier) 
                     el.arr("children"),
                     spacing,
                     expandWidth = !inHorizontal,
+                    justify = el.str(WireField.JUSTIFY, ""),
                 )
             }
         }
@@ -76,16 +78,24 @@ internal fun RenderLayout(scope: RenderScope, el: El, modifier: GlanceModifier) 
                 modifier = modifier.fillMaxWidth(),
                 verticalAlignment = vAlign
             ) {
-                renderChildrenHorizontal(scope, el.arr("children"), spacing)
+                renderChildrenHorizontal(scope, el.arr("children"), spacing, el.str(WireField.JUSTIFY, ""))
             }
         }
         "zstack" -> {
             val alignment = parseContentAlignment(el.str("alignment", "center").ifBlank { "center" })
             // fillMaxSize inside a Row steals all remaining width/height and zeros siblings
             // (nested-dashboard badge crushed the title/button/body). Wrap in hstacks.
-            val boxMod = if (inHorizontal) modifier else modifier.fillMaxWidth().fillMaxHeight()
+            val children = el.arr("children")
+            // Full height only when a child fills it; a badge stack (sized circle + icon)
+            // hugs, or it would take the whole column and zero the sibling flex spacers.
+            val fills = children != null &&
+                (0 until children.length()).any { children.optJSONObject(it)?.let(::zstackChildFills) == true }
+            val boxMod = when {
+                inHorizontal -> modifier
+                fills -> modifier.fillMaxWidth().fillMaxHeight()
+                else -> modifier.fillMaxWidth()
+            }
             Box(modifier = boxMod, contentAlignment = alignment) {
-                val children = el.arr("children")
                 if (children != null && children.length() > 0) {
                     for (i in 0 until children.length()) {
                         val child = children.optJSONObject(i) ?: continue
@@ -179,6 +189,7 @@ private fun ColumnScope.renderChildrenVertical(
     children: JSONArray?,
     spacing: Int,
     expandWidth: Boolean = true,
+    justify: String = "",
 ) {
     if (children == null) return
     val visible = mutableListOf<JSONObject>()
@@ -196,9 +207,12 @@ private fun ColumnScope.renderChildrenVertical(
     if (visible.isEmpty()) return
 
     val childScope = scope.vertical()
+    val plan = justifyPlan(justify, visible, spacing)
+    repeat(plan.lead) { Spacer(GlanceModifier.defaultWeight()) }
     for (idx in visible.indices) {
         val child = visible[idx]
-        if (idx > 0 && spacing > 0) {
+        if (idx > 0) repeat(plan.between) { Spacer(GlanceModifier.defaultWeight()) }
+        if (idx > 0 && plan.fixedSpacing) {
             val prev = visible[idx - 1]
             // Fixed spacing Spacers around flex spacers steal height and crush the last row
             // (stress-align BL/BR → 2dp lines). Flex spacer already provides the gap.
@@ -226,6 +240,7 @@ private fun ColumnScope.renderChildrenVertical(
         }
         RenderElement(childScope, El(child), base)
     }
+    repeat(plan.trail) { Spacer(GlanceModifier.defaultWeight()) }
 }
 
 @Composable
@@ -233,6 +248,7 @@ private fun RowScope.renderChildrenHorizontal(
     scope: RenderScope,
     children: JSONArray?,
     spacing: Int,
+    justify: String = "",
 ) {
     if (children == null) return
     val visible = mutableListOf<JSONObject>()
@@ -248,13 +264,34 @@ private fun RowScope.renderChildrenHorizontal(
         )
     }
     val hasFlex = visible.any { it.optDouble("flex", 0.0) > 0.0 }
-    val allButtons = visible.isNotEmpty() && visible.all {
-        it.widgetString("type", "") in setOf("button", "toggle")
-    }
+    // Buttons fill an equal share of the row (Apple / desktop: `maxWidth: .infinity`);
+    // toggles hug their label, so a row of toggles packs at its spacing.
+    val allButtons = visible.isNotEmpty() && visible.all { it.widgetString("type", "") == "button" }
     val childScope = scope.horizontal()
+    // Width share of flex children (slot less fixed-width siblings and spacing).
+    val fixedW = visible.filter { it.optDouble("flex", 0.0) <= 0.0 }
+        .sumOf { it.optJSONObject("frame")?.optDouble("width", 0.0) ?: 0.0 }.toFloat()
+    val flexSum = visible.sumOf { it.optDouble("flex", 0.0).coerceAtLeast(0.0) }.toFloat()
+    val flexPool = (scope.slotW - fixedW - spacing * (visible.size - 1).coerceAtLeast(0)).coerceAtLeast(0f)
+    fun scopeFor(child: JSONObject): RenderScope {
+        val f = child.optDouble("flex", 0.0).toFloat()
+        val fw = child.optJSONObject("frame")?.optDouble("width", 0.0)?.toFloat() ?: 0f
+        return when {
+            fw > 0f -> childScope.copy(slotW = fw)
+            f > 0f && flexSum > 0f && scope.slotW > 0f -> childScope.copy(slotW = flexPool * f / flexSum)
+            else -> childScope
+        }
+    }
+    val plan = justifyPlan(justify, visible, spacing)
+    // layoutPriority: lower-priority siblings take weight so they shrink (ellipsize) first.
+    val prios = visible.map { it.optDouble(WireField.LAYOUT_PRIORITY, 0.0).takeIf { p -> !p.isNaN() } ?: 0.0 }
+    val maxPrio = prios.maxOrNull() ?: 0.0
+    val mixedPrio = prios.any { it != maxPrio }
+    repeat(plan.lead) { Spacer(GlanceModifier.defaultWeight()) }
     for (idx in visible.indices) {
         val child = visible[idx]
-        if (idx > 0 && spacing > 0) {
+        if (idx > 0) repeat(plan.between) { Spacer(GlanceModifier.defaultWeight()) }
+        if (idx > 0 && plan.fixedSpacing) {
             val prev = visible[idx - 1]
             if (!isExpandingSpacer(prev) && !isExpandingSpacer(child)) {
                 Spacer(GlanceModifier.width(spacing.dp))
@@ -285,14 +322,62 @@ private fun RowScope.renderChildrenHorizontal(
                 val wantsWeight = when {
                     child.optDouble("flex", 0.0) > 0.0 -> true
                     hasFlex -> false
+                    plan.active -> false
+                    mixedPrio -> prios[idx] < maxPrio
                     allButtons -> true
+                    // Linear bars fill the width like Apple's `maxWidth: .infinity`; a bare
+                    // fillMaxWidth would let the first one take the whole row (fitness Cal / H2O).
+                    isLinearBar(child) -> true
                     else -> false
                 }
                 val base = if (wantsWeight) GlanceModifier.defaultWeight() else GlanceModifier
                 Box(modifier = base) {
-                    RenderElement(childScope, El(child), GlanceModifier)
+                    // A weighted button fills its share, label centred, like iOS / desktop.
+                    val fill = wantsWeight && t == "button"
+                    RenderElement(scopeFor(child), El(child), if (fill) GlanceModifier.fillMaxWidth() else GlanceModifier)
                 }
             }
         }
     }
+    repeat(plan.trail) { Spacer(GlanceModifier.defaultWeight()) }
+}
+
+internal fun isLinearBar(child: JSONObject): Boolean = when (child.widgetString("type", "")) {
+    "progress" -> !child.widgetString("barStyle", "linear").equals("circular", true)
+    "gauge" -> child.widgetString("gaugeStyle", "circular").equals("linear", true)
+    else -> false
+}
+
+/** Weight spacers emulating `justify` (Glance has no Arrangement for RemoteViews). */
+internal data class JustifyPlan(val lead: Int, val between: Int, val trail: Int, val fixedSpacing: Boolean) {
+    val active: Boolean get() = lead + between + trail > 0
+}
+
+/**
+ * `spaceAround` = 1 weight at each edge, 2 in each gap (edges get half a gap).
+ * Glance Row/Column keep at most [GLANCE_CONTAINER_LIMIT] children: over budget, fixed
+ * spacing goes first, then spaceAround degrades to spaceEvenly, then justify is dropped.
+ */
+internal fun justifyPlan(justify: String, visible: List<JSONObject>, spacing: Int): JustifyPlan {
+    val n = visible.size
+    val (lead, between, trail) = when (justify) {
+        "center" -> Triple(1, 0, 1)
+        "end" -> Triple(1, 0, 0)
+        "spaceBetween" -> if (n > 1) Triple(0, 1, 0) else Triple(0, 0, 0)
+        "spaceAround" -> Triple(1, 2, 1)
+        "spaceEvenly" -> Triple(1, 1, 1)
+        else -> Triple(0, 0, 0)
+    }
+    // An expanding spacer child already absorbs the free space: justify has nothing left.
+    if (lead + between + trail == 0 || visible.any { isExpandingSpacer(it) || it.optDouble("flex", 0.0) > 0.0 }) {
+        return JustifyPlan(0, 0, 0, spacing > 0)
+    }
+    val gaps = (n - 1).coerceAtLeast(0)
+    fun total(b: Int, fixed: Boolean) = n + lead + trail + gaps * b + if (fixed) gaps else 0
+    var b = between
+    var fixed = spacing > 0
+    if (total(b, fixed) > GLANCE_CONTAINER_LIMIT) fixed = false
+    if (total(b, fixed) > GLANCE_CONTAINER_LIMIT && b == 2) b = 1
+    if (total(b, fixed) > GLANCE_CONTAINER_LIMIT) return JustifyPlan(0, 0, 0, spacing > 0)
+    return JustifyPlan(lead, b, trail, fixed)
 }

@@ -164,5 +164,5 @@ export const liveMetrics: PresetDef = {
   name: "Live Metrics",
   config: buildLiveMetrics(),
   builder: buildLiveMetrics,
-  intervalMs: 1000,
+  intervalMs: 150,
 };

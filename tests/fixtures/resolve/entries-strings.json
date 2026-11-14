@@ -1,0 +1,11 @@
+{
+  "about": "Entries and placeholders together: the entry layout is resolved too.",
+  "config": {
+    "strings": { "en": { "done": "Done" }, "ru": { "done": "Готово" } },
+    "small": { "type": "text", "content": "{{data.left}}" },
+    "entries": [{ "at": 10, "small": { "type": "text", "content": "{{t.done}}" } }],
+    "data": { "left": "5 min" }
+  },
+  "ctx": { "nowMs": 10, "locale": "ru" },
+  "expected": { "version": 1, "small": { "type": "text", "content": "Готово" } }
+}

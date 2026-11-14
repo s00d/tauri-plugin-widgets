@@ -2,6 +2,10 @@
   "$schema": "http://adaptivecards.io/schemas/adaptive-card.json",
   "body": [
     {
+      "backgroundImage": {
+        "fillMode": "repeat",
+        "url": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAAEElEQVR4AQEFAPr/AAAAAP8BBAEAeX5eMQAAAABJRU5ErkJggg=="
+      },
       "id": "card:#000",
       "items": [
         {
@@ -29,18 +33,29 @@
             {
               "columns": [
                 {
+                  "backgroundImage": {
+                    "fillMode": "repeat",
+                    "url": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAAEElEQVR4AQEFAPr/ACLFXv8ElwJFj5zy9gAAAABJRU5ErkJggg=="
+                  },
                   "id": "fill:#22c55e",
                   "items": [],
-                  "style": "good",
+                  "minHeight": "6px",
                   "type": "Column",
                   "width": 30
                 },
                 {
+                  "backgroundImage": {
+                    "fillMode": "repeat",
+                    "url": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAAEElEQVR4AQEFAPr/ACLFXkAD2AGG0lpfvgAAAABJRU5ErkJggg=="
+                  },
                   "items": [],
+                  "minHeight": "6px",
+                  "spacing": "None",
                   "type": "Column",
                   "width": 70
                 }
               ],
+              "spacing": "Small",
               "type": "ColumnSet"
             }
           ],

@@ -41,22 +41,33 @@ const QUOTES: Quote[] = [
   },
 ];
 
-let quoteIdx = 0;
+const N = QUOTES.length;
+
+/** Shown quote = state `q_i` (1-based). Next runs in-process: `$inc`, wrapping to 1 via a
+ *  second variant — no app round-trip. */
+const at = (i: number) => ({ path: "state.q_i", eq: i + 1 });
+/** One element per quote, only the current one is drawn. */
+const perQuote = (el: (q: Quote) => WidgetElement): WidgetElement[] =>
+  QUOTES.map((q, i) => ({ ...el(q), when: at(i) }) as WidgetElement);
+const counter = `{{state.q_i}} / ${N}`;
+const nextBtn = (label: string): WidgetElement[] => [
+  { type: "button", label, set: { q_i: "$inc" }, when: { path: "state.q_i", lt: N },
+    backgroundColor: "#d97706", color: "#ffffff", fontSize: 12, cornerRadius: 8 },
+  { type: "button", label, set: { q_i: 1 }, when: { not: { path: "state.q_i", lt: N } },
+    backgroundColor: "#d97706", color: "#ffffff", fontSize: 12, cornerRadius: 8 },
+];
 
 function buildQuoteConfig(): WidgetConfig {
-  const q = QUOTES[quoteIdx];
-  const counter = `${quoteIdx + 1} / ${QUOTES.length}`;
-
   const small: WidgetElement = {
     type: "vstack", padding: 16, spacing: 10, cornerRadius: 16,
     background: { light: "#fef3c7", dark: "#422006" },
     children: [
       { type: "image", systemName: "quote.opening", color: "#d97706", size: 20 },
-      { type: "text", content: q.text, textStyle: "subheadline", fontWeight: "medium",
-        color: { light: "#78350f", dark: "#fde68a" }, alignment: "leading", lineLimit: 4 },
+      ...perQuote((q) => ({ type: "text", content: q.text, textStyle: "subheadline", fontWeight: "medium",
+        color: { light: "#78350f", dark: "#fde68a" }, alignment: "leading", lineLimit: 4 })),
       { type: "spacer" },
-      { type: "text", content: `\u2014 ${q.author}`, textStyle: "caption", fontWeight: "semibold",
-        color: { light: "#92400e", dark: "#fbbf24" }, alignment: "trailing" },
+      ...perQuote((q) => ({ type: "text", content: `\u2014 ${q.author}`, textStyle: "caption", fontWeight: "semibold",
+        color: { light: "#92400e", dark: "#fbbf24" }, alignment: "trailing" })),
     ],
   };
 
@@ -66,16 +77,15 @@ function buildQuoteConfig(): WidgetConfig {
     children: [
       { type: "vstack", spacing: 8, alignment: "leading", flex: 1, children: [
         { type: "image", systemName: "quote.opening", color: "#d97706", size: 28 },
-        { type: "text", content: q.text, textStyle: "body", fontWeight: "medium",
-          color: { light: "#78350f", dark: "#fde68a" }, alignment: "leading" },
-        { type: "text", content: `\u2014 ${q.author}`, textStyle: "footnote", fontWeight: "semibold",
-          color: { light: "#92400e", dark: "#fbbf24" }, alignment: "trailing" },
+        ...perQuote((q) => ({ type: "text", content: q.text, textStyle: "body", fontWeight: "medium",
+          color: { light: "#78350f", dark: "#fde68a" }, alignment: "leading" })),
+        ...perQuote((q) => ({ type: "text", content: `\u2014 ${q.author}`, textStyle: "footnote", fontWeight: "semibold",
+          color: { light: "#92400e", dark: "#fbbf24" }, alignment: "trailing" })),
       ] },
       { type: "vstack", spacing: 6, alignment: "center", children: [
         { type: "spacer" },
         { type: "text", content: counter, textStyle: "caption2", color: { light: "#b45309", dark: "#d97706" } },
-        { type: "button", label: "Next", action: "next_quote",
-          backgroundColor: "#d97706", color: "#ffffff", fontSize: 12, cornerRadius: 8 },
+        ...nextBtn("Next"),
       ] },
     ],
   };
@@ -85,35 +95,26 @@ function buildQuoteConfig(): WidgetConfig {
     background: { light: "#fef3c7", dark: "#422006" },
     children: [
       { type: "image", systemName: "quote.opening", color: "#d97706", size: 36 },
-      { type: "text", content: q.textLong, textStyle: "title3", fontWeight: "medium",
-        color: { light: "#78350f", dark: "#fde68a" }, alignment: "leading" },
+      ...perQuote((q) => ({ type: "text", content: q.textLong, textStyle: "title3", fontWeight: "medium",
+        color: { light: "#78350f", dark: "#fde68a" }, alignment: "leading" })),
       { type: "spacer" },
       { type: "divider", color: { light: "#e5c07b", dark: "#854d0e" } },
       { type: "hstack", spacing: 12, children: [
-        { type: "text", content: `\u2014 ${q.author}`, textStyle: "subheadline", fontWeight: "bold",
-          color: { light: "#92400e", dark: "#fbbf24" } },
-        { type: "text", content: q.source, textStyle: "caption", color: { light: "#b45309", dark: "#d97706" } },
+        ...perQuote((q) => ({ type: "text", content: `\u2014 ${q.author}`, textStyle: "subheadline", fontWeight: "bold",
+          color: { light: "#92400e", dark: "#fbbf24" } })),
+        ...perQuote((q) => ({ type: "text", content: q.source, textStyle: "caption", color: { light: "#b45309", dark: "#d97706" } })),
         { type: "spacer" },
         { type: "text", content: counter, textStyle: "caption2", color: { light: "#b45309", dark: "#d97706" } },
-        { type: "button", label: "Next Quote", action: "next_quote",
-          backgroundColor: "#d97706", color: "#ffffff", fontSize: 12, cornerRadius: 8 },
+        ...nextBtn("Next Quote"),
       ] },
     ],
   };
 
-  return { small, medium, large };
+  return { state: { q_i: 1 }, small, medium, large };
 }
 
 export const quote: PresetDef = {
   icon: "\u{1F4AC}",
   name: "Quote",
   config: buildQuoteConfig(),
-  builder: buildQuoteConfig,
-  intervalMs: 30000,
-  onAction(action, _payload, log) {
-    if (action === "next_quote") {
-      quoteIdx = (quoteIdx + 1) % QUOTES.length;
-      log(`Quote ${quoteIdx + 1}/${QUOTES.length}: ${QUOTES[quoteIdx].author}`);
-    }
-  },
 };

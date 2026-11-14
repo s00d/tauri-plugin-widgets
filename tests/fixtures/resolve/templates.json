@@ -1,0 +1,43 @@
+{
+  "about": "`use` expands a named template: `args` are evaluated in the caller's scope (an arg that is exactly one `{{expr}}` keeps its JSON type), read as `{{arg.x}}` / `bind` `arg.x`; other keys on the `use` element override the template root (instance wins); templates may use templates; unknown templates and cycles are dropped; `use` works inside `repeat`.",
+  "config": {
+    "data": { "cpu": 0.5, "items": [{ "n": "a" }, { "n": "b" }] },
+    "strings": { "en": { "cpu": "CPU" } },
+    "templates": {
+      "label": { "type": "text", "content": "[{{arg.text}}]", "fontSize": 10 },
+      "row": {
+        "type": "hstack", "spacing": 2,
+        "children": [
+          { "type": "use", "template": "label", "args": { "text": "{{arg.title}}" } },
+          { "type": "progress", "value": 0, "bind": { "value": "arg.p" } }
+        ]
+      },
+      "loopA": { "type": "use", "template": "loopB" },
+      "loopB": { "type": "use", "template": "loopA" }
+    },
+    "small": {
+      "type": "vstack",
+      "children": [
+        { "type": "use", "template": "row", "args": { "title": "{{t.cpu}}", "p": "{{data.cpu}}" }, "spacing": 9 },
+        { "type": "use", "template": "nope" },
+        { "type": "use", "template": "loopA" },
+        { "type": "repeat", "each": "data.items", "as": "it", "template": { "type": "use", "template": "label", "args": { "text": "{{it.n}}{{index}}" } } }
+      ]
+    }
+  },
+  "ctx": { "nowMs": 0, "locale": "en" },
+  "expected": {
+    "version": 1,
+    "small": {
+      "type": "vstack",
+      "children": [
+        { "type": "hstack", "spacing": 9, "children": [
+          { "type": "text", "content": "[CPU]", "fontSize": 10 },
+          { "type": "progress", "value": 0.5 }
+        ] },
+        { "type": "text", "content": "[a0]", "fontSize": 10 },
+        { "type": "text", "content": "[b1]", "fontSize": 10 }
+      ]
+    }
+  }
+}

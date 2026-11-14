@@ -2,7 +2,11 @@
   "$schema": "http://adaptivecards.io/schemas/adaptive-card.json",
   "body": [
     {
-      "id": "card:#0f172a;gap:8",
+      "backgroundImage": {
+        "fillMode": "repeat",
+        "url": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAAEElEQVR4AQEFAPr/AA8XKv8B2QFQSio/GgAAAABJRU5ErkJggg=="
+      },
+      "id": "card:#0f172a",
       "items": [
         {
           "color": "Light",
@@ -18,7 +22,6 @@
             {
               "items": [
                 {
-                  "id": "gap:4",
                   "items": [
                     {
                       "color": "Light",
@@ -30,13 +33,15 @@
                       "wrap": true
                     },
                     {
+                      "id": "gap:4",
                       "size": "Default",
+                      "spacing": "Default",
                       "text": "2099-06-15T14:30:00Z",
                       "type": "TextBlock",
                       "wrap": true
                     }
                   ],
-                  "spacing": "Default",
+                  "spacing": "None",
                   "type": "Container"
                 }
               ],
@@ -44,13 +49,13 @@
               "width": "auto"
             },
             {
+              "id": "gap:16",
               "items": [
                 {
-                  "id": "gap:4",
                   "items": [
                     {
                       "color": "Light",
-                      "id": "fg:#94a3b8",
+                      "id": "fg:#94a3b8;#2",
                       "size": "Small",
                       "text": "Relative",
                       "type": "TextBlock",
@@ -58,27 +63,30 @@
                       "wrap": true
                     },
                     {
+                      "id": "gap:4;#2",
                       "size": "Default",
+                      "spacing": "Default",
                       "text": "2099-12-25T00:00:00Z",
                       "type": "TextBlock",
                       "wrap": true
                     }
                   ],
-                  "spacing": "Default",
+                  "spacing": "None",
                   "type": "Container"
                 }
               ],
+              "spacing": "Large",
               "type": "Column",
               "width": "auto"
             },
             {
+              "id": "gap:16;#2",
               "items": [
                 {
-                  "id": "gap:4",
                   "items": [
                     {
                       "color": "Light",
-                      "id": "fg:#94a3b8",
+                      "id": "fg:#94a3b8;#3",
                       "size": "Small",
                       "text": "Countdown",
                       "type": "TextBlock",
@@ -86,26 +94,31 @@
                       "wrap": true
                     },
                     {
+                      "color": "Accent",
+                      "id": "gap:4;#3",
                       "size": "Default",
-                      "text": "2099-01-01T00:00:00Z",
+                      "spacing": "Default",
+                      "text": "632295:57:02",
                       "type": "TextBlock",
+                      "weight": "Bolder",
                       "wrap": true
                     }
                   ],
-                  "spacing": "Default",
+                  "spacing": "None",
                   "type": "Container"
                 }
               ],
+              "spacing": "Large",
               "type": "Column",
               "width": "auto"
             }
           ],
-          "id": "gap:16",
-          "spacing": "Large",
+          "id": "gap:8",
+          "spacing": "Default",
           "type": "ColumnSet"
         }
       ],
-      "spacing": "Default",
+      "spacing": "None",
       "style": "emphasis",
       "type": "Container"
     }

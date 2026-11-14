@@ -1,0 +1,28 @@
+{
+  "about": "Localized strings: pt_BR matches the pt-BR table; missing key falls back to defaultLocale, then the key.",
+  "config": {
+    "defaultLocale": "en",
+    "strings": {
+      "en": { "title": "Weather", "hum": "Humidity", "only_en": "EN" },
+      "pt-BR": { "title": "Tempo", "hum": "Umidade" }
+    },
+    "small": {
+      "type": "vstack",
+      "children": [
+        { "type": "text", "content": "{{t.title}}" },
+        { "type": "progress", "value": 0.5, "label": "{{t.hum}} · {{t.only_en}} · {{t.nope}}" }
+      ]
+    }
+  },
+  "ctx": { "nowMs": 0, "locale": "pt_BR" },
+  "expected": {
+    "version": 1,
+    "small": {
+      "type": "vstack",
+      "children": [
+        { "type": "text", "content": "Tempo" },
+        { "type": "progress", "value": 0.5, "label": "Umidade · EN · nope" }
+      ]
+    }
+  }
+}

@@ -1,0 +1,23 @@
+[package]
+name = "tauri-plugin-widgets-fuzz"
+version = "0.0.0"
+publish = false
+edition = "2021"
+
+[package.metadata]
+cargo-fuzz = true
+
+[dependencies]
+libfuzzer-sys = "0.4"
+serde_json = { version = "1", features = ["float_roundtrip"] }
+tauri-plugin-widgets = { path = "..", default-features = false, features = ["rasterize"] }
+
+[[bin]]
+name = "config"
+path = "fuzz_targets/config.rs"
+test = false
+doc = false
+bench = false
+
+# Keep the fuzz crate out of the plugin workspace.
+[workspace]

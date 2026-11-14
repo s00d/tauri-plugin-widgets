@@ -19,6 +19,21 @@ const COMMANDS: &[&str] = &[
     "get_widget_diagnostics",
     "get_widget_trace",
     "flush_widget_trace",
+    "set_widget_data",
+    "set_widget_instances",
+    "get_active_widgets",
+    "start_activity",
+    "update_activity",
+    "end_activity",
+    "list_activities",
+    "activity_island",
+    "get_activity_push_to_start_token",
+    "set_widget_state",
+    "get_widget_state",
+    "register_activity_template",
+    "get_widget_push_token",
+    "can_promote_activities",
+    "open_activity_promotion_settings",
 ];
 
 fn main() {

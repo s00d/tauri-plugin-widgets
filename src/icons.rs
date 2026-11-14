@@ -207,17 +207,43 @@ pub fn icon_png_data_uri(name: &str, size: f64, color: &str) -> Result<String, S
 mod tests {
     use super::*;
 
+    /// SF Symbol name → Material name + emoji (known, unknown, heuristic) → SVG glyph at
+    /// the requested size / colour (min 12) → PNG data URI (`rasterize`).
     #[test]
-    fn heart_maps_to_favorite() {
+    fn sf_symbol_lookup_then_svg_then_png() {
+        // 1. Known name: table hit for both the Material icon and the emoji.
         let r = resolve_sf_symbol("heart.fill");
         assert_eq!(r.material, "favorite");
         assert_ne!(r.emoji, "h");
-    }
-
-    #[test]
-    fn unknown_not_first_letter() {
+        assert_eq!(sf_symbol_material("heart.fill"), "favorite");
+        assert!(!sf_symbol_emoji("heart.fill").is_empty());
+        assert_ne!(sf_symbol_emoji("heart.fill"), "xyzzy");
+        // 2. Unknown name: Material from the name, generic glyph (not the first letter).
         let r = resolve_sf_symbol("totally.unknown.glyph");
         assert_eq!(r.emoji, "•");
         assert!(!r.material.is_empty());
+        assert_eq!(sf_symbol_material("paper.plane-x.fill"), "paper_plane_x");
+        assert_eq!(heuristic_material(".fill"), "circle");
+        assert_eq!(intern_material("abc".into()), "abc");
+        // 3. SVG: box = size, glyph = 0.72 × size, colour and emoji inside; min box 12.
+        let svg = icon_svg("heart.fill", 20.0, "#ff0000");
+        assert!(svg.contains(r#"width="20""#), "{svg}");
+        assert!(
+            svg.contains(r#"font-size="14.399999999999999""#)
+                || svg.contains(r#"font-size="14.4""#),
+            "{svg}"
+        );
+        assert!(svg.contains("#ff0000"));
+        assert!(svg.contains(sf_symbol_emoji("heart.fill")));
+        assert!(icon_svg("x", 4.0, "#000").contains(r#"width="12""#));
+        // 4. PNG.
+        #[cfg(feature = "rasterize")]
+        {
+            let uri = icon_png_data_uri("heart.fill", 24.0, "#000").unwrap();
+            assert!(
+                uri.starts_with("data:image/png;base64,") && uri.len() > 100,
+                "{uri}"
+            );
+        }
     }
 }

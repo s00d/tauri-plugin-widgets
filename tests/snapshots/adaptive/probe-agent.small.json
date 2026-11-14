@@ -1,0 +1,81 @@
+{
+  "$schema": "http://adaptivecards.io/schemas/adaptive-card.json",
+  "body": [
+    {
+      "backgroundImage": {
+        "fillMode": "repeat",
+        "url": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAAEElEQVR4AQEFAPr/AA8XKv8B2QFQSio/GgAAAABJRU5ErkJggg=="
+      },
+      "horizontalAlignment": "Center",
+      "id": "card:#0f172a",
+      "items": [
+        {
+          "color": "Accent",
+          "id": "fg:#38bdf8",
+          "size": "Small",
+          "text": "AGENT",
+          "type": "TextBlock",
+          "weight": "Bolder",
+          "wrap": true
+        },
+        {
+          "color": "Light",
+          "id": "fg:#f8fafc;gap:10",
+          "size": "ExtraLarge",
+          "spacing": "Medium",
+          "text": "OK",
+          "type": "TextBlock",
+          "weight": "Bolder",
+          "wrap": true
+        },
+        {
+          "id": "gap:10",
+          "items": [
+            {
+              "color": "Attention",
+              "size": "Small",
+              "text": "probe",
+              "type": "TextBlock",
+              "wrap": true
+            },
+            {
+              "columns": [
+                {
+                  "backgroundImage": {
+                    "fillMode": "repeat",
+                    "url": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAAEElEQVR4AQEFAPr/APWeC/8GyAKeIj0DoAAAAABJRU5ErkJggg=="
+                  },
+                  "id": "fill:#f59e0b",
+                  "items": [],
+                  "minHeight": "6px",
+                  "type": "Column",
+                  "width": 42
+                },
+                {
+                  "backgroundImage": {
+                    "fillMode": "repeat",
+                    "url": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAAEElEQVR4AQEFAPr/APWeC0AGCQHfCjFC1wAAAABJRU5ErkJggg=="
+                  },
+                  "items": [],
+                  "minHeight": "6px",
+                  "spacing": "None",
+                  "type": "Column",
+                  "width": 58
+                }
+              ],
+              "spacing": "Small",
+              "type": "ColumnSet"
+            }
+          ],
+          "spacing": "Medium",
+          "type": "Container"
+        }
+      ],
+      "spacing": "None",
+      "style": "emphasis",
+      "type": "Container"
+    }
+  ],
+  "type": "AdaptiveCard",
+  "version": "1.5"
+}

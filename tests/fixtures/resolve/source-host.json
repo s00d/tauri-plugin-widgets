@@ -1,0 +1,10 @@
+{
+  "about": "Plain http only to exactly localhost / 127.0.0.1: a look-alike host is refused (no source request).",
+  "config": {
+    "source": { "url": "http://localhost.evil.com/{{instance}}" },
+    "small": { "type": "text", "content": "x" }
+  },
+  "ctx": { "nowMs": 0, "locale": "en", "instance": "a" },
+  "expected": { "version": 1, "small": { "type": "text", "content": "x" } },
+  "source": null
+}

@@ -6,6 +6,7 @@ import {
   TEXT_STYLE_SIZES,
 } from "../style";
 import { addTimer } from "../ctx";
+import { systemGlyph } from "./media";
 import type { ElNode, ParentAxis } from "../types";
 
 export function formatRelativeDate(date: Date): string {
@@ -99,8 +100,73 @@ export function renderText(d: ElNode, parentAxis?: ParentAxis): HTMLElement {
     (e.style as CSSStyleDeclaration & { webkitBoxOrient?: string }).webkitBoxOrient = "vertical";
     e.style.overflow = "hidden";
   }
+  if (d.lineHeight > 0) e.style.lineHeight = d.lineHeight + "px";
+  if (d.letterSpacing) e.style.letterSpacing = d.letterSpacing + "px";
+  var deco = (d.underline ? " underline" : "") + (d.strikethrough ? " line-through" : "");
+  if (deco) e.style.textDecorationLine = deco.trim();
+  if (d.italic) e.style.fontStyle = "italic";
+  if (d.monospacedDigit) e.style.fontVariantNumeric = "tabular-nums";
+  // head / middle cut only on one line (more lines: tail, like the line clamp).
+  if (d.lineLimit === 1 && (d.truncationMode === "head" || d.truncationMode === "middle")) {
+    e.style.display = "block";
+    e.style.whiteSpace = "nowrap";
+    e.style.overflow = "hidden";
+    var text = String(d.content || "");
+    if (d.truncationMode === "head") {
+      // RTL box puts the ellipsis at the start and clips the beginning; the inner
+      // isolate keeps the text itself in its own (LTR) order.
+      e.style.direction = "rtl";
+      e.style.textOverflow = "ellipsis";
+      e.textContent = "";
+      var inner = document.createElement("bdi");
+      inner.textContent = text;
+      e.appendChild(inner);
+    } else {
+      // First half shrinks with a tail ellipsis, second half keeps its width.
+      e.style.display = "flex";
+      e.style.justifyContent =
+        e.style.textAlign === "center" ? "center" : e.style.textAlign === "right" ? "flex-end" : "flex-start";
+      e.textContent = "";
+      var cut = Math.ceil(text.length / 2);
+      var a = document.createElement("span");
+      a.textContent = text.slice(0, cut);
+      a.style.cssText = "overflow:hidden;text-overflow:ellipsis;white-space:pre;min-width:0;flex:0 1 auto";
+      var b = document.createElement("span");
+      b.textContent = text.slice(cut);
+      b.style.cssText = "white-space:pre;flex:0 0 auto";
+      e.appendChild(a);
+      e.appendChild(b);
+    }
+  }
   applyStyle(e, d);
+  if (d.minimumScaleFactor > 0 && d.minimumScaleFactor < 1) {
+    // Let a hugging text be squeezed, then shrink the font until it fits.
+    e.style.flexShrink = "1";
+    e.style.minWidth = "0";
+    shrinkToFit(e, parseFloat(e.style.fontSize), d.minimumScaleFactor);
+  }
   return e;
+}
+
+/** Smallest font in [base·min, base] (0.5px steps) at which `e` stops overflowing,
+ *  re-checked on every resize. */
+function shrinkToFit(e: HTMLElement, base: number, min: number): void {
+  var ro = new ResizeObserver(function () {
+    if (!e.isConnected) {
+      ro.disconnect();
+      return;
+    }
+    var size = base;
+    e.style.fontSize = size + "px";
+    while (
+      size - 0.5 >= base * min &&
+      (e.scrollWidth > e.clientWidth + 1 || e.scrollHeight > e.clientHeight + 1)
+    ) {
+      size -= 0.5;
+      e.style.fontSize = size + "px";
+    }
+  });
+  ro.observe(e);
 }
 
 export function renderDate(d: ElNode): HTMLElement {
@@ -144,16 +210,27 @@ export function renderTimer(d: ElNode): HTMLElement {
   e.style.fontWeight = String(fw(d.fontWeight));
   e.style.color = d.color ? resolveColor(d.color) : "inherit";
   e.style.fontVariantNumeric = "tabular-nums";
+  var target = new Date(d.targetDate).getTime();
+  var start = d.startDate ? new Date(d.startDate).getTime() : NaN;
   function tick() {
-    var target = new Date(d.targetDate).getTime(),
-      now = Date.now(),
+    var now = Date.now(),
       diff = Math.abs(target - now);
+    if (d.counting === "up" && !isNaN(start)) {
+      // Range timer: counts from startDate and stops at targetDate.
+      diff = Math.max(0, Math.min(now, target) - start);
+    } else if (d.counting !== "up" && now >= target) {
+      if (d.completedText != null) {
+        e.textContent = d.completedText;
+        return;
+      }
+      diff = 0;
+    }
     var h = Math.floor(diff / 3600000),
       m = Math.floor((diff % 3600000) / 60000),
       s = Math.floor((diff % 60000) / 1000);
+    // showHours:false drops a zero hour; otherwise hours always show (legacy HH:MM:SS).
     e.textContent =
-      String(h).padStart(2, "0") +
-      ":" +
+      (d.showHours === false && h === 0 ? "" : String(h).padStart(2, "0") + ":") +
       String(m).padStart(2, "0") +
       ":" +
       String(s).padStart(2, "0");
@@ -169,7 +246,8 @@ export function renderLabel(d: ElNode): HTMLElement {
   e.style.cssText =
     "display:flex;align-items:center;gap:" + (d.spacing || 4) + "px";
   var ic = document.createElement("span");
-  ic.textContent = "\u25CF";
+  // Same glyph map as `image` (Apple draws the SF Symbol; `●` only for unknown names).
+  ic.textContent = systemGlyph(d.systemName);
   ic.style.fontSize = (d.fontSize || 14) * 1.1 + "px";
   ic.style.color = d.iconColor
     ? resolveColor(d.iconColor)

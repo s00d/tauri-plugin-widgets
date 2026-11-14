@@ -2,140 +2,170 @@
   "$schema": "http://adaptivecards.io/schemas/adaptive-card.json",
   "body": [
     {
-      "columns": [
+      "backgroundImage": {
+        "fillMode": "repeat",
+        "url": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAAEElEQVR4AQEFAPr/ABYhPv8COwF1if26mAAAAABJRU5ErkJggg=="
+      },
+      "id": "card:#16213e",
+      "items": [
         {
-          "items": [
+          "columns": [
             {
-              "spacing": "None",
-              "text": "",
-              "type": "TextBlock"
-            }
-          ],
-          "type": "Column",
-          "width": "auto"
-        },
-        {
-          "items": [
-            {
-              "id": "gap:6",
               "items": [
                 {
-                  "color": "Light",
-                  "id": "fg:#fff",
-                  "size": "Medium",
-                  "text": "Bohemian Rhapsody",
-                  "type": "TextBlock",
-                  "weight": "Bolder",
-                  "wrap": false
-                },
-                {
-                  "color": "Light",
-                  "id": "fg:#94a3b8",
-                  "size": "Small",
-                  "text": "Queen • A Night at the Opera",
-                  "type": "TextBlock",
-                  "weight": "Default",
-                  "wrap": true
-                },
+                  "spacing": "None",
+                  "text": "",
+                  "type": "TextBlock"
+                }
+              ],
+              "type": "Column",
+              "width": "auto"
+            },
+            {
+              "id": "gap:14",
+              "items": [
                 {
                   "items": [
                     {
                       "color": "Light",
-                      "size": "Small",
-                      "text": "3:42 / 5:55",
+                      "id": "fg:#fff",
+                      "size": "Medium",
+                      "text": "Bohemian Rhapsody",
                       "type": "TextBlock",
+                      "weight": "Bolder",
+                      "wrap": false
+                    },
+                    {
+                      "color": "Light",
+                      "id": "fg:#94a3b8;gap:6",
+                      "size": "Small",
+                      "spacing": "Default",
+                      "text": "Queen • A Night at the Opera",
+                      "type": "TextBlock",
+                      "weight": "Default",
                       "wrap": true
+                    },
+                    {
+                      "id": "gap:6",
+                      "items": [
+                        {
+                          "color": "Light",
+                          "size": "Small",
+                          "text": "3:42 / 5:55",
+                          "type": "TextBlock",
+                          "wrap": true
+                        },
+                        {
+                          "columns": [
+                            {
+                              "backgroundImage": {
+                                "fillMode": "repeat",
+                                "url": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAAEElEQVR4AQEFAPr/AOlFYP8GNwKOYfGrawAAAABJRU5ErkJggg=="
+                              },
+                              "id": "fill:#e94560",
+                              "items": [],
+                              "minHeight": "6px",
+                              "type": "Column",
+                              "width": 62
+                            },
+                            {
+                              "backgroundImage": {
+                                "fillMode": "repeat",
+                                "url": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAAEElEQVR4AQEFAPr/AOlFYEAFeAHPsONzeAAAAABJRU5ErkJggg=="
+                              },
+                              "items": [],
+                              "minHeight": "6px",
+                              "spacing": "None",
+                              "type": "Column",
+                              "width": 38
+                            }
+                          ],
+                          "spacing": "Small",
+                          "type": "ColumnSet"
+                        }
+                      ],
+                      "spacing": "Default",
+                      "type": "Container"
                     },
                     {
                       "columns": [
                         {
-                          "id": "fill:#e94560",
-                          "items": [],
-                          "style": "attention",
+                          "items": [
+                            {
+                              "actions": [
+                                {
+                                  "id": "bg:#1a2744;fg:#e2e8f0",
+                                  "title": "Prev",
+                                  "type": "Action.Execute",
+                                  "verb": "music_prev"
+                                }
+                              ],
+                              "type": "ActionSet"
+                            }
+                          ],
                           "type": "Column",
-                          "width": 62
+                          "width": "auto"
                         },
                         {
-                          "items": [],
+                          "id": "gap:20",
+                          "items": [
+                            {
+                              "actions": [
+                                {
+                                  "id": "bg:#e94560;fg:#ffffff",
+                                  "title": "Pause",
+                                  "type": "Action.Execute",
+                                  "verb": "music_toggle"
+                                }
+                              ],
+                              "type": "ActionSet"
+                            }
+                          ],
+                          "spacing": "Large",
                           "type": "Column",
-                          "width": 38
+                          "width": "auto"
+                        },
+                        {
+                          "id": "gap:20;#2",
+                          "items": [
+                            {
+                              "actions": [
+                                {
+                                  "id": "bg:#1a2744;fg:#e2e8f0;#2",
+                                  "title": "Next",
+                                  "type": "Action.Execute",
+                                  "verb": "music_next"
+                                }
+                              ],
+                              "type": "ActionSet"
+                            }
+                          ],
+                          "spacing": "Large",
+                          "type": "Column",
+                          "width": "auto"
                         }
                       ],
+                      "id": "gap:6;#2",
+                      "spacing": "Default",
                       "type": "ColumnSet"
                     }
                   ],
+                  "spacing": "None",
                   "type": "Container"
-                },
-                {
-                  "columns": [
-                    {
-                      "items": [
-                        {
-                          "actions": [
-                            {
-                              "id": "bg:#1a2744;fg:#e2e8f0",
-                              "title": "Prev",
-                              "type": "Action.Execute",
-                              "verb": "music_prev"
-                            }
-                          ],
-                          "type": "ActionSet"
-                        }
-                      ],
-                      "type": "Column",
-                      "width": "auto"
-                    },
-                    {
-                      "items": [
-                        {
-                          "actions": [
-                            {
-                              "id": "bg:#e94560;fg:#ffffff",
-                              "title": "Pause",
-                              "type": "Action.Execute",
-                              "verb": "music_toggle"
-                            }
-                          ],
-                          "type": "ActionSet"
-                        }
-                      ],
-                      "type": "Column",
-                      "width": "auto"
-                    },
-                    {
-                      "items": [
-                        {
-                          "actions": [
-                            {
-                              "id": "bg:#1a2744;fg:#e2e8f0",
-                              "title": "Next",
-                              "type": "Action.Execute",
-                              "verb": "music_next"
-                            }
-                          ],
-                          "type": "ActionSet"
-                        }
-                      ],
-                      "type": "Column",
-                      "width": "auto"
-                    }
-                  ],
-                  "id": "gap:20",
-                  "spacing": "Large",
-                  "type": "ColumnSet"
                 }
               ],
-              "spacing": "Default",
-              "type": "Container"
+              "spacing": "Medium",
+              "type": "Column",
+              "width": "stretch"
             }
           ],
-          "type": "Column",
-          "width": "auto"
+          "spacing": "None",
+          "type": "ColumnSet"
         }
       ],
-      "id": "gap:14",
-      "spacing": "Medium",
-      "type": "ColumnSet"
+      "spacing": "None",
+      "style": "emphasis",
+      "type": "Container"
     }
   ],
   "type": "AdaptiveCard",

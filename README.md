@@ -45,7 +45,7 @@ pnpm tauri add tauri-plugin-widgets
 ```toml
 # src-tauri/Cargo.toml
 [dependencies]
-tauri-plugin-widgets = "0.7"
+tauri-plugin-widgets = "0.8"
 ```
 
 ```bash
@@ -100,6 +100,17 @@ await setWidgetConfig(
 ```
 
 Register `tauri_plugin_widgets::init()` and `widgets:default` in capabilities. Details: [Install](https://s00d.github.io/tauri-plugin-widgets/guide/install) · [First widget](https://s00d.github.io/tauri-plugin-widgets/guide/first-widget).
+
+## Beyond a static layout
+
+- **Scheduled states, localized strings, widget-fetched data** — `entries`, `strings`, `source`, `{{data.…}}` in the config; `setWidgetData()` updates values. Works while the app is closed. [Timelines](https://s00d.github.io/tauri-plugin-widgets/features/timelines), [Remote data](https://s00d.github.io/tauri-plugin-widgets/features/remote-data)
+- **Instances** — the same widget placed twice with its own config / data; `getActiveWidgets()`. [Recipe](https://s00d.github.io/tauri-plugin-widgets/features/instances)
+- **Live activities** — `startActivity()`: iOS Live Activity + Dynamic Island, Android ongoing notification, desktop window. [Recipe](https://s00d.github.io/tauri-plugin-widgets/features/live-activities)
+
+## AI coding agents
+
+The npm package ships an agent skill: `node_modules/tauri-plugin-widgets-api/skills/tauri-widgets/SKILL.md`
+(copy it into `.claude/skills/` or your agent's skill folder).
 
 ## Platform setup
 

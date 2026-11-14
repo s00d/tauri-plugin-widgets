@@ -1,10 +1,10 @@
 [package]
 name = "tauri-plugin-widgets"
-version = "0.7.0"
+version = "0.8.0"
 authors = ["s00d"]
 description = "Tauri plugin for App Widgets on Android, iOS, and macOS (WidgetKit); Windows Widgets Board (Adaptive Cards) + desktop webview; Linux desktop webview with X11 DESKTOP pin."
 edition = "2021"
-rust-version = "1.70"
+rust-version = "1.80"
 exclude = [
   # App / JS workspace (published via npm, not crates.io)
   "/examples",
@@ -18,6 +18,7 @@ exclude = [
   "/node_modules",
   "/docs",
   "/scripts",
+  "/fuzz",
   "/.github",
   "/artifacts",
   # Visual / platform harnesses (PNG goldens are bulk of the crate)
@@ -28,6 +29,13 @@ exclude = [
   "/tests/macos",
   "/tests/linux",
   "/tests/cli",
+  "/tests/demos",
+  "/tests/unit",
+  "vitest.config.ts",
+  "stryker.config.json",
+  "/.cargo",
+  "/.config",
+  "/android/pitest.gradle",
   # Native test trees (not needed to compile the plugin)
   "/android/src/test",
   "/android/src/androidTest",
@@ -41,8 +49,6 @@ exclude = [
   "tsconfig.json",
   "rollup.config.mjs",
   "Justfile",
-  # Measured CI artifact (regenerated from goldens; not needed to build)
-  "schemas/capabilities.coverage.json",
 ]
 links = "tauri-plugin-widgets"
 license = "MIT"
@@ -66,7 +72,7 @@ linux = { level = "partial", notes = "Desktop webview + X11 _NET_WM_WINDOW_TYPE_
 [dependencies]
 tauri = { version = "2" }
 serde = { version = "1", features = ["derive"] }
-serde_json = "1"
+serde_json = { version = "1", features = ["float_roundtrip"] }
 log = "0.4"
 base64 = "0.22"
 schemars = { version = "0.8", optional = true }
@@ -81,19 +87,29 @@ ureq = { version = ">=2.0, <2.12", default-features = true, optional = true }
 # Direct gtk 0.18 (same as Tauri 2). Do not bump to 0.19: gtk-sys links=gtk-3 clash.
 # `cargo outdated` latest pass will error unless `--exclude gtk`.
 gtk = { version = "0.18", optional = true }
-x11rb = { version = "0.13", optional = true }
 raw-window-handle = { version = "0.6", optional = true }
 gtk-layer-shell = { version = "0.8", optional = true }
+notify-rust = { version = "4.11", optional = true }
+
+[target.'cfg(target_os = "windows")'.dependencies]
+tauri-winrt-notification = { version = "0.7", optional = true }
 
 [dev-dependencies]
 tempfile = "3"
+proptest = { version = "1", default-features = false, features = ["std"] }
+# tests/common + offline_model / story tests: MockRuntime IPC + the real ACL from permissions/*.toml.
+tauri = { version = "2", features = ["test"] }
+tauri-utils = "2"
+toml = "0.8"
+# tests/state_machine.rs: model-based test of the widget state layers (same proptest 1.x).
+proptest-state-machine = "0.9"
 
 [features]
-# `linux` pulls gtk + x11rb for DESKTOP pin. Other OS backends follow `target_os` only.
+# `linux` pulls gtk for the DESKTOP pin (GDK type hint / keep-below / sticky before first map). Other OS backends follow `target_os` only.
 # `rasterize` is opt-in (resvg) for Adaptive Cards chart/canvas/gauge → PNG data-URI.
 # `image-prefetch` is default on non-Android (ureq target-gated off Android).
 default = ["linux", "image-prefetch"]
-linux = ["dep:x11rb", "dep:raw-window-handle", "dep:gtk"]
+linux = ["dep:raw-window-handle", "dep:gtk"]
 schema = ["dep:schemars"]
 codegen = ["schema"]
 rasterize = ["dep:resvg"]
@@ -104,6 +120,9 @@ macos-private-api = ["tauri/macos-private-api"]
 workerw = []
 # Wayland: remap widget windows onto gtk-layer-shell Background (requires `linux`).
 layer-shell = ["linux", "dep:gtk-layer-shell"]
+# Live activities as system notifications (`activitySurface: "notification"`, or when no window
+# can open): Linux notify-rust (replace-id), Windows toast progress. macOS keeps the window.
+notify = ["dep:notify-rust", "dep:tauri-winrt-notification"]
 
 [[bin]]
 name = "gen-schema"
@@ -121,8 +140,24 @@ path = "src/bin/gen_native.rs"
 required-features = ["codegen"]
 
 [[bin]]
+name = "resolve-stdin"
+path = "src/bin/resolve_stdin.rs"
+
+[[bin]]
 name = "gen-adaptive-snapshots"
 path = "src/bin/gen_adaptive_snapshots.rs"
 
 [build-dependencies]
 tauri-plugin = { version = "2", features = ["build"] }
+
+# Tests (and every cargo-mutants mutant) build in the dev profile. resvg / tiny-skia in debug
+# make the Adaptive Card raster tests ~40x slower; optimizing dependencies only keeps the
+# crate's own rebuild (the part a mutant changes) as fast as before.
+[profile.dev.package."*"]
+opt-level = 2
+
+# cargo-mutants builds every mutant with this profile (`.cargo/mutants.toml`): no debug info
+# links faster; nothing reads a backtrace of a mutant.
+[profile.mutants]
+inherits = "test"
+debug = "none"

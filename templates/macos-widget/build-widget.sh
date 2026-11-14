@@ -122,6 +122,17 @@ fi
 
 echo "[widget] Building TauriWidgetExtension ($CONFIGURATION)..."
 
+# Extension version = app version, build number new on every build: WidgetKit caches an
+# extension's widget list by version, so a fixed "1" hides new widgets and changes.
+APP_VERSION="$(node -e "
+  const fs = require('fs'), path = require('path');
+  const conf = JSON.parse(fs.readFileSync(process.argv[1], 'utf8'));
+  let v = conf.version || '1.0';
+  if (v.endsWith('.json')) v = JSON.parse(fs.readFileSync(path.resolve(path.dirname(process.argv[1]), v), 'utf8')).version;
+  process.stdout.write(String(v));
+" "$CONF" 2>/dev/null || echo 1.0)"
+BUILD_NUMBER="$(date +%s)"
+
 xcodebuild build \
     -project "$XCODEPROJ" \
     -scheme "TauriWidgetExtension" \
@@ -142,6 +153,11 @@ fi
 
 # Strip accidental nested Frameworks (SwiftPM copy) — host app should not ship them twice.
 rm -rf "$APPEX_PATH/Contents/Frameworks"
+
+# Version stamped into the built Info.plist (xcodegen writes literals, so build settings
+# cannot do it). Before signing: the signature covers Info.plist.
+/usr/libexec/PlistBuddy -c "Set :CFBundleShortVersionString $APP_VERSION" \
+    -c "Set :CFBundleVersion $BUILD_NUMBER" "$APPEX_PATH/Contents/Info.plist"
 
 # ─── Sign .appex with WidgetKit entitlements ─────────────────────────────────
 

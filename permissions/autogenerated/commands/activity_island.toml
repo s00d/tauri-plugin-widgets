@@ -1,0 +1,13 @@
+# Automatically generated - DO NOT EDIT!
+
+"$schema" = "../../schemas/schema.json"
+
+[[permission]]
+identifier = "allow-activity-island"
+description = "Enables the activity_island command without any pre-configured scope."
+commands.allow = ["activity_island"]
+
+[[permission]]
+identifier = "deny-activity-island"
+description = "Denies the activity_island command without any pre-configured scope."
+commands.deny = ["activity_island"]

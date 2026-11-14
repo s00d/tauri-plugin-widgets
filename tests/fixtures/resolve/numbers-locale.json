@@ -1,0 +1,10 @@
+{
+  "about": "Numbers print like JavaScript in the common range (integers, whole floats up to 1e21, shortest decimals without exponent); a device tag with script and extension subtags (zh-Hant-TW-u-ca-roc) matches the zh-TW table; whitespace incl. newlines inside braces is ignored.",
+  "config": {
+    "strings": { "zh-CN": { "t": "cn" }, "zh-TW": { "t": "tw" } },
+    "data": { "a": 0.0001, "b": 12345678.5, "c": 1234567890123456, "d": 1e15, "e": -0.0, "f": 2.5e-3, "list": ["x", "y"] },
+    "small": { "type": "text", "content": "{{data.a}}|{{data.b}}|{{data.c}}|{{data.d}}|{{data.e}}|{{data.f}}|[{{data.list.+1}}]|{{\n t.t \n}}" }
+  },
+  "ctx": { "nowMs": 0, "locale": "zh_Hant_TW-u-ca-roc" },
+  "expected": { "version": 1, "small": { "type": "text", "content": "0.0001|12345678.5|1234567890123456|1000000000000000|0|0.0025|[]|tw" } }
+}

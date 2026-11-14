@@ -8,15 +8,28 @@ namespace TauriWidgets.WidgetProvider;
 /// <summary>
 /// Thin IWidgetProvider shim: reads Adaptive Card template/data from WidgetStore
 /// (written by the Tauri Rust host) and pushes updates to Widgets Board.
+/// The host card holds one body per size (<c>$when</c> on <c>$host.widgetSize</c>), so every
+/// advertised size renders from the same template.
 /// </summary>
 [ComVisible(true)]
 [Guid("{{WIDGET_PROVIDER_CLSID}}")]
 [ClassInterface(ClassInterfaceType.None)]
 public sealed class WidgetProvider
 #if !WIDGET_SMOKE
-    : IWidgetProvider
+    : IWidgetProvider, IWidgetProvider2, IWidgetProviderAnalytics, IWidgetProviderErrors
 #endif
 {
+    /// <summary><see cref="WidgetUpdateRequestOptions.CustomState"/> while the customize card is shown.</summary>
+    internal const string CustomizingState = "customizing";
+    internal const string ExitCustomizationVerb = "exitCustomization";
+
+    /// <summary>Per-instance CustomState, sent back on every update and recovered on start.</summary>
+    private static readonly System.Collections.Concurrent.ConcurrentDictionary<string, string> CustomStates =
+        new(StringComparer.Ordinal);
+#if !WIDGET_SMOKE
+    private static int _recovered;
+#endif
+
     private static readonly WidgetStore Store = new();
     private static readonly ConcurrentWidgetSet Running = new();
     /// <summary>
@@ -57,6 +70,27 @@ public sealed class WidgetProvider
     }
 
 #if !WIDGET_SMOKE
+    public WidgetProvider()
+    {
+        // Provider (re)started while widgets are pinned: pick them up with their CustomState.
+        if (Interlocked.Exchange(ref _recovered, 1) != 0) return;
+        try
+        {
+            foreach (var info in WidgetManager.GetDefault().GetWidgetInfos() ?? Array.Empty<WidgetInfo>())
+            {
+                var id = info.WidgetContext.Id;
+                CustomStates[id] = info.CustomState ?? "";
+                Store.TrackWidget(id);
+                Running.Add(id);
+                Push(id);
+            }
+        }
+        catch
+        {
+            // Board not ready / no widgets: CreateWidget / Activate will add them.
+        }
+    }
+
     public void CreateWidget(WidgetContext widgetContext)
     {
         var id = widgetContext.Id;
@@ -68,6 +102,7 @@ public sealed class WidgetProvider
     public void DeleteWidget(string widgetId, string customState)
     {
         Running.Remove(widgetId);
+        CustomStates.TryRemove(widgetId, out _);
         Store.UntrackWidget(widgetId);
         if (Running.Ids.Length == 0)
         {
@@ -79,6 +114,12 @@ public sealed class WidgetProvider
     {
         var verb = actionInvokedArgs.Verb ?? "action";
         var widgetId = actionInvokedArgs.WidgetContext.Id;
+        if (verb == ExitCustomizationVerb)
+        {
+            CustomStates[widgetId] = "";
+            Push(widgetId);
+            return;
+        }
         System.Text.Json.JsonElement? data = null;
         try
         {
@@ -113,6 +154,23 @@ public sealed class WidgetProvider
     {
         Running.Remove(widgetId);
     }
+
+    /// <summary>IWidgetProvider2: "Customize widget" in the board menu. Shows a card whose
+    /// "Open app" button reaches the host as action <c>customize</c>; "Done" restores the card.</summary>
+    public void OnCustomizationRequested(WidgetCustomizationRequestedArgs customizationRequestedArgs)
+    {
+        var id = customizationRequestedArgs.WidgetContext.Id;
+        CustomStates[id] = CustomizingState;
+        Push(id);
+    }
+
+    /// <summary>IWidgetProviderAnalytics (Windows 11 build 26900+).</summary>
+    public void OnAnalyticsInfoReported(WidgetAnalyticsInfoReportedArgs args) =>
+        Store.Log("analytics", args.WidgetContext?.Id ?? "", args.AnalyticsJson);
+
+    /// <summary>IWidgetProviderErrors (Windows 11 build 26900+): e.g. a card the board failed to render.</summary>
+    public void OnErrorInfoReported(WidgetErrorInfoReportedArgs args) =>
+        Store.Log("error", args.WidgetContext?.Id ?? "", args.ErrorJson);
 #else
     // WIDGET_SMOKE: compile-check path without WinAppSDK / VS Appx tools.
     public void CreateWidget(string widgetId)
@@ -135,20 +193,12 @@ public sealed class WidgetProvider
 
     private static void Push(string widgetId)
     {
-        // Host may key Adaptive Cards by logical widget id ("default") rather than
-        // the Widgets Board instance id. Prefer instance id, then fall back to logical.
-        var (template, data) = Store.GetAdaptiveCard(widgetId);
-        if (template.Contains("Waiting for host", StringComparison.Ordinal)
-            && !string.IsNullOrEmpty(Environment.GetEnvironmentVariable("TAURI_WIDGET_LOGICAL_ID")))
+        // Own card of this board instance first, then the logical widget's (see Store.GetInstanceCard).
+        var (template, data) = Store.GetInstanceCard(widgetId);
+        var state = CustomStates.GetOrAdd(widgetId, "");
+        if (state == CustomizingState)
         {
-            (template, data) = Store.GetAdaptiveCard(
-                Environment.GetEnvironmentVariable("TAURI_WIDGET_LOGICAL_ID")!);
-        }
-
-        // Also try common logical id used by the plugin.
-        if (template.Contains("Waiting for host", StringComparison.Ordinal))
-        {
-            (template, data) = Store.GetAdaptiveCard("default");
+            (template, data) = (CustomizeCard, "{}");
         }
 
 #if !WIDGET_SMOKE
@@ -156,12 +206,21 @@ public sealed class WidgetProvider
         {
             Template = template,
             Data = data,
+            CustomState = state,
         };
         WidgetManager.GetDefault().UpdateWidget(options);
 #else
         _ = (template, data);
 #endif
     }
+
+    internal const string CustomizeCard = """
+        {"type":"AdaptiveCard","version":"1.5","body":[
+          {"type":"TextBlock","text":"Customize this widget in the app.","wrap":true}],
+         "actions":[
+          {"type":"Action.Execute","title":"Open app","verb":"customize"},
+          {"type":"Action.Execute","title":"Done","verb":"exitCustomization"}]}
+        """;
 }
 
 /// <summary>Thread-safe set of active Widgets Board instance ids.</summary>

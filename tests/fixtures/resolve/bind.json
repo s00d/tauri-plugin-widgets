@@ -1,0 +1,26 @@
+{
+  "about": "bind sets element fields from data with their JSON type (numbers stay numbers); other expressions render as text; a missing value keeps the literal; bind is removed from the output.",
+  "config": {
+    "data": { "p": 0.42, "on": true, "pts": [{ "label": "a", "value": 3 }] },
+    "small": {
+      "type": "vstack",
+      "children": [
+        { "type": "progress", "value": 0, "label": "x", "bind": { "value": "data.p", "label": "locale", "total": "data.missing" } },
+        { "type": "toggle", "isOn": false, "label": "t", "bind": { "isOn": "data.on" } },
+        { "type": "chart", "chartType": "bar", "chartData": [], "bind": { "chartData": "data.pts" } }
+      ]
+    }
+  },
+  "ctx": { "nowMs": 0, "locale": "en" },
+  "expected": {
+    "version": 1,
+    "small": {
+      "type": "vstack",
+      "children": [
+        { "type": "progress", "value": 0.42, "label": "en" },
+        { "type": "toggle", "isOn": true, "label": "t" },
+        { "type": "chart", "chartType": "bar", "chartData": [{ "label": "a", "value": 3 }] }
+      ]
+    }
+  }
+}

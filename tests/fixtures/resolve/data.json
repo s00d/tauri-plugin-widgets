@@ -1,0 +1,30 @@
+{
+  "about": "Data placeholders: config.data is the default layer, ctx.data overrides per key; arrays by index; numbers print like JavaScript.",
+  "config": {
+    "data": { "city": "London", "temp": 1 },
+    "small": {
+      "type": "vstack",
+      "children": [
+        { "type": "text", "content": "{{data.city}}: {{data.temp}}°" },
+        { "type": "text", "content": "{{data.days.0.name}} {{data.days.0.hi}}/{{data.missing}}" },
+        { "type": "image", "url": "https://img.example/{{data.icon}}.png" }
+      ]
+    }
+  },
+  "ctx": {
+    "nowMs": 0,
+    "locale": "en",
+    "data": { "temp": 21.0, "icon": "sun", "days": [{ "name": "Mon", "hi": 23.5 }] }
+  },
+  "expected": {
+    "version": 1,
+    "small": {
+      "type": "vstack",
+      "children": [
+        { "type": "text", "content": "London: 21°" },
+        { "type": "text", "content": "Mon 23.5/" },
+        { "type": "image", "url": "https://img.example/sun.png" }
+      ]
+    }
+  }
+}

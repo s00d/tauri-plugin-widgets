@@ -6,19 +6,26 @@ import {
   closeWidgetWindow,
   startWidgetUpdater,
   setWidgetConfig,
+  setWidgetState,
   onWidgetAction,
   getWidgetTrace,
+  startActivity,
+  updateActivity,
+  endActivity,
   type WidgetConfig,
   type WidgetTrace,
 } from "tauri-plugin-widgets-api";
 import { PRESETS } from "./presets";
+import { ISLAND_DEMOS, LAUNCHER_ID, LAUNCHER_LABEL, activityWidgetId, launcherConfig } from "./islandDemos";
 import "./App.css";
 
 const WIDGET_KIND = "ExampleWidget";
-const APP_GROUP = "group.com.s00d.tauriwidgets.example";
+// The App Group comes from `plugins.widgets.appGroup` of the platform's config: iOS
+// `group.…` (tauri.conf.json), macOS `TEAMID.…` (tauri.macos.conf.json: a Team-ID group is
+// the app's own on macOS, so no "access data from other apps" checks).
+const APP_GROUP: string | undefined = undefined;
 const WIDGET_ID = "example";
 const WIDGET_LABEL = "desktop-widget";
-
 type WidgetSize = "small" | "medium" | "large";
 
 const SIZE_DIMS: Record<WidgetSize, { width: number; height: number }> = {
@@ -42,6 +49,11 @@ function App() {
   const updaterBuilderRef = useRef<(() => WidgetConfig | Promise<WidgetConfig>) | null>(null);
   const updaterStopRef = useRef<(() => void) | null>(null);
   const applyGenRef = useRef(0);
+  const [runningDemos, setRunningDemos] = useState<string[]>([]);
+  /** Off: picking a demo replaces the running one. On: demos stack (older ones become minimal). */
+  const [stackDemos, setStackDemos] = useState(false);
+  /** Per demo: stop function of its running ticker. */
+  const demoStopRef = useRef(new Map<string, () => void>());
 
   const addLog = useCallback((message: string, isError = false) => {
     const prefix = isError ? "[ERR]" : "[OK]";
@@ -51,6 +63,13 @@ function App() {
 
   useEffect(() => {
     activePresetRef.current = activePreset;
+    // Remembered across restarts: the widget keeps showing the preset, and its taps need
+    // the preset's handler (calculator "=") even after the app was relaunched.
+    try {
+      if (activePreset) localStorage.setItem("activePreset", activePreset);
+    } catch {
+      /* storage unavailable: start without a preset */
+    }
   }, [activePreset]);
 
   useEffect(() => {
@@ -59,6 +78,13 @@ function App() {
         await setRegisterWidget([WIDGET_KIND]);
         setRegistered(true);
         addLog("Widget registered");
+        let saved: string | null = null;
+        try {
+          saved = localStorage.getItem("activePreset");
+        } catch {
+          /* storage unavailable */
+        }
+        if (saved && PRESETS[saved]) await handleApplyPreset(saved);
       } catch (e) {
         addLog("Register failed: " + String(e), true);
       }
@@ -74,7 +100,12 @@ function App() {
       const name = activePresetRef.current;
       const preset = name ? PRESETS[name] : null;
       addLog(`Action: "${action}"${payload ? ` payload=${payload}` : ""}`);
-      preset?.onAction?.(action, payload, addLog);
+      // Await: a preset may write widget state (`setWidgetState`) first. That write reloads the
+      // widget itself: when only state changes (calculator "="), the rebuilt config below is
+      // identical, so `setWidgetConfig` skips its write and reload and nothing else would.
+      await preset?.onAction?.(action, payload, addLog, (patch) =>
+        setWidgetState(WIDGET_ID, patch, { group: APP_GROUP }),
+      );
       const builder = updaterBuilderRef.current ?? (preset ? (preset.builder ?? (() => preset.config)) : null);
       if (!builder) return;
       const next = await builder();
@@ -86,8 +117,8 @@ function App() {
       unlisten = await onWidgetAction((data) => {
         if (stopped) return;
         if (data.widgetId && data.widgetId !== WIDGET_ID) return;
-        if (data.group && data.group !== APP_GROUP) return;
-        void handleAction(data.action, data.payload);
+        if (APP_GROUP && data.group && data.group !== APP_GROUP) return;
+        void handleAction(data.action, data.payload ?? undefined);
       });
     })();
 
@@ -133,6 +164,9 @@ function App() {
       }
 
       updaterStopRef.current = stop;
+      // Live ticks skip reloads (WidgetKit allows few); one reload shows the new preset,
+      // then device-driven parts (`startAt`/`endAt`, timers) run on their own.
+      if (intervalMs > 0) await reloadAllTimelines().catch(() => {});
       setLiveIntervalMs(intervalMs);
       setActivePreset(name);
       const snap = await builder();
@@ -205,6 +239,117 @@ function App() {
       updaterStopRef.current = null;
     };
   }, []);
+
+  function markDemo(id: string, running: boolean) {
+    setRunningDemos((prev) => (running ? [...prev.filter((x) => x !== id), id] : prev.filter((x) => x !== id)));
+  }
+
+  /** Stop a demo's ticker and end its activity. */
+  async function stopDemo(id: string) {
+    demoStopRef.current.get(id)?.();
+    demoStopRef.current.delete(id);
+    markDemo(id, false);
+    await endActivity(id, 0, { dismissalPolicy: "immediate" }).catch(() => {});
+  }
+
+  /**
+   * Start one island demo: push frame(0), then a frame every `tickMs` (a tick is skipped
+   * while the previous update is still in flight, like a real app would throttle).
+   */
+  async function startDemo(id: string) {
+    const demo = ISLAND_DEMOS.find((d) => d.id === id);
+    if (!demo) return;
+    demoStopRef.current.get(id)?.();
+    if (!stackDemos) {
+      for (const other of Array.from(demoStopRef.current.keys())) if (other !== id) await stopDemo(other);
+    }
+    const t0 = performance.now();
+    try {
+      const handle = await startActivity(demo.frame(0));
+      addLog(`${demo.name}: started (${handle.surface}); hover the island to expand it`);
+    } catch (e) {
+      addLog(`${demo.name}: start failed ${String(e)}`, true);
+      return;
+    }
+    markDemo(id, true);
+    if (!demo.tickMs) {
+      demoStopRef.current.set(id, () => {});
+      return;
+    }
+    let busy = false;
+    let lateMs = 0;
+    const timer = setInterval(() => {
+      const t = performance.now() - t0;
+      if (demo.durationMs && t >= demo.durationMs) {
+        clearInterval(timer);
+        demoStopRef.current.delete(id);
+        markDemo(id, false);
+        void endActivity(id, 2000, { content: demo.frame(demo.durationMs) }).then(() => addLog(`${demo.name}: ended`));
+        return;
+      }
+      if (busy) {
+        lateMs += demo.tickMs;
+        return;
+      }
+      busy = true;
+      const sent = performance.now();
+      updateActivity(demo.frame(t))
+        .then(() => {
+          const rtt = performance.now() - sent;
+          if (rtt > demo.tickMs * 2) addLog(`${demo.name}: slow update ${Math.round(rtt)} ms`, true);
+        })
+        .catch((e) => addLog(`${demo.name}: update failed ${String(e)}`, true))
+        .finally(() => {
+          busy = false;
+        });
+    }, demo.tickMs);
+    demoStopRef.current.set(id, () => {
+      clearInterval(timer);
+      if (lateMs) addLog(`${demo.name}: ${lateMs} ms of ticks skipped (update slower than tick)`);
+    });
+  }
+
+  /** Taps inside the island and in the launcher window. */
+  useEffect(() => {
+    let unlisten: (() => void) | null = null;
+    let stopped = false;
+    void onWidgetAction(async (data) => {
+      if (stopped) return;
+      const from = data.widgetId ?? "";
+      if (from === LAUNCHER_ID && data.action.startsWith("launch:")) {
+        addLog(`Launcher: open ${data.action.slice(7)}`);
+        await closeWidgetWindow(LAUNCHER_LABEL).catch(() => {});
+        return;
+      }
+      const demo = ISLAND_DEMOS.find((d) => activityWidgetId(d.id) === from);
+      if (!demo) return;
+      addLog(`${demo.name}: tap "${data.action}"`);
+      if (data.action === "cancel") void stopDemo(demo.id);
+      if (data.action === "open-launcher") {
+        await setWidgetConfig(launcherConfig(), APP_GROUP, LAUNCHER_ID);
+        const w = 300;
+        await createWidgetWindow({
+          label: LAUNCHER_LABEL,
+          width: w,
+          height: 170,
+          x: Math.round((window.screen.width - w) / 2),
+          y: 70,
+          skipTaskbar: true,
+          group: APP_GROUP,
+          widgetId: LAUNCHER_ID,
+          size: "medium",
+        }).catch((e) => addLog("Launcher window failed: " + String(e), true));
+      }
+    }).then((u) => {
+      if (stopped) u();
+      else unlisten = u;
+    });
+    return () => {
+      stopped = true;
+      unlisten?.();
+      for (const stop of demoStopRef.current.values()) stop();
+    };
+  }, [addLog]);
 
   async function handleRefreshTrace() {
     try {
@@ -340,6 +485,25 @@ function App() {
               <button className="btn-secondary" onClick={handleRefreshTrace}>
                 Refresh trace
               </button>
+            </div>
+            <div className="btn-row">
+              <label>
+                <input type="checkbox" checked={stackDemos} onChange={(e) => setStackDemos(e.target.checked)} /> Run
+                several at once
+              </label>
+              {ISLAND_DEMOS.map((d) => {
+                const on = runningDemos.includes(d.id);
+                return (
+                  <button
+                    key={d.id}
+                    className={on ? "" : "btn-secondary"}
+                    onClick={() => (on ? stopDemo(d.id) : startDemo(d.id))}
+                  >
+                    {d.icon} {d.name}
+                    {on ? " ■" : ""}
+                  </button>
+                );
+              })}
             </div>
             {trace && (
               <div className="trace-panel">

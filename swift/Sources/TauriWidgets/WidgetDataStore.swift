@@ -19,6 +19,95 @@ public enum TauriWidgetStoreKeys {
     public static func configKey(_ widgetId: String) -> String {
         configPrefix + widgetId
     }
+
+    public static let dataPrefix = "data:"
+    /// Placement state written by `set` taps / `setWidgetState` (contract v3).
+    public static let statePrefix = "state:"
+    /// Live Activity layouts from `registerActivityTemplate` (contract v3).
+    public static let activityTemplatePrefix = "activity-template:"
+    public static let instancesPrefix = "instances:"
+    /// Matches Rust `store::INSTANCE_SEPARATOR`.
+    public static let instanceSeparator = "#"
+
+    /// `widgetId` or `widgetId#instance`.
+    public static func scopedId(_ widgetId: String, _ instance: String?) -> String {
+        guard let instance, !instance.isEmpty else { return widgetId }
+        return widgetId + instanceSeparator + instance
+    }
+
+    /// Placement's own key first, then the widget's (Rust `store::lookup_keys`).
+    public static func lookupKeys(_ prefix: String, _ widgetId: String, _ instance: String?) -> [String] {
+        var keys: [String] = []
+        if let instance, !instance.isEmpty { keys.append(prefix + scopedId(widgetId, instance)) }
+        keys.append(prefix + widgetId)
+        return keys
+    }
+}
+
+/// What a provider needs for one placement: raw config JSON plus its data layers.
+public struct TauriWidgetSnapshot {
+    public let rawConfig: String?
+    public let hostData: Any?
+    public let source: String
+    public let nonce: UInt64
+    /// Stored `state:{widgetId}` then `state:{widgetId}#{instance}` (missing ones nil).
+    public var storedState: [Any?] = []
+
+    /// `config.data` < `setWidgetData` < fetched `source` response.
+    public func data(fetched: Any?) -> Any? {
+        let cfgData = rawConfig.flatMap(TauriWidgetSnapshot.object)?["data"]
+        return TauriResolve.mergeData([cfgData, hostData, fetched])
+    }
+
+    /// `config.state` < `state:{widgetId}` < `state:{widgetId}#{instance}`.
+    public var state: Any? {
+        TauriResolve.mergeData([rawConfig.flatMap(TauriWidgetSnapshot.object)?["state"]] + storedState)
+    }
+
+    static func object(_ raw: String) -> [String: Any]? {
+        guard let d = raw.data(using: .utf8) else { return nil }
+        return (try? JSONSerialization.jsonObject(with: d)) as? [String: Any]
+    }
+
+    static func json(_ raw: String?) -> Any? {
+        guard let raw, !raw.isEmpty, let d = raw.data(using: .utf8) else { return nil }
+        return try? JSONSerialization.jsonObject(with: d, options: [.fragmentsAllowed])
+    }
+}
+
+/// Last `source` response per placement. Lives outside the shared config map (the host
+/// never reads it), so a fetch can never overwrite a newer config written by the app.
+public enum TauriFetchedCache {
+    static let key = "tauri_widget_fetched"
+
+    static func defaults(_ appGroup: String) -> UserDefaults {
+        UserDefaults(suiteName: appGroup) ?? .standard
+    }
+
+    public static func read(appGroup: String, scopedId: String) -> (raw: String, ts: UInt64)? {
+        guard let all = defaults(appGroup).dictionary(forKey: key) as? [String: [String: Any]],
+              let e = all[scopedId], let raw = e["raw"] as? String else { return nil }
+        return (raw, (e["ts"] as? NSNumber)?.uint64Value ?? 0)
+    }
+
+    /// Most recent responses kept; older placements refetch on their next timeline.
+    static let maxEntries = 32
+    // ponytail: in-process lock only; timelines of one extension share a process.
+    private static let lock = NSLock()
+
+    public static func write(appGroup: String, scopedId: String, raw: String, ts: UInt64) {
+        lock.lock()
+        defer { lock.unlock() }
+        let d = defaults(appGroup)
+        var all = (d.dictionary(forKey: key) as? [String: [String: Any]]) ?? [:]
+        all[scopedId] = ["raw": raw, "ts": NSNumber(value: ts)]
+        if all.count > maxEntries {
+            func ts(_ e: [String: Any]) -> UInt64 { (e["ts"] as? NSNumber)?.uint64Value ?? 0 }
+            let keep = all.sorted { ts($0.value) > ts($1.value) }.prefix(maxEntries)
+            all = Dictionary(uniqueKeysWithValues: keep.map { ($0.key, $0.value) })
+        }
+        d.set(all, forKey: key)
+    }
 }
 
 /// Transport names — must match Rust `transport::NAME_*`.
@@ -146,6 +235,30 @@ public struct WidgetTransportReceipt: Codable {
     }
 }
 
+/// `set` semantics shared by every renderer (contract v3).
+public enum TauriWidgetState {
+    /// New stored state of one placement: `"$toggle"` flips the current (merged) boolean
+    /// (missing → `true`), `"$inc"` / `"$dec"` add / subtract 1 (missing → 0 first), `null`
+    /// removes the key (the default shows again), anything else is stored as is.
+    public static func apply(_ patch: [String: Any], current: [String: Any], stored: [String: Any]) -> [String: Any] {
+        var out = stored
+        for (k, v) in patch {
+            let cur = current[k]
+            switch v as? String {
+            case "$toggle":
+                out[k] = !((cur as? NSNumber).map { TauriResolve.isBool($0) && $0.boolValue } ?? false)
+            case "$inc", "$dec":
+                let n = (cur as? NSNumber).flatMap { TauriResolve.isBool($0) ? nil : $0.doubleValue } ?? 0
+                let r = n + (v as? String == "$inc" ? 1 : -1)
+                out[k] = r.rounded() == r && abs(r) < 9e15 ? NSNumber(value: Int64(r)) : NSNumber(value: r)
+            default:
+                if v is NSNull { out[k] = nil } else { out[k] = v }
+            }
+        }
+        return out
+    }
+}
+
 public struct TauriWidgetDataStore {
 
     /// Load config and plant a delivery receipt (does not bump config nonce).
@@ -181,6 +294,75 @@ public struct TauriWidgetDataStore {
             logger.error("loadConfig decode error: \(error.localizedDescription)")
             return nil
         }
+    }
+
+    /// Raw config + data layers for one placement (own keys first, then the widget's).
+    public static func loadSnapshot(
+        appGroup: String,
+        widgetId: String,
+        instance: String?
+    ) -> TauriWidgetSnapshot {
+        #if os(iOS)
+        guard assertAppGroupAvailable(appGroup) else {
+            return TauriWidgetSnapshot(rawConfig: nil, hostData: nil, source: "unavailable", nonce: 0)
+        }
+        #endif
+        let scoped = TauriWidgetStoreKeys.scopedId(widgetId, instance)
+        var (map, source) = loadFreshestMapWithSource(appGroup: appGroup, widgetId: scoped)
+        if map[TauriWidgetStoreKeys.configKey(scoped)] == nil, scoped != widgetId {
+            (map, source) = loadFreshestMapWithSource(appGroup: appGroup, widgetId: widgetId)
+        }
+        let nonce = UInt64(map[TauriWidgetStoreKeys.metaNonce] ?? "0") ?? 0
+        let raw = TauriWidgetStoreKeys.lookupKeys(TauriWidgetStoreKeys.configPrefix, widgetId, instance)
+            .lazy.compactMap { map[$0] }.first
+        let host = TauriWidgetStoreKeys.lookupKeys(TauriWidgetStoreKeys.dataPrefix, widgetId, instance)
+            .lazy.compactMap { TauriWidgetSnapshot.json(map[$0]) }.first
+        var snap = TauriWidgetSnapshot(rawConfig: raw, hostData: host, source: source, nonce: nonce)
+        snap.storedState = storedState(map, widgetId, instance)
+        return snap
+    }
+
+    /// Widget-level layer first, the placement's own last (it wins in the merge).
+    static func storedState(_ map: [String: String], _ widgetId: String, _ instance: String?) -> [Any?] {
+        TauriWidgetStoreKeys.lookupKeys(TauriWidgetStoreKeys.statePrefix, widgetId, instance)
+            .reversed().map { TauriWidgetSnapshot.json(map[$0]) }
+    }
+
+    /// Apply a `set` patch to the placement's stored state under the store lock (the host
+    /// writes the same map). Returns the new merged state.
+    @discardableResult
+    public static func applyStatePatch(
+        _ patch: [String: Any], appGroup: String, widgetId: String, instance: String?
+    ) -> [String: Any] {
+        withStoreLock(appGroup: appGroup) {
+            var map = loadFreshestMap(appGroup: appGroup)
+            let key = TauriWidgetStoreKeys.statePrefix + TauriWidgetStoreKeys.scopedId(widgetId, instance)
+            let defaults = map[TauriWidgetStoreKeys.configKey(widgetId)].flatMap(TauriWidgetSnapshot.object)?["state"]
+            let current = TauriResolve.mergeData([defaults] + storedState(map, widgetId, instance)) as? [String: Any] ?? [:]
+            let own = TauriWidgetSnapshot.json(map[key]) as? [String: Any] ?? [:]
+            let next = TauriWidgetState.apply(patch, current: current, stored: own)
+            if let data = try? JSONSerialization.data(withJSONObject: next, options: [.sortedKeys]) {
+                map[key] = String(decoding: data, as: UTF8.self)
+                touchMeta(&map)
+                fanoutWrite(map, appGroup: appGroup)
+            }
+            return TauriResolve.mergeData([defaults] + storedState(map, widgetId, instance)) as? [String: Any] ?? [:]
+        }
+    }
+
+    /// `instances:{widgetId}` lists of every widget, merged (Edit Widget choices).
+    public static func loadInstanceOptions(appGroup: String) -> [(id: String, title: String)] {
+        let map = loadFreshestMap(appGroup: appGroup)
+        var seen = Set<String>()
+        var out: [(String, String)] = []
+        for key in map.keys.sorted() where key.hasPrefix(TauriWidgetStoreKeys.instancesPrefix) {
+            guard let list = TauriWidgetSnapshot.json(map[key]) as? [[String: Any]] else { continue }
+            for item in list {
+                guard let id = item["id"] as? String, !id.isEmpty, seen.insert(id).inserted else { continue }
+                out.append((id, (item["title"] as? String) ?? id))
+            }
+        }
+        return out
     }
 
     /// Load config + which transport won (for providers that set instance/size themselves).

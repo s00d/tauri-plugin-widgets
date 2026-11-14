@@ -1,0 +1,358 @@
+{
+  "$schema": "http://adaptivecards.io/schemas/adaptive-card.json",
+  "body": [
+    {
+      "backgroundImage": {
+        "fillMode": "repeat",
+        "url": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAAEElEQVR4AQEFAPr/AAIGF/8BTAEftdmP2AAAAABJRU5ErkJggg=="
+      },
+      "id": "card:#020617",
+      "items": [
+        {
+          "columns": [
+            {
+              "items": [
+                {
+                  "horizontalAlignment": "Center",
+                  "items": [
+                    {
+                      "spacing": "None",
+                      "text": "",
+                      "type": "TextBlock"
+                    },
+                    {
+                      "spacing": "None",
+                      "text": "",
+                      "type": "TextBlock"
+                    },
+                    {
+                      "color": "Light",
+                      "id": "fg:#fff",
+                      "size": "Default",
+                      "text": "A1",
+                      "type": "TextBlock",
+                      "weight": "Bolder",
+                      "wrap": true
+                    }
+                  ],
+                  "spacing": "None",
+                  "type": "Container"
+                }
+              ],
+              "type": "Column",
+              "width": "auto"
+            },
+            {
+              "id": "gap:8",
+              "items": [
+                {
+                  "items": [
+                    {
+                      "color": "Light",
+                      "id": "fg:#f8fafc",
+                      "size": "Default",
+                      "text": "Stress Nest — deep stacks",
+                      "type": "TextBlock",
+                      "weight": "Bolder",
+                      "wrap": false
+                    },
+                    {
+                      "color": "Light",
+                      "id": "fg:#94a3b8;gap:2",
+                      "maxLines": 2,
+                      "size": "Small",
+                      "spacing": "Small",
+                      "text": "This subtitle is intentionally very long to check truncation and ellipsis behavior on Android Glance RemoteViews",
+                      "type": "TextBlock",
+                      "weight": "Default",
+                      "wrap": true
+                    }
+                  ],
+                  "spacing": "None",
+                  "type": "Container"
+                }
+              ],
+              "spacing": "Default",
+              "type": "Column",
+              "width": 100
+            },
+            {
+              "id": "gap:8;#2",
+              "items": [
+                {
+                  "items": [
+                    {
+                      "size": "Default",
+                      "text": "✓ On",
+                      "type": "TextBlock",
+                      "wrap": true
+                    }
+                  ],
+                  "selectAction": {
+                    "data": {
+                      "payload": "false"
+                    },
+                    "type": "Action.Execute",
+                    "verb": "stress_toggle"
+                  },
+                  "type": "Container"
+                }
+              ],
+              "spacing": "Default",
+              "type": "Column",
+              "width": "auto"
+            }
+          ],
+          "spacing": "None",
+          "type": "ColumnSet"
+        },
+        {
+          "id": "rule:#1e293b;gap:8",
+          "items": [],
+          "separator": true,
+          "spacing": "Default",
+          "type": "Container"
+        },
+        {
+          "id": "gap:8;#3",
+          "items": [
+            {
+              "columns": [
+                {
+                  "items": [
+                    {
+                      "backgroundImage": {
+                        "fillMode": "repeat",
+                        "url": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAAEElEQVR4AQEFAPr/ABEYJ/8B3gFQbIJpsQAAAABJRU5ErkJggg=="
+                      },
+                      "horizontalAlignment": "Center",
+                      "id": "card:#111827",
+                      "items": [
+                        {
+                          "color": "Light",
+                          "id": "fg:#64748b",
+                          "size": "Small",
+                          "text": "L",
+                          "type": "TextBlock",
+                          "weight": "Default",
+                          "wrap": true
+                        },
+                        {
+                          "id": "gap:4",
+                          "spacing": "Default",
+                          "text": "",
+                          "type": "TextBlock"
+                        }
+                      ],
+                      "spacing": "None",
+                      "style": "emphasis",
+                      "type": "Container"
+                    }
+                  ],
+                  "type": "Column",
+                  "width": "stretch"
+                },
+                {
+                  "id": "gap:6",
+                  "items": [
+                    {
+                      "backgroundImage": {
+                        "fillMode": "repeat",
+                        "url": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAAEElEQVR4AQEFAPr/ABEYJ/8B3gFQbIJpsQAAAABJRU5ErkJggg=="
+                      },
+                      "horizontalAlignment": "Center",
+                      "id": "card:#111827;#2",
+                      "items": [
+                        {
+                          "color": "Light",
+                          "id": "fg:#64748b;#2",
+                          "size": "Small",
+                          "text": "M",
+                          "type": "TextBlock",
+                          "weight": "Default",
+                          "wrap": true
+                        },
+                        {
+                          "id": "gap:4;#2",
+                          "spacing": "Default",
+                          "text": "",
+                          "type": "TextBlock"
+                        }
+                      ],
+                      "spacing": "None",
+                      "style": "emphasis",
+                      "type": "Container"
+                    }
+                  ],
+                  "spacing": "Default",
+                  "type": "Column",
+                  "width": "stretch"
+                },
+                {
+                  "id": "gap:6;#2",
+                  "items": [
+                    {
+                      "backgroundImage": {
+                        "fillMode": "repeat",
+                        "url": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAAEElEQVR4AQEFAPr/ABEYJ/8B3gFQbIJpsQAAAABJRU5ErkJggg=="
+                      },
+                      "horizontalAlignment": "Center",
+                      "id": "card:#111827;#3",
+                      "items": [
+                        {
+                          "color": "Light",
+                          "id": "fg:#64748b;#3",
+                          "size": "Small",
+                          "text": "H",
+                          "type": "TextBlock",
+                          "weight": "Default",
+                          "wrap": true
+                        },
+                        {
+                          "id": "gap:4;#3",
+                          "spacing": "Default",
+                          "text": "",
+                          "type": "TextBlock"
+                        }
+                      ],
+                      "spacing": "None",
+                      "style": "emphasis",
+                      "type": "Container"
+                    }
+                  ],
+                  "spacing": "Default",
+                  "type": "Column",
+                  "width": "stretch"
+                }
+              ],
+              "spacing": "None",
+              "type": "ColumnSet"
+            }
+          ],
+          "spacing": "Default",
+          "type": "Container"
+        },
+        {
+          "columns": [
+            {
+              "items": [
+                {
+                  "spacing": "None",
+                  "text": "",
+                  "type": "TextBlock"
+                }
+              ],
+              "type": "Column",
+              "width": 100
+            },
+            {
+              "id": "gap:8;#5",
+              "items": [
+                {
+                  "columns": [
+                    {
+                      "width": 1
+                    },
+                    {
+                      "width": 5
+                    }
+                  ],
+                  "firstRowAsHeaders": false,
+                  "rows": [],
+                  "showGridLines": false,
+                  "type": "Table"
+                }
+              ],
+              "spacing": "Default",
+              "type": "Column",
+              "width": 100
+            }
+          ],
+          "id": "gap:8;#4",
+          "spacing": "Default",
+          "type": "ColumnSet"
+        },
+        {
+          "columns": [
+            {
+              "items": [
+                {
+                  "actions": [
+                    {
+                      "id": "bg:#2563eb;fg:#fff",
+                      "title": "Primary",
+                      "type": "Action.Execute",
+                      "verb": "stress_primary"
+                    }
+                  ],
+                  "type": "ActionSet"
+                }
+              ],
+              "type": "Column",
+              "width": 100
+            },
+            {
+              "id": "gap:8;#7",
+              "items": [
+                {
+                  "actions": [
+                    {
+                      "id": "bg:#1e293b;fg:#94a3b8",
+                      "title": "Ghost",
+                      "type": "Action.Execute",
+                      "verb": "stress_ghost"
+                    }
+                  ],
+                  "type": "ActionSet"
+                }
+              ],
+              "spacing": "Default",
+              "type": "Column",
+              "width": 100
+            },
+            {
+              "id": "gap:8;#8",
+              "items": [
+                {
+                  "backgroundImage": {
+                    "fillMode": "repeat",
+                    "url": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAAEElEQVR4AQEFAPr/ADNBVf8DPQHJrwiBpgAAAABJRU5ErkJggg=="
+                  },
+                  "id": "card:#334155",
+                  "items": [
+                    {
+                      "color": "Accent",
+                      "id": "fg:#38bdf8",
+                      "size": "Small",
+                      "text": "Link",
+                      "type": "TextBlock",
+                      "weight": "Default",
+                      "wrap": true
+                    }
+                  ],
+                  "selectAction": {
+                    "type": "Action.Execute",
+                    "verb": "open_settings"
+                  },
+                  "style": "emphasis",
+                  "type": "Container"
+                }
+              ],
+              "spacing": "Default",
+              "type": "Column",
+              "width": "auto"
+            }
+          ],
+          "id": "gap:8;#6",
+          "spacing": "Default",
+          "type": "ColumnSet"
+        }
+      ],
+      "spacing": "None",
+      "style": "emphasis",
+      "type": "Container"
+    }
+  ],
+  "type": "AdaptiveCard",
+  "version": "1.5"
+}

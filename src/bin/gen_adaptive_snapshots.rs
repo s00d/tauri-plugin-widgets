@@ -16,7 +16,13 @@ fn main() {
     let root = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
     let cases_dir = root.join("tests/cases");
     let fixtures = root.join("tests/fixtures");
-    let ac_dir = root.join("tests/snapshots/adaptive");
+    // ADAPTIVE_OUT: real cards for the Windows PreviewHost shots (all cases, `v2-*` included,
+    // nothing redacted). Default: the committed structural snapshots.
+    let shots_out = std::env::var("ADAPTIVE_OUT").ok().filter(|s| !s.is_empty());
+    let ac_dir = shots_out
+        .as_ref()
+        .map(|p| root.join(p))
+        .unwrap_or_else(|| root.join("tests/snapshots/adaptive"));
     fs::create_dir_all(&ac_dir).unwrap();
 
     let only = std::env::var("CASE").ok().filter(|s| !s.is_empty());
@@ -33,6 +39,11 @@ fn main() {
             continue;
         }
         let name = path.file_stem().unwrap().to_string_lossy().to_string();
+        // `v2-*` snapshots are owned by `adaptive_card::tests::v2_cases_match_snapshots`
+        // (pinned clock, font-independent PNG redaction).
+        if name.starts_with("v2-") && shots_out.is_none() {
+            continue;
+        }
         if let Some(ref only) = only {
             if only != &name {
                 continue;

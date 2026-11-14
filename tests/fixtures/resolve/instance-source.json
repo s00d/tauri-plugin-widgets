@@ -1,0 +1,23 @@
+{
+  "about": "Per-placement source: {{instance}} and {{locale}} fill url, headers and body; meta fields are stripped from the output.",
+  "config": {
+    "source": {
+      "url": "https://api.example/weather?city={{instance}}&lang={{locale}}",
+      "method": "POST",
+      "headers": { "X-City": "{{instance}}" },
+      "body": "{\"city\":\"{{instance}}\"}",
+      "refreshMinutes": 5
+    },
+    "strings": { "en": { "k": "v" } },
+    "small": { "type": "text", "content": "{{instance}} {{locale}}" }
+  },
+  "ctx": { "nowMs": 0, "locale": "ru-RU", "instance": "nyc" },
+  "expected": { "version": 1, "small": { "type": "text", "content": "nyc ru-RU" } },
+  "source": {
+    "url": "https://api.example/weather?city=nyc&lang=ru-RU",
+    "method": "POST",
+    "headers": { "X-City": "nyc" },
+    "body": "{\"city\":\"nyc\"}",
+    "refreshMinutes": 15
+  }
+}

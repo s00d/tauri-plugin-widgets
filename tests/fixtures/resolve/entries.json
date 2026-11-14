@@ -1,0 +1,18 @@
+{
+  "about": "Scheduled entries: last entry with at <= now replaces the families it carries.",
+  "config": {
+    "small": { "type": "text", "content": "base" },
+    "medium": { "type": "text", "content": "base-m" },
+    "entries": [
+      { "at": 2000, "small": { "type": "text", "content": "later" } },
+      { "at": 1000, "small": { "type": "text", "content": "first" } }
+    ]
+  },
+  "ctx": { "nowMs": 1500, "locale": "en" },
+  "expected": {
+    "version": 1,
+    "small": { "type": "text", "content": "first" },
+    "medium": { "type": "text", "content": "base-m" }
+  },
+  "nextChangeMs": 2000
+}

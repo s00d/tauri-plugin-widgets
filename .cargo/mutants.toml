@@ -1,0 +1,66 @@
+# cargo-mutants (https://mutants.rs) — mutation testing of the Rust crate.
+# Full run:     cargo mutants
+# Changed only: git diff main -- '*.rs' > pr.diff && cargo mutants --in-diff pr.diff
+# Local only (not in CI); no -j when other heavy work shares the machine.
+# One file:     cargo mutants -f src/store.rs
+# A surviving ("missed") mutant means no test notices that change: fix the test, not this file.
+
+# Code that is not compiled on a desktop CI host, or needs a live OS surface / a running
+# Tauri app: mutants there would build and "survive" without telling anything.
+exclude_globs = [
+    "src/mobile.rs",
+    "src/windows/**",
+    "src/linux/**",
+    # Runs only inside a Tauri app (windows, events, timers); covered by tests/desktop (Playwright).
+    "src/desktop.rs",
+    "src/commands.rs",
+    "src/lib.rs",
+    # Dev tools that write generated files; their output is diffed in CI (Codegen drift).
+    "src/bin/**",
+    "src/codegen.rs",
+    "src/codegen/**",
+]
+
+# Debug output, log wording and rustdoc-only helpers are not behaviour.
+exclude_re = [
+    "impl Debug",
+    "impl fmt::Debug",
+    "impl std::fmt::Display",
+    "impl fmt::Display",
+    # Writes docs/generated/capability-matrix.md; its content is diffed in CI.
+    "capabilities::write_docs",
+    # Only logs warnings (validate_config, which it calls, is tested).
+    "log_capabilities",
+    # Mobile-only conversion (tauri::plugin::mobile is not built on desktop test hosts).
+    "PluginInvokeError",
+    # Desktop window plumbing: only OS / tauri window calls are left in these (the decisions
+    # were split into pure, unit-tested functions: target_for, mode_setters, effects_config,
+    # desktop_behaviour, desktop_level, work_area_screen, notch_screen, float_behaviour).
+    # MockRuntime windows record nothing and its monitor queries panic, so the effects are
+    # only observable on a real desktop (tests/desktop, Playwright).
+    "replace resolve_target -> Option<Target> with None", # gathers monitors / store, calls target_for
+    "replace apply_modes with \\(\\)", # window setters chosen by mode_setters
+    "replace track_position with \\(\\)", # Moved-event hook; WindowStore::set_position is tested
+    "replace macos_desktop_level with \\(\\)", # objc_msgSend; bits in desktop_behaviour
+    "replace macos_float with \\(\\)", # objc_msgSend; bits in float_behaviour
+    "macos_notch_screen", # AppKit NSScreen queries + null checks; maths in notch_screen
+    "replace screen -> Option<Screen> with None", # None = Screen::FALLBACK, as under MockRuntime
+    "replace primary_monitor -> Option<tauri::Monitor> with None", # MockRuntime already yields None
+    "replace place with \\(\\)", # island: set_size / set_position on the window
+]
+
+# Same features CI tests with (`layer-shell` needs gtk-layer-shell system libs).
+features = ["schema", "rasterize", "image-prefetch"]
+
+# Tests run under cargo-nextest (.config/nextest.toml): one process per test and a hard
+# per-test timeout, so a mutant that makes a loop spin is killed in seconds. Lib +
+# integration tests only (nextest does not run doctests).
+test_tool = "nextest"
+additional_cargo_test_args = ["--lib", "--tests"]
+
+# Image prefetch / transport tests touch the filesystem and a local HTTP stub.
+timeout_multiplier = 1.5
+
+# `[profile.mutants]` in Cargo.toml: dev build without debug info (faster link per mutant);
+# dependencies are optimized by `[profile.dev.package."*"]` (resvg raster tests 4.1 s → 0.8 s).
+profile = "mutants"

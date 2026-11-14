@@ -87,9 +87,9 @@
                       "kind": "FrameLayout",
                       "rect": [
                         156,
-                        13,
+                        29,
                         294,
-                        93
+                        62
                       ],
                       "children": [
                         {
@@ -98,28 +98,39 @@
                             0,
                             0,
                             294,
-                            93
+                            62
                           ],
                           "children": [
                             {
-                              "kind": "TextView",
+                              "kind": "LinearLayout",
                               "rect": [
-                                89,
                                 0,
-                                115,
-                                57
+                                0,
+                                294,
+                                44
                               ],
-                              "text": "Linear",
-                              "px": 42,
-                              "color": "#FF94A3B8"
+                              "children": [
+                                {
+                                  "kind": "TextView",
+                                  "rect": [
+                                    0,
+                                    0,
+                                    294,
+                                    44
+                                  ],
+                                  "text": "Linear",
+                                  "px": 33,
+                                  "color": "#FF94A3B8"
+                                }
+                              ]
                             },
                             {
                               "kind": "ImageView",
                               "rect": [
                                 0,
-                                57,
+                                44,
                                 294,
-                                36
+                                18
                               ]
                             }
                           ]
@@ -143,7 +154,7 @@
                     30,
                     174,
                     450,
-                    267
+                    213
                   ],
                   "children": [
                     {
@@ -151,8 +162,8 @@
                       "rect": [
                         0,
                         0,
-                        216,
-                        267
+                        168,
+                        213
                       ],
                       "children": [
                         {
@@ -160,8 +171,8 @@
                           "rect": [
                             0,
                             0,
-                            216,
-                            267
+                            168,
+                            213
                           ],
                           "children": [
                             {
@@ -169,8 +180,8 @@
                               "rect": [
                                 0,
                                 0,
-                                216,
-                                267
+                                168,
+                                213
                               ]
                             }
                           ]
@@ -180,19 +191,19 @@
                     {
                       "kind": "FrameLayout",
                       "rect": [
-                        216,
+                        168,
                         0,
                         48,
-                        267
+                        213
                       ]
                     },
                     {
                       "kind": "FrameLayout",
                       "rect": [
-                        264,
-                        91,
-                        186,
-                        84
+                        216,
+                        73,
+                        234,
+                        67
                       ],
                       "children": [
                         {
@@ -200,17 +211,52 @@
                           "rect": [
                             0,
                             0,
-                            186,
-                            84
+                            234,
+                            67
                           ],
                           "children": [
+                            {
+                              "kind": "LinearLayout",
+                              "rect": [
+                                0,
+                                0,
+                                234,
+                                49
+                              ],
+                              "children": [
+                                {
+                                  "kind": "TextView",
+                                  "rect": [
+                                    0,
+                                    2,
+                                    168,
+                                    44
+                                  ],
+                                  "text": "Lin",
+                                  "px": 33,
+                                  "color": "#B3E2E8F0"
+                                },
+                                {
+                                  "kind": "TextView",
+                                  "rect": [
+                                    168,
+                                    0,
+                                    66,
+                                    49
+                                  ],
+                                  "text": "45%",
+                                  "px": 36,
+                                  "color": "#FFE2E8F0"
+                                }
+                              ]
+                            },
                             {
                               "kind": "ImageView",
                               "rect": [
                                 0,
-                                0,
-                                186,
-                                84
+                                49,
+                                234,
+                                18
                               ]
                             }
                           ]

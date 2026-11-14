@@ -1,0 +1,110 @@
+{
+  "$schema": "http://adaptivecards.io/schemas/adaptive-card.json",
+  "body": [
+    {
+      "backgroundImage": {
+        "fillMode": "repeat",
+        "url": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAAEElEQVR4AQEFAPr/ABwcHv8CBAFWW3W0KwAAAABJRU5ErkJggg=="
+      },
+      "id": "card:#1c1c1e",
+      "items": [
+        {
+          "id": "rule:#3878fa",
+          "items": [],
+          "separator": true,
+          "spacing": "Medium",
+          "type": "Container"
+        },
+        {
+          "columns": [
+            {
+              "items": [
+                {
+                  "horizontalAlignment": "Center",
+                  "id": "badge:overlay",
+                  "items": [
+                    {
+                      "spacing": "None",
+                      "text": "",
+                      "type": "TextBlock"
+                    },
+                    {
+                      "color": "Light",
+                      "id": "fg:#ffffff",
+                      "size": "Medium",
+                      "text": "S",
+                      "type": "TextBlock",
+                      "weight": "Bolder",
+                      "wrap": true
+                    }
+                  ],
+                  "spacing": "None",
+                  "type": "Container"
+                }
+              ],
+              "type": "Column",
+              "width": "auto"
+            },
+            {
+              "id": "gap:10;#2",
+              "items": [
+                {
+                  "items": [
+                    {
+                      "color": "Default",
+                      "size": "Default",
+                      "text": "Streaming",
+                      "type": "TextBlock",
+                      "weight": "Bolder",
+                      "wrap": false
+                    },
+                    {
+                      "color": "Light",
+                      "id": "gap:2",
+                      "size": "Small",
+                      "spacing": "Small",
+                      "text": "Jun 1",
+                      "type": "TextBlock",
+                      "weight": "Bolder",
+                      "wrap": false
+                    }
+                  ],
+                  "spacing": "None",
+                  "type": "Container"
+                }
+              ],
+              "spacing": "Medium",
+              "type": "Column",
+              "width": 100
+            }
+          ],
+          "id": "gap:10",
+          "spacing": "Medium",
+          "type": "ColumnSet"
+        },
+        {
+          "id": "gap:10;#3",
+          "spacing": "Medium",
+          "text": " ",
+          "type": "TextBlock"
+        },
+        {
+          "color": "Accent",
+          "horizontalAlignment": "Left",
+          "id": "fg:#3878fa;gap:10",
+          "size": "Medium",
+          "spacing": "Medium",
+          "text": "$12.50",
+          "type": "TextBlock",
+          "weight": "Bolder",
+          "wrap": false
+        }
+      ],
+      "spacing": "None",
+      "style": "emphasis",
+      "type": "Container"
+    }
+  ],
+  "type": "AdaptiveCard",
+  "version": "1.5"
+}

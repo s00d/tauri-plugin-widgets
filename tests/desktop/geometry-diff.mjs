@@ -66,10 +66,14 @@ function normalize(node) {
   return out;
 }
 
-function textLeaves(node, acc = []) {
+/** Text leaves in root coordinates. Android dumps rects relative to the parent view
+ *  (`relative`), desktop dumps them relative to the root already. */
+function textLeaves(node, relative = false, acc = [], ox = 0, oy = 0) {
   if (!node) return acc;
-  if (node.text && node.text !== "✕") acc.push({ text: node.text, rect: node.rect });
-  for (const c of node.children || []) textLeaves(c, acc);
+  const r = node.rect || [0, 0, 0, 0];
+  const rect = relative ? [ox + r[0], oy + r[1], r[2], r[3]] : r;
+  if (node.text && node.text !== "✕") acc.push({ text: node.text, rect });
+  for (const c of node.children || []) textLeaves(c, relative, acc, rect[0], rect[1]);
   return acc;
 }
 
@@ -107,7 +111,7 @@ function comparePair(id, size, desktop, android, allow) {
   const sy = dRoot[3] / aRoot[3];
 
   const dLeaves = textLeaves(desktop);
-  const aLeaves = textLeaves(android).map((l) => ({
+  const aLeaves = textLeaves(android, true).map((l) => ({
     text: l.text,
     rect: scaleRect(l.rect, sx, sy),
   }));

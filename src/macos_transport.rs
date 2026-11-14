@@ -34,7 +34,7 @@ pub fn extension_bundle_id(group: &str) -> String {
             return b;
         }
     }
-    let app_id = group.strip_prefix("group.").unwrap_or(group);
+    let app_id = crate::group::app_group_suffix(group).unwrap_or(group);
     format!("{app_id}.widgetkit")
 }
 
@@ -74,10 +74,58 @@ pub fn app_group_receipt_path(data_file: &Path) -> PathBuf {
     data_file.with_file_name("widget_receipt.json")
 }
 
+// ponytail: process-wide caches below never shrink; one entry per store file / group the
+// app touches (a handful). Bound them if an app ever cycles through many groups.
+
+/// Identity of a file version from `stat`: a rename (new inode) or rewrite (mtime, size)
+/// changes it.
+type FileStamp = (u64, i64, i64, u64);
+
+fn file_stamp(meta: &fs::Metadata) -> FileStamp {
+    use std::os::unix::fs::MetadataExt;
+    (meta.len(), meta.mtime(), meta.mtime_nsec(), meta.ino())
+}
+
+/// Parsed store files by path, valid while their [`FileStamp`] is unchanged.
+static READS: std::sync::LazyLock<
+    std::sync::Mutex<std::collections::HashMap<PathBuf, (FileStamp, DataMap)>>,
+> = std::sync::LazyLock::new(Default::default);
+
+/// Read a store file, reusing the last parse while `stat` says the file is the same.
+///
+/// macOS checks every `open` / `rename` / directory listing inside a Group Container
+/// with the container manager, and that check now and then stalls for 5 s (seen from
+/// any process, signed or not). `stat` is not checked, so polling and read-before-write
+/// cost a `stat` unless the extension really wrote something.
 pub fn read_map_file(path: &Path) -> Option<DataMap> {
-    fs::read_to_string(path)
-        .ok()
-        .and_then(|s| serde_json::from_str(&s).ok())
+    let Ok(meta) = fs::metadata(path) else {
+        READS.lock().unwrap().remove(path);
+        return None;
+    };
+    let stamp = file_stamp(&meta);
+    if let Some((s, m)) = READS.lock().unwrap().get(path) {
+        if *s == stamp {
+            return Some(m.clone());
+        }
+    }
+    let map: DataMap = serde_json::from_str(&fs::read_to_string(path).ok()?).ok()?;
+    // Stamp taken before the read: a write racing the read gets a new stamp and is read
+    // again next time, never cached under the old one.
+    READS
+        .lock()
+        .unwrap()
+        .insert(path.to_path_buf(), (stamp, map.clone()));
+    Some(map)
+}
+
+/// After our own write: remember what is on disk so the next read needs no `open`.
+fn remember_written(path: &Path, map: &DataMap) {
+    if let Ok(meta) = fs::metadata(path) {
+        READS
+            .lock()
+            .unwrap()
+            .insert(path.to_path_buf(), (file_stamp(&meta), map.clone()));
+    }
 }
 
 fn unique_tmp_path(path: &Path) -> PathBuf {
@@ -123,7 +171,9 @@ fn write_bytes_atomic(path: &Path, bytes: &[u8]) -> crate::Result<()> {
 
 pub fn write_map_file(path: &Path, map: &DataMap) -> crate::Result<()> {
     let json = serde_json::to_string_pretty(map).map_err(|e| Error::new(e.to_string()))?;
-    write_bytes_atomic(path, json.as_bytes())
+    write_bytes_atomic(path, json.as_bytes())?;
+    remember_written(path, map);
+    Ok(())
 }
 
 fn read_receipt_file(path: &Path) -> Option<Receipt> {
@@ -160,7 +210,21 @@ extern "C" {
     ) -> *mut std::ffi::c_char;
 }
 
-fn shared_container_dir(group: &str) -> Option<PathBuf> {
+/// App Group container per group: resolved once (the lookup is an XPC call to the
+/// container manager, which can stall like the file checks).
+pub(crate) fn shared_container_dir(group: &str) -> Option<PathBuf> {
+    static DIRS: std::sync::LazyLock<
+        std::sync::Mutex<std::collections::HashMap<String, Option<PathBuf>>>,
+    > = std::sync::LazyLock::new(Default::default);
+    if let Some(d) = DIRS.lock().unwrap().get(group) {
+        return d.clone();
+    }
+    let dir = lookup_container_dir(group);
+    DIRS.lock().unwrap().insert(group.to_string(), dir.clone());
+    dir
+}
+
+fn lookup_container_dir(group: &str) -> Option<PathBuf> {
     let c_group = CString::new(group).ok()?;
     let ptr = unsafe { macos_widget_container_path(c_group.as_ptr()) };
     if ptr.is_null() {
@@ -195,26 +259,44 @@ pub fn with_store_lock<T>(group: &str, f: impl FnOnce() -> T) -> T {
     if DEPTH.with(Cell::get) > 0 {
         return f();
     }
-    let file = resolve_app_group_data_file(group).and_then(|data| {
-        if let Some(dir) = data.parent() {
-            let _ = std::fs::create_dir_all(dir);
+    // One descriptor per lock file for the process: opening it again would be another
+    // container check (see `read_map_file`). The mutex keeps our own threads apart
+    // (`flock` on one shared descriptor does not); `flock` keeps the extension out.
+    static LOCKS: std::sync::LazyLock<
+        std::sync::Mutex<std::collections::HashMap<PathBuf, Arc<std::sync::Mutex<fs::File>>>>,
+    > = std::sync::LazyLock::new(Default::default);
+    const LOCK_UN: std::ffi::c_int = 8;
+    let Some(data) = resolve_app_group_data_file(group) else {
+        return f();
+    };
+    let lock = PathBuf::from(format!("{}.lock", data.display()));
+    let cached = LOCKS.lock().unwrap().get(&lock).cloned();
+    let file = match cached {
+        Some(f) => f,
+        None => {
+            if let Some(dir) = data.parent() {
+                let _ = std::fs::create_dir_all(dir);
+            }
+            let Ok(opened) = std::fs::OpenOptions::new()
+                .read(true)
+                .write(true)
+                .create(true)
+                .truncate(false)
+                .open(&lock)
+            else {
+                return f();
+            };
+            let shared = Arc::new(std::sync::Mutex::new(opened));
+            LOCKS.lock().unwrap().entry(lock).or_insert(shared).clone()
         }
-        let lock = PathBuf::from(format!("{}.lock", data.display()));
-        std::fs::OpenOptions::new()
-            .read(true)
-            .write(true)
-            .create(true)
-            .truncate(false)
-            .open(lock)
-            .ok()
-    });
-    let Some(file) = file else { return f() };
-    // Closing the descriptor (drop) releases the lock.
-    unsafe { flock(file.as_raw_fd(), LOCK_EX) };
+    };
+    let held = file.lock().unwrap_or_else(|e| e.into_inner());
+    unsafe { flock(held.as_raw_fd(), LOCK_EX) };
     DEPTH.with(|d| d.set(d.get() + 1));
     let out = f();
     DEPTH.with(|d| d.set(d.get() - 1));
-    drop(file);
+    unsafe { flock(held.as_raw_fd(), LOCK_UN) };
+    drop(held);
     out
 }
 
@@ -452,7 +534,12 @@ fn merge_pending_from_map(into: &mut DataMap, src: &DataMap) {
 ///
 /// Used by host writes before [`clear_sibling_transports`].
 pub fn merge_pending_into_map(map: &mut DataMap, group: &str) {
-    for t in all_transports(group) {
+    merge_pending_in(map, &all_transports(group));
+}
+
+/// [`merge_pending_into_map`] over the given transports only.
+pub fn merge_pending_in(map: &mut DataMap, transports: &[Arc<dyn Transport>]) {
+    for t in transports {
         if !t.available() {
             continue;
         }
@@ -464,8 +551,13 @@ pub fn merge_pending_into_map(map: &mut DataMap, group: &str) {
 
 /// Max `__meta_nonce__` across every readable sibling transport.
 pub fn max_nonce_across(group: &str) -> u64 {
-    all_transports(group)
-        .into_iter()
+    max_nonce_in(&all_transports(group))
+}
+
+/// [`max_nonce_across`] over the given transports only.
+pub fn max_nonce_in(transports: &[Arc<dyn Transport>]) -> u64 {
+    transports
+        .iter()
         .filter_map(|t| t.read())
         .map(|m| store::map_nonce(&m))
         .max()
@@ -477,10 +569,17 @@ pub fn max_nonce_across(group: &str) -> u64 {
 /// Call on poll — siblings may still hold taps after a driver latch; config
 /// writes clear leftover maps via [`clear_sibling_transports`] instead.
 pub fn harvest_pending_actions(group: &str) -> Vec<crate::store::WidgetActionEnvelope> {
+    harvest_pending_in(&all_transports(group))
+}
+
+/// [`harvest_pending_actions`] over the given transports only.
+pub fn harvest_pending_in(
+    transports: &[Arc<dyn Transport>],
+) -> Vec<crate::store::WidgetActionEnvelope> {
     use crate::store::{parse_pending_actions, PENDING_ACTIONS_KEY};
     let mut out = Vec::new();
     let mut seen = std::collections::HashSet::new();
-    for t in all_transports(group) {
+    for t in transports {
         if !t.available() {
             continue;
         }
@@ -502,6 +601,14 @@ pub fn harvest_pending_actions(group: &str) -> Vec<crate::store::WidgetActionEnv
 /// between harvest and clear is not lost.
 pub fn clear_pending_actions_everywhere(
     group: &str,
+    drained: &[crate::store::WidgetActionEnvelope],
+) {
+    clear_pending_actions_in(&all_transports(group), drained);
+}
+
+/// [`clear_pending_actions_everywhere`] over the given transports only.
+pub fn clear_pending_actions_in(
+    transports: &[Arc<dyn Transport>],
     drained: &[crate::store::WidgetActionEnvelope],
 ) {
     use crate::store::{
@@ -534,7 +641,7 @@ pub fn clear_pending_actions_everywhere(
         *drained_counts.entry(pending_action_key(a)).or_default() += 1;
     }
 
-    for t in all_transports(group) {
+    for t in transports {
         if !t.available() {
             continue;
         }

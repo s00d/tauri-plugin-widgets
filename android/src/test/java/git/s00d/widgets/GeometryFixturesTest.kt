@@ -20,6 +20,7 @@ import java.io.File
 @Config(sdk = [34], qualifiers = "w411dp-h891dp-xxhdpi")
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
 class GeometryFixturesTest {
+    /** Given every fixture and committed Android geometry, when each composes, then the whole tree (kind, rect ±2 px, text, children) matches. */
     @Test
     fun allFixturesGeometry() {
         val cases = collectCases()
@@ -66,17 +67,52 @@ class GeometryFixturesTest {
                 "geometry kind mismatch for $fixtureId/$size",
                 expected.optString("kind").isNotEmpty() && tree.optString("kind").isNotEmpty(),
             )
-            // Strict drift vs committed android baseline (rect ±2 on root).
-            val er = expected.getJSONArray("rect")
-            val ar = tree.getJSONArray("rect")
+            val diffs = mutableListOf<String>()
+            // Clock-driven fixtures (dates, timers): structure only, sizes follow today's text.
+            diffTree(expected, tree, "root", diffs, structureOnly = fixtureId in CLOCK_DRIVEN)
+            assertTrue(
+                "geometry drift for $fixtureId/$size (update with -PupdateSnapshots=true):\n" +
+                    diffs.take(5).joinToString("\n"),
+                diffs.isEmpty(),
+            )
+        }
+    }
+
+    /** Whole-tree drift: kind, rect (±2 px), text, child count. Clock-driven text skipped. */
+    private fun diffTree(
+        e: JSONObject,
+        a: JSONObject,
+        path: String,
+        out: MutableList<String>,
+        structureOnly: Boolean = false,
+    ) {
+        val kind = e.optString("kind")
+        if (kind != a.optString("kind")) {
+            out += "$path: kind ${kind} != ${a.optString("kind")}"
+            return
+        }
+        val er = e.optJSONArray("rect")
+        val ar = a.optJSONArray("rect")
+        if (!structureOnly && er != null && ar != null) {
             for (i in 0 until 4) {
-                val d = kotlin.math.abs(er.getInt(i) - ar.getInt(i))
-                assertTrue(
-                    "root rect[$i] drift $d for $fixtureId/$size (e=${er.getInt(i)} a=${ar.getInt(i)})",
-                    d <= 2,
-                )
+                if (kotlin.math.abs(er.getInt(i) - ar.getInt(i)) > 2) {
+                    out += "$path($kind): rect $er != $ar"
+                    break
+                }
             }
         }
+        if (!structureOnly && kind != "Chronometer" && e.optString("text") != a.optString("text")) {
+            out += "$path($kind): text '${e.optString("text")}' != '${a.optString("text")}'"
+        }
+        val ec = e.optJSONArray("children")
+        val ac = a.optJSONArray("children")
+        val en = ec?.length() ?: 0
+        val an = ac?.length() ?: 0
+        if (en != an) {
+            out += "$path($kind): $en children != $an"
+            return
+        }
+        for (i in 0 until en) diffTree(ec!!.getJSONObject(i), ac!!.getJSONObject(i), "$path/$i", out, structureOnly)
     }
 
     private fun containsLiteralNull(node: JSONObject): Boolean {
@@ -90,6 +126,8 @@ class GeometryFixturesTest {
     }
 
     companion object {
+        val CLOCK_DRIVEN = setOf("core/date-timer")
+
         fun collectCases(): List<Triple<String, File, String>> {
             val root = RenderHarness.fixturesRoot()
             val out = mutableListOf<Triple<String, File, String>>()

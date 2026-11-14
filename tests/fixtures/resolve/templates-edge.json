@@ -1,0 +1,84 @@
+{
+  "about": "`use`: an arg that is not exactly one `{{expr}}` is interpolated as text; self-recursion stops at depth 8 (the 9th `use` renders nothing).",
+  "config": {
+    "data": {
+      "a": 5
+    },
+    "templates": {
+      "row": {
+        "type": "text",
+        "content": "{{arg.v}}"
+      },
+      "r": {
+        "type": "vstack",
+        "children": [
+          {
+            "type": "use",
+            "template": "r"
+          }
+        ]
+      }
+    },
+    "small": {
+      "type": "use",
+      "template": "row",
+      "args": {
+        "v": "{{data.a}}x}}"
+      }
+    },
+    "medium": {
+      "type": "use",
+      "template": "r"
+    }
+  },
+  "ctx": {
+    "nowMs": 0,
+    "locale": "en"
+  },
+  "expected": {
+    "version": 1,
+    "small": {
+      "type": "text",
+      "content": "5x}}"
+    },
+    "medium": {
+      "type": "vstack",
+      "children": [
+        {
+          "type": "vstack",
+          "children": [
+            {
+              "type": "vstack",
+              "children": [
+                {
+                  "type": "vstack",
+                  "children": [
+                    {
+                      "type": "vstack",
+                      "children": [
+                        {
+                          "type": "vstack",
+                          "children": [
+                            {
+                              "type": "vstack",
+                              "children": [
+                                {
+                                  "type": "vstack",
+                                  "children": []
+                                }
+                              ]
+                            }
+                          ]
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  }
+}

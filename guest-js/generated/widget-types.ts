@@ -12,14 +12,22 @@ export type FontDesign = "default" | "monospaced" | "rounded" | "serif";
 export type TextAlignment = "leading" | "center" | "trailing";
 export type HorizontalAlignment = "leading" | "center" | "trailing";
 export type VerticalAlignment = "top" | "center" | "bottom";
-export type ContentMode = "fit" | "fill";
+export type ContentMode = "fit" | "fill" | "stretch" | "center";
 export type ProgressStyle = "linear" | "circular";
 export type GaugeStyle = "circular" | "linear";
 export type DateStyle = "time" | "date" | "relative" | "offset" | "timer";
-export type ChartType = "bar" | "line" | "area" | "pie";
-export type ShapeType = "circle" | "capsule" | "rectangle";
+export type ChartType = "bar" | "line" | "area" | "pie" | "point";
+export type ShapeType = "circle" | "capsule" | "rectangle" | "roundedRectangle" | "ellipse";
 export type TimerCounting = "up" | "down";
-export type ClipShape = "circle" | "capsule" | "rectangle";
+export type ClipShape = "circle" | "capsule" | "rectangle" | "roundedRectangle" | "ellipse";
+export type Justify = "start" | "center" | "end" | "spaceBetween" | "spaceAround" | "spaceEvenly";
+export type TruncationMode = "head" | "middle" | "tail";
+export type SymbolRendering = "monochrome" | "hierarchical" | "palette" | "multicolor";
+export type ButtonVariant = "bordered" | "prominent" | "plain" | "outline";
+export type ToggleVariant = "switch" | "checkbox";
+/** How content changes between entries / redraws (Apple and desktop animate). */
+export type Transition = "none" | "opacity" | "slide" | "numeric";
+export type ChartInterpolation = "linear" | "monotone" | "step";
 export type TextStyle =
   | "largeTitle" | "title" | "title2" | "title3"
   | "headline" | "subheadline"
@@ -39,6 +47,8 @@ export interface ChartDataPoint {
   label: string;
   value: number;
   color?: ColorValue;
+  /** Points with the same series form one line / bar group. */
+  series?: string;
 }
 
 export interface FrameConfig {
@@ -46,6 +56,8 @@ export interface FrameConfig {
   height?: number;
   maxWidth?: number | "infinity";
   maxHeight?: number | "infinity";
+  minWidth?: number;
+  minHeight?: number;
 }
 
 export interface BorderConfig {
@@ -55,8 +67,13 @@ export interface BorderConfig {
 
 export interface GradientConfig {
   gradientType: GradientType;
-  colors: string[];
+  colors?: string[];
   direction?: GradientDirection;
+  /** Colors at explicit positions (0…1); replaces `colors`. */
+  stops?: { color: string; location: number }[];
+  /** Unit points (`{x:0,y:0}` = top leading); override `direction`. */
+  startPoint?: { x: number; y: number };
+  endPoint?: { x: number; y: number };
 }
 
 export interface ShadowConfig {
@@ -85,13 +102,59 @@ export interface ElementStyle {
   shadow?: ShadowConfig;
   clipShape?: ClipShape;
   flex?: number;
+  /** Redacted where the OS hides private data (Apple locked screen / StandBy). */
+  privacySensitive?: boolean;
+  /** Screen-reader text instead of the visible content. */
+  accessibilityLabel?: string;
+  /** Set fields from data with their JSON type: `{ value: "data.progress" }`. */
+  bind?: Record<string, string>;
+  /** Outer spacing outside background and border. */
+  margin?: PaddingValue;
+  /** Keep width / height at this ratio. */
+  aspectRatio?: number;
+  /** Higher keeps its size first in a crowded stack. */
+  layoutPriority?: number;
+  /** Move after layout (points). */
+  offsetX?: number;
+  offsetY?: number;
+  /** Rotate (degrees, clockwise) / scale. */
+  rotation?: number;
+  scale?: number;
+  /** Apple tinted Home Screen: draw in the accent color. */
+  accentable?: boolean;
+  /** Show only when the condition holds (`{ path: "data.n", gt: 0 }`); removed before rendering. */
+  when?: WhenCondition;
+  /** How this element changes between entries / redraws: `numeric`, `opacity`, `slide`, `none`. */
+  transition?: Transition;
 }
+
+/** `set` on a button / toggle / link: local state written on tap without the app.
+ *  `"$toggle"`, `"$inc"`, `"$dec"`, `null` (remove the key) or a JSON value. */
+export type StatePatch = Record<string, unknown>;
+
+/** Structured condition for `when`. */
+export type WhenCondition =
+  | { all: WhenCondition[] }
+  | { any: WhenCondition[] }
+  | { not: WhenCondition }
+  | {
+      path: string;
+      eq?: unknown;
+      ne?: unknown;
+      gt?: number;
+      gte?: number;
+      lt?: number;
+      lte?: number;
+      exists?: boolean;
+      in?: unknown[];
+    };
 
 export interface VStackElement extends ElementStyle {
   type: "vstack";
   children: WidgetElement[];
   spacing?: number;
   alignment?: HorizontalAlignment;
+  justify?: Justify;
 }
 
 export interface HStackElement extends ElementStyle {
@@ -99,6 +162,7 @@ export interface HStackElement extends ElementStyle {
   children: WidgetElement[];
   spacing?: number;
   alignment?: VerticalAlignment;
+  justify?: Justify;
 }
 
 export interface ZStackElement extends ElementStyle {
@@ -131,6 +195,14 @@ export interface TextElement extends ElementStyle {
   color?: ColorValue;
   alignment?: TextAlignment;
   lineLimit?: number;
+  truncationMode?: TruncationMode;
+  minimumScaleFactor?: number;
+  lineHeight?: number;
+  letterSpacing?: number;
+  underline?: boolean;
+  strikethrough?: boolean;
+  italic?: boolean;
+  monospacedDigit?: boolean;
 }
 
 export interface ImageElement extends ElementStyle {
@@ -141,6 +213,10 @@ export interface ImageElement extends ElementStyle {
   size?: number;
   color?: ColorValue;
   contentMode?: ContentMode;
+  fallbackSystemName?: string;
+  symbolRendering?: SymbolRendering;
+  symbolWeight?: FontWeight;
+  paletteColors?: ColorValue[];
 }
 
 export interface ProgressElement extends ElementStyle {
@@ -151,6 +227,10 @@ export interface ProgressElement extends ElementStyle {
   tint?: ColorValue;
   color?: ColorValue;
   barStyle?: ProgressStyle;
+  startAt?: number;
+  endAt?: number;
+  trackColor?: ColorValue;
+  thickness?: number;
 }
 
 export interface GaugeElement extends ElementStyle {
@@ -163,6 +243,10 @@ export interface GaugeElement extends ElementStyle {
   tint?: ColorValue;
   color?: ColorValue;
   gaugeStyle?: GaugeStyle;
+  startAt?: number;
+  endAt?: number;
+  minLabel?: string;
+  maxLabel?: string;
 }
 
 export interface ButtonElement extends ElementStyle {
@@ -174,6 +258,10 @@ export interface ButtonElement extends ElementStyle {
   backgroundColor?: ColorValue;
   fontSize?: number;
   textAlignment?: TextAlignment;
+  variant?: ButtonVariant;
+  systemName?: string;
+  disabled?: boolean;
+  set?: StatePatch;
 }
 
 export interface ToggleElement extends ElementStyle {
@@ -182,6 +270,9 @@ export interface ToggleElement extends ElementStyle {
   label?: string;
   tint?: ColorValue;
   action?: string;
+  variant?: ToggleVariant;
+  uncheckedTint?: ColorValue;
+  set?: StatePatch;
 }
 
 export interface DividerElement extends ElementStyle {
@@ -203,6 +294,13 @@ export interface ChartElement extends ElementStyle {
   chartType: ChartType;
   chartData: ChartDataPoint[];
   tint?: ColorValue;
+  showXAxis?: boolean;
+  showYAxis?: boolean;
+  showLegend?: boolean;
+  yMin?: number;
+  yMax?: number;
+  interpolation?: ChartInterpolation;
+  innerRadius?: number;
 }
 
 export interface ListElement extends ElementStyle {
@@ -219,6 +317,7 @@ export interface LinkElement extends ElementStyle {
   children: WidgetElement[];
   url?: string;
   action?: string;
+  set?: StatePatch;
 }
 
 export interface ShapeElement extends ElementStyle {
@@ -237,6 +336,9 @@ export interface TimerElement extends ElementStyle {
   fontSize?: number;
   fontWeight?: FontWeight;
   color?: ColorValue;
+  startDate?: string;
+  showHours?: boolean;
+  completedText?: string;
 }
 
 export interface CanvasElement extends ElementStyle {
@@ -255,6 +357,20 @@ export interface LabelElement extends ElementStyle {
   fontWeight?: FontWeight;
   color?: ColorValue;
   spacing?: number;
+}
+
+export interface RepeatElement extends ElementStyle {
+  type: "repeat";
+  each: string;
+  as?: string;
+  limit?: number;
+  template: WidgetElement;
+}
+
+export interface UseElement extends ElementStyle {
+  type: "use";
+  template: string;
+  args?: Record<string, unknown>;
 }
 
 export type WidgetElement =
@@ -278,6 +394,8 @@ export type WidgetElement =
   | TimerElement
   | CanvasElement
   | LabelElement
+  | RepeatElement
+  | UseElement
   | SpacerElement;
 
 export interface SpacerElement {
@@ -330,4 +448,47 @@ export interface WidgetConfig {
   small?: WidgetElement;
   medium?: WidgetElement;
   large?: WidgetElement;
+  /** iOS Lock Screen accessory families; falls back to `small`. Not resolved (no `{{…}}`). */
+  accessory?: WidgetElement;
+  /** Scheduled states: from `at` (Unix ms) on, an entry's layouts replace the base ones. */
+  entries?: WidgetEntry[];
+  /** Localized strings per locale, used as `{{t.key}}` in any text. */
+  strings?: Record<string, Record<string, string>>;
+  /** Locale used when the device locale has no `strings` table. */
+  defaultLocale?: string;
+  /** JSON the widget fetches by itself; its fields are `{{data.path}}`. */
+  source?: DataSource;
+  /** Default values for `{{data.path}}` (overridden by `setWidgetData` and `source`). */
+  data?: Record<string, unknown>;
+  /** Local state defaults, `{{state.path}}`; `set` taps and `setWidgetState` change it. */
+  state?: Record<string, unknown>;
+  /** How content changes between entries / redraws (Apple and desktop animate). */
+  transition?: Transition;
+  /** Reusable elements expanded by `{ type: "use", template: "<key>" }`. */
+  templates?: Record<string, WidgetElement>;
+  /** Minimum renderer contract; older renderers show `fallback`. */
+  requires?: { resolve?: number };
+  /** Layouts for renderers below `requires`. */
+  fallback?: { small?: WidgetElement; medium?: WidgetElement; large?: WidgetElement };
+}
+
+/** One scheduled state of a widget. */
+export interface WidgetEntry {
+  /** Unix epoch ms from which this entry is shown. */
+  at: number;
+  small?: WidgetElement;
+  medium?: WidgetElement;
+  large?: WidgetElement;
+}
+
+/** Remote JSON the widget fetches without the app. `url`, header values and `body` may use `{{instance}}` / `{{locale}}`. */
+export interface DataSource {
+  /** `https://` URL returning a JSON object (at most 256 KiB). */
+  url: string;
+  /** Minutes between fetches (15..1440, default 30). */
+  refreshMinutes?: number;
+  /** `GET` (default) or `POST`. */
+  method?: string;
+  headers?: Record<string, string>;
+  body?: string;
 }

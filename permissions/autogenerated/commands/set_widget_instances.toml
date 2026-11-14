@@ -1,0 +1,13 @@
+# Automatically generated - DO NOT EDIT!
+
+"$schema" = "../../schemas/schema.json"
+
+[[permission]]
+identifier = "allow-set-widget-instances"
+description = "Enables the set_widget_instances command without any pre-configured scope."
+commands.allow = ["set_widget_instances"]
+
+[[permission]]
+identifier = "deny-set-widget-instances"
+description = "Denies the set_widget_instances command without any pre-configured scope."
+commands.deny = ["set_widget_instances"]

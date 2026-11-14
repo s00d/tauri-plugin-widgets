@@ -18,21 +18,18 @@ export function listen(
   const id = tauri().transformCallback((e) => {
     handler(e);
   });
-  const ch = {
-    id,
-    __TAURI_CHANNEL_MARKER__: true as const,
-    toJSON() {
-      return `__CHANNEL__:${id}`;
-    },
-  };
+  // `plugin:event|listen` takes the callback id itself (`CallbackFn(u32)`, as
+  // @tauri-apps/api passes it); a `__CHANNEL__:<id>` string fails to deserialize.
   return invoke("plugin:event|listen", {
     event,
     target: { kind: "Any" },
-    handler: ch,
+    handler: id,
   });
 }
 
 type ActionHandler = (action: string, payload?: string | null) => void;
+/** Writes a `set` patch into the placement's state (and redraws); see `renderWidget`. */
+export type SetHandler = (patch: Record<string, unknown>) => Promise<unknown> | void;
 
 /** State of one `renderWidget` call. Rendering is synchronous, so renderers read the
  *  current session while building; click handlers and timers keep their own session,
@@ -43,6 +40,7 @@ export type RenderSession = {
   group: string;
   widgetId: string;
   onAction: ActionHandler | null;
+  onSet: SetHandler | null;
   timers: ReturnType<typeof setInterval>[];
 };
 
@@ -54,6 +52,7 @@ function newSession(opts: {
   group?: string;
   widgetId?: string;
   onAction?: ActionHandler;
+  onSet?: SetHandler;
 }): RenderSession {
   return {
     size: opts.size ?? "",
@@ -62,6 +61,7 @@ function newSession(opts: {
     group: opts.group ?? "",
     widgetId: opts.widgetId ?? "default",
     onAction: opts.onAction ?? null,
+    onSet: opts.onSet ?? null,
     timers: [],
   };
 }
@@ -73,6 +73,7 @@ export function setRenderSession(opts: {
   group?: string;
   widgetId?: string;
   onAction?: ActionHandler;
+  onSet?: SetHandler;
 }): RenderSession {
   current = newSession(opts);
   return current;
@@ -90,6 +91,20 @@ export function getTheme(): string {
 export function boundEmit(): (action: string, payload?: string | null) => Promise<unknown> {
   const session = current;
   return (action, payload) => emitAction(session, action, payload);
+}
+
+/** Tap handler for an element with `set` and / or `action` (call while rendering): writes
+ *  the state first, then sends the action (contract v3), whether or not the write worked. */
+export function boundTap(d: Record<string, unknown>): (payload?: string | null) => void {
+  const session = current;
+  return (payload) => {
+    const patch = d.set && typeof d.set === "object" && !Array.isArray(d.set) ? (d.set as Record<string, unknown>) : null;
+    const write = patch && session.onSet ? Promise.resolve(session.onSet(patch)).catch(console.error) : Promise.resolve();
+    if (typeof d.action === "string" && d.action) {
+      const action = d.action;
+      write.then(() => emitAction(session, action, payload));
+    }
+  };
 }
 
 function emitAction(

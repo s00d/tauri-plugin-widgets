@@ -1,4 +1,5 @@
 using System.Drawing;
+using System.IO; // UseWPF (Smoke=false) drops System.IO from the implicit usings
 using System.Drawing.Drawing2D;
 using System.Drawing.Imaging;
 using System.Text.Json;
@@ -107,10 +108,11 @@ internal static class Program
                 + string.Join("; ", parse.Warnings.Select(w => w.Message)));
         }
 
-        // Dark chrome roughly matching Widgets Board for stable goldens.
+        // Dark chrome roughly matching Widgets Board for stable goldens. Interactivity on:
+        // the Board shows buttons, and the WPF ActionSet renderer draws none without it.
         var host = AdaptiveHostConfig.FromJson("""
             {
-              "supportsInteractivity": false,
+              "supportsInteractivity": true,
               "containerStyles": {
                 "default": {
                   "backgroundColor": "#FF1E1E1E",
@@ -134,7 +136,10 @@ internal static class Program
 
         if (rendered?.ImageStream is null)
         {
-            throw new InvalidOperationException("RenderCardToImageAsync produced no image stream");
+            var why = rendered?.Warnings is { Count: > 0 } w
+                ? string.Join("; ", w.Select(x => x.Message))
+                : "no renderer warnings";
+            throw new InvalidOperationException("RenderCardToImageAsync produced no image stream: " + why);
         }
 
         using var stream = rendered.ImageStream;
@@ -215,7 +220,11 @@ internal static class Program
             case "Image":
             {
                 var url = el.TryGetProperty("url", out var u) ? u.GetString() ?? "" : "";
-                if (url.StartsWith("data:image", StringComparison.OrdinalIgnoreCase))
+                // Only base64 raster data: the transpiler also emits `data:image/svg+xml;utf8,<svg…`
+                // (not base64, and System.Drawing cannot draw SVG) — that crashed the smoke walker.
+                if (url.StartsWith("data:image", StringComparison.OrdinalIgnoreCase)
+                    && url.Contains(";base64,", StringComparison.OrdinalIgnoreCase)
+                    && !url.StartsWith("data:image/svg", StringComparison.OrdinalIgnoreCase))
                 {
                     var b64 = url[(url.IndexOf(',') + 1)..];
                     var bytes = Convert.FromBase64String(b64);

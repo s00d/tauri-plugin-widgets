@@ -46,12 +46,182 @@ jobs:
       - name: Rust lib tests
         run: cargo test --lib
 
+      - uses: taiki-e/install-action@v2
+        with:
+          tool: cargo-nextest
+
+      # .config/nextest.toml: quarantined tests retry and show up as FLAKY; JUnit for the run.
+      - name: Rust integration tests (proptest, transports, snapshots, mock runtime)
+        run: cargo nextest run --all-features --profile ci
+
+      - name: Rust doctests
+        run: cargo test --doc --all-features
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: nextest-junit
+          path: target/nextest/ci/junit.xml
+          if-no-files-found: ignore
+
       - name: Codegen drift
         run: |
           cargo run --bin gen-schema --features codegen
           cargo run --bin gen-ts --features codegen
+          cargo run --bin gen-native --features codegen
           cargo test --lib capabilities::write_docs::capability_matrix_doc_matches
-          git diff --exit-code schemas/widget-config.v1.json guest-js/generated/widget-types.ts docs/generated/capability-matrix.md
+          git diff --exit-code schemas/widget-config.v1.json guest-js/generated/widget-types.ts \
+            docs/generated/capability-matrix.md swift/Sources/TauriWidgets/Generated android/src/main/java/render
+
+      - name: Docs drift
+        run: pnpm docs:check
 
       - name: JS build
         run: pnpm build
+
+      - name: TS unit tests (shared resolve fixtures)
+        run: pnpm test:unit
+
+      - name: CLI tests (node --test tests/cli)
+        run: pnpm test:cli
+
+  # Same crate on Windows (Adaptive Cards, Widgets Board store paths) + the C# widget template.
+  windows:
+    runs-on: windows-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+        with:
+          shared-key: ci-windows
+      - name: cargo test --all-features
+        run: cargo test --all-features
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 8.0.x
+      - name: dotnet build templates/windows-widget
+        shell: bash
+        run: |
+          for proj in templates/windows-widget/*/*.csproj; do
+            dotnet build "$proj" -c Release -p:Platform=x64
+          done
+
+  # The Swift package compiled for the iOS Simulator SDK (swift test above runs on macOS only).
+  ios-build:
+    runs-on: macos-15
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - name: xcodebuild (iOS Simulator)
+        working-directory: swift
+        run: xcodebuild build -scheme TauriWidgets -destination 'generic/platform=iOS Simulator'
+
+  # The crate type-checks for the mobile targets (mobile.rs, cfg(mobile) command paths).
+  mobile-targets:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - target: aarch64-linux-android
+            os: ubuntu-latest
+          - target: aarch64-apple-ios
+            os: macos-15
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.target }}
+      - uses: Swatinem/rust-cache@v2
+        with:
+          key: ${{ matrix.target }}
+      - name: cargo check --target ${{ matrix.target }}
+        run: cargo check --lib --target ${{ matrix.target }}
+
+  # Desktop renderer in Chromium. Pinned image = pinned browser + fonts, so pixel
+  # goldens (tests/golden/linux-chromium) are reproducible. Keep the tag equal to the
+  # @playwright/test version in pnpm-lock.yaml.
+  playwright:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    container:
+      image: mcr.microsoft.com/playwright:v1.63.0-noble
+      options: --user 1001
+    env:
+      # Missing golden = failure (tests/desktop/cases.ts GOLDEN_STRICT).
+      CI: "true"
+      HOME: /tmp/home
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9
+      - name: Install JS deps
+        run: pnpm install --frozen-lockfile
+      - name: Image tag matches @playwright/test
+        run: |
+          v="$(node -p 'require("@playwright/test/package.json").version')"
+          [ "$v" = "1.63.0" ] || { echo "::error::@playwright/test is $v; bump the container image tag"; exit 1; }
+      - name: Build widget.html
+        run: pnpm build
+      - name: Playwright (render + events)
+        run: pnpm test:desktop
+      - name: Geometry gate
+        run: pnpm test:geometry
+      - name: Flaky tests (passed on retry)
+        if: always()
+        run: node tests/desktop/flaky-report.mjs test-results/results.json
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: playwright-diffs
+          path: |
+            out/linux-chromium
+            test-results
+          if-no-files-found: ignore
+
+  # SwiftUI package: resolve fixtures, decoding, iOS/macOS render goldens.
+  swift:
+    runs-on: macos-15
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - name: swift test
+        working-directory: swift
+        run: swift test
+
+  # Glance renderer under Robolectric: resolve fixtures, whole-tree geometry baselines.
+  android:
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install Linux Tauri deps
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            libwebkit2gtk-4.1-dev libgtk-3-dev libglib2.0-dev \
+            libsoup-3.0-dev libayatana-appindicator3-dev \
+            librsvg2-dev patchelf pkg-config
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+        with:
+          shared-key: ci-test
+      # build.rs writes android/.tauri/tauri-api, the Gradle project the plugin depends on.
+      - name: Generate tauri-android project
+        run: cargo build --lib
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 17
+      - uses: gradle/actions/setup-gradle@v4
+      - name: Android unit tests
+        working-directory: android
+        run: ./gradlew :testDebugUnitTest
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: android-test-reports
+          path: android/build/reports/tests

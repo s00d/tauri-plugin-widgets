@@ -95,42 +95,29 @@ pub fn throttle_remaining_secs(elapsed_secs: u64, min_interval: u64) -> Option<u
 #[cfg(test)]
 mod tests {
     use super::*;
+    use proptest::prelude::*;
 
-    #[test]
-    fn unchanged_serializes_camel_case() {
-        let o = ApplyOutcome::unchanged(42);
-        let v = serde_json::to_value(&o).unwrap();
-        assert_eq!(v["written"], false);
-        assert_eq!(v["reload"]["outcome"], "skipped");
-        assert_eq!(v["skip"]["reason"], "unchanged");
-        assert_eq!(v["skip"]["hash"], 42);
+    proptest! {
+        /// Throttle model: no interval or interval elapsed → not throttled, else the rest.
+        /// Content hash: equal bytes → equal hash.
+        #[test]
+        fn throttle_and_hash_follow_the_model(elapsed in 0u64..2_000, interval in 0u64..2_000, json in ".{0,40}") {
+            let want = (interval != 0 && elapsed < interval).then(|| interval - elapsed);
+            prop_assert_eq!(throttle_remaining_secs(elapsed, interval), want);
+            prop_assert_eq!(config_content_hash(&json), config_content_hash(&json.clone()));
+        }
     }
 
+    /// A throttled reload on the wire (mobile release throttle; the unchanged outcome over
+    /// IPC is in tests/offline_model.rs): camelCase tag and remaining seconds.
     #[test]
-    fn throttled_remaining_secs_camel() {
-        let r = ReloadOutcome::Throttled {
-            remaining_secs: 840,
-        };
-        let v = serde_json::to_value(&r).unwrap();
+    fn throttled_reload_on_the_wire() {
+        assert_eq!(throttle_remaining_secs(900, 900), None);
+        let remaining_secs = throttle_remaining_secs(60, 900).unwrap();
+        assert_eq!(remaining_secs, 840);
+        let v = serde_json::to_value(ReloadOutcome::Throttled { remaining_secs }).unwrap();
         assert_eq!(v["outcome"], "throttled");
         assert_eq!(v["remainingSecs"], 840);
-    }
-
-    #[test]
-    fn throttle_remaining_math() {
-        assert_eq!(throttle_remaining_secs(0, 0), None);
-        assert_eq!(throttle_remaining_secs(100, 0), None);
-        assert_eq!(throttle_remaining_secs(60, 900), Some(840));
-        assert_eq!(throttle_remaining_secs(900, 900), None);
-        assert_eq!(throttle_remaining_secs(901, 900), None);
-    }
-
-    #[test]
-    fn same_json_same_hash() {
-        assert_eq!(
-            config_content_hash(r#"{"version":1}"#),
-            config_content_hash(r#"{"version":1}"#)
-        );
         assert_ne!(
             config_content_hash(r#"{"version":1}"#),
             config_content_hash(r#"{"version":2}"#)

@@ -1,0 +1,86 @@
+{
+  "$schema": "https://s00d.github.io/tauri-plugin-widgets/schemas/widget-config.v1.json",
+  "version": 1,
+  "medium": {
+    "type": "vstack",
+    "padding": 12,
+    "spacing": 6,
+    "background": "#111827",
+    "alignment": "leading",
+    "children": [
+      {
+        "type": "text",
+        "content": "Truncated in the middle of a long line of text",
+        "fontSize": 13,
+        "color": "#e5e7eb",
+        "truncationMode": "middle",
+        "lineLimit": 1
+      },
+      {
+        "type": "text",
+        "content": "Head truncation of a very long line of text",
+        "fontSize": 13,
+        "color": "#e5e7eb",
+        "truncationMode": "head",
+        "lineLimit": 1
+      },
+      {
+        "type": "text",
+        "content": "Shrinks to fit this long title line",
+        "fontSize": 20,
+        "color": "#e5e7eb",
+        "minimumScaleFactor": 0.5,
+        "lineLimit": 1
+      },
+      {
+        "type": "hstack",
+        "spacing": 10,
+        "children": [
+          {
+            "type": "text",
+            "content": "Under",
+            "fontSize": 13,
+            "color": "#e5e7eb",
+            "underline": true
+          },
+          {
+            "type": "text",
+            "content": "Strike",
+            "fontSize": 13,
+            "color": "#e5e7eb",
+            "strikethrough": true
+          },
+          {
+            "type": "text",
+            "content": "Italic",
+            "fontSize": 13,
+            "color": "#e5e7eb",
+            "italic": true
+          },
+          {
+            "type": "text",
+            "content": "12,345.67",
+            "fontSize": 13,
+            "color": "#e5e7eb",
+            "monospacedDigit": true
+          },
+          {
+            "type": "text",
+            "content": "S p a c e",
+            "fontSize": 13,
+            "color": "#e5e7eb",
+            "letterSpacing": 2
+          }
+        ]
+      },
+      {
+        "type": "text",
+        "content": "Line height 22 for two wrapped lines of body text here",
+        "fontSize": 13,
+        "color": "#e5e7eb",
+        "lineHeight": 22,
+        "lineLimit": 2
+      }
+    ]
+  }
+}
