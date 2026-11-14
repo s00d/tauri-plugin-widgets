@@ -12,6 +12,9 @@
     <WindowsAppSDKSelfContained>false</WindowsAppSDKSelfContained>
     <EnableMsixTooling>false</EnableMsixTooling>
     <WindowsPackageType>None</WindowsPackageType>
+    <!-- No XAML / resources: skip WinAppSDK's PRI step, whose task ships only with Visual
+         Studio's MSBuild (`dotnet build` failed with MSB4062 ExpandPriContent). -->
+    <AppxGeneratePriEnabled>false</AppxGeneratePriEnabled>
     <!-- Smoke=true: compile Store + provider stubs without WinAppSDK Appx/PRI tools -->
     <Smoke Condition="'$(Smoke)' == ''">false</Smoke>
   </PropertyGroup>
