@@ -550,7 +550,7 @@ mod imp {
             let base = dirs_next_cache().expect("cache base");
             #[cfg(target_os = "macos")]
             assert!(base.ends_with("Library/Caches"), "{base:?}");
-            #[cfg(all(unix, not(target_os = "macos")))]
+            #[cfg(not(target_os = "macos"))]
             assert!(base.is_absolute() && base.as_os_str().len() > 1, "{base:?}");
             let dir = disk_cache_dir().unwrap();
             assert!(dir.ends_with("tauri-plugin-widgets/image-prefetch"));

@@ -73,11 +73,12 @@ jobs:
           git diff --exit-code schemas/widget-config.v1.json guest-js/generated/widget-types.ts \
             docs/generated/capability-matrix.md swift/Sources/TauriWidgets/Generated android/src/main/java/render
 
-      - name: Docs drift
-        run: pnpm docs:check
-
+      # Builds dist-cli too, which docs:check runs.
       - name: JS build
         run: pnpm build
+
+      - name: Docs drift
+        run: pnpm docs:check
 
       - name: TS unit tests (shared resolve fixtures)
         run: pnpm test:unit
