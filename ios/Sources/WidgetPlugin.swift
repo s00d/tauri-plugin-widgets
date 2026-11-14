@@ -431,7 +431,7 @@ class WidgetPlugin: Plugin {
             return mergedState(map, args)
         }
         #if canImport(WidgetKit)
-        WidgetCenter.shared.reloadAllTimelines()
+        if #available(iOS 14.0, macOS 11.0, *) { WidgetCenter.shared.reloadAllTimelines() }
         #endif
         invoke.resolve(["state": state])
     }

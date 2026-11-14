@@ -22,7 +22,7 @@ jobs:
           sudo apt-get install -y \
             libwebkit2gtk-4.1-dev libgtk-3-dev libglib2.0-dev \
             libsoup-3.0-dev libayatana-appindicator3-dev \
-            librsvg2-dev patchelf pkg-config
+            librsvg2-dev patchelf pkg-config libgtk-layer-shell-dev
 
       - uses: dtolnay/rust-toolchain@stable
 
@@ -90,6 +90,8 @@ jobs:
     runs-on: windows-latest
     timeout-minutes: 60
     steps:
+      # Keep LF: the drift tests compare generated files byte for byte with the checkout.
+      - run: git config --global core.autocrlf false
       - uses: actions/checkout@v4
       - uses: dtolnay/rust-toolchain@stable
       - uses: Swatinem/rust-cache@v2
@@ -183,8 +185,9 @@ jobs:
           if-no-files-found: ignore
 
   # SwiftUI package: resolve fixtures, decoding, iOS/macOS render goldens.
+  # Goldens are SwiftUI renders from macOS 26: an older runner draws text and shapes differently.
   swift:
-    runs-on: macos-15
+    runs-on: macos-26
     timeout-minutes: 30
     steps:
       - uses: actions/checkout@v4
@@ -198,20 +201,14 @@ jobs:
     timeout-minutes: 40
     steps:
       - uses: actions/checkout@v4
-      - name: Install Linux Tauri deps
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y \
-            libwebkit2gtk-4.1-dev libgtk-3-dev libglib2.0-dev \
-            libsoup-3.0-dev libayatana-appindicator3-dev \
-            librsvg2-dev patchelf pkg-config
       - uses: dtolnay/rust-toolchain@stable
-      - uses: Swatinem/rust-cache@v2
-        with:
-          shared-key: ci-test
-      # build.rs writes android/.tauri/tauri-api, the Gradle project the plugin depends on.
-      - name: Generate tauri-android project
-        run: cargo build --lib
+      # The Gradle project the plugin depends on (`:tauri-android`). build.rs copies it only
+      # when compiling for Android, so take it from the locked tauri crate directly.
+      - name: tauri-android project
+        run: |
+          src="$(dirname "$(cargo metadata --format-version 1 | jq -r '.packages[] | select(.name=="tauri") | .manifest_path')")/mobile/android"
+          mkdir -p android/.tauri
+          cp -R "$src" android/.tauri/tauri-api
       - uses: actions/setup-java@v4
         with:
           distribution: temurin

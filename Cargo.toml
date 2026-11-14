@@ -19,6 +19,8 @@ exclude = [
   "/docs",
   "/scripts",
   "/fuzz",
+  # README media (GitHub and crates.io load it from the repository)
+  "/assets",
   "/.github",
   "/artifacts",
   # Visual / platform harnesses (PNG goldens are bulk of the crate)

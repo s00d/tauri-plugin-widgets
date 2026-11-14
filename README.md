@@ -11,7 +11,7 @@
 [![Donate](https://img.shields.io/badge/Donate-Donationalerts-ff4081?style=for-the-badge)](https://www.donationalerts.com/r/s00d88)
 
 <p align="center">
-  <img src="assets/readme-banner.jpg" alt="tauri-plugin-widgets: one JSON config, five native surfaces" width="100%" />
+  <img src="assets/readme-hero.gif" alt="Config nodes assemble into a widget that renders on iOS, Android, macOS, Windows and Linux" width="640" />
 </p>
 
 # Tauri Plugin Widgets
