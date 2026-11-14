@@ -2,24 +2,29 @@
   "$schema": "http://adaptivecards.io/schemas/adaptive-card.json",
   "body": [
     {
-      "id": "card:#1c1c1e;gap:8",
+      "backgroundImage": {
+        "fillMode": "repeat",
+        "url": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAAEElEQVR4AQEFAPr/ABwcHv8CBAFWW3W0KwAAAABJRU5ErkJggg=="
+      },
+      "id": "card:#1c1c1e",
       "items": [
         {
           "color": "Default",
           "size": "Small",
-          "text": "◷ Upcoming",
+          "text": "📅 Upcoming",
           "type": "TextBlock",
           "weight": "Bolder",
           "wrap": true
         },
         {
-          "spacing": "Medium",
+          "id": "gap:8",
+          "spacing": "Default",
           "text": " ",
           "type": "TextBlock"
         },
         {
           "horizontalAlignment": "Center",
-          "id": "badge:overlay",
+          "id": "badge:overlay;gap:8",
           "items": [
             {
               "spacing": "None",
@@ -35,25 +40,29 @@
               "wrap": true
             }
           ],
-          "spacing": "None",
+          "spacing": "Default",
           "type": "Container"
         },
         {
           "color": "Light",
           "horizontalAlignment": "Center",
+          "id": "gap:8;#2",
+          "maxLines": 2,
           "size": "Small",
+          "spacing": "Default",
           "text": "No upcoming payments",
           "type": "TextBlock",
           "weight": "Bolder",
           "wrap": true
         },
         {
-          "spacing": "Medium",
+          "id": "gap:8;#3",
+          "spacing": "Default",
           "text": " ",
           "type": "TextBlock"
         }
       ],
-      "spacing": "Default",
+      "spacing": "None",
       "style": "emphasis",
       "type": "Container"
     }

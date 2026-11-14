@@ -19,7 +19,10 @@ let package = Package(
         .library(name: "TauriWidgets", targets: ["TauriWidgets"]),
     ],
     dependencies: hasTests
-        ? [.package(url: "https://github.com/pointfreeco/swift-snapshot-testing", from: "1.17.0")]
+        ? [
+            .package(url: "https://github.com/pointfreeco/swift-snapshot-testing", from: "1.17.0"),
+            .package(url: "https://github.com/x-sheep/swift-property-based.git", from: "2.0.1"),
+        ]
         : [],
     targets: [
         .target(name: "TauriWidgets", path: "Sources/TauriWidgets"),
@@ -30,6 +33,7 @@ let package = Package(
                 dependencies: [
                     "TauriWidgets",
                     .product(name: "SnapshotTesting", package: "swift-snapshot-testing"),
+                    .product(name: "PropertyBased", package: "swift-property-based"),
                 ],
                 path: "Tests/TauriWidgetsTests"
             ),

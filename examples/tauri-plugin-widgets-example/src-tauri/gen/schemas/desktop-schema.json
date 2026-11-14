@@ -2361,10 +2361,22 @@
           "markdownDescription": "Denies the reveal_item_in_dir command without any pre-configured scope."
         },
         {
-          "description": "Default permissions for the widgets plugin — enables all commands.\n#### This default permission set includes:\n\n- `allow-set-items`\n- `allow-get-items`\n- `allow-set-register-widget`\n- `allow-reload-all-timelines`\n- `allow-reload-timelines`\n- `allow-request-widget`\n- `allow-create-widget-window`\n- `allow-close-widget-window`\n- `allow-set-widget-config`\n- `allow-get-widget-config`\n- `allow-widget-action`\n- `allow-poll-pending-actions`\n- `allow-report-receipt`\n- `allow-get-widget-diagnostics`\n- `allow-get-widget-trace`\n- `allow-flush-widget-trace`",
+          "description": "Default permissions for the widgets plugin — enables all commands.\n#### This default permission set includes:\n\n- `allow-set-items`\n- `allow-get-items`\n- `allow-set-register-widget`\n- `allow-reload-all-timelines`\n- `allow-reload-timelines`\n- `allow-request-widget`\n- `allow-create-widget-window`\n- `allow-close-widget-window`\n- `allow-set-widget-config`\n- `allow-set-widget-config-from-path`\n- `allow-get-widget-config`\n- `allow-widget-action`\n- `allow-poll-pending-actions`\n- `allow-report-receipt`\n- `allow-get-widget-diagnostics`\n- `allow-get-widget-trace`\n- `allow-flush-widget-trace`\n- `allow-set-widget-data`\n- `allow-set-widget-instances`\n- `allow-get-active-widgets`\n- `allow-start-activity`\n- `allow-update-activity`\n- `allow-end-activity`\n- `allow-list-activities`\n- `allow-activity-island`\n- `allow-get-activity-push-to-start-token`\n- `allow-set-widget-state`\n- `allow-get-widget-state`\n- `allow-register-activity-template`\n- `allow-get-widget-push-token`\n- `allow-can-promote-activities`\n- `allow-open-activity-promotion-settings`",
           "type": "string",
           "const": "widgets:default",
-          "markdownDescription": "Default permissions for the widgets plugin — enables all commands.\n#### This default permission set includes:\n\n- `allow-set-items`\n- `allow-get-items`\n- `allow-set-register-widget`\n- `allow-reload-all-timelines`\n- `allow-reload-timelines`\n- `allow-request-widget`\n- `allow-create-widget-window`\n- `allow-close-widget-window`\n- `allow-set-widget-config`\n- `allow-get-widget-config`\n- `allow-widget-action`\n- `allow-poll-pending-actions`\n- `allow-report-receipt`\n- `allow-get-widget-diagnostics`\n- `allow-get-widget-trace`\n- `allow-flush-widget-trace`"
+          "markdownDescription": "Default permissions for the widgets plugin — enables all commands.\n#### This default permission set includes:\n\n- `allow-set-items`\n- `allow-get-items`\n- `allow-set-register-widget`\n- `allow-reload-all-timelines`\n- `allow-reload-timelines`\n- `allow-request-widget`\n- `allow-create-widget-window`\n- `allow-close-widget-window`\n- `allow-set-widget-config`\n- `allow-set-widget-config-from-path`\n- `allow-get-widget-config`\n- `allow-widget-action`\n- `allow-poll-pending-actions`\n- `allow-report-receipt`\n- `allow-get-widget-diagnostics`\n- `allow-get-widget-trace`\n- `allow-flush-widget-trace`\n- `allow-set-widget-data`\n- `allow-set-widget-instances`\n- `allow-get-active-widgets`\n- `allow-start-activity`\n- `allow-update-activity`\n- `allow-end-activity`\n- `allow-list-activities`\n- `allow-activity-island`\n- `allow-get-activity-push-to-start-token`\n- `allow-set-widget-state`\n- `allow-get-widget-state`\n- `allow-register-activity-template`\n- `allow-get-widget-push-token`\n- `allow-can-promote-activities`\n- `allow-open-activity-promotion-settings`"
+        },
+        {
+          "description": "Enables the activity_island command without any pre-configured scope.",
+          "type": "string",
+          "const": "widgets:allow-activity-island",
+          "markdownDescription": "Enables the activity_island command without any pre-configured scope."
+        },
+        {
+          "description": "Enables the can_promote_activities command without any pre-configured scope.",
+          "type": "string",
+          "const": "widgets:allow-can-promote-activities",
+          "markdownDescription": "Enables the can_promote_activities command without any pre-configured scope."
         },
         {
           "description": "Enables the close_widget_window command without any pre-configured scope.",
@@ -2379,10 +2391,28 @@
           "markdownDescription": "Enables the create_widget_window command without any pre-configured scope."
         },
         {
+          "description": "Enables the end_activity command without any pre-configured scope.",
+          "type": "string",
+          "const": "widgets:allow-end-activity",
+          "markdownDescription": "Enables the end_activity command without any pre-configured scope."
+        },
+        {
           "description": "Enables the flush_widget_trace command without any pre-configured scope.",
           "type": "string",
           "const": "widgets:allow-flush-widget-trace",
           "markdownDescription": "Enables the flush_widget_trace command without any pre-configured scope."
+        },
+        {
+          "description": "Enables the get_active_widgets command without any pre-configured scope.",
+          "type": "string",
+          "const": "widgets:allow-get-active-widgets",
+          "markdownDescription": "Enables the get_active_widgets command without any pre-configured scope."
+        },
+        {
+          "description": "Enables the get_activity_push_to_start_token command without any pre-configured scope.",
+          "type": "string",
+          "const": "widgets:allow-get-activity-push-to-start-token",
+          "markdownDescription": "Enables the get_activity_push_to_start_token command without any pre-configured scope."
         },
         {
           "description": "Enables the get_items command without any pre-configured scope.",
@@ -2403,16 +2433,46 @@
           "markdownDescription": "Enables the get_widget_diagnostics command without any pre-configured scope."
         },
         {
+          "description": "Enables the get_widget_push_token command without any pre-configured scope.",
+          "type": "string",
+          "const": "widgets:allow-get-widget-push-token",
+          "markdownDescription": "Enables the get_widget_push_token command without any pre-configured scope."
+        },
+        {
+          "description": "Enables the get_widget_state command without any pre-configured scope.",
+          "type": "string",
+          "const": "widgets:allow-get-widget-state",
+          "markdownDescription": "Enables the get_widget_state command without any pre-configured scope."
+        },
+        {
           "description": "Enables the get_widget_trace command without any pre-configured scope.",
           "type": "string",
           "const": "widgets:allow-get-widget-trace",
           "markdownDescription": "Enables the get_widget_trace command without any pre-configured scope."
         },
         {
+          "description": "Enables the list_activities command without any pre-configured scope.",
+          "type": "string",
+          "const": "widgets:allow-list-activities",
+          "markdownDescription": "Enables the list_activities command without any pre-configured scope."
+        },
+        {
+          "description": "Enables the open_activity_promotion_settings command without any pre-configured scope.",
+          "type": "string",
+          "const": "widgets:allow-open-activity-promotion-settings",
+          "markdownDescription": "Enables the open_activity_promotion_settings command without any pre-configured scope."
+        },
+        {
           "description": "Enables the poll_pending_actions command without any pre-configured scope.",
           "type": "string",
           "const": "widgets:allow-poll-pending-actions",
           "markdownDescription": "Enables the poll_pending_actions command without any pre-configured scope."
+        },
+        {
+          "description": "Enables the register_activity_template command without any pre-configured scope.",
+          "type": "string",
+          "const": "widgets:allow-register-activity-template",
+          "markdownDescription": "Enables the register_activity_template command without any pre-configured scope."
         },
         {
           "description": "Enables the reload_all_timelines command without any pre-configured scope.",
@@ -2457,10 +2517,58 @@
           "markdownDescription": "Enables the set_widget_config command without any pre-configured scope."
         },
         {
+          "description": "Enables the set_widget_config_from_path command without any pre-configured scope.",
+          "type": "string",
+          "const": "widgets:allow-set-widget-config-from-path",
+          "markdownDescription": "Enables the set_widget_config_from_path command without any pre-configured scope."
+        },
+        {
+          "description": "Enables the set_widget_data command without any pre-configured scope.",
+          "type": "string",
+          "const": "widgets:allow-set-widget-data",
+          "markdownDescription": "Enables the set_widget_data command without any pre-configured scope."
+        },
+        {
+          "description": "Enables the set_widget_instances command without any pre-configured scope.",
+          "type": "string",
+          "const": "widgets:allow-set-widget-instances",
+          "markdownDescription": "Enables the set_widget_instances command without any pre-configured scope."
+        },
+        {
+          "description": "Enables the set_widget_state command without any pre-configured scope.",
+          "type": "string",
+          "const": "widgets:allow-set-widget-state",
+          "markdownDescription": "Enables the set_widget_state command without any pre-configured scope."
+        },
+        {
+          "description": "Enables the start_activity command without any pre-configured scope.",
+          "type": "string",
+          "const": "widgets:allow-start-activity",
+          "markdownDescription": "Enables the start_activity command without any pre-configured scope."
+        },
+        {
+          "description": "Enables the update_activity command without any pre-configured scope.",
+          "type": "string",
+          "const": "widgets:allow-update-activity",
+          "markdownDescription": "Enables the update_activity command without any pre-configured scope."
+        },
+        {
           "description": "Enables the widget_action command without any pre-configured scope.",
           "type": "string",
           "const": "widgets:allow-widget-action",
           "markdownDescription": "Enables the widget_action command without any pre-configured scope."
+        },
+        {
+          "description": "Denies the activity_island command without any pre-configured scope.",
+          "type": "string",
+          "const": "widgets:deny-activity-island",
+          "markdownDescription": "Denies the activity_island command without any pre-configured scope."
+        },
+        {
+          "description": "Denies the can_promote_activities command without any pre-configured scope.",
+          "type": "string",
+          "const": "widgets:deny-can-promote-activities",
+          "markdownDescription": "Denies the can_promote_activities command without any pre-configured scope."
         },
         {
           "description": "Denies the close_widget_window command without any pre-configured scope.",
@@ -2475,10 +2583,28 @@
           "markdownDescription": "Denies the create_widget_window command without any pre-configured scope."
         },
         {
+          "description": "Denies the end_activity command without any pre-configured scope.",
+          "type": "string",
+          "const": "widgets:deny-end-activity",
+          "markdownDescription": "Denies the end_activity command without any pre-configured scope."
+        },
+        {
           "description": "Denies the flush_widget_trace command without any pre-configured scope.",
           "type": "string",
           "const": "widgets:deny-flush-widget-trace",
           "markdownDescription": "Denies the flush_widget_trace command without any pre-configured scope."
+        },
+        {
+          "description": "Denies the get_active_widgets command without any pre-configured scope.",
+          "type": "string",
+          "const": "widgets:deny-get-active-widgets",
+          "markdownDescription": "Denies the get_active_widgets command without any pre-configured scope."
+        },
+        {
+          "description": "Denies the get_activity_push_to_start_token command without any pre-configured scope.",
+          "type": "string",
+          "const": "widgets:deny-get-activity-push-to-start-token",
+          "markdownDescription": "Denies the get_activity_push_to_start_token command without any pre-configured scope."
         },
         {
           "description": "Denies the get_items command without any pre-configured scope.",
@@ -2499,16 +2625,46 @@
           "markdownDescription": "Denies the get_widget_diagnostics command without any pre-configured scope."
         },
         {
+          "description": "Denies the get_widget_push_token command without any pre-configured scope.",
+          "type": "string",
+          "const": "widgets:deny-get-widget-push-token",
+          "markdownDescription": "Denies the get_widget_push_token command without any pre-configured scope."
+        },
+        {
+          "description": "Denies the get_widget_state command without any pre-configured scope.",
+          "type": "string",
+          "const": "widgets:deny-get-widget-state",
+          "markdownDescription": "Denies the get_widget_state command without any pre-configured scope."
+        },
+        {
           "description": "Denies the get_widget_trace command without any pre-configured scope.",
           "type": "string",
           "const": "widgets:deny-get-widget-trace",
           "markdownDescription": "Denies the get_widget_trace command without any pre-configured scope."
         },
         {
+          "description": "Denies the list_activities command without any pre-configured scope.",
+          "type": "string",
+          "const": "widgets:deny-list-activities",
+          "markdownDescription": "Denies the list_activities command without any pre-configured scope."
+        },
+        {
+          "description": "Denies the open_activity_promotion_settings command without any pre-configured scope.",
+          "type": "string",
+          "const": "widgets:deny-open-activity-promotion-settings",
+          "markdownDescription": "Denies the open_activity_promotion_settings command without any pre-configured scope."
+        },
+        {
           "description": "Denies the poll_pending_actions command without any pre-configured scope.",
           "type": "string",
           "const": "widgets:deny-poll-pending-actions",
           "markdownDescription": "Denies the poll_pending_actions command without any pre-configured scope."
+        },
+        {
+          "description": "Denies the register_activity_template command without any pre-configured scope.",
+          "type": "string",
+          "const": "widgets:deny-register-activity-template",
+          "markdownDescription": "Denies the register_activity_template command without any pre-configured scope."
         },
         {
           "description": "Denies the reload_all_timelines command without any pre-configured scope.",
@@ -2551,6 +2707,42 @@
           "type": "string",
           "const": "widgets:deny-set-widget-config",
           "markdownDescription": "Denies the set_widget_config command without any pre-configured scope."
+        },
+        {
+          "description": "Denies the set_widget_config_from_path command without any pre-configured scope.",
+          "type": "string",
+          "const": "widgets:deny-set-widget-config-from-path",
+          "markdownDescription": "Denies the set_widget_config_from_path command without any pre-configured scope."
+        },
+        {
+          "description": "Denies the set_widget_data command without any pre-configured scope.",
+          "type": "string",
+          "const": "widgets:deny-set-widget-data",
+          "markdownDescription": "Denies the set_widget_data command without any pre-configured scope."
+        },
+        {
+          "description": "Denies the set_widget_instances command without any pre-configured scope.",
+          "type": "string",
+          "const": "widgets:deny-set-widget-instances",
+          "markdownDescription": "Denies the set_widget_instances command without any pre-configured scope."
+        },
+        {
+          "description": "Denies the set_widget_state command without any pre-configured scope.",
+          "type": "string",
+          "const": "widgets:deny-set-widget-state",
+          "markdownDescription": "Denies the set_widget_state command without any pre-configured scope."
+        },
+        {
+          "description": "Denies the start_activity command without any pre-configured scope.",
+          "type": "string",
+          "const": "widgets:deny-start-activity",
+          "markdownDescription": "Denies the start_activity command without any pre-configured scope."
+        },
+        {
+          "description": "Denies the update_activity command without any pre-configured scope.",
+          "type": "string",
+          "const": "widgets:deny-update-activity",
+          "markdownDescription": "Denies the update_activity command without any pre-configured scope."
         },
         {
           "description": "Denies the widget_action command without any pre-configured scope.",

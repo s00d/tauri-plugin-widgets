@@ -1,7 +1,8 @@
 package git.s00d.widgets
 
 object WidgetSanitizer {
-    private val allowed = Regex("[^A-Za-z0-9._:-]")
+    // `#` separates widget id and placement id (`config:weather#42`).
+    private val allowed = Regex("[^A-Za-z0-9._:#-]")
 
     fun sanitizeGroup(group: String, fallback: String): String {
         val clean = group.trim().replace(Regex("[^A-Za-z0-9._-]"), "_")

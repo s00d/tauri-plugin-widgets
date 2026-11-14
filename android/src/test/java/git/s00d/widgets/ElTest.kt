@@ -11,63 +11,29 @@ import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 
 /**
- * Unit coverage for El typed JSON accessors.
- *
- * Must run under Robolectric: plain JVM Android stubs +
- * `unitTests.isReturnDefaultValues = true` make org.json return empty
- * defaults, so "reads value" assertions look like false failures.
+ * El typed JSON accessors. Robolectric: plain JVM Android stubs (`isReturnDefaultValues`)
+ * make org.json return empty defaults, so "reads value" assertions would pass falsely.
  */
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [34])
 class ElTest {
+    /** Given an element with present, missing and JSON-null fields, when each typed accessor reads them, then present values come back and the rest fall back to defaults. */
     @Test
-    fun str_returnsDefaultWhenMissing() {
-        val el = El(JSONObject("""{"type":"text"}"""))
-        assertEquals("", el.str("content"))
-        assertEquals("x", el.str("content", "x"))
-    }
-
-    @Test
-    fun str_readsString() {
-        val el = El(JSONObject("""{"content":"hello"}"""))
+    fun accessorsReadValuesAndFallBack() {
+        val el = El(JSONObject("""{"type":"text","content":"hello","x":3.5,"checked":true,"off":null}"""))
+        // Present values.
         assertEquals("hello", el.str("content"))
-    }
-
-    @Test
-    fun num_nullWhenMissing() {
-        val el = El(JSONObject("{}"))
-        assertNull(el.num("x"))
-    }
-
-    @Test
-    fun num_readsDouble() {
-        val el = El(JSONObject("""{"x":3.5}"""))
         assertEquals(3.5, el.num("x")!!, 0.001)
-    }
-
-    @Test
-    fun num_defaultWhenMissing() {
-        val el = El(JSONObject("{}"))
-        assertEquals(2.0, el.num("x", 2.0), 0.001)
-    }
-
-    @Test
-    fun bool_defaultsFalse() {
-        val el = El(JSONObject("{}"))
-        assertFalse(el.bool("checked"))
-        assertTrue(el.bool("checked", true))
-    }
-
-    @Test
-    fun bool_readsValue() {
-        val el = El(JSONObject("""{"checked":true}"""))
         assertTrue(el.bool("checked"))
-    }
-
-    @Test
-    fun bool_nullJsonIsDefault() {
-        val el = El(JSONObject("""{"checked":null}"""))
-        assertFalse(el.bool("checked"))
-        assertTrue(el.bool("checked", true))
+        // Missing: "" / null / given defaults.
+        assertEquals("", el.str("missing"))
+        assertEquals("x", el.str("missing", "x"))
+        assertNull(el.num("missing"))
+        assertEquals(2.0, el.num("missing", 2.0), 0.001)
+        assertFalse(el.bool("missing"))
+        assertTrue(el.bool("missing", true))
+        // JSON null counts as missing.
+        assertFalse(el.bool("off"))
+        assertTrue(el.bool("off", true))
     }
 }

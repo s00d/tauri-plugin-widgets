@@ -25,7 +25,16 @@ extension DynamicElementView {
                                   weight: fontWeight(element.fontWeight),
                                   design: fontDesign(element.fontDesign)))
         }()
-        let colored = txt.foregroundColor(resolveColor(element.color) ?? .primary)
+        let decorated: Text = {
+            var t = txt
+            if element.italic == true { t = t.italic() }
+            if element.underline == true { t = t.underline() }
+            if element.strikethrough == true { t = t.strikethrough() }
+            if element.monospacedDigit == true { t = t.monospacedDigit() }
+            if let ls = element.letterSpacing { t = t.tracking(ls) }
+            return t
+        }()
+        let colored = decorated.foregroundColor(resolveColor(element.color) ?? .primary)
         // Circle / fixed box badges (e.g. avatar initials) center by default — leading +
         // maxWidth:.infinity pinned "AK" to the top-left of the clip.
         let hasFixedBox = element.frame?.width != nil && element.frame?.height != nil
@@ -43,11 +52,20 @@ extension DynamicElementView {
         let wantsFlex = (element.flex ?? 0) > 0
         let expandWidth = !inZStack && !hasFixedBox && (wantsFlex || inVStack)
         let hugWidth = inZStack || hasFixedBox || inHStack || (!inVStack && !wantsFlex)
+        // `lineHeight` (points) → extra leading over the font's natural ~1.2× line box.
+        let fs = element.fontSize ?? 14
+        let spaced = base
+            .ifLet(element.lineHeight) { $0.lineSpacing(Swift.max(0, $1 - fs * 1.2)) }
+            .ifLet(element.minimumScaleFactor) { $0.minimumScaleFactor($1) }
+        let trunc: Text.TruncationMode = element.truncationMode == "head" ? .head
+            : element.truncationMode == "middle" ? .middle : .tail
         Group {
             if let limit = element.lineLimit {
-                base.lineLimit(Int(limit)).truncationMode(.tail)
+                spaced.lineLimit(Int(limit)).truncationMode(trunc)
+            } else if element.truncationMode != nil {
+                spaced.truncationMode(trunc)
             } else {
-                base
+                spaced
             }
         }
         .fixedSize(horizontal: hugWidth, vertical: false)
@@ -82,33 +100,44 @@ extension DynamicElementView {
     // MARK: Timer
 
     @ViewBuilder func renderTimer() -> some View {
-        let target: Date = {
-            guard let ds = element.targetDate else { return Date() }
-            let f = ISO8601DateFormatter()
-            f.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
-            if let parsed = f.date(from: ds) { return parsed }
-            f.formatOptions = [.withInternetDateTime]
-            return f.date(from: ds) ?? Date()
-        }()
+        let target = Self.parseISODate(element.targetDate) ?? Date()
+        let start = Self.parseISODate(element.startDate)
         let countingUp = (element.counting ?? "down").lowercased() == "up"
         // WidgetKit keeps Text(timerInterval:) live without a process-resident TimelineView.
         let style = Font.system(size: element.fontSize ?? 14, weight: fontWeight(element.fontWeight)).monospacedDigit()
         let color = resolveColor(element.color) ?? Color.primary
-        if countingUp {
-            Text(timerInterval: target...Date.distantFuture, countsDown: false)
-                .font(style)
-                .foregroundColor(color)
-                .lineLimit(1)
-                .minimumScaleFactor(0.55)
-                .allowsTightening(true)
+        let scale = element.minimumScaleFactor ?? 0.55
+        // Text can't swap content live: `completedText` shows when the countdown is already
+        // over at render time (the next timeline entry / reload).
+        if !countingUp, let done = element.completedText, target <= Date.now {
+            Text(done).font(style).foregroundColor(color)
+                .lineLimit(1).minimumScaleFactor(scale).allowsTightening(true)
         } else {
-            Text(timerInterval: Date.now...max(Date.now, target), countsDown: true)
+            let range: ClosedRange<Date> = {
+                if countingUp {
+                    // startDate…targetDate stops at target; without startDate count up from target.
+                    if let start { return start...Swift.max(start, element.targetDate == nil ? .distantFuture : target) }
+                    return target...Date.distantFuture
+                }
+                let from = start ?? Date.now
+                return from...Swift.max(from, target)
+            }()
+            Text(timerInterval: range, countsDown: !countingUp)
                 .font(style)
                 .foregroundColor(color)
                 .lineLimit(1)
-                .minimumScaleFactor(0.55)
+                .minimumScaleFactor(scale)
                 .allowsTightening(true)
         }
+    }
+
+    static func parseISODate(_ ds: String?) -> Date? {
+        guard let ds else { return nil }
+        let f = ISO8601DateFormatter()
+        f.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+        if let parsed = f.date(from: ds) { return parsed }
+        f.formatOptions = [.withInternetDateTime]
+        return f.date(from: ds)
     }
 
     // MARK: Label

@@ -1,6 +1,6 @@
 //! Interactive group: button / toggle / link.
 
-use crate::models::{ButtonElement, LinkElement, ToggleElement};
+use crate::models::{ButtonElement, ButtonVariant, LinkElement, ToggleElement, ToggleVariant};
 use crate::receipt::SkippedElement;
 use serde_json::{json, Value};
 
@@ -14,9 +14,26 @@ pub(super) fn button(b: &ButtonElement) -> Value {
         url,
         background_color,
         color,
+        variant,
+        system_name,
+        disabled,
         ..
     } = b;
-    let title = sanitize_button_label(label);
+    let mut title = sanitize_button_label(label);
+    // Icon: rasterized glyph as `iconUrl`; without `rasterize`, a glyph before the title.
+    let icon = system_name.as_deref().filter(|n| !n.is_empty());
+    let icon_url = icon.and_then(|_n| {
+        #[cfg(feature = "rasterize")]
+        {
+            let fg = color_hex(color.as_ref()).unwrap_or_else(|| "#FFFFFF".into());
+            crate::icons::icon_png_data_uri(_n, 16.0, &fg).ok()
+        }
+        #[cfg(not(feature = "rasterize"))]
+        None::<String>
+    });
+    if let (Some(n), None) = (icon, &icon_url) {
+        title = format!("{} {title}", crate::icons::sf_symbol_emoji(n));
+    }
     let mut action_json = match action {
         Some(a) => json!({
             "type": "Action.Execute",
@@ -40,6 +57,16 @@ pub(super) fn button(b: &ButtonElement) -> Value {
     if !id_parts.is_empty() {
         action_json["id"] = json!(id_parts.join(";"));
     }
+    // AC 1.5 action styles: positive (accent fill) / default; bordered, plain, outline → default.
+    if *variant == Some(ButtonVariant::Prominent) {
+        action_json["style"] = json!("positive");
+    }
+    if let Some(uri) = icon_url {
+        action_json["iconUrl"] = json!(uri);
+    }
+    if *disabled == Some(true) {
+        action_json["isEnabled"] = json!(false);
+    }
     json!({
         "type": "ActionSet",
         "actions": [action_json],
@@ -51,13 +78,19 @@ pub(super) fn toggle(t: &ToggleElement) -> Value {
         is_on,
         label,
         action,
+        variant,
         ..
     } = t;
     // Prefer readable TextBlock for Adaptive Cards / goldens (ActionSet is clickable but low-fidelity).
     let title = label
         .clone()
         .unwrap_or_else(|| if *is_on { "On".into() } else { "Off".into() });
-    let mark = if *is_on { "✓" } else { "○" };
+    let mark = match (variant, is_on) {
+        (Some(ToggleVariant::Checkbox), true) => "☑",
+        (Some(ToggleVariant::Checkbox), false) => "☐",
+        (_, true) => "✓",
+        (_, false) => "○",
+    };
     let mut block = json!({
         "type": "TextBlock",
         "text": format!("{mark} {title}"),

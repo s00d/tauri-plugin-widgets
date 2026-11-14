@@ -2,93 +2,108 @@
   "$schema": "http://adaptivecards.io/schemas/adaptive-card.json",
   "body": [
     {
-      "columns": [
+      "backgroundImage": {
+        "fillMode": "repeat",
+        "url": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAAEElEQVR4AQEFAPr/ABEYJ/8B3gFQbIJpsQAAAABJRU5ErkJggg=="
+      },
+      "id": "card:#111827",
+      "items": [
         {
-          "items": [
+          "columns": [
             {
-              "id": "gap:4",
               "items": [
                 {
-                  "color": "Light",
-                  "id": "fg:#94a3b8",
-                  "size": "Small",
-                  "text": "Bar",
-                  "type": "TextBlock",
-                  "weight": "Default",
-                  "wrap": true
-                },
-                {
+                  "items": [
+                    {
+                      "color": "Light",
+                      "id": "fg:#94a3b8",
+                      "size": "Small",
+                      "text": "Bar",
+                      "type": "TextBlock",
+                      "weight": "Default",
+                      "wrap": true
+                    },
+                    {
+                      "id": "gap:4",
+                      "spacing": "Default",
+                      "text": "",
+                      "type": "TextBlock"
+                    }
+                  ],
                   "spacing": "None",
-                  "text": "",
-                  "type": "TextBlock"
+                  "type": "Container"
                 }
               ],
-              "spacing": "Default",
-              "type": "Container"
-            }
-          ],
-          "type": "Column",
-          "width": 100
-        },
-        {
-          "items": [
+              "type": "Column",
+              "width": 100
+            },
             {
-              "id": "gap:4",
+              "id": "gap:10",
               "items": [
                 {
-                  "color": "Light",
-                  "id": "fg:#94a3b8",
-                  "size": "Small",
-                  "text": "Line",
-                  "type": "TextBlock",
-                  "weight": "Default",
-                  "wrap": true
-                },
-                {
+                  "items": [
+                    {
+                      "color": "Light",
+                      "id": "fg:#94a3b8;#2",
+                      "size": "Small",
+                      "text": "Line",
+                      "type": "TextBlock",
+                      "weight": "Default",
+                      "wrap": true
+                    },
+                    {
+                      "id": "gap:4;#2",
+                      "spacing": "Default",
+                      "text": "",
+                      "type": "TextBlock"
+                    }
+                  ],
                   "spacing": "None",
-                  "text": "",
-                  "type": "TextBlock"
+                  "type": "Container"
                 }
               ],
-              "spacing": "Default",
-              "type": "Container"
-            }
-          ],
-          "type": "Column",
-          "width": 100
-        },
-        {
-          "items": [
+              "spacing": "Medium",
+              "type": "Column",
+              "width": 100
+            },
             {
-              "horizontalAlignment": "Center",
-              "id": "gap:4",
+              "id": "gap:10;#2",
               "items": [
                 {
-                  "color": "Light",
-                  "id": "fg:#94a3b8",
-                  "size": "Small",
-                  "text": "Pie",
-                  "type": "TextBlock",
-                  "weight": "Default",
-                  "wrap": true
-                },
-                {
+                  "horizontalAlignment": "Center",
+                  "items": [
+                    {
+                      "color": "Light",
+                      "id": "fg:#94a3b8;#3",
+                      "size": "Small",
+                      "text": "Pie",
+                      "type": "TextBlock",
+                      "weight": "Default",
+                      "wrap": true
+                    },
+                    {
+                      "id": "gap:4;#3",
+                      "spacing": "Default",
+                      "text": "",
+                      "type": "TextBlock"
+                    }
+                  ],
                   "spacing": "None",
-                  "text": "",
-                  "type": "TextBlock"
+                  "type": "Container"
                 }
               ],
-              "spacing": "Default",
-              "type": "Container"
+              "spacing": "Medium",
+              "type": "Column",
+              "width": 100
             }
           ],
-          "type": "Column",
-          "width": 100
+          "spacing": "None",
+          "type": "ColumnSet"
         }
       ],
-      "id": "gap:10",
-      "spacing": "Medium",
-      "type": "ColumnSet"
+      "spacing": "None",
+      "style": "emphasis",
+      "type": "Container"
     }
   ],
   "type": "AdaptiveCard",

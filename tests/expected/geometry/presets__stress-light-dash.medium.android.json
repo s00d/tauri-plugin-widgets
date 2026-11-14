@@ -1,0 +1,298 @@
+{
+  "kind": "FrameLayout",
+  "rect": [
+    0,
+    0,
+    1080,
+    510
+  ],
+  "children": [
+    {
+      "kind": "FrameLayout",
+      "rect": [
+        0,
+        0,
+        1080,
+        510
+      ],
+      "children": [
+        {
+          "kind": "FrameLayout",
+          "rect": [
+            0,
+            0,
+            1080,
+            510
+          ],
+          "children": [
+            {
+              "kind": "LinearLayout",
+              "rect": [
+                0,
+                0,
+                1080,
+                510
+              ],
+              "children": [
+                {
+                  "kind": "LinearLayout",
+                  "rect": [
+                    36,
+                    36,
+                    1008,
+                    65
+                  ],
+                  "children": [
+                    {
+                      "kind": "FrameLayout",
+                      "rect": [
+                        0,
+                        0,
+                        887,
+                        65
+                      ],
+                      "children": [
+                        {
+                          "kind": "TextView",
+                          "rect": [
+                            0,
+                            0,
+                            217,
+                            65
+                          ],
+                          "text": "Payments",
+                          "px": 48,
+                          "color": "#FF0F172A"
+                        }
+                      ]
+                    },
+                    {
+                      "kind": "FrameLayout",
+                      "rect": [
+                        887,
+                        0,
+                        24,
+                        65
+                      ]
+                    },
+                    {
+                      "kind": "FrameLayout",
+                      "rect": [
+                        911,
+                        8,
+                        97,
+                        49
+                      ],
+                      "children": [
+                        {
+                          "kind": "TextView",
+                          "rect": [
+                            0,
+                            0,
+                            97,
+                            49
+                          ],
+                          "text": "Today",
+                          "px": 36,
+                          "color": "#FF64748B"
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "kind": "FrameLayout",
+                  "rect": [
+                    36,
+                    101,
+                    1008,
+                    24
+                  ]
+                },
+                {
+                  "kind": "LinearLayout",
+                  "rect": [
+                    36,
+                    125,
+                    1008,
+                    168
+                  ],
+                  "children": [
+                    {
+                      "kind": "FrameLayout",
+                      "rect": [
+                        30,
+                        30,
+                        18,
+                        108
+                      ],
+                      "children": [
+                        {
+                          "kind": "ImageView",
+                          "rect": [
+                            0,
+                            0,
+                            18,
+                            108
+                          ]
+                        }
+                      ]
+                    },
+                    {
+                      "kind": "FrameLayout",
+                      "rect": [
+                        48,
+                        30,
+                        30,
+                        108
+                      ]
+                    },
+                    {
+                      "kind": "FrameLayout",
+                      "rect": [
+                        78,
+                        30,
+                        738,
+                        107
+                      ],
+                      "children": [
+                        {
+                          "kind": "LinearLayout",
+                          "rect": [
+                            0,
+                            0,
+                            346,
+                            107
+                          ],
+                          "children": [
+                            {
+                              "kind": "TextView",
+                              "rect": [
+                                0,
+                                0,
+                                125,
+                                57
+                              ],
+                              "text": "Netflix",
+                              "px": 42,
+                              "color": "#FF1E1B4B"
+                            },
+                            {
+                              "kind": "FrameLayout",
+                              "rect": [
+                                0,
+                                57,
+                                346,
+                                6
+                              ]
+                            },
+                            {
+                              "kind": "TextView",
+                              "rect": [
+                                0,
+                                63,
+                                346,
+                                44
+                              ],
+                              "text": "Subscription · due soon",
+                              "px": 33,
+                              "color": "#FF6366F1"
+                            }
+                          ]
+                        }
+                      ]
+                    },
+                    {
+                      "kind": "FrameLayout",
+                      "rect": [
+                        816,
+                        30,
+                        30,
+                        108
+                      ]
+                    },
+                    {
+                      "kind": "FrameLayout",
+                      "rect": [
+                        846,
+                        55,
+                        132,
+                        57
+                      ],
+                      "children": [
+                        {
+                          "kind": "TextView",
+                          "rect": [
+                            0,
+                            0,
+                            132,
+                            57
+                          ],
+                          "text": "$15.99",
+                          "px": 42,
+                          "color": "#FF312E81"
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "kind": "FrameLayout",
+                  "rect": [
+                    36,
+                    293,
+                    1008,
+                    24
+                  ]
+                },
+                {
+                  "kind": "LinearLayout",
+                  "rect": [
+                    36,
+                    317,
+                    1008,
+                    62
+                  ],
+                  "children": [
+                    {
+                      "kind": "LinearLayout",
+                      "rect": [
+                        0,
+                        0,
+                        1008,
+                        44
+                      ],
+                      "children": [
+                        {
+                          "kind": "TextView",
+                          "rect": [
+                            0,
+                            0,
+                            1008,
+                            44
+                          ],
+                          "text": "Budget used",
+                          "px": 33,
+                          "color": "#FF64748B"
+                        }
+                      ]
+                    },
+                    {
+                      "kind": "ImageView",
+                      "rect": [
+                        0,
+                        44,
+                        1008,
+                        18
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

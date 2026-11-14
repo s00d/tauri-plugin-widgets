@@ -1,7 +1,17 @@
 import type { ElNode, WidgetConfig } from "./types";
-import { clearTimers, getSize, setRenderSession, type RenderSession } from "./ctx";
+import { clearTimers, getSize, setRenderSession, type RenderSession, type SetHandler } from "./ctx";
 import { isDark } from "./style";
 import { renderEl } from "./render/element";
+import { greedy } from "./render/layout";
+import { nextChangeMs, resolveConfig, type ResolveContext } from "./resolve";
+
+export {
+  resolveConfig,
+  nextChangeMs,
+  mergeData,
+  sourceRequest,
+  type ResolveContext,
+} from "./resolve";
 
 export type WidgetSize = "small" | "medium" | "large";
 export type WidgetTheme = "light" | "dark";
@@ -12,7 +22,15 @@ export type RenderWidgetOptions = {
   group?: string;
   widgetId?: string;
   chrome?: boolean;
+  /** Root background when the layout sets none (default: the theme's surface). */
+  surface?: string;
   onAction?: (action: string, payload?: string | null) => void;
+  /** Tap on an element with `set`: write the patch into the placement's state and render
+   *  again with the new `context.state` (the built-in window does it via `set_widget_state`).
+   *  Without it `set` is ignored. */
+  onSet?: SetHandler;
+  /** Render-time context for `entries` / `{{…}}`. Defaults: now, `navigator.language`. */
+  context?: Partial<ResolveContext>;
 };
 
 export type RenderHandle = { destroy(): void };
@@ -60,11 +78,36 @@ function paintEmpty(host: HTMLElement, message: string): void {
 
 /** Last render per host: re-rendering a host stops only that host's old timers. */
 const hostSessions = new WeakMap<HTMLElement, RenderSession>();
+/** Content of the `data-transition` elements in the host's last render, in DOM order. */
+const hostTransitions = new WeakMap<HTMLElement, string[]>();
+
+const TRANSITION_FRAMES: Record<string, Keyframe[]> = {
+  opacity: [{ opacity: 0 }, { opacity: 1 }],
+  slide: [{ transform: "translateY(40%)", opacity: 0 }, { transform: "none", opacity: 1 }],
+  numeric: [{ transform: "translateY(35%)", opacity: 0.2 }, { transform: "none", opacity: 1 }],
+};
+
+/** `transition` hint: animate marked elements whose content differs from the last render
+ *  of this host (matched by order). The first render does not animate. */
+function animateTransitions(host: HTMLElement): void {
+  const els = Array.from(host.querySelectorAll<HTMLElement>("[data-transition]"));
+  const now = els.map((e) => e.getAttribute("data-transition") + "|" + e.innerHTML);
+  const before = hostTransitions.get(host);
+  hostTransitions.set(host, now);
+  if (!before) return;
+  els.forEach((e, i) => {
+    const frames = TRANSITION_FRAMES[e.getAttribute("data-transition") || ""];
+    if (frames && before[i] !== undefined && before[i] !== now[i] && typeof e.animate === "function") {
+      e.animate(frames, { duration: 300, easing: "ease-out" });
+    }
+  });
+}
 
 function paintConfig(
   host: HTMLElement,
   cfg: WidgetConfig | null | undefined,
   chrome: boolean,
+  surfaceOverride?: string,
 ): void {
   host.replaceChildren();
   if (!cfg) {
@@ -79,18 +122,32 @@ function paintConfig(
   }
 
   const ink = isDark() ? "#e5e7eb" : "#111827";
-  const surface = isDark() ? "#0f172a" : "#f8fafc";
+  const surface = surfaceOverride || (isDark() ? "#0f172a" : "#f8fafc");
   host.style.color = ink;
 
   const wrapper = document.createElement("div");
   wrapper.style.cssText = "width:100%;height:100%;overflow:hidden;position:relative";
 
   const content = renderEl(data);
+  const rootTransition = (cfg as { transition?: unknown }).transition;
+  if (typeof rootTransition === "string" && rootTransition !== "none" && !content.hasAttribute("data-transition")) {
+    content.setAttribute("data-transition", rootTransition);
+  }
   content.style.width = "100%";
   content.style.height = "100%";
   if (!content.style.background && !content.style.backgroundColor) {
     content.style.background = surface;
   }
+  if (data.type === "hstack" && !greedy(data, "h", undefined)) {
+    // WidgetKit pins a content-height root row to the top; only the backdrop spans the widget.
+    content.style.height = "auto";
+    wrapper.style.background = content.style.background;
+    wrapper.style.borderRadius = content.style.borderRadius;
+    content.style.background = "";
+  }
+  // Apple always rounds the widget (16 in WidgetChrome.swift when the root sets none);
+  // `overflow:hidden` clips the root's background to it.
+  wrapper.style.borderRadius = wrapper.style.borderRadius || content.style.borderRadius || "16px";
   wrapper.appendChild(content);
 
   if (chrome) {
@@ -124,6 +181,7 @@ function paintConfig(
     wrapper.appendChild(cls);
   }
   host.appendChild(wrapper);
+  animateTransitions(host);
 }
 
 export function renderWidget(
@@ -145,9 +203,30 @@ export function renderWidget(
     group: opts?.group,
     widgetId: opts?.widgetId,
     onAction: opts?.onAction,
+    onSet: opts?.onSet,
   });
   hostSessions.set(host, session);
-  paintConfig(host, config, !!opts?.chrome);
+  const ctx: ResolveContext = {
+    nowMs: opts?.context?.nowMs ?? Date.now(),
+    locale: opts?.context?.locale ?? (typeof navigator !== "undefined" ? navigator.language : "") ?? "",
+    instance: opts?.context?.instance ?? null,
+    data: opts?.context?.data,
+    state: opts?.context?.state,
+  };
+  const resolved = config ? (resolveConfig(config, ctx) as WidgetConfig) : config;
+  if (resolved && config && config.__nonce != null) resolved.__nonce = config.__nonce;
+  // Resolve keeps only the families; the config-level hint applies to the root.
+  if (resolved && config && config.transition) resolved.transition = config.transition;
+  paintConfig(host, resolved, !!opts?.chrome, opts?.surface);
+  // Switch to the next scheduled entry on time (only when the caller did not pin `nowMs`).
+  const next = config && opts?.context?.nowMs === undefined ? nextChangeMs(config, ctx.nowMs) : null;
+  if (next !== null) {
+    session.timers.push(
+      setTimeout(function () {
+        if (hostSessions.get(host) === session) renderWidget(host, config, opts);
+      }, Math.min(next - ctx.nowMs + 50, 2147483647)),
+    );
+  }
   return {
     destroy() {
       clearTimers(session);

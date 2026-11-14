@@ -49,17 +49,12 @@
         const id = tauri().transformCallback((e) => {
             handler(e);
         });
-        const ch = {
-            id,
-            __TAURI_CHANNEL_MARKER__: true,
-            toJSON() {
-                return `__CHANNEL__:${id}`;
-            },
-        };
+        // `plugin:event|listen` takes the callback id itself (`CallbackFn(u32)`, as
+        // @tauri-apps/api passes it); a `__CHANNEL__:<id>` string fails to deserialize.
         return invoke("plugin:event|listen", {
             event,
             target: { kind: "Any" },
-            handler: ch,
+            handler: id,
         });
     }
     let current = newSession({});
@@ -71,6 +66,7 @@
             group: opts.group ?? "",
             widgetId: opts.widgetId ?? "default",
             onAction: opts.onAction ?? null,
+            onSet: opts.onSet ?? null,
             timers: [],
         };
     }
@@ -89,6 +85,19 @@
     function boundEmit() {
         const session = current;
         return (action, payload) => emitAction(session, action, payload);
+    }
+    /** Tap handler for an element with `set` and / or `action` (call while rendering): writes
+     *  the state first, then sends the action (contract v3), whether or not the write worked. */
+    function boundTap(d) {
+        const session = current;
+        return (payload) => {
+            const patch = d.set && typeof d.set === "object" && !Array.isArray(d.set) ? d.set : null;
+            const write = patch && session.onSet ? Promise.resolve(session.onSet(patch)).catch(console.error) : Promise.resolve();
+            if (typeof d.action === "string" && d.action) {
+                const action = d.action;
+                write.then(() => emitAction(session, action, payload));
+            }
+        };
     }
     function emitAction(session, action, payload) {
         if (session.onAction) {
@@ -199,6 +208,60 @@
         caption2: 11,
     };
     const TEXT_STYLE_BOLD = { headline: true };
+    /** `padding` / `margin` value (number or per-edge object) → CSS box shorthand. */
+    function edges(v) {
+        if (typeof v === "number")
+            return v + "px";
+        return (v.top || 0) + "px " + (v.trailing || 0) + "px " + (v.bottom || 0) + "px " + (v.leading || 0) + "px";
+    }
+    /** CSS gradient for a `GradientConfig`. Unit points map onto a square box: the CSS angle
+     *  is the start→end direction and stops are re-projected onto the CSS gradient line, so a
+     *  non-square element is approximate (SwiftUI stretches the unit square). */
+    function gradientCss(g) {
+        const stops = g.stops && g.stops.length ? g.stops : null;
+        const list = function (pos) {
+            if (!stops)
+                return (g.colors || []).map(hex).join(", ");
+            return stops
+                .map(function (s) {
+                return hex(s.color) + " " + +(pos(s.location) * 100).toFixed(2) + "%";
+            })
+                .join(", ");
+        };
+        if (g.gradientType === "radial") {
+            const c = g.startPoint;
+            return "radial-gradient(circle" + (c ? " at " + c.x * 100 + "% " + c.y * 100 + "%" : "") + ", " + list((l) => l) + ")";
+        }
+        if (g.gradientType === "angular")
+            return "conic-gradient(" + list((l) => l) + ")";
+        const sp = g.startPoint, ep = g.endPoint;
+        if (sp && ep && (sp.x !== ep.x || sp.y !== ep.y)) {
+            const dx = ep.x - sp.x, dy = ep.y - sp.y;
+            const a = Math.atan2(dx, -dy); // CSS: 0deg = up, clockwise
+            const ux = Math.sin(a), uy = -Math.cos(a);
+            const len = Math.abs(ux) + Math.abs(uy); // gradient line length in a unit square
+            const t = function (p) {
+                return ((p.x - 0.5) * ux + (p.y - 0.5) * uy) / len + 0.5;
+            };
+            const ts = t(sp), te = t(ep);
+            return ("linear-gradient(" +
+                +((a * 180) / Math.PI).toFixed(2) +
+                "deg, " +
+                list(function (l) {
+                    return ts + l * (te - ts);
+                }) +
+                ")");
+        }
+        const dirs = {
+            topToBottom: "to bottom",
+            bottomToTop: "to top",
+            leadingToTrailing: "to right",
+            trailingToLeading: "to left",
+            topLeadingToBottomTrailing: "to bottom right",
+            topTrailingToBottomLeading: "to bottom left",
+        };
+        return "linear-gradient(" + (dirs[g.direction || ""] || "to bottom") + ", " + list((l) => l) + ")";
+    }
     function applyStyle(el, d) {
         if (d.padding != null) {
             if (typeof d.padding === "number")
@@ -210,27 +273,13 @@
                 el.style.paddingRight = (d.padding.trailing || 0) + "px";
             }
         }
+        if (d.margin != null)
+            el.style.margin = edges(d.margin);
         if (d.background) {
             if (typeof d.background === "string")
                 el.style.background = hex(d.background);
-            else if (d.background.colors) {
-                const g = d.background;
-                const cols = g.colors.map(hex).join(", ");
-                const dirs = {
-                    topToBottom: "to bottom",
-                    bottomToTop: "to top",
-                    leadingToTrailing: "to right",
-                    trailingToLeading: "to left",
-                    topLeadingToBottomTrailing: "to bottom right",
-                    topTrailingToBottomLeading: "to bottom left",
-                };
-                if (g.gradientType === "radial")
-                    el.style.background = "radial-gradient(circle, " + cols + ")";
-                else if (g.gradientType === "angular")
-                    el.style.background = "conic-gradient(" + cols + ")";
-                else
-                    el.style.background =
-                        "linear-gradient(" + (dirs[g.direction] || "to bottom") + ", " + cols + ")";
+            else if (d.background.colors || d.background.stops) {
+                el.style.background = gradientCss(d.background);
             }
             else if (d.background.light && d.background.dark) {
                 el.style.background = isDark()
@@ -272,20 +321,56 @@
                 el.style.maxWidth = "100%";
             else if (d.frame.maxWidth)
                 el.style.maxWidth = d.frame.maxWidth + "px";
+            if (d.frame.minWidth)
+                el.style.minWidth = d.frame.minWidth + "px";
+            if (d.frame.minHeight)
+                el.style.minHeight = d.frame.minHeight + "px";
         }
         if (d.clipShape) {
             el.style.overflow = "hidden";
-            if (d.clipShape === "circle")
+            if (d.clipShape === "circle" || d.clipShape === "ellipse")
                 el.style.borderRadius = "50%";
             else if (d.clipShape === "capsule")
                 el.style.borderRadius = "9999px";
-            else if (d.clipShape === "rectangle" && d.cornerRadius)
+            else if ((d.clipShape === "rectangle" || d.clipShape === "roundedRectangle") && d.cornerRadius)
                 el.style.borderRadius = d.cornerRadius + "px";
         }
         if (d.flex && d.flex > 0) {
             el.style.flex = String(d.flex);
-            el.style.minWidth = "0";
+            if (!(d.frame && d.frame.minWidth))
+                el.style.minWidth = "0";
         }
+        if (d.aspectRatio > 0)
+            el.style.aspectRatio = String(d.aspectRatio);
+        // Higher priority keeps its size in a crowded stack; lower gives way first.
+        if (typeof d.layoutPriority === "number" && d.layoutPriority !== 0) {
+            if (d.layoutPriority > 0)
+                el.style.flexShrink = "0";
+            else {
+                el.style.flexShrink = String(1 - d.layoutPriority);
+                if (!(d.frame && d.frame.minWidth))
+                    el.style.minWidth = "0";
+            }
+        }
+        var tf = "";
+        if (d.offsetX || d.offsetY)
+            tf += "translate(" + (d.offsetX || 0) + "px," + (d.offsetY || 0) + "px) ";
+        if (d.rotation)
+            tf += "rotate(" + d.rotation + "deg) ";
+        if (d.scale != null && d.scale !== 1)
+            tf += "scale(" + d.scale + ")";
+        if (tf)
+            el.style.transform = tf.trim();
+        // Desktop has no tinted Home Screen; keep the marker so hosts can style it.
+        if (d.accentable === true)
+            el.setAttribute("data-accentable", "");
+        if (typeof d.accessibilityLabel === "string" && d.accessibilityLabel) {
+            el.setAttribute("aria-label", d.accessibilityLabel);
+            el.setAttribute("role", el.getAttribute("role") || "img");
+        }
+        // Desktop has no locked-screen redaction; keep the marker so hosts can style it.
+        if (d.privacySensitive === true)
+            el.setAttribute("data-privacy-sensitive", "");
     }
     function fw(w) {
         return ({
@@ -308,12 +393,70 @@
         return e;
     }
 
-    function renderStack(d, dir) {
+    /**
+     * SwiftUI flexibility: does `c` take all the space offered along `dim` ("w" / "h") when its
+     * parent lays out on `parentAxis`? Flexible views share an HStack's leftover width equally
+     * and fill its height; a stack is flexible when any child is (text spans a VStack's width).
+     */
+    function greedy(c, dim, parentAxis) {
+        if (dim === "w" && c.flex > 0)
+            return true;
+        // `.frame(maxWidth/maxHeight: .infinity)` takes all it is offered.
+        if (c.frame && c.frame[dim === "w" ? "maxWidth" : "maxHeight"] === "infinity")
+            return true;
+        if (c.frame && c.frame[dim === "w" ? "width" : "height"])
+            return false;
+        var kids = function (axis) {
+            return (c.children || []).some(function (k) {
+                return greedy(k, dim, axis);
+            });
+        };
+        switch (c.type) {
+            case "spacer":
+                return (dim === "w") === (parentAxis === "horizontal");
+            case "divider":
+                return (dim === "h") === (parentAxis === "horizontal");
+            case "text":
+            case "label":
+            case "date":
+            case "timer":
+                return dim === "w" && parentAxis === "vertical" && !(c.frame && c.frame.width && c.frame.height);
+            case "button":
+                return dim === "w";
+            case "progress":
+                return dim === "w" && c.barStyle !== "circular";
+            case "container":
+            case "zstack":
+                return true;
+            case "grid":
+                return dim === "w";
+            case "chart":
+                // Swift Charts (any v2 option, see `usesSwiftCharts` in RenderData.swift) fill both axes.
+                return (c.chartType === "point" ||
+                    c.showXAxis != null ||
+                    c.showYAxis != null ||
+                    c.showLegend != null ||
+                    c.yMin != null ||
+                    c.yMax != null ||
+                    c.interpolation != null ||
+                    c.innerRadius != null ||
+                    (c.chartData || []).some(function (p) {
+                        return p.series != null;
+                    }));
+            case "vstack":
+                return kids("vertical");
+            case "hstack":
+                return (dim === "w" && parentAxis === "vertical") || kids("horizontal");
+            default:
+                return false;
+        }
+    }
+    function renderStack(d, dir, parentAxis) {
         var e = document.createElement("div");
         e.style.display = "flex";
         e.style.flexDirection = dir;
         e.style.gap = (d.spacing || 0) + "px";
-        // Default stretch (SwiftUI/Glance-like). Explicit alignment only when set.
+        // VStack: default stretch (text fills the width). Explicit alignment only when set.
         if (dir === "column") {
             e.style.alignItems =
                 d.alignment === "trailing"
@@ -325,19 +468,51 @@
                             : "stretch";
         }
         else {
+            // SwiftUI HStack centers by default; flexible-height children stretch below.
             e.style.alignItems =
-                d.alignment === "top"
-                    ? "flex-start"
-                    : d.alignment === "bottom"
-                        ? "flex-end"
-                        : d.alignment === "center"
-                            ? "center"
-                            : "stretch";
+                d.alignment === "top" ? "flex-start" : d.alignment === "bottom" ? "flex-end" : "center";
         }
+        var justify = {
+            start: "flex-start",
+            center: "center",
+            end: "flex-end",
+            spaceBetween: "space-between",
+            spaceAround: "space-around",
+            spaceEvenly: "space-evenly",
+        };
+        if (d.justify && justify[d.justify])
+            e.style.justifyContent = justify[d.justify];
         applyStyle(e, d);
         var axis = dir === "row" ? "horizontal" : "vertical";
+        // Spacers only take what flexible views leave (WidgetKit: a progress bar beats a spacer).
+        var flexKids = (d.children || []).some(function (c) {
+            return c.type !== "spacer" && greedy(c, "w", axis);
+        });
+        // A row in a column spans it (maxWidth:.infinity) and centers content that doesn't fill it.
+        if (dir === "row" && parentAxis === "vertical" && !d.justify && !greedy(d, "w", undefined))
+            e.style.justifyContent = "center";
         (d.children || []).forEach(function (c) {
-            e.appendChild(renderEl(c, axis));
+            var k = renderEl(c, axis);
+            if (dir === "row") {
+                if (c.type === "spacer") {
+                    if (flexKids)
+                        k.style.flex = "0 0 auto";
+                }
+                else if (!(c.flex > 0) && greedy(c, "w", axis))
+                    k.style.flex = "1 1 0";
+                if (greedy(c, "h", axis))
+                    k.style.alignSelf = "stretch";
+            }
+            else if (greedy(c, "w", axis)) {
+                // Flexible width spans the column whatever its `alignment` (hstack rows, buttons).
+                k.style.alignSelf = "stretch";
+                // A row that only spans (content-sized in SwiftUI) sits where the column aligns it.
+                var colAlign = (d.alignment || "").toLowerCase();
+                // Unset = leading, as RenderLayout.swift (`renderVStack`) and Glance Column.
+                if (c.type === "hstack" && k.style.justifyContent === "center" && colAlign !== "center")
+                    k.style.justifyContent = colAlign === "trailing" ? "flex-end" : "flex-start";
+            }
+            e.appendChild(k);
         });
         return e;
     }
@@ -395,9 +570,17 @@
         e.style.gridTemplateColumns = "repeat(" + (d.columns || 2) + ", 1fr)";
         e.style.columnGap = (d.spacing || 4) + "px";
         e.style.rowGap = (d.rowSpacing || d.spacing || 4) + "px";
+        // LazyVGrid centers each cell's content; flexible children fill the cell.
+        e.style.placeItems = "center";
         applyStyle(e, d);
         (d.children || []).forEach(function (c) {
-            e.appendChild(renderEl(c));
+            var k = renderEl(c);
+            // `flex` here is SwiftUI's maxWidth:.infinity frame — it centers, never resizes the view.
+            if (greedy(Object.assign({}, c, { flex: 0 }), "w", undefined))
+                k.style.justifySelf = "stretch";
+            if (greedy(c, "h", undefined))
+                k.style.alignSelf = "stretch";
+            e.appendChild(k);
         });
         return e;
     }
@@ -430,172 +613,6 @@
         return e;
     }
 
-    function formatRelativeDate(date) {
-        var diffMs = date.getTime() - Date.now();
-        var abs = Math.abs(diffMs);
-        var sec = Math.round(abs / 1000), min = Math.round(sec / 60), hr = Math.round(min / 60);
-        var day = Math.round(hr / 24), mon = Math.round(day / 30), yr = Math.round(day / 365);
-        var unit = "second", val = sec;
-        if (yr >= 1) {
-            unit = "year";
-            val = yr;
-        }
-        else if (mon >= 1) {
-            unit = "month";
-            val = mon;
-        }
-        else if (day >= 1) {
-            unit = "day";
-            val = day;
-        }
-        else if (hr >= 1) {
-            unit = "hour";
-            val = hr;
-        }
-        else if (min >= 1) {
-            unit = "minute";
-            val = min;
-        }
-        var signed = diffMs < 0 ? -val : val;
-        try {
-            return new Intl.RelativeTimeFormat(undefined, { numeric: "auto" }).format(signed, unit);
-        }
-        catch (_) {
-            return ((signed < 0 ? "" : "+") +
-                signed +
-                " " +
-                unit +
-                (Math.abs(signed) === 1 ? "" : "s"));
-        }
-    }
-    function renderText(d, parentAxis) {
-        var e = document.createElement("span");
-        e.textContent = d.content || "";
-        var ts = d.textStyle && TEXT_STYLE_SIZES[d.textStyle];
-        e.style.fontSize = (ts || d.fontSize || 14) + "px";
-        e.style.fontWeight = String(d.textStyle && TEXT_STYLE_BOLD[d.textStyle] ? 700 : fw(d.fontWeight));
-        e.style.color = d.color ? resolveColor(d.color) : "inherit";
-        var hasFixedBox = !!(d.frame && d.frame.width && d.frame.height);
-        var align = d.alignment ||
-            (hasFixedBox || d.clipShape === "circle" ? "center" : "leading");
-        e.style.textAlign =
-            align === "center"
-                ? "center"
-                : align === "trailing"
-                    ? "right"
-                    : "left";
-        e.style.display = d.lineLimit ? "-webkit-box" : hasFixedBox ? "flex" : "block";
-        if (hasFixedBox) {
-            e.style.alignItems = "center";
-            e.style.justifyContent =
-                align === "trailing" ? "flex-end" : align === "center" ? "center" : "flex-start";
-        }
-        e.style.boxSizing = "border-box";
-        e.style.flexShrink = "0";
-        // In hstack hug content width so siblings (divider / trailing text) stay visible.
-        // In vstack (or unknown axis) stretch full width so textAlign leading/center/trailing works.
-        // Fixed frame badges keep explicit width from applyStyle — don't force 100%.
-        if (hasFixedBox) ;
-        else if (parentAxis === "horizontal") {
-            e.style.width = "auto";
-        }
-        else {
-            e.style.width = "100%";
-            e.style.alignSelf = "stretch";
-        }
-        if (d.fontDesign === "monospaced")
-            e.style.fontFamily = "monospace";
-        else if (d.fontDesign === "serif")
-            e.style.fontFamily = "serif";
-        else if (d.fontDesign === "rounded")
-            e.style.fontFamily =
-                'ui-rounded, "SF Pro Rounded", system-ui, sans-serif';
-        if (d.lineLimit) {
-            e.style.webkitLineClamp = String(d.lineLimit);
-            e.style.webkitBoxOrient = "vertical";
-            e.style.overflow = "hidden";
-        }
-        applyStyle(e, d);
-        return e;
-    }
-    function renderDate(d) {
-        var e = document.createElement("span");
-        var date = new Date(d.date);
-        var style = (d.dateStyle || "").toLowerCase();
-        if (style === "time")
-            e.textContent = date.toLocaleTimeString(undefined, {
-                hour: "2-digit",
-                minute: "2-digit",
-            });
-        else if (style === "date")
-            e.textContent = date.toLocaleDateString(undefined, {
-                year: "numeric",
-                month: "short",
-                day: "numeric",
-            });
-        else if (style === "relative" || style === "offset")
-            e.textContent = formatRelativeDate(date);
-        else if (style === "timer") {
-            var diff = Math.abs(date.getTime() - Date.now());
-            var h = Math.floor(diff / 3600000), m = Math.floor((diff % 3600000) / 60000), s = Math.floor((diff % 60000) / 1000);
-            e.textContent =
-                String(h).padStart(2, "0") +
-                    ":" +
-                    String(m).padStart(2, "0") +
-                    ":" +
-                    String(s).padStart(2, "0");
-        }
-        else
-            e.textContent = date.toLocaleString();
-        e.style.fontSize = (d.fontSize || 14) + "px";
-        e.style.color = d.color ? resolveColor(d.color) : "inherit";
-        applyStyle(e, d);
-        return e;
-    }
-    function renderTimer(d) {
-        var e = document.createElement("span");
-        e.style.fontSize = (d.fontSize || 14) + "px";
-        e.style.fontWeight = String(fw(d.fontWeight));
-        e.style.color = d.color ? resolveColor(d.color) : "inherit";
-        e.style.fontVariantNumeric = "tabular-nums";
-        function tick() {
-            var target = new Date(d.targetDate).getTime(), now = Date.now(), diff = Math.abs(target - now);
-            var h = Math.floor(diff / 3600000), m = Math.floor((diff % 3600000) / 60000), s = Math.floor((diff % 60000) / 1000);
-            e.textContent =
-                String(h).padStart(2, "0") +
-                    ":" +
-                    String(m).padStart(2, "0") +
-                    ":" +
-                    String(s).padStart(2, "0");
-        }
-        tick();
-        addTimer(setInterval(tick, 1000));
-        applyStyle(e, d);
-        return e;
-    }
-    function renderLabel(d) {
-        var e = document.createElement("div");
-        e.style.cssText =
-            "display:flex;align-items:center;gap:" + (d.spacing || 4) + "px";
-        var ic = document.createElement("span");
-        ic.textContent = "\u25CF";
-        ic.style.fontSize = (d.fontSize || 14) * 1.1 + "px";
-        ic.style.color = d.iconColor
-            ? resolveColor(d.iconColor)
-            : d.color
-                ? resolveColor(d.color)
-                : "inherit";
-        e.appendChild(ic);
-        var t = document.createElement("span");
-        t.textContent = d.text || "";
-        t.style.fontSize = (d.fontSize || 14) + "px";
-        t.style.fontWeight = String(fw(d.fontWeight));
-        t.style.color = d.color ? resolveColor(d.color) : "inherit";
-        e.appendChild(t);
-        applyStyle(e, d);
-        return e;
-    }
-
     function systemGlyph(name) {
         var n = String(name || "").toLowerCase();
         var map = {
@@ -603,10 +620,10 @@
             "star.fill": "\u2b50",
             heart: "\u2764",
             "heart.fill": "\u2764",
-            person: "\u1f464",
-            "person.fill": "\u1f464",
-            "person.2.fill": "\u1f465",
-            "person.badge.plus": "\u1f464",
+            person: "\u{1f464}",
+            "person.fill": "\u{1f464}",
+            "person.2.fill": "\u{1f465}",
+            "person.badge.plus": "\u{1f464}",
             gear: "\u2699",
             gearshape: "\u2699",
             "gearshape.fill": "\u2699",
@@ -619,21 +636,22 @@
             "plus.circle": "+",
             minus: "\u2212",
             "minus.circle": "\u2212",
-            bell: "\u1f514",
-            "bell.fill": "\u1f514",
+            bell: "\u{1f514}",
+            "bell.fill": "\u{1f514}",
             house: "\u2302",
             "house.fill": "\u2302",
-            magnifyingglass: "\u1f50d",
-            calendar: "\u1f4c5",
-            "calendar.badge.clock": "\u1f4c5",
-            "calendar.circle": "\u1f4c5",
+            magnifyingglass: "\u{1f50d}",
+            calendar: "\u{1f4c5}",
+            "calendar.badge.clock": "\u{1f4c5}",
+            "calendar.circle": "\u{1f4c5}",
             clock: "\u23f1",
             "clock.fill": "\u23f1",
-            globe: "\u1f310",
+            globe: "\u{1f310}",
             "cloud.fill": "\u2601",
             "cloud.sun.fill": "\u26c5",
             "cloud.rain.fill": "\u2614",
             "cloud.bolt.fill": "\u26a1",
+            "cloud.sun.rain": "\u{1f326}\ufe0f", // VS16: text-default emoji, colour on WebKitGTK too
             "sun.max": "\u2600",
             "sun.max.fill": "\u2600",
             "moon.fill": "\u263e",
@@ -641,7 +659,7 @@
             bolt: "\u26a1",
             "bolt.fill": "\u26a1",
             "location.fill": "\u2302",
-            "flame.fill": "\u1f525",
+            "flame.fill": "\u{1f525}",
             "drop.fill": "\u25cf",
             "leaf.fill": "\u273f",
             "eye.fill": "\u25c9",
@@ -666,29 +684,29 @@
             envelope: "\u2709",
             "phone.fill": "\u260e",
             phone: "\u260e",
-            "message.fill": "\u1f4ac",
-            trash: "\u1f5d1",
-            "trash.fill": "\u1f5d1",
-            folder: "\u1f4c1",
-            "folder.fill": "\u1f4c1",
-            doc: "\u1f4c4",
-            "doc.fill": "\u1f4c4",
-            photo: "\u1f5bc",
-            "photo.fill": "\u1f5bc",
-            camera: "\u1f4f7",
-            "camera.fill": "\u1f4f7",
-            map: "\u1f5fa",
-            "map.fill": "\u1f5fa",
-            cart: "\u1f6d2",
-            "cart.fill": "\u1f6d2",
-            creditcard: "\u1f4b3",
-            "creditcard.fill": "\u1f4b3",
-            wifi: "\u1f4f6",
-            "antenna.radiowaves.left.and.right": "\u1f4e1",
-            "lock.fill": "\u1f512",
-            lock: "\u1f512",
-            "lock.open.fill": "\u1f513",
-            "key.fill": "\u1f511",
+            "message.fill": "\u{1f4ac}",
+            trash: "\u{1f5d1}",
+            "trash.fill": "\u{1f5d1}",
+            folder: "\u{1f4c1}",
+            "folder.fill": "\u{1f4c1}",
+            doc: "\u{1f4c4}",
+            "doc.fill": "\u{1f4c4}",
+            photo: "\u{1f5bc}\ufe0f",
+            "photo.fill": "\u{1f5bc}\ufe0f",
+            camera: "\u{1f4f7}",
+            "camera.fill": "\u{1f4f7}",
+            map: "\u{1f5fa}",
+            "map.fill": "\u{1f5fa}",
+            cart: "\u{1f6d2}",
+            "cart.fill": "\u{1f6d2}",
+            creditcard: "\u{1f4b3}",
+            "creditcard.fill": "\u{1f4b3}",
+            wifi: "\u{1f4f6}",
+            "antenna.radiowaves.left.and.right": "\u{1f4e1}",
+            "lock.fill": "\u{1f512}",
+            lock: "\u{1f512}",
+            "lock.open.fill": "\u{1f513}",
+            "key.fill": "\u{1f511}",
             "paperplane.fill": "\u27a4",
             "arrow.right": "\u2192",
             "arrow.left": "\u2190",
@@ -708,46 +726,54 @@
             "forward.fill": "\u23e9",
             "backward.fill": "\u23ea",
         };
-        if (map[n])
-            return map[n];
-        // Never first-letter fallback — looks like a bug.
+        // Variants share the base glyph: `cloud.sun.rain.fill` → `cloud.sun.rain`,
+        // `person.circle.fill` → `person`. Never first-letter fallback — looks like a bug.
+        for (; n; n = n.slice(0, Math.max(0, n.lastIndexOf("."))))
+            if (Object.prototype.hasOwnProperty.call(map, n))
+                return map[n];
         return "\u25CF";
+    }
+    var OBJECT_FIT = { fill: "cover", stretch: "fill", center: "none" };
+    /** Symbol glyph in `e` (sized box, tint; palette → first color, symbolWeight → font weight). */
+    function paintSymbol(e, name, d) {
+        var sz = d.size || 24;
+        e.textContent = systemGlyph(name);
+        e.style.fontSize = sz + "px";
+        e.style.lineHeight = "1";
+        e.style.width = sz + "px";
+        e.style.height = sz + "px";
+        e.style.minWidth = sz + "px";
+        e.style.flexShrink = "0";
+        e.style.boxSizing = "border-box";
+        var c = d.color || (d.symbolRendering === "palette" && d.paletteColors && d.paletteColors[0]);
+        e.style.color = c ? resolveColor(c) : "inherit";
+        if (d.symbolWeight)
+            e.style.fontWeight = String(fw(d.symbolWeight));
     }
     function renderImage(d) {
         var e = document.createElement("span");
         e.style.display = "inline-flex";
         e.style.alignItems = "center";
         e.style.justifyContent = "center";
-        if (d.data) {
+        if (d.data || d.url) {
             var img = document.createElement("img");
-            img.src =
-                String(d.data).indexOf("data:") === 0
+            img.src = d.data
+                ? String(d.data).indexOf("data:") === 0
                     ? d.data
-                    : "data:image/png;base64," + d.data;
+                    : "data:image/png;base64," + d.data
+                : d.url;
             img.width = d.size || 24;
             img.height = d.size || 24;
-            img.style.objectFit = d.contentMode === "fill" ? "cover" : "contain";
-            e.appendChild(img);
-        }
-        else if (d.url) {
-            var img = document.createElement("img");
-            img.src = d.url;
-            img.width = d.size || 24;
-            img.height = d.size || 24;
-            img.style.objectFit = d.contentMode === "fill" ? "cover" : "contain";
+            img.style.objectFit = OBJECT_FIT[d.contentMode] || "contain";
+            if (d.fallbackSystemName) {
+                img.onerror = function () {
+                    paintSymbol(e, d.fallbackSystemName, d);
+                };
+            }
             e.appendChild(img);
         }
         else if (d.systemName) {
-            var sz = d.size || 24;
-            e.textContent = systemGlyph(d.systemName);
-            e.style.fontSize = sz + "px";
-            e.style.lineHeight = "1";
-            e.style.width = sz + "px";
-            e.style.height = sz + "px";
-            e.style.minWidth = sz + "px";
-            e.style.flexShrink = "0";
-            e.style.boxSizing = "border-box";
-            e.style.color = d.color ? resolveColor(d.color) : "inherit";
+            paintSymbol(e, d.systemName, d);
         }
         else {
             e.textContent = "\u25CF";
@@ -785,11 +811,18 @@
             e.style.height = ch + "px";
             e.style.borderRadius = Math.min(cw, ch) / 2 + "px";
         }
+        else if (d.shapeType === "ellipse") {
+            e.style.width = sz + "px";
+            e.style.height = sz + "px";
+            e.style.borderRadius = "50%";
+        }
         else {
             e.style.width = sz + "px";
             e.style.height = sz + "px";
-            if (d.cornerRadius)
-                e.style.borderRadius = d.cornerRadius + "px";
+            // roundedRectangle without cornerRadius: a SwiftUI-like default.
+            var rr = d.cornerRadius || (d.shapeType === "roundedRectangle" ? Math.round(sz / 5) : 0);
+            if (rr)
+                e.style.borderRadius = rr + "px";
         }
         applyStyle(e, d);
         return e;
@@ -915,36 +948,314 @@
         return s;
     }
 
+    function formatRelativeDate(date) {
+        var diffMs = date.getTime() - Date.now();
+        var abs = Math.abs(diffMs);
+        var sec = Math.round(abs / 1000), min = Math.round(sec / 60), hr = Math.round(min / 60);
+        var day = Math.round(hr / 24), mon = Math.round(day / 30), yr = Math.round(day / 365);
+        var unit = "second", val = sec;
+        if (yr >= 1) {
+            unit = "year";
+            val = yr;
+        }
+        else if (mon >= 1) {
+            unit = "month";
+            val = mon;
+        }
+        else if (day >= 1) {
+            unit = "day";
+            val = day;
+        }
+        else if (hr >= 1) {
+            unit = "hour";
+            val = hr;
+        }
+        else if (min >= 1) {
+            unit = "minute";
+            val = min;
+        }
+        var signed = diffMs < 0 ? -val : val;
+        try {
+            return new Intl.RelativeTimeFormat(undefined, { numeric: "auto" }).format(signed, unit);
+        }
+        catch (_) {
+            return ((signed < 0 ? "" : "+") +
+                signed +
+                " " +
+                unit +
+                (Math.abs(signed) === 1 ? "" : "s"));
+        }
+    }
+    function renderText(d, parentAxis) {
+        var e = document.createElement("span");
+        e.textContent = d.content || "";
+        var ts = d.textStyle && TEXT_STYLE_SIZES[d.textStyle];
+        e.style.fontSize = (ts || d.fontSize || 14) + "px";
+        e.style.fontWeight = String(d.textStyle && TEXT_STYLE_BOLD[d.textStyle] ? 700 : fw(d.fontWeight));
+        e.style.color = d.color ? resolveColor(d.color) : "inherit";
+        var hasFixedBox = !!(d.frame && d.frame.width && d.frame.height);
+        var align = d.alignment ||
+            (hasFixedBox || d.clipShape === "circle" ? "center" : "leading");
+        e.style.textAlign =
+            align === "center"
+                ? "center"
+                : align === "trailing"
+                    ? "right"
+                    : "left";
+        e.style.display = d.lineLimit ? "-webkit-box" : hasFixedBox ? "flex" : "block";
+        if (hasFixedBox) {
+            e.style.alignItems = "center";
+            e.style.justifyContent =
+                align === "trailing" ? "flex-end" : align === "center" ? "center" : "flex-start";
+        }
+        e.style.boxSizing = "border-box";
+        e.style.flexShrink = "0";
+        // In hstack hug content width so siblings (divider / trailing text) stay visible.
+        // In vstack (or unknown axis) stretch full width so textAlign leading/center/trailing works.
+        // Fixed frame badges keep explicit width from applyStyle — don't force 100%.
+        if (hasFixedBox) ;
+        else if (parentAxis === "horizontal") {
+            e.style.width = "auto";
+        }
+        else {
+            e.style.width = "100%";
+            e.style.alignSelf = "stretch";
+        }
+        if (d.fontDesign === "monospaced")
+            e.style.fontFamily = "monospace";
+        else if (d.fontDesign === "serif")
+            e.style.fontFamily = "serif";
+        else if (d.fontDesign === "rounded")
+            e.style.fontFamily =
+                'ui-rounded, "SF Pro Rounded", system-ui, sans-serif';
+        if (d.lineLimit) {
+            e.style.webkitLineClamp = String(d.lineLimit);
+            e.style.webkitBoxOrient = "vertical";
+            e.style.overflow = "hidden";
+        }
+        if (d.lineHeight > 0)
+            e.style.lineHeight = d.lineHeight + "px";
+        if (d.letterSpacing)
+            e.style.letterSpacing = d.letterSpacing + "px";
+        var deco = (d.underline ? " underline" : "") + (d.strikethrough ? " line-through" : "");
+        if (deco)
+            e.style.textDecorationLine = deco.trim();
+        if (d.italic)
+            e.style.fontStyle = "italic";
+        if (d.monospacedDigit)
+            e.style.fontVariantNumeric = "tabular-nums";
+        // head / middle cut only on one line (more lines: tail, like the line clamp).
+        if (d.lineLimit === 1 && (d.truncationMode === "head" || d.truncationMode === "middle")) {
+            e.style.display = "block";
+            e.style.whiteSpace = "nowrap";
+            e.style.overflow = "hidden";
+            var text = String(d.content || "");
+            if (d.truncationMode === "head") {
+                // RTL box puts the ellipsis at the start and clips the beginning; the inner
+                // isolate keeps the text itself in its own (LTR) order.
+                e.style.direction = "rtl";
+                e.style.textOverflow = "ellipsis";
+                e.textContent = "";
+                var inner = document.createElement("bdi");
+                inner.textContent = text;
+                e.appendChild(inner);
+            }
+            else {
+                // First half shrinks with a tail ellipsis, second half keeps its width.
+                e.style.display = "flex";
+                e.style.justifyContent =
+                    e.style.textAlign === "center" ? "center" : e.style.textAlign === "right" ? "flex-end" : "flex-start";
+                e.textContent = "";
+                var cut = Math.ceil(text.length / 2);
+                var a = document.createElement("span");
+                a.textContent = text.slice(0, cut);
+                a.style.cssText = "overflow:hidden;text-overflow:ellipsis;white-space:pre;min-width:0;flex:0 1 auto";
+                var b = document.createElement("span");
+                b.textContent = text.slice(cut);
+                b.style.cssText = "white-space:pre;flex:0 0 auto";
+                e.appendChild(a);
+                e.appendChild(b);
+            }
+        }
+        applyStyle(e, d);
+        if (d.minimumScaleFactor > 0 && d.minimumScaleFactor < 1) {
+            // Let a hugging text be squeezed, then shrink the font until it fits.
+            e.style.flexShrink = "1";
+            e.style.minWidth = "0";
+            shrinkToFit(e, parseFloat(e.style.fontSize), d.minimumScaleFactor);
+        }
+        return e;
+    }
+    /** Smallest font in [base·min, base] (0.5px steps) at which `e` stops overflowing,
+     *  re-checked on every resize. */
+    function shrinkToFit(e, base, min) {
+        var ro = new ResizeObserver(function () {
+            if (!e.isConnected) {
+                ro.disconnect();
+                return;
+            }
+            var size = base;
+            e.style.fontSize = size + "px";
+            while (size - 0.5 >= base * min &&
+                (e.scrollWidth > e.clientWidth + 1 || e.scrollHeight > e.clientHeight + 1)) {
+                size -= 0.5;
+                e.style.fontSize = size + "px";
+            }
+        });
+        ro.observe(e);
+    }
+    function renderDate(d) {
+        var e = document.createElement("span");
+        var date = new Date(d.date);
+        var style = (d.dateStyle || "").toLowerCase();
+        if (style === "time")
+            e.textContent = date.toLocaleTimeString(undefined, {
+                hour: "2-digit",
+                minute: "2-digit",
+            });
+        else if (style === "date")
+            e.textContent = date.toLocaleDateString(undefined, {
+                year: "numeric",
+                month: "short",
+                day: "numeric",
+            });
+        else if (style === "relative" || style === "offset")
+            e.textContent = formatRelativeDate(date);
+        else if (style === "timer") {
+            var diff = Math.abs(date.getTime() - Date.now());
+            var h = Math.floor(diff / 3600000), m = Math.floor((diff % 3600000) / 60000), s = Math.floor((diff % 60000) / 1000);
+            e.textContent =
+                String(h).padStart(2, "0") +
+                    ":" +
+                    String(m).padStart(2, "0") +
+                    ":" +
+                    String(s).padStart(2, "0");
+        }
+        else
+            e.textContent = date.toLocaleString();
+        e.style.fontSize = (d.fontSize || 14) + "px";
+        e.style.color = d.color ? resolveColor(d.color) : "inherit";
+        applyStyle(e, d);
+        return e;
+    }
+    function renderTimer(d) {
+        var e = document.createElement("span");
+        e.style.fontSize = (d.fontSize || 14) + "px";
+        e.style.fontWeight = String(fw(d.fontWeight));
+        e.style.color = d.color ? resolveColor(d.color) : "inherit";
+        e.style.fontVariantNumeric = "tabular-nums";
+        var target = new Date(d.targetDate).getTime();
+        var start = d.startDate ? new Date(d.startDate).getTime() : NaN;
+        function tick() {
+            var now = Date.now(), diff = Math.abs(target - now);
+            if (d.counting === "up" && !isNaN(start)) {
+                // Range timer: counts from startDate and stops at targetDate.
+                diff = Math.max(0, Math.min(now, target) - start);
+            }
+            else if (d.counting !== "up" && now >= target) {
+                if (d.completedText != null) {
+                    e.textContent = d.completedText;
+                    return;
+                }
+                diff = 0;
+            }
+            var h = Math.floor(diff / 3600000), m = Math.floor((diff % 3600000) / 60000), s = Math.floor((diff % 60000) / 1000);
+            // showHours:false drops a zero hour; otherwise hours always show (legacy HH:MM:SS).
+            e.textContent =
+                (d.showHours === false && h === 0 ? "" : String(h).padStart(2, "0") + ":") +
+                    String(m).padStart(2, "0") +
+                    ":" +
+                    String(s).padStart(2, "0");
+        }
+        tick();
+        addTimer(setInterval(tick, 1000));
+        applyStyle(e, d);
+        return e;
+    }
+    function renderLabel(d) {
+        var e = document.createElement("div");
+        e.style.cssText =
+            "display:flex;align-items:center;gap:" + (d.spacing || 4) + "px";
+        var ic = document.createElement("span");
+        // Same glyph map as `image` (Apple draws the SF Symbol; `●` only for unknown names).
+        ic.textContent = systemGlyph(d.systemName);
+        ic.style.fontSize = (d.fontSize || 14) * 1.1 + "px";
+        ic.style.color = d.iconColor
+            ? resolveColor(d.iconColor)
+            : d.color
+                ? resolveColor(d.color)
+                : "inherit";
+        e.appendChild(ic);
+        var t = document.createElement("span");
+        t.textContent = d.text || "";
+        t.style.fontSize = (d.fontSize || 14) + "px";
+        t.style.fontWeight = String(fw(d.fontWeight));
+        t.style.color = d.color ? resolveColor(d.color) : "inherit";
+        e.appendChild(t);
+        applyStyle(e, d);
+        return e;
+    }
+
+    /** Fraction of [startAt, endAt] elapsed now (0…1), or null when not time-driven. */
+    function timeFraction(d) {
+        if (d.startAt == null || d.endAt == null || !(d.endAt > d.startAt))
+            return null;
+        return Math.max(0, Math.min(1, (Date.now() - d.startAt) / (d.endAt - d.startAt)));
+    }
+    /** Re-run `paint` every second while a time-driven bar is still moving (session timer). */
+    function tickWhileRunning(d, paint) {
+        if (timeFraction(d) === null || Date.now() >= d.endAt)
+            return;
+        var id = setInterval(function () {
+            paint();
+            if (Date.now() >= d.endAt)
+                clearInterval(id);
+        }, 1000);
+        addTimer(id);
+    }
+    var RING = "M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831";
     function renderProgress(d) {
-        var pct = ((d.value / (d.total || 1)) * 100).toFixed(1);
+        var frac = function () {
+            var t = timeFraction(d);
+            return t !== null ? t : d.value / (d.total || 1);
+        };
+        var pct = function () {
+            return (frac() * 100).toFixed(1);
+        };
         var tint = d.tint ? resolveColor(d.tint) : "#4CAF50";
-        var track = tintTrack(d.tint);
+        var track = d.trackColor ? resolveColor(d.trackColor) : tintTrack(d.tint);
         if (d.barStyle === "circular") {
             var w = document.createElement("div");
             w.style.cssText = "width:40px;height:40px;position:relative";
             var s = svg("svg", { viewBox: "0 0 36 36" });
             s.style.cssText = "width:100%;height:100%";
+            // thickness is in points; the 36-unit ring is drawn 40px wide.
+            var ringW = d.thickness > 0 ? +((d.thickness * 36) / 40).toFixed(2) : 3;
             s.appendChild(svg("path", {
-                d: "M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831",
+                d: RING,
                 fill: "none",
                 stroke: track,
-                "stroke-width": "3",
+                "stroke-width": ringW,
             }));
-            s.appendChild(svg("path", {
-                d: "M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831",
+            var arc = svg("path", {
+                d: RING,
                 fill: "none",
                 stroke: tint,
-                "stroke-width": "3",
-                "stroke-dasharray": pct + ", 100",
+                "stroke-width": ringW,
+                "stroke-dasharray": pct() + ", 100",
                 "stroke-linecap": "round",
-            }));
+            });
+            s.appendChild(arc);
+            tickWhileRunning(d, function () {
+                arc.setAttribute("stroke-dasharray", pct() + ", 100");
+            });
             w.appendChild(s);
             applyStyle(w, d);
             return w;
         }
         var e = document.createElement("div");
         e.style.cssText =
-            "flex:1 1 auto;width:100%;min-width:48px;align-self:stretch;box-sizing:border-box";
+            "width:100%;min-width:48px;align-self:stretch;box-sizing:border-box";
         if (d.label) {
             var l = document.createElement("div");
             l.textContent = d.label;
@@ -952,29 +1263,57 @@
             l.style.color = d.color ? resolveColor(d.color) : tint;
             e.appendChild(l);
         }
+        var th = d.thickness > 0 ? d.thickness : 6;
         var tr = document.createElement("div");
         tr.style.cssText =
             "height:6px;border-radius:3px;overflow:hidden;width:100%";
+        tr.style.height = th + "px";
+        tr.style.borderRadius = th / 2 + "px";
         tr.style.background = track;
         var f = document.createElement("div");
         f.style.cssText = "height:100%;border-radius:3px";
-        f.style.width = pct + "%";
+        f.style.borderRadius = th / 2 + "px";
+        f.style.width = pct() + "%";
         f.style.background = tint;
+        tickWhileRunning(d, function () {
+            f.style.width = pct() + "%";
+        });
         tr.appendChild(f);
         e.appendChild(tr);
         applyStyle(e, d);
         return e;
     }
+    /** `minLabel` … `maxLabel` row (null when neither is set). */
+    function rangeLabels(d, clr) {
+        if (d.minLabel == null && d.maxLabel == null)
+            return null;
+        var row = document.createElement("div");
+        row.style.cssText =
+            "display:flex;justify-content:space-between;gap:6px;font-size:9px;opacity:0.7;margin-top:2px";
+        row.style.color = clr;
+        [d.minLabel, d.maxLabel].forEach(function (t) {
+            var sp = document.createElement("span");
+            sp.textContent = t == null ? "" : String(t);
+            row.appendChild(sp);
+        });
+        return row;
+    }
     function renderGauge(d) {
-        var v = d.value || 0, lo = d.min || 0, hi = d.max || 1;
-        var pct = ((v - lo) / Math.max(hi - lo, 0.0001)) * 100;
+        var lo = d.min || 0, hi = d.max || 1;
+        var pctNow = function () {
+            var t = timeFraction(d);
+            var v = t !== null ? lo + t * (hi - lo) : d.value || 0;
+            return ((v - lo) / Math.max(hi - lo, 0.0001)) * 100;
+        };
+        var pct = pctNow();
         var tint = d.tint ? resolveColor(d.tint) : "#4CAF50";
         var track = tintTrack(d.tint);
-        var clr = d.color ? resolveColor(d.color) : tint;
+        // Like Swift (`color ?? .primary`): labels inherit the text color unless `color` is set.
+        var clr = d.color ? resolveColor(d.color) : "";
         if (d.gaugeStyle === "linear") {
             var e = document.createElement("div");
             e.style.cssText =
-                "flex:1 1 auto;width:100%;min-width:48px;align-self:stretch;box-sizing:border-box";
+                "width:100%;min-width:48px;align-self:stretch;box-sizing:border-box";
             var top = document.createElement("div");
             top.style.cssText =
                 "display:flex;justify-content:space-between;align-items:baseline;gap:6px;margin-bottom:2px";
@@ -1002,8 +1341,14 @@
             f.style.cssText = "height:100%;border-radius:3px";
             f.style.width = Math.max(Math.min(pct, 100), 0) + "%";
             f.style.background = tint;
+            tickWhileRunning(d, function () {
+                f.style.width = Math.max(Math.min(pctNow(), 100), 0) + "%";
+            });
             tr.appendChild(f);
             e.appendChild(tr);
+            var rl = rangeLabels(d, clr);
+            if (rl)
+                e.appendChild(rl);
             applyStyle(e, d);
             return e;
         }
@@ -1011,22 +1356,32 @@
         wr.style.textAlign = "center";
         var sw = document.createElement("div");
         sw.style.cssText = "width:56px;height:56px;position:relative;margin:0 auto";
+        // A fixed frame sizes the ring (an island's 18 pt compact gauge), not the default 56 px.
+        var fw = d.frame && (d.frame.width || d.frame.height);
+        if (fw) {
+            var ring = Math.min(d.frame.width || fw, d.frame.height || fw);
+            sw.style.width = sw.style.height = ring + "px";
+        }
         var s = svg("svg", { viewBox: "0 0 36 36" });
         s.style.cssText = "width:100%;height:100%";
         s.appendChild(svg("path", {
-            d: "M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831",
+            d: RING,
             fill: "none",
             stroke: track,
             "stroke-width": "4",
         }));
-        s.appendChild(svg("path", {
-            d: "M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831",
+        var arc = svg("path", {
+            d: RING,
             fill: "none",
             stroke: tint,
             "stroke-width": "4",
             "stroke-dasharray": pct.toFixed(1) + ", 100",
             "stroke-linecap": "round",
-        }));
+        });
+        s.appendChild(arc);
+        tickWhileRunning(d, function () {
+            arc.setAttribute("stroke-dasharray", pctNow().toFixed(1) + ", 100");
+        });
         sw.appendChild(s);
         if (d.currentValueLabel) {
             var cv = document.createElement("div");
@@ -1037,6 +1392,12 @@
             sw.appendChild(cv);
         }
         wr.appendChild(sw);
+        var rl2 = rangeLabels(d, clr);
+        if (rl2) {
+            rl2.style.width = "56px";
+            rl2.style.margin = "2px auto 0";
+            wr.appendChild(rl2);
+        }
         if (d.label) {
             var l = document.createElement("div");
             l.style.cssText = "font-size:10px;margin-top:2px;opacity:0.7";
@@ -1047,121 +1408,317 @@
         applyStyle(wr, d);
         return wr;
     }
+    var CHART_COLORS = [
+        "#3b82f6",
+        "#22c55e",
+        "#f97316",
+        "#ef4444",
+        "#a855f7",
+        "#eab308",
+        "#ec4899",
+        "#14b8a6",
+    ];
+    /** Points grouped by `series` (first-seen order); color = a named series' first point
+     *  color, else tint for a lone series, else the palette. */
+    function chartSeries(pts, tint) {
+        var out = [];
+        var byName = {};
+        pts.forEach(function (p) {
+            var name = p.series == null ? "" : String(p.series);
+            var sr = byName[name];
+            if (!sr) {
+                sr = byName[name] = { name: name, color: "", points: [] };
+                out.push(sr);
+            }
+            // Unnamed (legacy) series keep the tint; per-point colors still apply to bars.
+            if (!sr.color && p.color && name)
+                sr.color = resolveColor(p.color);
+            sr.points.push(p);
+        });
+        out.forEach(function (sr, i) {
+            if (!sr.color)
+                sr.color = out.length > 1 ? CHART_COLORS[i % CHART_COLORS.length] : tint;
+        });
+        return out;
+    }
+    /** SVG path through `xy`: straight, step (hold then jump), or monotone cubic (Fritsch–Carlson). */
+    function curvePath(xy, mode) {
+        if (!xy.length)
+            return "";
+        var d = "M" + xy[0][0] + "," + xy[0][1];
+        if (mode === "step") {
+            for (var i = 1; i < xy.length; i++)
+                d += " L" + xy[i][0] + "," + xy[i - 1][1] + " L" + xy[i][0] + "," + xy[i][1];
+            return d;
+        }
+        if (mode !== "monotone" || xy.length < 3) {
+            for (var j = 1; j < xy.length; j++)
+                d += " L" + xy[j][0] + "," + xy[j][1];
+            return d;
+        }
+        var n = xy.length, sl = [], m = [];
+        for (var k = 0; k < n - 1; k++)
+            sl.push((xy[k + 1][1] - xy[k][1]) / (xy[k + 1][0] - xy[k][0] || 1));
+        m[0] = sl[0];
+        m[n - 1] = sl[n - 2];
+        for (var q = 1; q < n - 1; q++)
+            m[q] = sl[q - 1] * sl[q] <= 0 ? 0 : (sl[q - 1] + sl[q]) / 2;
+        for (var r = 0; r < n - 1; r++) {
+            if (sl[r] === 0) {
+                m[r] = m[r + 1] = 0;
+                continue;
+            }
+            var al = m[r] / sl[r], be = m[r + 1] / sl[r], h = al * al + be * be;
+            if (h > 9) {
+                var t = 3 / Math.sqrt(h);
+                m[r] = t * al * sl[r];
+                m[r + 1] = t * be * sl[r];
+            }
+        }
+        for (var c = 0; c < n - 1; c++) {
+            var dx = (xy[c + 1][0] - xy[c][0]) / 3;
+            d +=
+                " C" +
+                    (xy[c][0] + dx) + "," + (xy[c][1] + m[c] * dx) + " " +
+                    (xy[c + 1][0] - dx) + "," + (xy[c + 1][1] - m[c + 1] * dx) + " " +
+                    xy[c + 1][0] + "," + xy[c + 1][1];
+        }
+        return d;
+    }
+    function axisText(t) {
+        var sp = document.createElement("span");
+        sp.textContent = t;
+        sp.style.cssText = "font-size:8px;color:#999;white-space:nowrap";
+        return sp;
+    }
+    function fmtNum(v) {
+        return String(+v.toFixed(2));
+    }
+    /** Legend row: swatch + name per entry. */
+    function legendRow(items) {
+        var row = document.createElement("div");
+        row.style.cssText = "display:flex;flex-wrap:wrap;gap:2px 8px;margin-top:3px";
+        items.forEach(function (it) {
+            var cell = document.createElement("span");
+            cell.style.cssText = "display:inline-flex;align-items:center;gap:3px";
+            var sw = document.createElement("span");
+            sw.style.cssText = "width:6px;height:6px;border-radius:3px;flex-shrink:0";
+            sw.style.background = it.color;
+            cell.appendChild(sw);
+            cell.appendChild(axisText(it.name));
+            row.appendChild(cell);
+        });
+        return row;
+    }
+    /** Wrap `plot` with y-axis labels (left), x labels (below) and a legend when asked;
+     *  returns `plot` itself when nothing is added (legacy DOM). `plotH` 0 = fill the box
+     *  height (Swift Charts mode). */
+    function chartFrame(d, plot, plotH, yLo, yHi, xLabels, legend) {
+        var yAxis = d.showYAxis === true;
+        if (!yAxis && !xLabels && !legend)
+            return plot;
+        var fill = plotH <= 0;
+        var box = document.createElement("div");
+        box.style.cssText = "display:flex;flex-direction:column;min-width:0" + (fill ? ";align-self:stretch;min-height:0" : "");
+        var body = document.createElement("div");
+        body.style.cssText = "display:flex;gap:3px;min-width:0" + (fill ? ";flex:1;min-height:0" : "");
+        if (yAxis) {
+            var col = document.createElement("div");
+            col.style.cssText = "display:flex;flex-direction:column;justify-content:space-between;align-items:flex-end";
+            if (!fill)
+                col.style.height = plotH + "px";
+            col.appendChild(axisText(fmtNum(yHi)));
+            col.appendChild(axisText(fmtNum(yLo)));
+            if (fill && xLabels) {
+                // The column spans the plot only: a hidden x-label row keeps it off the labels.
+                var ycol = document.createElement("div");
+                ycol.style.cssText = "display:flex;flex-direction:column";
+                col.style.flex = "1";
+                ycol.appendChild(col);
+                var gap = axisText("0");
+                gap.style.visibility = "hidden";
+                gap.style.marginTop = "1px";
+                ycol.appendChild(gap);
+                body.appendChild(ycol);
+            }
+            else
+                body.appendChild(col);
+        }
+        var right = document.createElement("div");
+        right.style.cssText = "display:flex;flex-direction:column;flex:1;min-width:0" + (fill ? ";min-height:0" : "");
+        right.appendChild(plot);
+        if (xLabels) {
+            var xr = document.createElement("div");
+            xr.style.cssText = "display:flex;justify-content:space-between;margin-top:1px";
+            xLabels.forEach(function (t) {
+                xr.appendChild(axisText(t));
+            });
+            right.appendChild(xr);
+        }
+        body.appendChild(right);
+        box.appendChild(body);
+        if (legend)
+            box.appendChild(legendRow(legend));
+        return box;
+    }
     function renderChart(d) {
         var pts = d.chartData || [];
-        var maxV = Math.max.apply(null, pts.map(function (p) {
-            return p.value;
-        }).concat([1]));
-        var tint = d.tint ? resolveColor(d.tint) : "#4CAF50";
-        if (d.chartType === "line" || d.chartType === "area") {
+        var tint = resolveColor(d.tint || "accent"); // Swift: `tint ?? Color.accentColor`
+        var series = chartSeries(pts, tint);
+        var vals = pts.map(function (p) {
+            return Number(p.value) || 0;
+        });
+        var yLo = d.yMin != null ? d.yMin : Math.min.apply(null, vals.concat([0]));
+        var yHi = d.yMax != null ? d.yMax : Math.max.apply(null, vals.concat([1]));
+        var span = yHi - yLo || 1;
+        var norm = function (v) {
+            return Math.max(0, Math.min(1, (v - yLo) / span));
+        };
+        var legendOf = function () {
+            return d.showLegend === true && series.some((sr) => sr.name) ? series : null;
+        };
+        // Distinct labels in first-seen order (x axis).
+        var labels = [];
+        pts.forEach(function (p) {
+            var l = p.label == null ? "" : String(p.label);
+            if (labels.indexOf(l) < 0)
+                labels.push(l);
+        });
+        if (d.chartType === "line" || d.chartType === "area" || d.chartType === "point") {
             var w = 200, h = 60;
             var s = svg("svg", { viewBox: "0 0 " + w + " " + h });
             s.style.cssText = "width:100%;height:60px";
-            var pathD = pts
-                .map(function (p, i) {
-                var x = (i / Math.max(pts.length - 1, 1)) * w;
-                var y = h - (p.value / maxV) * h;
-                return (i === 0 ? "M" : "L") + x + "," + y;
-            })
-                .join(" ");
-            if (d.chartType === "area") {
-                var aD = "M0," +
-                    h +
-                    " " +
-                    pts
-                        .map(function (p, i) {
-                        return ("L" +
-                            (i / Math.max(pts.length - 1, 1)) * w +
-                            "," +
-                            (h - (p.value / maxV) * h));
-                    })
-                        .join(" ") +
-                    " L" +
-                    w +
-                    "," +
-                    h +
-                    " Z";
-                s.appendChild(svg("path", { d: aD, fill: tint, opacity: "0.3" }));
+            // Extended charts fill their box; strokes / dots keep their size via non-scaling strokes.
+            var ext = series.length > 1 || d.showYAxis === true || d.showXAxis === true || d.showLegend === true || d.chartType === "point";
+            if (ext) {
+                s.setAttribute("preserveAspectRatio", "none");
+                s.style.overflow = "visible"; // dots / strokes on the edges stay whole
+                // Like Swift Charts: the plot takes the height the stack gives it.
+                s.style.height = "auto";
+                s.style.flex = "1";
+                s.style.minHeight = "40px";
             }
-            s.appendChild(svg("path", {
-                d: pathD,
-                fill: "none",
-                stroke: tint,
-                "stroke-width": "2",
-            }));
-            applyStyle(s, d);
-            return s;
+            // Point charts draw HTML dots in a box that takes the svg's place.
+            var dots = document.createElement("div");
+            dots.style.cssText = "position:relative;width:100%;flex:1;min-height:40px";
+            series.forEach(function (sr) {
+                var xy = sr.points.map(function (p, i) {
+                    return [(i / Math.max(sr.points.length - 1, 1)) * w, h - norm(Number(p.value) || 0) * h];
+                });
+                if (d.chartType === "point") {
+                    // Round HTML dots over the plot box: a zero-length round-capped SVG stroke in a
+                    // stretched (preserveAspectRatio none) svg turns into a tall spike on WebKitGTK.
+                    xy.forEach(function (pt) {
+                        var dot = document.createElement("span");
+                        dot.style.cssText =
+                            "position:absolute;width:6px;height:6px;border-radius:3px;transform:translate(-50%,-50%)";
+                        dot.style.left = (pt[0] / w) * 100 + "%";
+                        dot.style.top = (pt[1] / h) * 100 + "%";
+                        dot.style.background = sr.color;
+                        dots.appendChild(dot);
+                    });
+                    return;
+                }
+                var line = curvePath(xy, d.interpolation);
+                if (d.chartType === "area" && xy.length) {
+                    s.appendChild(svg("path", {
+                        d: line + " L" + xy[xy.length - 1][0] + "," + h + " L" + xy[0][0] + "," + h + " Z",
+                        fill: sr.color,
+                        opacity: "0.3",
+                    }));
+                }
+                s.appendChild(svg("path", {
+                    d: line,
+                    fill: "none",
+                    stroke: sr.color,
+                    "stroke-width": "2",
+                    "vector-effect": ext ? "non-scaling-stroke" : null,
+                }));
+            });
+            // x labels: Apple / desktop show them unless `showXAxis: false` (docs); the legacy
+            // sparkline (no v2 option) stays bare.
+            var xs = ext ? (d.showXAxis !== false ? labels : null) : d.showXAxis === true ? labels : null;
+            var framed = chartFrame(d, d.chartType === "point" ? dots : s, ext ? 0 : h, yLo, yHi, xs, legendOf());
+            applyStyle(framed, d);
+            return framed;
         }
         if (d.chartType === "pie") {
-            var total = pts.reduce(function (s, p) {
-                return s + p.value;
+            var total = pts.reduce(function (sum, p) {
+                return sum + p.value;
             }, 0);
-            var dc = [
-                "#3b82f6",
-                "#22c55e",
-                "#f97316",
-                "#ef4444",
-                "#a855f7",
-                "#eab308",
-                "#ec4899",
-                "#14b8a6",
-            ];
             var r = 40, cx = 50, cy = 50, ca = -90;
-            var s = svg("svg", { viewBox: "0 0 100 100" });
-            s.style.cssText = "width:80px;height:80px";
+            var ri = d.innerRadius > 0 && d.innerRadius < 1 ? r * d.innerRadius : 0;
+            var pie = svg("svg", { viewBox: "0 0 100 100" });
+            pie.style.cssText = "width:80px;height:80px";
+            var slices = [];
             pts.forEach(function (p, i) {
                 var angle = (p.value / Math.max(total, 1)) * 360;
                 var sr = (ca * Math.PI) / 180, er = ((ca + angle) * Math.PI) / 180;
                 var x1 = cx + r * Math.cos(sr), y1 = cy + r * Math.sin(sr);
                 var x2 = cx + r * Math.cos(er), y2 = cy + r * Math.sin(er);
                 var lf = angle > 180 ? 1 : 0;
-                s.appendChild(svg("path", {
-                    d: "M" +
-                        cx +
-                        "," +
-                        cy +
-                        " L" +
-                        x1 +
-                        "," +
-                        y1 +
-                        " A" +
-                        r +
-                        "," +
-                        r +
-                        " 0 " +
-                        lf +
-                        ",1 " +
-                        x2 +
-                        "," +
-                        y2 +
-                        " Z",
-                    fill: p.color ? resolveColor(p.color) : dc[i % dc.length],
-                }));
+                var color = p.color ? resolveColor(p.color) : CHART_COLORS[i % CHART_COLORS.length];
+                // Donut: annular sector (outer arc, then the inner arc back).
+                var pd = ri
+                    ? "M" + x1 + "," + y1 + " A" + r + "," + r + " 0 " + lf + ",1 " + x2 + "," + y2 +
+                        " L" + (cx + ri * Math.cos(er)) + "," + (cy + ri * Math.sin(er)) +
+                        " A" + ri + "," + ri + " 0 " + lf + ",0 " + (cx + ri * Math.cos(sr)) + "," + (cy + ri * Math.sin(sr)) + " Z"
+                    : "M" + cx + "," + cy + " L" + x1 + "," + y1 + " A" + r + "," + r + " 0 " + lf + ",1 " + x2 + "," + y2 + " Z";
+                pie.appendChild(svg("path", { d: pd, fill: color }));
+                slices.push({ name: p.label == null ? "" : String(p.label), color: color });
                 ca += angle;
             });
-            applyStyle(s, d);
-            return s;
+            var pieOut = chartFrame(d, pie, 80, 0, 0, null, d.showLegend === true ? slices : null);
+            applyStyle(pieOut, d);
+            return pieOut;
         }
         var e = document.createElement("div");
         e.style.cssText = "display:flex;align-items:flex-end;gap:4px;height:70px";
-        pts.forEach(function (p) {
+        var showX = d.showXAxis !== false;
+        var bar = function (v, color) {
+            var b = document.createElement("div");
+            b.style.width = "100%";
+            b.style.height = Math.max(norm(v) * 60, 2) + "px";
+            b.style.background = color;
+            b.style.borderRadius = "2px";
+            return b;
+        };
+        var column = function (bars, label) {
             var col = document.createElement("div");
             col.style.cssText =
                 "flex:1;display:flex;flex-direction:column;align-items:center;gap:2px";
-            var bar = document.createElement("div");
-            bar.style.width = "100%";
-            bar.style.height = Math.max((p.value / maxV) * 60, 2) + "px";
-            bar.style.background = p.color ? resolveColor(p.color) : tint;
-            bar.style.borderRadius = "2px";
-            col.appendChild(bar);
-            var lb = document.createElement("span");
-            lb.textContent = p.label;
-            lb.style.cssText = "font-size:8px;color:#999";
-            col.appendChild(lb);
+            col.appendChild(bars);
+            if (showX) {
+                var lb = document.createElement("span");
+                lb.textContent = label;
+                lb.style.cssText = "font-size:8px;color:#999";
+                col.appendChild(lb);
+            }
             e.appendChild(col);
-        });
-        applyStyle(e, d);
-        return e;
+        };
+        if (series.length > 1) {
+            // Grouped: one bar per series under each distinct label.
+            labels.forEach(function (label) {
+                var grp = document.createElement("div");
+                grp.style.cssText = "display:flex;align-items:flex-end;gap:1px;width:100%";
+                series.forEach(function (sr) {
+                    var p = sr.points.find(function (q) {
+                        return String(q.label == null ? "" : q.label) === label;
+                    });
+                    grp.appendChild(bar(p ? Number(p.value) || 0 : 0, sr.color));
+                });
+                column(grp, label);
+            });
+        }
+        else {
+            // One series: a column per point (duplicate labels stay separate), per-point colors.
+            pts.forEach(function (p) {
+                column(bar(Number(p.value) || 0, p.color ? resolveColor(p.color) : tint), p.label);
+            });
+        }
+        var barOut = chartFrame(d, e, 70, yLo, yHi, null, legendOf());
+        applyStyle(barOut, d);
+        return barOut;
     }
     function renderList(d) {
         var emitAction = boundEmit();
@@ -1213,7 +1770,7 @@
     }
 
     function renderButton(d) {
-        var emitAction = boundEmit();
+        var tap = boundTap(d);
         var e = document.createElement("div");
         e.textContent = d.label || "";
         var align = (d.textAlignment || d.alignment || "center").toLowerCase();
@@ -1269,23 +1826,48 @@
                 align +
                 ";cursor:pointer;font-weight:500;transition:filter .1s;box-sizing:border-box";
         e.style.fontSize = (d.fontSize || 14) + "px";
-        e.style.background = d.backgroundColor
-            ? resolveColor(d.backgroundColor)
-            : "#2196F3";
-        e.style.color = d.color ? resolveColor(d.color) : "#fff";
+        var accent = d.backgroundColor ? resolveColor(d.backgroundColor) : "#2196F3";
+        // No variant = legacy filled look (same as `prominent`).
+        if (d.variant === "bordered") {
+            e.style.background = tintTrack(d.backgroundColor || "#2196F3");
+            e.style.color = d.color ? resolveColor(d.color) : accent;
+        }
+        else if (d.variant === "plain" || d.variant === "outline") {
+            e.style.background = "transparent";
+            e.style.color = d.color ? resolveColor(d.color) : accent;
+            if (d.variant === "outline")
+                e.style.border = "1px solid currentColor";
+        }
+        else {
+            e.style.background = accent;
+            e.style.color = d.color ? resolveColor(d.color) : "#fff";
+        }
         e.style.borderRadius = (d.cornerRadius || 8) + "px";
-        e.onmousedown = function () {
-            e.style.filter = "brightness(0.85)";
-        };
-        e.onmouseup = e.onmouseleave = function () {
-            e.style.filter = "";
-        };
-        e.onclick = function () {
-            if (d.action)
-                emitAction(d.action);
-            else if (d.url)
-                openHttpUrl(d.url);
-        };
+        if (d.systemName) {
+            var ic = document.createElement("span");
+            ic.textContent = systemGlyph(d.systemName);
+            ic.style.cssText = "margin-right:4px;line-height:1";
+            e.insertBefore(ic, e.firstChild);
+        }
+        if (d.disabled === true) {
+            e.style.opacity = "0.4";
+            e.style.cursor = "default";
+            e.setAttribute("aria-disabled", "true");
+        }
+        else {
+            e.onmousedown = function () {
+                e.style.filter = "brightness(0.85)";
+            };
+            e.onmouseup = e.onmouseleave = function () {
+                e.style.filter = "";
+            };
+            e.onclick = function () {
+                if (d.action || d.set)
+                    tap();
+                if (!d.action && d.url)
+                    openHttpUrl(d.url);
+            };
+        }
         // applyStyle would clobber the padding we just set — skip padding there for buttons.
         var padSave = d.padding;
         d.padding = undefined;
@@ -1294,20 +1876,39 @@
         return e;
     }
     function renderToggle(d) {
-        var emitAction = boundEmit();
+        var tap = boundTap(d);
         var e = document.createElement("div");
         e.style.cssText = "display:flex;align-items:center;gap:6px";
         var tint = d.tint ? resolveColor(d.tint) : "#4CAF50";
+        var off = d.uncheckedTint ? resolveColor(d.uncheckedTint) : null;
         var c = document.createElement("div");
-        c.style.cssText =
-            "width:18px;height:18px;border-radius:9px;display:flex;align-items:center;justify-content:center;flex-shrink:0";
-        c.style.border = "2px solid " + (d.isOn ? tint : "#999");
-        c.style.background = d.isOn ? tint : "transparent";
-        if (d.isOn) {
-            var m = document.createElement("span");
-            m.textContent = "\u2713";
-            m.style.cssText = "color:#fff;font-size:12px";
-            c.appendChild(m);
+        if (d.variant === "switch") {
+            c.style.cssText =
+                "width:32px;height:18px;border-radius:9px;position:relative;flex-shrink:0;box-sizing:border-box";
+            c.style.background = d.isOn ? tint : off || "rgba(120,120,128,0.32)";
+            var knob = document.createElement("span");
+            knob.style.cssText =
+                "position:absolute;top:2px;width:14px;height:14px;border-radius:7px;background:#fff;box-shadow:0 1px 2px rgba(0,0,0,.3)";
+            knob.style.left = d.isOn ? "16px" : "2px";
+            c.appendChild(knob);
+        }
+        else {
+            // checkbox = rounded square; no variant = legacy round check.
+            var box = d.variant === "checkbox";
+            c.style.cssText =
+                "width:18px;height:18px;border-radius:9px;display:flex;align-items:center;justify-content:center;flex-shrink:0";
+            if (box) {
+                c.style.width = c.style.height = "16px";
+                c.style.borderRadius = "4px";
+            }
+            c.style.border = "2px solid " + (d.isOn ? tint : off || "#999");
+            c.style.background = d.isOn ? tint : "transparent";
+            if (d.isOn) {
+                var m = document.createElement("span");
+                m.textContent = "\u2713";
+                m.style.cssText = "color:#fff;font-size:12px";
+                c.appendChild(m);
+            }
         }
         e.appendChild(c);
         if (d.label) {
@@ -1317,10 +1918,10 @@
             l.style.color = d.color ? resolveColor(d.color) : "inherit";
             e.appendChild(l);
         }
-        if (d.action) {
+        if (d.action || d.set) {
             e.style.cursor = "pointer";
             e.onclick = function () {
-                emitAction(d.action, String(!d.isOn));
+                tap(String(!d.isOn));
             };
         }
         applyStyle(e, d);
@@ -1335,13 +1936,13 @@
         window.open(u, "_blank");
     }
     function renderLink(d) {
-        var emitAction = boundEmit();
+        var tap = boundTap(d);
         var e = document.createElement("div");
         e.style.cursor = "pointer";
         e.onclick = function () {
-            if (d.action)
-                emitAction(d.action);
-            else if (d.url)
+            if (d.action || d.set)
+                tap();
+            if (!d.action && d.url)
                 openHttpUrl(d.url);
         };
         applyStyle(e, d);
@@ -1380,11 +1981,21 @@
     }
 
     function renderEl(d, parentAxis) {
+        const el = build(d, parentAxis);
+        // `transition` hint: `renderWidget` animates marked elements whose content changed.
+        if (typeof d.transition === "string" && d.transition !== "none")
+            el.setAttribute("data-transition", d.transition);
+        // Editor marker (docs widget constructor): maps a drawn element back to its tree node.
+        if (d.__node != null)
+            el.setAttribute("data-node", String(d.__node));
+        return el;
+    }
+    function build(d, parentAxis) {
         switch (d.type) {
             case "vstack":
-                return renderStack(d, "column");
+                return renderStack(d, "column", parentAxis);
             case "hstack":
-                return renderStack(d, "row");
+                return renderStack(d, "row", parentAxis);
             case "zstack":
                 return renderZStack(d);
             case "grid":
@@ -1426,6 +2037,468 @@
             default:
                 return document.createElement("span");
         }
+    }
+
+    // Port of `src/resolve.rs`: scheduled entries and `{{…}}` placeholders. Checked against
+    // the same fixtures (`tests/fixtures/resolve/*.json`) as the Rust, Swift and Kotlin ports.
+    const FAMILIES = ["small", "medium", "large", "accessory"];
+    function entries(config) {
+        const list = config && Array.isArray(config.entries) ? config.entries : [];
+        const out = [];
+        for (const e of list) {
+            if (e && Number.isInteger(e.at) && e.at >= 0)
+                out.push([e.at, e]);
+        }
+        return out;
+    }
+    function present(v) {
+        return v !== undefined && v !== null;
+    }
+    /** Base layouts with the active entry (last `at <= now`) applied. */
+    function activeLayouts(config, nowMs) {
+        const out = {};
+        for (const f of FAMILIES)
+            if (config && present(config[f]))
+                out[f] = config[f];
+        let active = null;
+        let activeAt = -1;
+        for (const [at, e] of entries(config)) {
+            // `>=` keeps the last of equal `at`s, like Rust's `max_by_key`.
+            if (at <= nowMs && at >= activeAt) {
+                active = e;
+                activeAt = at;
+            }
+        }
+        if (active)
+            for (const f of FAMILIES)
+                if (present(active[f]))
+                    out[f] = active[f];
+        return out;
+    }
+    /** First entry `at` after now, or null. */
+    function nextChangeMs(config, nowMs) {
+        let next = null;
+        for (const [at] of entries(config))
+            if (at > nowMs && (next === null || at < next))
+                next = at;
+        return next;
+    }
+    /** Shallow merge; later layers win per top-level key; a non-object replaces all before it. */
+    function mergeData(layers) {
+        let out = undefined;
+        for (const layer of layers) {
+            if (layer === undefined || layer === null)
+                continue;
+            if (isObject(out) && isObject(layer))
+                out = Object.assign({}, out, layer);
+            else
+                out = isObject(layer) ? Object.assign({}, layer) : layer;
+        }
+        return out;
+    }
+    function isObject(v) {
+        return v !== null && typeof v === "object" && !Array.isArray(v);
+    }
+    /** Lower case, `_` → `-`, Unicode / private-use extensions (`-u-…`, `-x-…`) dropped. */
+    function normalizeLocale(tag) {
+        const t = tag.trim().replace(/_/g, "-").toLowerCase();
+        const cuts = ["-u-", "-x-"].map((m) => t.indexOf(m)).filter((i) => i >= 0);
+        return cuts.length ? t.slice(0, Math.min(...cuts)) : t;
+    }
+    /** `zh-hant-tw` → `zh-tw`: the tag without a 4-letter script subtag. */
+    function languageRegion(tag) {
+        return tag
+            .split("-")
+            .filter((p, i) => !(i === 1 && /^[a-z]{4}$/.test(p)))
+            .join("-");
+    }
+    function language(tag) {
+        return tag.split("-")[0];
+    }
+    /** `strings` table name for a locale (same fallback chain as Rust). */
+    function pickLocaleTable(config, locale) {
+        const tables = config && isObject(config.strings) ? config.strings : null;
+        if (!tables)
+            return null;
+        const keys = Object.keys(tables).sort();
+        if (keys.length === 0)
+            return null;
+        const find = (pred) => keys.find((k) => pred(normalizeLocale(k))) ?? null;
+        const want = normalizeLocale(locale || "");
+        if (want) {
+            const lang = language(want);
+            const lr = languageRegion(want);
+            const hit = find((k) => k === want) ??
+                find((k) => languageRegion(k) === lr) ??
+                find((k) => k === lang) ??
+                find((k) => language(k) === lang);
+            if (hit)
+                return hit;
+        }
+        if (typeof config.defaultLocale === "string") {
+            const def = normalizeLocale(config.defaultLocale);
+            const hit = find((k) => k === def);
+            if (hit)
+                return hit;
+        }
+        return find((k) => k === "en") ?? keys[0];
+    }
+    function lookupPath(root, path) {
+        if (path === "")
+            return root;
+        let cur = root;
+        for (const seg of path.split(".")) {
+            if (Array.isArray(cur)) {
+                if (!/^\d+$/.test(seg))
+                    return undefined;
+                cur = cur[Number(seg)];
+            }
+            else if (isObject(cur)) {
+                cur = Object.prototype.hasOwnProperty.call(cur, seg) ? cur[seg] : undefined;
+            }
+            else
+                return undefined;
+        }
+        return cur;
+    }
+    function valueText(v) {
+        if (v === undefined || v === null)
+            return "";
+        if (typeof v === "string")
+            return v;
+        // Numbers and booleans print the same through JSON.stringify.
+        return JSON.stringify(v);
+    }
+    /** Renderer contract version: a config with `requires.resolve` above it shows `fallback`. */
+    const CONTRACT_VERSION = 3;
+    /** Hard caps: items per `repeat`, nested `use` depth. */
+    const MAX_REPEAT = 50;
+    const MAX_TEMPLATE_DEPTH = 8;
+    function child(scope, name, value, index) {
+        return {
+            ...scope,
+            locals: [...scope.locals, [name, value]],
+            index: index === undefined ? scope.index : index,
+        };
+    }
+    /** A local variable by name, innermost first. */
+    function local(scope, name) {
+        for (let i = scope.locals.length - 1; i >= 0; i--) {
+            if (scope.locals[i][0] === name)
+                return { found: true, value: scope.locals[i][1] };
+        }
+        return { found: false, value: undefined };
+    }
+    /** Typed value of an expression (`data.a`, `task.x`, `arg.p`, `index`, `locale`, `t.k`);
+     *  undefined when missing. */
+    function lookupExpr(scope, raw) {
+        const expr = raw.trim();
+        // Loop / template variables shadow the built-in roots (`t`, `data`, …).
+        const dot0 = expr.indexOf(".");
+        const l0 = local(scope, dot0 < 0 ? expr : expr.slice(0, dot0));
+        if (l0.found)
+            return lookupPath(l0.value, dot0 < 0 ? "" : expr.slice(dot0 + 1));
+        if (expr === "index")
+            return scope.index === null ? undefined : scope.index;
+        if (expr === "locale")
+            return scope.ctx.locale;
+        if (expr === "instance")
+            return scope.ctx.instance || "";
+        if (expr.startsWith("t.")) {
+            const key = expr.slice(2);
+            for (const table of [scope.strings, scope.fallback]) {
+                if (isObject(table) && Object.prototype.hasOwnProperty.call(table, key))
+                    return table[key];
+            }
+            return undefined;
+        }
+        if (expr === "data" || expr.startsWith("data."))
+            return lookupPath(scope.ctx.data, expr.slice(5));
+        if (expr === "state" || expr.startsWith("state."))
+            return lookupPath(scope.ctx.state, expr.slice(6));
+        return undefined;
+    }
+    /** `data…` / `state…`: roots whose values keep their JSON type. */
+    function isDataRoot(expr) {
+        return expr === "data" || expr.startsWith("data.") || expr === "state" || expr.startsWith("state.");
+    }
+    function placeholder(scope, raw) {
+        const expr = raw.trim();
+        const d0 = expr.indexOf(".");
+        if (local(scope, d0 < 0 ? expr : expr.slice(0, d0)).found)
+            return valueText(lookupExpr(scope, expr));
+        if (expr.startsWith("t.")) {
+            const v = lookupExpr(scope, expr);
+            return v === undefined ? expr.slice(2) : valueText(v);
+        }
+        const dot = expr.indexOf(".");
+        const head = dot < 0 ? expr : expr.slice(0, dot);
+        const known = expr === "locale" || expr === "instance" || isDataRoot(expr) ||
+            (expr === "index" && scope.index !== null) || local(scope, head).found;
+        if (!known)
+            return "{{" + expr + "}}";
+        return valueText(lookupExpr(scope, expr));
+    }
+    function interpolateWith(scope, s) {
+        let out = "";
+        let rest = s;
+        for (;;) {
+            const start = rest.indexOf("{{");
+            if (start < 0)
+                break;
+            const end = rest.indexOf("}}", start + 2);
+            if (end < 0)
+                break;
+            out += rest.slice(0, start) + placeholder(scope, rest.slice(start + 2, end));
+            rest = rest.slice(end + 2);
+        }
+        return out + rest;
+    }
+    function isNum(v) {
+        return typeof v === "number" && Number.isFinite(v);
+    }
+    function deepEqual(a, b) {
+        if (isNum(a) && isNum(b))
+            return a === b;
+        return JSON.stringify(canon(a)) === JSON.stringify(canon(b));
+    }
+    function canon(v) {
+        if (Array.isArray(v))
+            return v.map(canon);
+        if (isObject(v)) {
+            const o = {};
+            for (const k of Object.keys(v).sort())
+                o[k] = canon(v[k]);
+            return o;
+        }
+        return v;
+    }
+    function truthy(v) {
+        if (v === undefined || v === null || v === false || v === 0 || v === "")
+            return false;
+        if (Array.isArray(v))
+            return v.length > 0;
+        return true;
+    }
+    /** Structured condition: `{path, eq|ne|gt|gte|lt|lte|exists|in}` (all given ops must hold),
+     *  `{all:[…]}`, `{any:[…]}`, `{not:{…}}`; a bare `{path}` tests truthiness. Missing values
+     *  are false (so true under `not`); ordering needs two numbers; a bad shape is false. */
+    function evalWhen(scope, cond) {
+        if (!isObject(cond))
+            return false;
+        if (Array.isArray(cond.all))
+            return cond.all.every((c) => evalWhen(scope, c));
+        if (Array.isArray(cond.any))
+            return cond.any.some((c) => evalWhen(scope, c));
+        if ("not" in cond)
+            return !evalWhen(scope, cond.not);
+        if (typeof cond.path !== "string")
+            return false;
+        const v = lookupExpr(scope, cond.path);
+        const has = v !== undefined && v !== null;
+        const ops = ["eq", "ne", "gt", "gte", "lt", "lte", "exists", "in"].filter((k) => k in cond);
+        if (ops.length === 0)
+            return truthy(v);
+        return ops.every((op) => {
+            const x = cond[op];
+            switch (op) {
+                case "exists":
+                    return has === (x === true);
+                case "eq":
+                    return has && deepEqual(v, x);
+                case "ne":
+                    return has && !deepEqual(v, x);
+                case "in":
+                    return has && Array.isArray(x) && x.some((y) => deepEqual(v, y));
+                default: {
+                    if (!isNum(v) || !isNum(x))
+                        return false;
+                    if (op === "gt")
+                        return v > x;
+                    if (op === "gte")
+                        return v >= x;
+                    if (op === "lt")
+                        return v < x;
+                    return v <= x;
+                }
+            }
+        });
+    }
+    /** One array element → zero or more elements (`repeat` splices, `when` drops, `use`
+     *  expands). */
+    function expand(scope, el) {
+        if (!isObject(el))
+            return [walk(scope, el)];
+        if (el.type === "repeat") {
+            if ("when" in el && !evalWhen(scope, el.when))
+                return [];
+            const items = typeof el.each === "string" ? lookupExpr(scope, el.each) : undefined;
+            if (!Array.isArray(items) || !isObject(el.template))
+                return [];
+            const name = typeof el.as === "string" && el.as ? el.as : "item";
+            const lim = Number.isInteger(el.limit) && el.limit >= 0 ? Math.min(el.limit, MAX_REPEAT) : MAX_REPEAT;
+            const out = [];
+            for (let i = 0; i < Math.min(items.length, lim); i++) {
+                out.push(...expand(child(scope, name, items[i], i), el.template));
+            }
+            return out;
+        }
+        if (el.type === "use") {
+            if ("when" in el && !evalWhen(scope, el.when))
+                return [];
+            const tpl = isObject(scope.templates) && typeof el.template === "string" ? scope.templates[el.template] : undefined;
+            if (!isObject(tpl) || scope.depth >= MAX_TEMPLATE_DEPTH)
+                return [];
+            const args = {};
+            if (isObject(el.args)) {
+                for (const k of Object.keys(el.args))
+                    args[k] = argValue(scope, el.args[k]);
+            }
+            // Keys on the `use` element override the template root (instance wins).
+            const root = { ...tpl };
+            for (const k of Object.keys(el))
+                if (!["type", "template", "args", "when"].includes(k))
+                    root[k] = el[k];
+            const inner = child({ ...scope, depth: scope.depth + 1 }, "arg", args);
+            return expand(inner, root);
+        }
+        if ("when" in el && !evalWhen(scope, el.when))
+            return [];
+        return [walk(scope, el)];
+    }
+    /** An argument that is exactly one `{{expr}}` keeps the expression's JSON type. */
+    function argValue(scope, v) {
+        if (typeof v !== "string")
+            return v;
+        const m = /^\{\{([^{}]*)\}\}$/.exec(v);
+        if (m) {
+            const val = lookupExpr(scope, m[1]);
+            return val === undefined ? "" : val;
+        }
+        return interpolateWith(scope, v);
+    }
+    function walk(scope, v) {
+        if (typeof v === "string")
+            return v.includes("{{") ? interpolateWith(scope, v) : v;
+        if (Array.isArray(v))
+            return v.flatMap((x) => expand(scope, x));
+        if (isObject(v)) {
+            const o = {};
+            for (const k of Object.keys(v))
+                if (k !== "bind" && k !== "when")
+                    o[k] = walk(scope, v[k]);
+            if (isObject(v.bind)) {
+                for (const field of Object.keys(v.bind)) {
+                    const expr = v.bind[field];
+                    if (typeof expr !== "string")
+                        continue;
+                    const val = bound(scope, expr);
+                    if (val !== undefined)
+                        o[field] = val;
+                }
+            }
+            return o;
+        }
+        return v;
+    }
+    /** `bind: {field: expr}`: data / loop / arg values keep their JSON type; other expressions
+     *  render as text; a missing value keeps the literal (undefined). */
+    function bound(scope, raw) {
+        const expr = raw.trim();
+        const dot = expr.indexOf(".");
+        const head = dot < 0 ? expr : expr.slice(0, dot);
+        if (isDataRoot(expr) || local(scope, head).found || (expr === "index" && scope.index !== null)) {
+            const v = lookupExpr(scope, expr);
+            return v === null ? undefined : v;
+        }
+        return placeholder(scope, expr);
+    }
+    /** A family root: `use` / `repeat` / `when` apply there too (a dropped root is omitted). */
+    function walkRoot(scope, v) {
+        if (isObject(v) && v.type === "repeat")
+            return { type: "vstack", children: expand(scope, v) };
+        const out = expand(scope, v);
+        return out.length ? out[0] : undefined;
+    }
+    function scopeFor(config, ctx) {
+        const t = pickLocaleTable(config, ctx.locale);
+        const d = pickLocaleTable(config, "");
+        return {
+            strings: t !== null ? config.strings[t] : null,
+            fallback: d !== null ? config.strings[d] : null,
+            ctx,
+            templates: config && isObject(config.templates) ? config.templates : null,
+            locals: [],
+            index: null,
+            depth: 0,
+        };
+    }
+    /** Fill placeholders in one string. */
+    function interpolate(config, ctx, s) {
+        return interpolateWith(scopeFor(config, ctx), s);
+    }
+    /** `requires.resolve` above {@link CONTRACT_VERSION}: the config this renderer can show. */
+    function effectiveConfig(config) {
+        const need = config && isObject(config.requires) ? config.requires.resolve : undefined;
+        if (!(Number.isInteger(need) && need > CONTRACT_VERSION))
+            return config;
+        const fb = isObject(config.fallback)
+            ? config.fallback
+            : { small: { type: "text", content: "Update the app to show this widget" } };
+        return { version: config.version, strings: config.strings, defaultLocale: config.defaultLocale, ...fb };
+    }
+    /** Active entry, then templates / repeat / when / placeholders / bind. Output: `version` +
+     *  size families only. */
+    function resolveConfig(config, ctx) {
+        const cfg = effectiveConfig(config);
+        const scope = scopeFor(cfg, ctx);
+        const layouts = activeLayouts(cfg, ctx.nowMs);
+        const out = { version: cfg && present(cfg.version) ? cfg.version : 1 };
+        for (const f of FAMILIES) {
+            if (!(f in layouts))
+                continue;
+            const r = walkRoot(scope, layouts[f]);
+            if (r !== undefined)
+                out[f] = r;
+        }
+        return out;
+    }
+    const DEFAULT_REFRESH_MINUTES = 30;
+    const MAX_SOURCE_BYTES = 256 * 1024;
+    /** `https://` anywhere; `http://` only to exactly `localhost` / `127.0.0.1` (development). */
+    function sourceUrlAllowed(url) {
+        if (url.startsWith("https://"))
+            return true;
+        if (!url.startsWith("http://"))
+            return false;
+        const authority = url.slice(7).split(/[/?#]/)[0];
+        if (authority.includes("@"))
+            return false;
+        const i = authority.indexOf(":");
+        const host = i < 0 ? authority : authority.slice(0, i);
+        const port = i < 0 ? "" : authority.slice(i + 1);
+        return (host.toLowerCase() === "localhost" || host === "127.0.0.1") && /^\d*$/.test(port);
+    }
+    /** The fetch this config asks for, or null (only https://, plus localhost for development). */
+    function sourceRequest(config, ctx) {
+        const src = config && isObject(config.source) ? config.source : null;
+        if (!src || typeof src.url !== "string")
+            return null;
+        const url = interpolate(config, ctx, src.url);
+        if (!sourceUrlAllowed(url))
+            return null;
+        const method = typeof src.method === "string" && src.method.toLowerCase() === "post" ? "POST" : "GET";
+        const headers = {};
+        if (isObject(src.headers)) {
+            for (const k of Object.keys(src.headers)) {
+                if (typeof src.headers[k] === "string")
+                    headers[k] = interpolate(config, ctx, src.headers[k]);
+            }
+        }
+        const body = method === "POST" && typeof src.body === "string" ? interpolate(config, ctx, src.body) : null;
+        const m = src.refreshMinutes;
+        const refreshMinutes = Number.isInteger(m) && m >= 0 ? Math.min(1440, Math.max(15, m)) : DEFAULT_REFRESH_MINUTES;
+        return { url, method, headers, body, refreshMinutes };
     }
 
     const HOST_CSS = `
@@ -1470,7 +2543,30 @@
     }
     /** Last render per host: re-rendering a host stops only that host's old timers. */
     const hostSessions = new WeakMap();
-    function paintConfig(host, cfg, chrome) {
+    /** Content of the `data-transition` elements in the host's last render, in DOM order. */
+    const hostTransitions = new WeakMap();
+    const TRANSITION_FRAMES = {
+        opacity: [{ opacity: 0 }, { opacity: 1 }],
+        slide: [{ transform: "translateY(40%)", opacity: 0 }, { transform: "none", opacity: 1 }],
+        numeric: [{ transform: "translateY(35%)", opacity: 0.2 }, { transform: "none", opacity: 1 }],
+    };
+    /** `transition` hint: animate marked elements whose content differs from the last render
+     *  of this host (matched by order). The first render does not animate. */
+    function animateTransitions(host) {
+        const els = Array.from(host.querySelectorAll("[data-transition]"));
+        const now = els.map((e) => e.getAttribute("data-transition") + "|" + e.innerHTML);
+        const before = hostTransitions.get(host);
+        hostTransitions.set(host, now);
+        if (!before)
+            return;
+        els.forEach((e, i) => {
+            const frames = TRANSITION_FRAMES[e.getAttribute("data-transition") || ""];
+            if (frames && before[i] !== undefined && before[i] !== now[i] && typeof e.animate === "function") {
+                e.animate(frames, { duration: 300, easing: "ease-out" });
+            }
+        });
+    }
+    function paintConfig(host, cfg, chrome, surfaceOverride) {
         host.replaceChildren();
         if (!cfg) {
             paintEmpty(host, "No widget config");
@@ -1483,18 +2579,32 @@
             return;
         }
         const ink = isDark() ? "#e5e7eb" : "#111827";
-        const surface = isDark() ? "#0f172a" : "#f8fafc";
+        const surface = surfaceOverride || (isDark() ? "#0f172a" : "#f8fafc");
         host.style.color = ink;
         const wrapper = document.createElement("div");
         wrapper.style.cssText = "width:100%;height:100%;overflow:hidden;position:relative";
         const content = renderEl(data);
+        const rootTransition = cfg.transition;
+        if (typeof rootTransition === "string" && rootTransition !== "none" && !content.hasAttribute("data-transition")) {
+            content.setAttribute("data-transition", rootTransition);
+        }
         content.style.width = "100%";
         content.style.height = "100%";
         if (!content.style.background && !content.style.backgroundColor) {
             content.style.background = surface;
         }
+        if (data.type === "hstack" && !greedy(data, "h", undefined)) {
+            // WidgetKit pins a content-height root row to the top; only the backdrop spans the widget.
+            content.style.height = "auto";
+            wrapper.style.background = content.style.background;
+            wrapper.style.borderRadius = content.style.borderRadius;
+            content.style.background = "";
+        }
+        // Apple always rounds the widget (16 in WidgetChrome.swift when the root sets none);
+        // `overflow:hidden` clips the root's background to it.
+        wrapper.style.borderRadius = wrapper.style.borderRadius || content.style.borderRadius || "16px";
         wrapper.appendChild(content);
-        {
+        if (chrome) {
             const drag = document.createElement("div");
             drag.id = "drag-handle";
             drag.setAttribute("data-tauri-drag-region", "");
@@ -1525,6 +2635,7 @@
             wrapper.appendChild(cls);
         }
         host.appendChild(wrapper);
+        animateTransitions(host);
     }
     function renderWidget(host, config, opts) {
         ensureHostCss();
@@ -1544,9 +2655,31 @@
             group: opts?.group,
             widgetId: opts?.widgetId,
             onAction: opts?.onAction,
+            onSet: opts?.onSet,
         });
         hostSessions.set(host, session);
-        paintConfig(host, config);
+        const ctx = {
+            nowMs: opts?.context?.nowMs ?? Date.now(),
+            locale: opts?.context?.locale ?? (typeof navigator !== "undefined" ? navigator.language : "") ?? "",
+            instance: opts?.context?.instance ?? null,
+            data: opts?.context?.data,
+            state: opts?.context?.state,
+        };
+        const resolved = config ? resolveConfig(config, ctx) : config;
+        if (resolved && config && config.__nonce != null)
+            resolved.__nonce = config.__nonce;
+        // Resolve keeps only the families; the config-level hint applies to the root.
+        if (resolved && config && config.transition)
+            resolved.transition = config.transition;
+        paintConfig(host, resolved, !!opts?.chrome, opts?.surface);
+        // Switch to the next scheduled entry on time (only when the caller did not pin `nowMs`).
+        const next = config && opts?.context?.nowMs === undefined ? nextChangeMs(config, ctx.nowMs) : null;
+        if (next !== null) {
+            session.timers.push(setTimeout(function () {
+                if (hostSessions.get(host) === session)
+                    renderWidget(host, config, opts);
+            }, Math.min(next - ctx.nowMs + 50, 2147483647)));
+        }
         return {
             destroy() {
                 clearTimers(session);
@@ -1557,12 +2690,219 @@
         };
     }
 
+    /** Expand / collapse duration (keep in sync with the CSS below). */
+    const MOVE_MS = 320;
+    const EASE = "cubic-bezier(.2,.9,.25,1.06)";
+    const CSS = `
+.isl{position:absolute;top:0;left:50%;transform:translateX(-50%);background:#000;color:#fff;overflow:hidden;
+cursor:default;transition:width ${MOVE_MS}ms ${EASE},height ${MOVE_MS}ms ${EASE},border-radius ${MOVE_MS}ms ${EASE}}
+.isl .layer{position:absolute;top:0;transition:opacity 160ms ease-out}
+.isl .x{opacity:0;pointer-events:none}
+.isl.open .c{opacity:0;pointer-events:none}
+.isl.open .x{opacity:1;pointer-events:auto;transition:opacity 220ms ease-in 90ms}
+.isl .slot{position:absolute;overflow:hidden}
+.isl .band{padding:0 12px}
+.mini{position:absolute;top:0;background:#000;border-radius:50%;overflow:hidden;cursor:pointer}
+`;
+    const SPACER = { type: "spacer" };
+    /** Align a region inside its slot: leading, trailing or centred, vertically centred. */
+    function align(node, how) {
+        if (!node)
+            return null;
+        const children = how === "lead" ? [node, SPACER] : how === "trail" ? [SPACER, node] : [SPACER, node, SPACER];
+        // Fills the slot, so the region is centred vertically (a root row that does not fill
+        // height is pinned to the top, like WidgetKit).
+        return {
+            type: "hstack",
+            spacing: 0,
+            alignment: "center",
+            frame: { maxWidth: "infinity", maxHeight: "infinity" },
+            children,
+        };
+    }
+    function draw(host, act, node) {
+        if (!node) {
+            host.replaceChildren();
+            return;
+        }
+        renderWidget(host, { medium: node }, {
+            size: "medium",
+            theme: "dark",
+            group: act.group,
+            // Taps report `widgetId = "activity.<id>"` like the other activity surfaces.
+            widgetId: act.widgetId,
+            surface: "transparent",
+        });
+    }
+    function box(el, x, y, w, h) {
+        el.style.left = x + "px";
+        el.style.top = y + "px";
+        el.style.width = Math.max(0, w) + "px";
+        el.style.height = Math.max(0, h) + "px";
+    }
+    function div(cls, parent) {
+        const d = document.createElement("div");
+        d.className = cls;
+        parent.appendChild(d);
+        return d;
+    }
+    /** Mount the island into `root`. Returns `update(view)` for each new view from the host. */
+    function mountIsland(root, host) {
+        if (!document.getElementById("island-css")) {
+            const st = document.createElement("style");
+            st.id = "island-css";
+            st.textContent = CSS;
+            document.head.appendChild(st);
+        }
+        root.replaceChildren();
+        const pill = div("isl", root);
+        const compact = div("layer c", pill);
+        const big = div("layer x", pill);
+        const slots = {
+            cl: div("slot band", compact),
+            ct: div("slot band", compact),
+            xl: div("slot band", big),
+            xt: div("slot band", big),
+            xc: div("slot", big),
+            xb: div("slot", big),
+        };
+        const minis = div("minis", root);
+        let view = null;
+        let open = false;
+        /** Last hover / click intent (a slow host reply must not reopen a left island). */
+        let want = false;
+        let closeTimer = null;
+        const paint = () => {
+            const a = view && view.activities[0];
+            root.style.display = a ? "" : "none";
+            if (!view || !a)
+                return;
+            const { band, gap, flush } = view;
+            const [cw, ch] = view.compact;
+            const [ew, eh] = view.expandedSize;
+            pill.classList.toggle("open", open);
+            pill.style.width = (open ? ew : cw) + "px";
+            pill.style.height = (open ? eh : ch) + "px";
+            const r = open ? 22 : flush ? Math.round(band * 0.35) : band / 2;
+            // At the notch the pill hangs from the screen edge: square top corners.
+            pill.style.borderRadius = flush ? `0 0 ${r}px ${r}px` : r + "px";
+            pill.style.boxShadow = a.keyline ? "inset 0 0 0 1px " + a.keyline : "";
+            // Layers stay centred while the pill grows / shrinks around them.
+            box(compact, 0, 0, cw, ch);
+            box(big, 0, 0, ew, eh);
+            compact.style.left = `calc(50% - ${cw / 2}px)`;
+            big.style.left = `calc(50% - ${ew / 2}px)`;
+            const side = (cw - gap) / 2;
+            box(slots.cl, 0, 0, side, band);
+            box(slots.ct, cw - side, 0, side, band);
+            const xside = (ew - gap) / 2;
+            const centerH = a.regions.center ? 30 : 0;
+            box(slots.xl, 0, 0, xside, band);
+            box(slots.xt, ew - xside, 0, xside, band);
+            box(slots.xc, 0, band, ew, centerH);
+            box(slots.xb, 0, band + centerH, ew, eh - band - centerH);
+            const g = a.regions;
+            draw(slots.cl, a, align(g.compactLeading, "lead"));
+            draw(slots.ct, a, align(g.compactTrailing, "trail"));
+            draw(slots.xl, a, align(g.leading, "lead"));
+            draw(slots.xt, a, align(g.trailing, "trail"));
+            draw(slots.xc, a, align(g.center, "center"));
+            draw(slots.xb, a, g.bottom);
+            minis.replaceChildren();
+            if (open)
+                return;
+            view.minimal.forEach((dx, i) => {
+                const other = view.activities[i + 1];
+                if (!other)
+                    return;
+                const m = div("mini", minis);
+                m.style.left = `calc(50% + ${dx - band / 2}px)`;
+                m.style.width = m.style.height = band + "px";
+                if (other.keyline)
+                    m.style.boxShadow = "inset 0 0 0 1px " + other.keyline;
+                draw(m, other, align(other.regions.minimal, "center"));
+                m.onclick = () => host.focus(other.id);
+            });
+        };
+        const setOpen = (next) => {
+            if (closeTimer)
+                clearTimeout(closeTimer);
+            closeTimer = null;
+            want = next;
+            if (next === open)
+                return;
+            if (next) {
+                // Grow the window first, then animate the pill into the new room.
+                host.setExpanded(true).then((v) => {
+                    if (v)
+                        view = v;
+                    if (!want) {
+                        host.setExpanded(false);
+                        return;
+                    }
+                    open = true;
+                    paint();
+                });
+            }
+            else {
+                // Shrink the pill inside the big window, then give the room back.
+                open = false;
+                paint();
+                closeTimer = setTimeout(() => {
+                    if (!open)
+                        host.setExpanded(false);
+                }, MOVE_MS);
+            }
+        };
+        pill.addEventListener("mouseenter", () => setOpen(true));
+        document.documentElement.addEventListener("mouseleave", () => {
+            if (closeTimer)
+                clearTimeout(closeTimer);
+            closeTimer = setTimeout(() => setOpen(false), 150);
+        });
+        // No hover (touch, some Wayland setups): a click opens, a click on the top band closes.
+        pill.addEventListener("click", (e) => {
+            const t = e.target;
+            if (!open)
+                setOpen(true);
+            else if (t === pill || t === big || slots.xl.contains(t) || slots.xt.contains(t))
+                setOpen(false);
+        });
+        return (next) => {
+            view = next;
+            // The host's cursor poller (macOS: no hover events in an inactive app) drives too:
+            // it grows the window and says `expanded`, or asks to close by sending it `false`.
+            if (next && next.expanded && !open && !closeTimer) {
+                want = true;
+                open = true;
+            }
+            else if (next && !next.expanded && open) {
+                setOpen(false);
+                return;
+            }
+            paint();
+        };
+    }
+
     const params = new URLSearchParams(window.location.search);
     // "" = the app's default group (plugins.widgets.appGroup).
     const GROUP = params.get("group") || "";
     const SIZE = params.get("size") || "";
     const WIDGET_ID = params.get("widgetId") || "default";
     const THEME = (params.get("theme") || "").toLowerCase();
+    const INSTANCE = params.get("instance") || "";
+    const SCOPED_ID = INSTANCE ? WIDGET_ID + "#" + INSTANCE : WIDGET_ID;
+    /** Last raw config and data layers; any of them changing re-renders. */
+    let lastConfig = null;
+    let hostData = undefined;
+    let fetchedData = undefined;
+    let sourceTimer = null;
+    let sourceKey = "";
+    /** Whether the shown config / data are the placement's own (not widget-wide). */
+    let lastConfigScoped = false;
+    let hostDataScoped = false;
+    /** Stored local state: `state:{widgetId}`, then `state:{widgetId}#{instance}`. */
+    let stateLayers = [];
     function getRoot() {
         return document.getElementById("root");
     }
@@ -1611,7 +2951,8 @@
                 receipt: {
                     widgetId: WIDGET_ID,
                     group: GROUP,
-                    instance: label,
+                    // Same id the host lists for this window (instance, or the label by default).
+                    instance: INSTANCE || label,
                     nonce: nonce,
                     size: SIZE || "small",
                     theme: document.documentElement.getAttribute("data-theme") || undefined,
@@ -1626,26 +2967,139 @@
         }
         catch (_) { }
     }
+    function context(cfg) {
+        return {
+            locale: navigator.language || "",
+            instance: INSTANCE || null,
+            data: mergeData([cfg?.data, hostData, fetchedData]),
+            state: mergeData([cfg?.state, ...stateLayers]),
+        };
+    }
+    function loadState() {
+        const keys = INSTANCE ? ["state:" + WIDGET_ID, "state:" + SCOPED_ID] : ["state:" + WIDGET_ID];
+        return Promise.all(keys.map(getItem)).then(function (vals) {
+            stateLayers = vals.map(parseJson);
+        });
+    }
+    /** `set` tap: the host writes the placement's state (same operators as the native
+     *  renderers) and emits `widget-state-changed`, which redraws every window showing it.
+     *  No `skipReload`: a macOS WidgetKit widget with the same id reloads too. */
+    function writeState(patch) {
+        return invoke("plugin:widgets|set_widget_state", {
+            widgetId: WIDGET_ID,
+            instance: INSTANCE || null,
+            patch,
+            group: GROUP || null,
+        });
+    }
     function render(cfg, source, nonceHint) {
         const root = getRoot();
         if (!root)
             return;
+        lastConfig = cfg ?? null;
+        scheduleSource(cfg);
         renderWidget(root, cfg ?? null, {
             size: SIZE,
             theme: THEME,
             group: GROUP,
-            widgetId: WIDGET_ID});
+            widgetId: WIDGET_ID,
+            chrome: true,
+            context: context(cfg),
+            onSet: writeState,
+        });
         if (!cfg)
             return;
         reportReceipt(cfg, source || "pull", source === "push" ? "reload" : "timeline", nonceHint);
     }
+    function getItem(key) {
+        return invoke("plugin:widgets|get_items", { key, group: GROUP || null }).catch(function () {
+            return null;
+        });
+    }
+    function parseJson(raw) {
+        if (!raw)
+            return undefined;
+        try {
+            return JSON.parse(raw);
+        }
+        catch (_) {
+            return undefined;
+        }
+    }
+    /** The placement's own value first, then the widget's (`store::lookup_keys`). */
+    function firstItem(prefix) {
+        const keys = INSTANCE ? [prefix + SCOPED_ID, prefix + WIDGET_ID] : [prefix + WIDGET_ID];
+        return Promise.all(keys.map(getItem)).then(function (vals) {
+            for (let i = 0; i < vals.length; i++) {
+                const parsed = parseJson(vals[i]);
+                if (parsed !== undefined)
+                    return { value: parsed, scoped: !!INSTANCE && i === 0 };
+            }
+            return { value: undefined, scoped: false };
+        });
+    }
+    /** Fetch `source` now and then every `refreshMinutes`; the response is cached in the
+     *  shared store (`fetched:{id}`) so other windows and the next launch start from it. */
+    function scheduleSource(cfg) {
+        // Like the native renderers: only {{locale}} / {{instance}} in the request (no data, so a
+        // response can never change its own request and refetch in a loop).
+        const req = cfg
+            ? sourceRequest(cfg, { nowMs: Date.now(), locale: navigator.language || "", instance: INSTANCE || null })
+            : null;
+        const key = req ? JSON.stringify(req) : "";
+        if (key === sourceKey)
+            return;
+        sourceKey = key;
+        if (sourceTimer)
+            clearTimeout(sourceTimer);
+        sourceTimer = null;
+        if (!req)
+            return;
+        const run = function () {
+            fetch(req.url, { method: req.method, headers: req.headers, body: req.body ?? undefined })
+                .then(function (r) {
+                if (!r.ok)
+                    throw new Error("HTTP " + r.status);
+                return r.text();
+            })
+                .then(function (text) {
+                if (sourceKey !== key)
+                    return; // source changed while this request was in flight
+                if (new TextEncoder().encode(text).length > MAX_SOURCE_BYTES)
+                    throw new Error("source response too large");
+                const json = JSON.parse(text);
+                fetchedData = json;
+                invoke("plugin:widgets|set_items", {
+                    key: "fetched:" + SCOPED_ID,
+                    value: text,
+                    group: GROUP || null,
+                }).catch(function () { });
+                render(lastConfig, "pull");
+            })
+                .catch(function (e) {
+                console.warn("widget source fetch failed:", e);
+            })
+                .finally(function () {
+                if (sourceKey === key)
+                    sourceTimer = setTimeout(run, req.refreshMinutes * 60000);
+            });
+        };
+        run();
+    }
     function loadConfig() {
         if (!getRoot())
             return;
-        Promise.all([
-            invoke("plugin:widgets|get_widget_config", {
+        const readConfig = function (instance) {
+            return invoke("plugin:widgets|get_widget_config", {
                 group: GROUP || null,
                 widgetId: WIDGET_ID,
+                instance,
+            });
+        };
+        Promise.all([
+            (INSTANCE ? readConfig(INSTANCE) : Promise.resolve(null)).then(function (own) {
+                lastConfigScoped = !!own;
+                return own || readConfig(null);
             }),
             invoke("plugin:widgets|get_items", {
                 key: "__meta_nonce__",
@@ -1654,6 +3108,15 @@
                 return null;
             }),
         ])
+            .then(function (res) {
+            return Promise.all([firstItem("data:"), firstItem("fetched:"), loadState()]).then(function (layers) {
+                hostData = layers[0].value;
+                hostDataScoped = layers[0].scoped;
+                if (fetchedData === undefined)
+                    fetchedData = layers[1].value;
+                return res;
+            });
+        })
             .then(function (res) {
             var cfg = res[0];
             var nonce = res[1];
@@ -1673,9 +3136,31 @@
             root.appendChild(err);
         });
     }
+    /** Live-activity island window (Rust `island::WIDGET_ID`). */
+    function initIsland(root) {
+        const ask = (args) => invoke("plugin:widgets|activity_island", args).catch(function (e) {
+            console.warn("activity_island:", e);
+            return null;
+        });
+        const update = mountIsland(root, {
+            setExpanded: (expanded) => ask({ expanded }),
+            focus: (id) => {
+                ask({ focus: id }).then(update);
+            },
+        });
+        listen("activity-island", function (ev) {
+            update(ev.payload);
+        });
+        ask({}).then(update);
+    }
     function init() {
         if (!window.__TAURI_INTERNALS__) {
             setTimeout(init, 50);
+            return;
+        }
+        const root = getRoot();
+        if (WIDGET_ID === "activity.__island__" && root) {
+            initIsland(root);
             return;
         }
         listen("widget-config-push", function (ev) {
@@ -1684,15 +3169,56 @@
                 const p = raw;
                 if (!p.config)
                     return;
-                if (p.widgetId && p.widgetId !== WIDGET_ID)
+                // An instance window takes its own config, or the widget-wide one while it has none.
+                if (p.widgetId && p.widgetId !== WIDGET_ID && p.widgetId !== SCOPED_ID)
+                    return;
+                if (INSTANCE && p.widgetId === WIDGET_ID && lastConfigScoped)
                     return;
                 if (GROUP && p.group && p.group !== GROUP)
                     return;
+                lastConfigScoped = p.widgetId === SCOPED_ID && !!INSTANCE;
                 render(p.config, "push");
             }
             else {
                 render(raw, "push");
             }
+        });
+        listen("widget-data-push", function (ev) {
+            const p = ev.payload;
+            if (!p || p.widgetId !== WIDGET_ID)
+                return;
+            if (GROUP && p.group && p.group !== GROUP)
+                return;
+            if (p.instance && p.instance !== INSTANCE)
+                return;
+            // Widget-wide data does not replace a placement's own.
+            if (!p.instance && INSTANCE && hostDataScoped)
+                return;
+            if (p.instance && p.data === null) {
+                // Own data cleared: fall back to the widget-wide data in the store.
+                hostDataScoped = false;
+                firstItem("data:").then(function (d) {
+                    hostData = d.value;
+                    hostDataScoped = d.scoped;
+                    render(lastConfig, "push");
+                });
+                return;
+            }
+            hostDataScoped = !!p.instance;
+            hostData = p.data === null ? undefined : p.data;
+            render(lastConfig, "push");
+        });
+        listen("widget-state-changed", function (ev) {
+            const p = ev.payload;
+            if (!p || p.widgetId !== WIDGET_ID)
+                return;
+            if (GROUP && p.group && p.group !== GROUP)
+                return;
+            if (p.instance && p.instance !== INSTANCE)
+                return;
+            loadState().then(function () {
+                render(lastConfig, "push");
+            });
         });
         listen("widget-update", function () {
             loadConfig();

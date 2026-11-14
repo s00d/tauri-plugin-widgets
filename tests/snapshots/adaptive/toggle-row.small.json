@@ -2,7 +2,11 @@
   "$schema": "http://adaptivecards.io/schemas/adaptive-card.json",
   "body": [
     {
-      "id": "card:#1c1c1e;gap:10",
+      "backgroundImage": {
+        "fillMode": "repeat",
+        "url": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAAEElEQVR4AQEFAPr/ABwcHv8CBAFWW3W0KwAAAABJRU5ErkJggg=="
+      },
+      "id": "card:#1c1c1e",
       "items": [
         {
           "items": [
@@ -23,6 +27,7 @@
           "type": "Container"
         },
         {
+          "id": "gap:10",
           "items": [
             {
               "size": "Default",
@@ -38,10 +43,11 @@
             "type": "Action.Execute",
             "verb": "toggle_bt"
           },
+          "spacing": "Medium",
           "type": "Container"
         }
       ],
-      "spacing": "Medium",
+      "spacing": "None",
       "style": "emphasis",
       "type": "Container"
     }

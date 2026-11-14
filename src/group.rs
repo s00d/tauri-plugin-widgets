@@ -10,7 +10,10 @@ use crate::error::{Error, Result};
 /// - Non-empty
 /// - Charset: ASCII alphanumeric, `.`, `_`, `-` only
 /// - Rejects `.` / `..` (path-segment traps)
-/// - On Apple targets: must start with `group.` and have a non-trap suffix
+/// - On iOS: must start with `group.` and have a non-trap suffix
+/// - On macOS: `group.<suffix>` or `<TEAMID>.<suffix>` (10 upper-case letters / digits). A
+///   Team-ID group belongs to the app itself on macOS: no "access data from other apps"
+///   checks, which `group.` ids get there (they stall file access and prompt)
 pub fn validate_group(group: &str) -> Result<&str> {
     if group.is_empty() {
         return Err(Error::new("group must not be empty"));
@@ -26,18 +29,32 @@ pub fn validate_group(group: &str) -> Result<&str> {
     }
     #[cfg(any(target_os = "macos", target_os = "ios"))]
     {
-        const PREFIX: &str = "group.";
-        if !group.starts_with(PREFIX) {
-            return Err(Error::new(
-                "group must be an App Group id starting with 'group.'",
-            ));
-        }
-        let rest = &group[PREFIX.len()..];
+        let Some(rest) = app_group_suffix(group) else {
+            return Err(Error::new(if cfg!(target_os = "macos") {
+                "group must be an App Group id: 'group.<id>' or '<TEAMID>.<id>'"
+            } else {
+                "group must be an App Group id starting with 'group.'"
+            }));
+        };
         if rest.is_empty() || rest == "." || rest == ".." {
             return Err(Error::new("group App Group suffix is invalid"));
         }
     }
     Ok(group)
+}
+
+/// The part after the App Group prefix: `group.` (iOS, macOS) or a Team ID `ABCDE12345.`
+/// (macOS only); `None` when the id has neither.
+pub fn app_group_suffix(group: &str) -> Option<&str> {
+    if let Some(rest) = group.strip_prefix("group.") {
+        return Some(rest);
+    }
+    let (team, rest) = group.split_once('.')?;
+    let team_id = team.len() == 10
+        && team
+            .chars()
+            .all(|c| c.is_ascii_uppercase() || c.is_ascii_digit());
+    (cfg!(target_os = "macos") && team_id).then_some(rest)
 }
 
 /// Validate a `widgetId`: it becomes the `config:{widgetId}` store key, which native
@@ -53,6 +70,22 @@ pub fn validate_widget_id(widget_id: &str) -> Result<&str> {
         )));
     }
     Ok(widget_id)
+}
+
+/// Validate an optional placement id (same charset as a widget id; empty means none).
+pub fn validate_instance_id(instance: Option<&str>) -> Result<Option<&str>> {
+    match instance.map(str::trim).filter(|s| !s.is_empty()) {
+        None => Ok(None),
+        Some(i)
+            if i.chars()
+                .all(|c| c.is_ascii_alphanumeric() || matches!(c, '.' | '_' | '-')) =>
+        {
+            Ok(Some(i))
+        }
+        Some(i) => Err(Error::new(format!(
+            "instance \"{i}\" must use only letters, digits, '.', '_' or '-'"
+        ))),
+    }
 }
 
 /// Process-wide default group: `plugins.widgets.appGroup`, else `group.<identifier>`.
@@ -103,50 +136,90 @@ fn resolve_with(requested: Option<&str>, default: Option<&str>) -> Result<String
 #[cfg(test)]
 mod tests {
     use super::*;
+    use proptest::prelude::*;
 
-    #[test]
-    fn accepts_reverse_dns() {
-        assert!(validate_group("group.com.example.app").is_ok());
-        #[cfg(not(any(target_os = "macos", target_os = "ios")))]
-        assert!(validate_group("com.example.app").is_ok());
+    const APPLE: bool = cfg!(any(target_os = "macos", target_os = "ios"));
+
+    fn safe_charset(s: &str) -> bool {
+        s.chars()
+            .all(|c| c.is_ascii_alphanumeric() || matches!(c, '.' | '_' | '-'))
     }
 
+    /// Reference model of `validate_group`.
+    fn group_ok(g: &str) -> bool {
+        let base = !g.is_empty() && safe_charset(g) && g != "." && g != "..";
+        if !APPLE {
+            return base;
+        }
+        let rest = g.strip_prefix("group.").or_else(|| {
+            g.strip_prefix("ABCDE12345.")
+                .filter(|_| cfg!(target_os = "macos"))
+        });
+        base && rest.is_some_and(|rest| !rest.is_empty() && rest != "." && rest != "..")
+    }
+
+    /// Ids built from the safe charset, path characters, blanks and the `group.` / Team ID
+    /// prefixes (a lower-case "team" is not one).
+    fn ident() -> impl Strategy<Value = String> {
+        (
+            prop::option::of(prop_oneof![
+                Just("group."),
+                Just("ABCDE12345."),
+                Just("abcde12345.")
+            ]),
+            "[a-z0-9._/\\\\# -]{0,6}",
+            prop::option::of(Just(" ")),
+        )
+            .prop_map(|(p, body, pad)| format!("{}{}{}", p.unwrap_or(""), body, pad.unwrap_or("")))
+    }
+
+    proptest! {
+        #![proptest_config(ProptestConfig { cases: 512, ..ProptestConfig::default() })]
+        /// Group, widget id and instance validators agree with their reference models for
+        /// arbitrary input (path chars, dot segments, blanks, Apple `group.` prefix).
+        #[test]
+        fn validators_match_reference_models(s in ident()) {
+            prop_assert_eq!(validate_group(&s).is_ok(), group_ok(&s), "group {:?}", s);
+            prop_assert_eq!(validate_widget_id(&s).is_ok(), !s.is_empty() && safe_charset(&s), "widgetId {:?}", s);
+            let trimmed = s.trim();
+            let want = if trimmed.is_empty() { Some(None) } else if safe_charset(trimmed) { Some(Some(trimmed)) } else { None };
+            prop_assert_eq!(validate_instance_id(Some(&s)).ok(), want, "instance {:?}", s);
+        }
+    }
+
+    /// Rejections name the offending value (path chars, separators); edge cases are
+    /// in the reference model above and the IPC model (tests/offline_model.rs).
     #[test]
-    fn resolve_uses_default_when_omitted() {
+    fn rejections_name_the_bad_value() {
+        let e = validate_widget_id("a/b").unwrap_err().to_string();
+        assert!(e.contains("widgetId \"a/b\""), "{e}");
+        let e = validate_instance_id(Some("a#b")).unwrap_err().to_string();
+        assert!(e.contains("instance \"a#b\""), "{e}");
+        for g in [".", ".."] {
+            let e = validate_group(g).unwrap_err().to_string();
+            assert!(e.contains("not a valid identifier"), "{g}: {e}");
+        }
+    }
+
+    /// What IPC cannot reach (the plugin always configures a default group): without a
+    /// default and a request there is no group; an invalid requested group fails
+    /// validation; the plugin's default feeds `resolve_group`. Blank / other / invalid
+    /// groups over IPC: tests/offline_model.rs.
+    #[test]
+    fn group_resolution_without_a_default() {
+        assert!(resolve_with(None, None).is_err());
         assert_eq!(
             resolve_with(None, Some("group.com.a")).unwrap(),
             "group.com.a"
         );
-        assert!(resolve_with(None, None).is_err());
-    }
-
-    #[test]
-    fn resolve_rejects_other_group_on_apple_only() {
         let other = resolve_with(Some("group.com.b"), Some("group.com.a"));
-        #[cfg(any(target_os = "macos", target_os = "ios"))]
-        assert!(other.is_err());
-        #[cfg(not(any(target_os = "macos", target_os = "ios")))]
-        assert_eq!(other.unwrap(), "group.com.b");
-        assert_eq!(
-            resolve_with(Some("group.com.a"), Some("group.com.a")).unwrap(),
-            "group.com.a"
-        );
-    }
+        assert_eq!(other.is_ok(), !APPLE);
+        assert!(resolve_with(Some("group.a/b"), None).is_err());
 
-    #[test]
-    fn rejects_path_chars() {
-        assert!(validate_group("group.com/../../tmp").is_err());
-        assert!(validate_group("group.com\\evil").is_err());
-        assert!(validate_group("").is_err());
-        assert!(validate_group("..").is_err());
-    }
-
-    #[test]
-    #[cfg(any(target_os = "macos", target_os = "ios"))]
-    fn apple_requires_group_prefix() {
-        assert!(validate_group("com.example.app").is_err());
-        assert!(validate_group("group.").is_err());
-        assert!(validate_group("group..").is_err());
-        assert!(validate_group("group...").is_err());
+        set_default_group("group.unit.test");
+        // OnceLock: another test may have set it first; either way it is a real group.
+        let g = default_group().expect("default set");
+        assert!(g.starts_with("group.") && g.len() > "group.".len(), "{g}");
+        assert_eq!(resolve_group(None).unwrap(), g);
     }
 }

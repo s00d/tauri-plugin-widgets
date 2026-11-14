@@ -20,6 +20,9 @@ pub struct ChartDataPoint {
     /// Optional per-point color override.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub color: Option<ColorValue>,
+    /// Series name: points with the same `series` form one line / bar group.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub series: Option<String>,
 }
 
 /// A single row for [`crate::models::ListElement`].

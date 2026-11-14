@@ -48,7 +48,7 @@ shot-macos case:
 # Level C1 — Rust + Swift transports (config driver + file IO).
 test-macos-transports:
     cargo test --lib transport::
-    cargo test --test macos_transports -- --nocapture
+    cargo test --test transports -- --nocapture
     cd {{repo}}/swift && swift test --filter TransportTests
 
 # Level C2 — init-macos → build .appex → entitlements → embed into stub .app.
@@ -72,6 +72,13 @@ record-macos case:
     GOLDEN_RECORD=1 bash {{repo}}/scripts/sh/macos-shot.sh {{case}}
 
 # ─── Windows / UTM (optional remote node) ───────────────────────────────────
+
+# Build the UTM Windows 11 Arm64 VM unattended (msdl ISO, SSH, .NET 8) / delete it with its ISOs.
+win-vm-create:
+    bash {{repo}}/scripts/sh/win-vm.sh create
+
+win-vm-destroy:
+    bash {{repo}}/scripts/sh/win-vm.sh destroy
 
 win-up:
     bash {{repo}}/scripts/sh/win-up.sh
@@ -102,6 +109,7 @@ build-windows-example-xwin:
 
 record-windows case:
     bash {{repo}}/scripts/sh/win-up.sh
+    ADAPTIVE_OUT=out/adaptive FEATURES=rasterize bash {{repo}}/scripts/sh/gen-adaptive-snapshots.sh
     bash {{repo}}/scripts/win/sync.sh
     ssh utm-win "powershell -NoProfile -ExecutionPolicy Bypass -File C:\\work\\shot.ps1 -Mode visual -Case {{case}} -Record"
     mkdir -p {{repo}}/tests/golden/windows
@@ -119,6 +127,7 @@ record-windows-all:
 
 test-windows-visual:
     bash {{repo}}/scripts/sh/win-up.sh
+    ADAPTIVE_OUT=out/adaptive FEATURES=rasterize bash {{repo}}/scripts/sh/gen-adaptive-snapshots.sh
     bash {{repo}}/scripts/win/sync.sh
     ssh utm-win 'powershell -NoProfile -ExecutionPolicy Bypass -File C:\work\shot.ps1 -Mode visual'
 
@@ -217,3 +226,17 @@ hosts:
     ssh -o ConnectTimeout=2 -o BatchMode=yes utm-win exit 2>/dev/null && echo "windows ok" || echo "windows DOWN"
     pgrep -f widget-probe >/dev/null 2>&1 && echo "desktop ok" || echo "desktop DOWN"
 
+
+# ─── Mutation testing (run one at a time; see docs/content/5.contributing/7.mutation-testing.md) ──
+
+mutants-rust:
+    cargo mutants
+
+mutants-js:
+    pnpm mutants:js
+
+mutants-kotlin:
+    pnpm mutants:kotlin
+
+mutants-swift:
+    pnpm mutants:swift

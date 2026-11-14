@@ -1,0 +1,39 @@
+{
+  "about": "Contract v3 `state` root: config `state` defaults merged with the stored state (ctx.state, later wins per key). Read like `data`: placeholders, `when`, `bind` (typed), `repeat.each`. `set` is kept for the renderer; its strings are interpolated like any string, operators like `$toggle` pass through. A missing state key renders empty.",
+  "config": {
+    "state": { "tab": "a", "done": false, "count": 0, "items": [{ "id": "a", "label": "A" }, { "id": "b", "label": "B" }] },
+    "small": {
+      "type": "vstack",
+      "children": [
+        { "type": "text", "content": "tab={{state.tab}} count={{state.count}} [{{state.missing}}]" },
+        { "type": "toggle", "isOn": false, "label": "Done", "bind": { "isOn": "state.done" }, "set": { "done": "$toggle" } },
+        { "type": "button", "label": "+1", "set": { "count": "$inc" }, "action": "counted" },
+        {
+          "type": "repeat",
+          "each": "state.items",
+          "as": "it",
+          "template": { "type": "button", "label": "{{it.label}}", "set": { "tab": "{{it.id}}", "seen": true } }
+        },
+        { "type": "text", "content": "only on tab b", "when": { "path": "state.tab", "eq": "b" } },
+        { "type": "text", "content": "not done", "when": { "not": { "path": "state.done" } } },
+        { "type": "link", "set": { "tab": null }, "children": [{ "type": "text", "content": "reset" }] }
+      ]
+    }
+  },
+  "ctx": { "nowMs": 0, "locale": "en", "state": { "tab": "b", "done": true, "count": 2 } },
+  "expected": {
+    "version": 1,
+    "small": {
+      "type": "vstack",
+      "children": [
+        { "type": "text", "content": "tab=b count=2 []" },
+        { "type": "toggle", "isOn": true, "label": "Done", "set": { "done": "$toggle" } },
+        { "type": "button", "label": "+1", "set": { "count": "$inc" }, "action": "counted" },
+        { "type": "button", "label": "A", "set": { "tab": "a", "seen": true } },
+        { "type": "button", "label": "B", "set": { "tab": "b", "seen": true } },
+        { "type": "text", "content": "only on tab b" },
+        { "type": "link", "set": { "tab": null }, "children": [{ "type": "text", "content": "reset" }] }
+      ]
+    }
+  }
+}

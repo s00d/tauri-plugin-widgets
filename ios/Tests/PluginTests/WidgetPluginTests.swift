@@ -1,289 +1,161 @@
+import Foundation
 import XCTest
+
+#if canImport(ActivityKit)
+import ActivityKit
+#endif
 
 @testable import tauri_plugin_widgets
 
-// MARK: - Decodable Args Tests
-
-final class DecodableArgsTests: XCTestCase {
-
-    // MARK: SetItemsArgs
-
-    func testSetItemsArgsDecoding() throws {
-        let json = """
-        {"key": "widget_text", "value": "Hello", "group": "group.com.example"}
-        """.data(using: .utf8)!
-
-        let args = try JSONDecoder().decode(SetItemsArgs.self, from: json)
-        XCTAssertEqual(args.key, "widget_text")
-        XCTAssertEqual(args.value, "Hello")
-        XCTAssertEqual(args.group, "group.com.example")
+/// Host plugin (iOS / macOS app side): command args as the JS bridge sends them, the
+/// App Group UserDefaults they land in, `setWidgetState` patches and the Live Activity
+/// request → update → end payloads.
+final class WidgetPluginTests: XCTestCase {
+    private func decode<T: Decodable>(_ type: T.Type, _ json: String) throws -> T {
+        try JSONDecoder().decode(type, from: Data(json.utf8))
     }
 
-    func testSetItemsArgsDecodingWithEmptyValue() throws {
-        let json = """
-        {"key": "k", "value": "", "group": "g"}
-        """.data(using: .utf8)!
-
-        let args = try JSONDecoder().decode(SetItemsArgs.self, from: json)
-        XCTAssertEqual(args.value, "")
+    private func roundTrip<T: Decodable>(_ type: T.Type, _ object: [String: Any]) throws -> T {
+        try JSONDecoder().decode(type, from: try JSONSerialization.data(withJSONObject: object))
     }
 
-    func testSetItemsArgsMissingFieldThrows() {
-        let json = """
-        {"key": "k", "value": "v"}
-        """.data(using: .utf8)!
-
-        XCTAssertThrowsError(try JSONDecoder().decode(SetItemsArgs.self, from: json))
+    /// Given the plugin entry point, when it initialises, then it returns a `WidgetPlugin`.
+    func testPluginInit() {
+        XCTAssertTrue(initPlugin() is WidgetPlugin)
+        XCTAssertNotNil(WidgetPlugin())
     }
 
-    // MARK: GetItemsArgs
+    /// Given bridge JSON for setItems → getItems → register → reload, when it decodes, then valid args round-trip and missing / snake_case keys are rejected.
+    func testCommandArgsChain() throws {
+        // 1. setItems: plain, empty value, escapes, 10k value, via a JSON object.
+        let set = try decode(SetItemsArgs.self, #"{"key": "widget_text", "value": "Hello", "group": "group.com.example"}"#)
+        XCTAssertEqual([set.key, set.value, set.group], ["widget_text", "Hello", "group.com.example"])
+        XCTAssertEqual(try decode(SetItemsArgs.self, #"{"key": "k", "value": "", "group": "g"}"#).value, "")
+        let esc = try decode(SetItemsArgs.self, #"{"key": "k/e.y-1", "value": "line1\nline2\ttab", "group": "group.test"}"#)
+        XCTAssertEqual(esc.key, "k/e.y-1")
+        XCTAssertEqual(esc.value, "line1\nline2\ttab")
+        XCTAssertEqual(try roundTrip(SetItemsArgs.self, ["key": "big", "value": String(repeating: "A", count: 10_000), "group": "g"])
+            .value.count, 10_000)
+        let rt = try roundTrip(SetItemsArgs.self, ["key": "widget_text", "value": "Test Value", "group": "group.com.example"])
+        XCTAssertEqual([rt.key, rt.value, rt.group], ["widget_text", "Test Value", "group.com.example"])
+        XCTAssertThrowsError(try decode(SetItemsArgs.self, #"{"key": "k", "value": "v"}"#), "group is required")
 
-    func testGetItemsArgsDecoding() throws {
-        let json = """
-        {"key": "title", "group": "group.app"}
-        """.data(using: .utf8)!
+        // 2. getItems reads the same key back.
+        let get = try decode(GetItemsArgs.self, #"{"key": "title", "group": "group.app"}"#)
+        XCTAssertEqual([get.key, get.group], ["title", "group.app"])
+        XCTAssertThrowsError(try decode(GetItemsArgs.self, #"{"group": "g"}"#), "key is required")
 
-        let args = try JSONDecoder().decode(GetItemsArgs.self, from: json)
-        XCTAssertEqual(args.key, "title")
-        XCTAssertEqual(args.group, "group.app")
+        // 3. setRegisterWidget: order kept, empty allowed.
+        XCTAssertEqual(try decode(SetRegisterWidgetArgs.self, #"{"widgets": ["com.example.Widget1", "com.example.Widget2"]}"#).widgets,
+                       ["com.example.Widget1", "com.example.Widget2"])
+        XCTAssertTrue(try decode(SetRegisterWidgetArgs.self, #"{"widgets": []}"#).widgets.isEmpty)
+        XCTAssertEqual(try roundTrip(SetRegisterWidgetArgs.self, ["widgets": ["com.a.W1", "com.b.W2", "com.c.W3"]]).widgets,
+                       ["com.a.W1", "com.b.W2", "com.c.W3"])
+
+        // 4. reloadTimelines: camelCase `ofKind` only.
+        XCTAssertEqual(try decode(ReloadTimelinesArgs.self, #"{"ofKind": "MyWidgetKind"}"#).ofKind, "MyWidgetKind")
+        XCTAssertEqual(try decode(ReloadTimelinesArgs.self, #"{"ofKind": "com.example.MyWidget"}"#).ofKind, "com.example.MyWidget")
+        XCTAssertEqual(try roundTrip(ReloadTimelinesArgs.self, ["ofKind": "MyWidget"]).ofKind, "MyWidget")
+        XCTAssertThrowsError(try decode(ReloadTimelinesArgs.self, #"{"of_kind": "test"}"#))
     }
 
-    func testGetItemsArgsMissingKeyThrows() {
-        let json = """
-        {"group": "g"}
-        """.data(using: .utf8)!
+    /// Given an App Group suite, when keys are set, overwritten and added, then empty / JSON / non-ASCII strings round-trip and other keys stay.
+    func testUserDefaultsChain() throws {
+        let suite = "test.tauri.plugin.widgets.\(UUID().uuidString)"
+        defer { UserDefaults.standard.removePersistentDomain(forName: suite) }
+        let d = try XCTUnwrap(UserDefaults(suiteName: suite))
 
-        XCTAssertThrowsError(try JSONDecoder().decode(GetItemsArgs.self, from: json))
+        XCTAssertNil(d.string(forKey: "widget_text"))
+        d.set("Hello World", forKey: "widget_text")
+        XCTAssertEqual(d.string(forKey: "widget_text"), "Hello World")
+        d.set("second", forKey: "widget_text")
+        XCTAssertEqual(d.string(forKey: "widget_text"), "second")
+
+        let values = ["key1": "val1", "key2": "val2", "empty_key": "",
+                      "json_data": "{\"title\":\"Hello\",\"count\":42}", "unicode_key": "Привет мир 你好世界 🌍"]
+        for (k, v) in values { d.set(v, forKey: k) }
+        d.synchronize()
+        for (k, v) in values { XCTAssertEqual(d.string(forKey: k), v, k) }
+        XCTAssertEqual(d.string(forKey: "widget_text"), "second", "other keys untouched")
     }
 
-    // MARK: SetRegisterWidgetArgs
+    /// Given `setWidgetState` args, when a patch applies twice, then the operators match the extension's `set` tap and the second sees the first.
+    func testWidgetStateChain() throws {
+        let set = try decode(StateArgs.self, #"{"group":"group.a","widgetId":"w","instance":"i","patch":{"n":"$inc"}}"#)
+        XCTAssertEqual(set.patch?.dictionary?["n"] as? String, "$inc")
+        XCTAssertEqual(set.instance, "i")
+        let clear = try decode(StateArgs.self, #"{"group":"group.a","widgetId":"w","patch":null}"#)
+        XCTAssertNil(clear.patch)
+        XCTAssertNil(clear.instance)
 
-    func testSetRegisterWidgetArgsDecoding() throws {
-        let json = """
-        {"widgets": ["com.example.Widget1", "com.example.Widget2"]}
-        """.data(using: .utf8)!
+        let patch: [String: Any] = ["on": "$toggle", "n": "$inc", "m": "$dec", "gone": NSNull(), "s": "x"]
+        let first = WidgetPlugin.applyStatePatch(patch, current: ["on": true, "n": 2], stored: ["gone": 1])
+        XCTAssertEqual(first["on"] as? Bool, false)
+        XCTAssertEqual((first["n"] as? NSNumber)?.intValue, 3)
+        XCTAssertEqual((first["m"] as? NSNumber)?.intValue, -1)
+        XCTAssertNil(first["gone"])
+        XCTAssertEqual(first["s"] as? String, "x")
 
-        let args = try JSONDecoder().decode(SetRegisterWidgetArgs.self, from: json)
-        XCTAssertEqual(args.widgets.count, 2)
-        XCTAssertEqual(args.widgets[0], "com.example.Widget1")
-        XCTAssertEqual(args.widgets[1], "com.example.Widget2")
+        // The next tap sees the stored result as current.
+        let second = WidgetPlugin.applyStatePatch(patch, current: first, stored: first)
+        XCTAssertEqual(second["on"] as? Bool, true)
+        XCTAssertEqual((second["n"] as? NSNumber)?.intValue, 4)
+        XCTAssertEqual((second["m"] as? NSNumber)?.intValue, -2)
     }
 
-    func testSetRegisterWidgetArgsEmptyArray() throws {
-        let json = """
-        {"widgets": []}
-        """.data(using: .utf8)!
+    /// Given Live Activity payloads, when start → update → end decode, then ids, relevance, alerts, timestamps and dismissal policy map.
+    /// The out-of-order `timestamp` drop (`remember`) is private and needs a running
+    /// ActivityKit activity, so only the decoded `timestamp` it compares is checked here.
+    func testActivityLifecycleChain() throws {
+        // 0. out-of-order guard: start@100 → update@200 → late update@150 dropped → no
+        //    timestamp applies → end resets → an older start applies again; ids are separate.
+        var guardTs = ActivityTimestampGuard()
+        XCTAssertTrue(guardTs.accept(id: "a", timestamp: 100))
+        XCTAssertTrue(guardTs.accept(id: "a", timestamp: 200))
+        XCTAssertFalse(guardTs.accept(id: "a", timestamp: 150))
+        XCTAssertTrue(guardTs.accept(id: "a", timestamp: 200), "same timestamp applies")
+        XCTAssertTrue(guardTs.accept(id: "a", timestamp: nil))
+        XCTAssertTrue(guardTs.accept(id: "b", timestamp: 1), "other ids are independent")
+        guardTs.forget("a")
+        XCTAssertTrue(guardTs.accept(id: "a", timestamp: 50))
+        // 1. start: the request keeps its JSON; `id`, `staleAt`, `push` are read out.
+        let start = try decode(ActivityArgs.self, #"{"group":"group.a","content":{"id":"a","title":"Go","staleAt":5000,"push":true}}"#)
+        XCTAssertEqual(start.group, "group.a")
+        XCTAssertEqual(start.content.id, "a")
+        XCTAssertEqual(start.content.staleAt, 5000)
+        XCTAssertTrue(start.content.push)
+        XCTAssertNil(start.content.timestamp)
+        XCTAssertTrue(start.content.json.contains("\"title\":\"Go\""))
 
-        let args = try JSONDecoder().decode(SetRegisterWidgetArgs.self, from: json)
-        XCTAssertTrue(args.widgets.isEmpty)
-    }
+        // 2. updates: relevance, alert, and a timestamp per update (older ones lose).
+        let u1 = try decode(JSObjectBox.self, #"{"id":"a","relevanceScore":50,"timestamp":1000,"alert":{"title":"T","body":"B","sound":"ding.caf"}}"#)
+        XCTAssertEqual(u1.relevanceScore, 50)
+        XCTAssertEqual(u1.timestamp, 1000)
+        XCTAssertEqual(u1.alert?.title, "T")
+        XCTAssertEqual(u1.alert?.body, "B")
+        XCTAssertEqual(u1.alert?.sound, "ding.caf")
+        XCTAssertFalse(u1.push)
+        let u2 = try decode(JSObjectBox.self, #"{"id":"a","timestamp":900,"alert":{"body":"no title"}}"#)
+        XCTAssertLessThan(try XCTUnwrap(u2.timestamp), try XCTUnwrap(u1.timestamp))
+        XCTAssertNil(u2.alert, "an alert needs a title")
 
-    // MARK: ReloadTimelinesArgs
+        // 3. end: final content and a dismissal policy.
+        let end = try decode(EndActivityArgs.self, #"{"id":"a","dismissalPolicy":"default","content":{"id":"a","title":"Done"}}"#)
+        XCTAssertEqual(end.dismissalPolicy, "default")
+        XCTAssertNil(end.dismissAfterMs)
+        XCTAssertTrue(end.content?.json.contains("Done") == true)
 
-    func testReloadTimelinesArgsDecoding() throws {
-        let json = """
-        {"ofKind": "MyWidgetKind"}
-        """.data(using: .utf8)!
-
-        let args = try JSONDecoder().decode(ReloadTimelinesArgs.self, from: json)
-        XCTAssertEqual(args.ofKind, "MyWidgetKind")
-    }
-
-    func testReloadTimelinesArgsCamelCase() throws {
-        let json = """
-        {"ofKind": "com.example.MyWidget"}
-        """.data(using: .utf8)!
-
-        let args = try JSONDecoder().decode(ReloadTimelinesArgs.self, from: json)
-        XCTAssertEqual(args.ofKind, "com.example.MyWidget")
-    }
-
-    func testReloadTimelinesArgsSnakeCaseFails() {
-        let json = """
-        {"of_kind": "test"}
-        """.data(using: .utf8)!
-
-        XCTAssertThrowsError(try JSONDecoder().decode(ReloadTimelinesArgs.self, from: json))
-    }
-}
-
-// MARK: - UserDefaults Integration Tests
-
-final class UserDefaultsIntegrationTests: XCTestCase {
-
-    private let testSuite = "test.tauri.plugin.widgets.\(UUID().uuidString)"
-
-    override func tearDown() {
-        super.tearDown()
-        UserDefaults.standard.removePersistentDomain(forName: testSuite)
-    }
-
-    func testSetAndGetString() {
-        guard let defaults = UserDefaults(suiteName: testSuite) else {
-            XCTFail("Could not create UserDefaults for suite: \(testSuite)")
-            return
+        #if canImport(ActivityKit)
+        if #available(iOS 16.2, *) {
+            let c = WidgetPlugin.content(start.content)
+            XCTAssertEqual(c.staleDate, Date(timeIntervalSince1970: 5))
+            XCTAssertEqual(c.relevanceScore, 0)
+            XCTAssertEqual(WidgetPlugin.content(u1).relevanceScore, 50)
+            XCTAssertEqual(WidgetPlugin.dismissalPolicy(afterMs: nil, named: "default"), .default)
+            XCTAssertEqual(WidgetPlugin.dismissalPolicy(afterMs: nil, named: nil), .immediate)
+            XCTAssertEqual(WidgetPlugin.dismissalPolicy(afterMs: 0, named: "default"), .default)
+            XCTAssertNotEqual(WidgetPlugin.dismissalPolicy(afterMs: 60_000, named: "default"), .default)
         }
-
-        defaults.set("Hello World", forKey: "widget_text")
-        defaults.synchronize()
-
-        let value = defaults.string(forKey: "widget_text")
-        XCTAssertEqual(value, "Hello World")
-    }
-
-    func testGetMissingKeyReturnsNil() {
-        guard let defaults = UserDefaults(suiteName: testSuite) else {
-            XCTFail("Could not create UserDefaults for suite: \(testSuite)")
-            return
-        }
-
-        let value = defaults.string(forKey: "nonexistent_key")
-        XCTAssertNil(value)
-    }
-
-    func testOverwriteValue() {
-        guard let defaults = UserDefaults(suiteName: testSuite) else {
-            XCTFail("Could not create UserDefaults for suite: \(testSuite)")
-            return
-        }
-
-        defaults.set("first", forKey: "key")
-        defaults.synchronize()
-        XCTAssertEqual(defaults.string(forKey: "key"), "first")
-
-        defaults.set("second", forKey: "key")
-        defaults.synchronize()
-        XCTAssertEqual(defaults.string(forKey: "key"), "second")
-    }
-
-    func testMultipleKeys() {
-        guard let defaults = UserDefaults(suiteName: testSuite) else {
-            XCTFail("Could not create UserDefaults for suite: \(testSuite)")
-            return
-        }
-
-        defaults.set("val1", forKey: "key1")
-        defaults.set("val2", forKey: "key2")
-        defaults.set("val3", forKey: "key3")
-        defaults.synchronize()
-
-        XCTAssertEqual(defaults.string(forKey: "key1"), "val1")
-        XCTAssertEqual(defaults.string(forKey: "key2"), "val2")
-        XCTAssertEqual(defaults.string(forKey: "key3"), "val3")
-    }
-
-    func testEmptyStringValue() {
-        guard let defaults = UserDefaults(suiteName: testSuite) else {
-            XCTFail("Could not create UserDefaults for suite: \(testSuite)")
-            return
-        }
-
-        defaults.set("", forKey: "empty_key")
-        defaults.synchronize()
-
-        let value = defaults.string(forKey: "empty_key")
-        XCTAssertEqual(value, "")
-    }
-
-    func testJsonStringValue() {
-        guard let defaults = UserDefaults(suiteName: testSuite) else {
-            XCTFail("Could not create UserDefaults for suite: \(testSuite)")
-            return
-        }
-
-        let jsonString = "{\"title\":\"Hello\",\"count\":42}"
-        defaults.set(jsonString, forKey: "json_data")
-        defaults.synchronize()
-
-        let value = defaults.string(forKey: "json_data")
-        XCTAssertEqual(value, jsonString)
-    }
-
-    func testUnicodeValue() {
-        guard let defaults = UserDefaults(suiteName: testSuite) else {
-            XCTFail("Could not create UserDefaults for suite: \(testSuite)")
-            return
-        }
-
-        let unicodeStr = "Привет мир 你好世界 🌍"
-        defaults.set(unicodeStr, forKey: "unicode_key")
-        defaults.synchronize()
-
-        let value = defaults.string(forKey: "unicode_key")
-        XCTAssertEqual(value, unicodeStr)
-    }
-}
-
-// MARK: - Plugin Init Tests
-
-final class PluginInitTests: XCTestCase {
-
-    func testInitPluginReturnsWidgetPlugin() {
-        let plugin = initPlugin()
-        XCTAssertTrue(plugin is WidgetPlugin)
-    }
-
-    func testWidgetPluginCreation() {
-        let plugin = WidgetPlugin()
-        XCTAssertNotNil(plugin)
-    }
-}
-
-// MARK: - Serialization Round-Trip Tests
-
-final class SerializationRoundTripTests: XCTestCase {
-
-    func testSetItemsRoundTrip() throws {
-        let original: [String: Any] = [
-            "key": "widget_text",
-            "value": "Test Value",
-            "group": "group.com.example"
-        ]
-        let data = try JSONSerialization.data(withJSONObject: original)
-        let decoded = try JSONDecoder().decode(SetItemsArgs.self, from: data)
-
-        XCTAssertEqual(decoded.key, "widget_text")
-        XCTAssertEqual(decoded.value, "Test Value")
-        XCTAssertEqual(decoded.group, "group.com.example")
-    }
-
-    func testReloadTimelinesRoundTripCamelCase() throws {
-        let original: [String: Any] = ["ofKind": "MyWidget"]
-        let data = try JSONSerialization.data(withJSONObject: original)
-        let decoded = try JSONDecoder().decode(ReloadTimelinesArgs.self, from: data)
-
-        XCTAssertEqual(decoded.ofKind, "MyWidget")
-    }
-
-    func testSetRegisterWidgetRoundTrip() throws {
-        let widgets = ["com.a.W1", "com.b.W2", "com.c.W3"]
-        let original: [String: Any] = ["widgets": widgets]
-        let data = try JSONSerialization.data(withJSONObject: original)
-        let decoded = try JSONDecoder().decode(SetRegisterWidgetArgs.self, from: data)
-
-        XCTAssertEqual(decoded.widgets, widgets)
-    }
-
-    func testSpecialCharactersInValues() throws {
-        let json = """
-        {"key": "k/e.y-1", "value": "line1\\nline2\\ttab", "group": "group.test"}
-        """.data(using: .utf8)!
-
-        let args = try JSONDecoder().decode(SetItemsArgs.self, from: json)
-        XCTAssertEqual(args.key, "k/e.y-1")
-        XCTAssertEqual(args.value, "line1\nline2\ttab")
-    }
-
-    func testLongValues() throws {
-        let longValue = String(repeating: "A", count: 10_000)
-        let original: [String: Any] = [
-            "key": "big",
-            "value": longValue,
-            "group": "g"
-        ]
-        let data = try JSONSerialization.data(withJSONObject: original)
-        let decoded = try JSONDecoder().decode(SetItemsArgs.self, from: data)
-
-        XCTAssertEqual(decoded.value.count, 10_000)
+        #endif
     }
 }

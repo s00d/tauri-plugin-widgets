@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Android 12+: the system accent follows the wallpaper (dynamic color). -->
+<resources>
+    <color name="tauri_color_accent">@android:color/system_accent1_600</color>
+</resources>

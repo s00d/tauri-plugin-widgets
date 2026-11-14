@@ -1,3 +1,4 @@
+using System.Linq;
 using System.Collections.Concurrent;
 using System.Text.Json;
 
@@ -77,9 +78,41 @@ public sealed class WidgetStore : IDisposable
     public static string DataKey(string widgetId) => $"ac:data:{widgetId}";
     public static string ConfigKey(string widgetId) => $"config:{widgetId}";
 
-    public void TrackWidget(string widgetId) => _knownWidgets[widgetId] = 0;
+    /// <summary>Placed Widgets Board instances, read by the host's <c>getActiveWidgets</c>.</summary>
+    public const string BoardWidgetsKey = "board_widgets";
 
-    public void UntrackWidget(string widgetId) => _knownWidgets.TryRemove(widgetId, out _);
+    /// <summary>Logical widget id the host writes configs under (<c>setWidgetConfig(…, widgetId)</c>).</summary>
+    public static string LogicalId() =>
+        Environment.GetEnvironmentVariable("TAURI_WIDGET_LOGICAL_ID") is { Length: > 0 } id ? id : "default";
+
+    public void TrackWidget(string widgetId)
+    {
+        if (_knownWidgets.TryAdd(widgetId, 0)) PublishBoardWidgets();
+    }
+
+    public void UntrackWidget(string widgetId)
+    {
+        if (_knownWidgets.TryRemove(widgetId, out _)) PublishBoardWidgets();
+    }
+
+    /// <summary><c>[{widgetId, instance}]</c> of every tracked board widget.</summary>
+    private void PublishBoardWidgets()
+    {
+        lock (_gate)
+        {
+            WithFileLock(() =>
+            {
+                ReloadUnlocked();
+                var logical = LogicalId();
+                var list = _knownWidgets.Keys.OrderBy(k => k, StringComparer.Ordinal)
+                    .Select(k => new Dictionary<string, string> { ["widgetId"] = logical, ["instance"] = k })
+                    .ToList();
+                _map[BoardWidgetsKey] = JsonSerializer.Serialize(list);
+                BumpMetaUnlocked();
+                WriteUnlocked();
+            });
+        }
+    }
 
     public IReadOnlyCollection<string> KnownWidgets => _knownWidgets.Keys.ToArray();
 
@@ -89,6 +122,17 @@ public sealed class WidgetStore : IDisposable
         {
             return _map.TryGetValue(key, out var v) ? v : null;
         }
+    }
+
+    /// <summary>Card of one board instance: its own (<c>setWidgetConfig(…, instance)</c>), then the logical widget's.</summary>
+    public (string Template, string Data) GetInstanceCard(string boardId)
+    {
+        var logical = LogicalId();
+        foreach (var key in new[] { $"{logical}#{boardId}", boardId, logical, "default" })
+        {
+            if (Get(TemplateKey(key)) is not null) return GetAdaptiveCard(key);
+        }
+        return GetAdaptiveCard(logical);
     }
 
     public (string Template, string Data) GetAdaptiveCard(string widgetId)
@@ -103,40 +147,66 @@ public sealed class WidgetStore : IDisposable
     {
         lock (_gate)
         {
-            ReloadUnlocked();
-            var list = new List<JsonElement>();
-            if (_map.TryGetValue(PendingActionsKey, out var raw) && !string.IsNullOrWhiteSpace(raw))
+            WithFileLock(() =>
             {
-                try
+                ReloadUnlocked();
+                var list = new List<JsonElement>();
+                if (_map.TryGetValue(PendingActionsKey, out var raw) && !string.IsNullOrWhiteSpace(raw))
                 {
-                    using var doc = JsonDocument.Parse(raw);
-                    if (doc.RootElement.ValueKind == JsonValueKind.Array)
+                    try
                     {
-                        foreach (var el in doc.RootElement.EnumerateArray())
+                        using var doc = JsonDocument.Parse(raw);
+                        if (doc.RootElement.ValueKind == JsonValueKind.Array)
                         {
-                            list.Add(el.Clone());
+                            foreach (var el in doc.RootElement.EnumerateArray())
+                            {
+                                list.Add(el.Clone());
+                            }
                         }
                     }
+                    catch
+                    {
+                        // reset corrupt queue
+                    }
                 }
-                catch
+
+                using var envelope = JsonDocument.Parse(JsonSerializer.Serialize(new Dictionary<string, object?>
                 {
-                    // reset corrupt queue
-                }
-            }
+                    ["action"] = verb,
+                    ["payload"] = data.HasValue ? data.Value.GetRawText() : null,
+                    ["ts"] = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds(),
+                    ["widgetId"] = widgetId,
+                    ["group"] = Environment.GetEnvironmentVariable("TAURI_WIDGET_GROUP") ?? "default",
+                }));
+                list.Add(envelope.RootElement.Clone());
 
-            using var envelope = JsonDocument.Parse(JsonSerializer.Serialize(new Dictionary<string, object?>
+                _map[PendingActionsKey] = JsonSerializer.Serialize(list);
+                BumpMetaUnlocked();
+                WriteUnlocked();
+            });
+        }
+    }
+
+    /// <summary>Appends a board report (analytics / error JSON) to <c>provider.log</c> next to the map.</summary>
+    public void Log(string kind, string widgetId, string? json)
+    {
+        try
+        {
+            var line = JsonSerializer.Serialize(new Dictionary<string, object?>
             {
-                ["action"] = verb,
-                ["payload"] = data.HasValue ? data.Value.GetRawText() : null,
                 ["ts"] = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds(),
+                ["kind"] = kind,
                 ["widgetId"] = widgetId,
-                ["group"] = Environment.GetEnvironmentVariable("TAURI_WIDGET_GROUP") ?? "default",
-            }));
-            list.Add(envelope.RootElement.Clone());
-
-            _map[PendingActionsKey] = JsonSerializer.Serialize(list);
-            BumpMetaUnlocked();
-            PersistUnlocked();
+                ["json"] = json,
+            });
+            lock (_gate)
+            {
+                File.AppendAllText(Path.Combine(Path.GetDirectoryName(_path)!, "provider.log"), line + "\n");
+            }
+        }
+        catch
+        {
+            // diagnostics only
         }
     }
 
@@ -199,50 +269,38 @@ public sealed class WidgetStore : IDisposable
         _map["__meta_updated_at__"] = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds().ToString();
     }
 
-    private void PersistUnlocked()
+    /// <summary>
+    /// Runs reload → modify → write under the cross-process <c>{path}.lock</c> (FileShare.None), the same
+    /// lock the Rust host takes in <c>persist_windows_shared_map</c>. The disk copy read under the lock is the
+    /// base, so a host write (or a host-drained <c>pending_actions</c>) is never overwritten by stale memory.
+    /// </summary>
+    private void WithFileLock(Action body)
     {
-        var json = JsonSerializer.Serialize(_map);
-        var tmp = _path + ".tmp";
-        // Cross-process coordination: exclusive lock file around read-modify-write.
         var lockPath = _path + ".lock";
-        using var lockStream = new FileStream(
-            lockPath,
-            FileMode.OpenOrCreate,
-            FileAccess.ReadWrite,
-            FileShare.None);
-        // Re-read under lock so concurrent host writes are not clobbered blindly.
-        if (File.Exists(_path))
+        FileStream? lockStream = null;
+        for (var attempt = 0; lockStream is null; attempt++)
         {
             try
             {
-                var disk = JsonSerializer.Deserialize<Dictionary<string, string>>(File.ReadAllText(_path))
-                    ?? new Dictionary<string, string>(StringComparer.Ordinal);
-                foreach (var kv in disk)
-                {
-                    if (!_map.ContainsKey(kv.Key))
-                    {
-                        _map[kv.Key] = kv.Value;
-                    }
-                }
-                // Prefer non-empty pending_actions from either side.
-                if (disk.TryGetValue(PendingActionsKey, out var diskPa)
-                    && _map.TryGetValue(PendingActionsKey, out var memPa))
-                {
-                    var diskEmpty = string.IsNullOrWhiteSpace(diskPa) || diskPa.Trim() == "[]";
-                    var memEmpty = string.IsNullOrWhiteSpace(memPa) || memPa.Trim() == "[]";
-                    if (memEmpty && !diskEmpty)
-                    {
-                        _map[PendingActionsKey] = diskPa;
-                    }
-                }
-                json = JsonSerializer.Serialize(_map);
+                lockStream = new FileStream(lockPath, FileMode.OpenOrCreate, FileAccess.ReadWrite, FileShare.None);
             }
-            catch
+            catch (IOException) when (attempt < 100)
             {
-                // keep in-memory map
+                // Held by the host (sharing violation): retry like the Rust side, 100 × 20 ms.
+                Thread.Sleep(20);
             }
         }
-        File.WriteAllText(tmp, json);
+        using (lockStream)
+        {
+            body();
+        }
+    }
+
+    /// <summary>Writes <c>_map</c>; call only inside <see cref="WithFileLock"/> after <see cref="ReloadUnlocked"/>.</summary>
+    private void WriteUnlocked()
+    {
+        var tmp = _path + ".tmp";
+        File.WriteAllText(tmp, JsonSerializer.Serialize(_map));
         File.Copy(tmp, _path, overwrite: true);
         File.Delete(tmp);
     }

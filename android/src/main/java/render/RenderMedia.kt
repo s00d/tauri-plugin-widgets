@@ -7,6 +7,7 @@ import androidx.compose.ui.unit.sp
 import androidx.glance.GlanceModifier
 import androidx.glance.Image
 import androidx.glance.ImageProvider
+import androidx.glance.appwidget.cornerRadius
 import androidx.glance.background
 import androidx.glance.layout.Box
 import androidx.glance.layout.ContentScale
@@ -34,15 +35,19 @@ internal fun RenderMedia(scope: RenderScope, el: El, modifier: GlanceModifier) {
                     contentScale = parseContentScale(el.str("contentMode", "fit"))
                 )
             } else {
-                val systemName = el.str("systemName", "")
+                // fallbackSystemName: the symbol shown when url / data did not load.
+                val systemName = el.str("systemName", "").ifBlank { el.str(WireField.FALLBACK_SYSTEM_NAME, "") }
                 val url = el.str("url", "")
                 val fallback = when {
                     systemName.isNotBlank() -> iconGlyph(systemName)
                     url.isNotBlank() -> "img:${safeHost(url)}"
                     else -> "img"
                 }
+                // Material glyphs are one color: symbolRendering palette → first paletteColor
+                // (when no `color`); hierarchical / multicolor / symbolWeight have no equivalent.
                 val tint = colorProviderArgb(
-                    resolveColorProvider(context, el.opt("color")),
+                    resolveColorProvider(context, el.opt("color"))
+                        ?: resolveColorProvider(context, el.arr(WireField.PALETTE_COLORS)?.opt(0)),
                     context,
                     semanticLabelProvider(context).getColor(context).toArgb()
                 )
@@ -73,20 +78,22 @@ internal fun RenderMedia(scope: RenderScope, el: El, modifier: GlanceModifier) {
         "shape" -> {
             val shapeType = el.str("shapeType", "circle")
             val isCapsule = shapeType.equals("capsule", ignoreCase = true)
-            val frame = el.obj("frame")
-            val frameW = frame?.optDouble("width", -1.0) ?: -1.0
-            val frameH = frame?.optDouble("height", -1.0) ?: -1.0
+            val (frameW, frameH) = frameSizeDp(el)
             val explicitSize = el.num("size", -1.0)
+            val rectLike = shapeType.equals("rectangle", ignoreCase = true) ||
+                shapeType.equals("roundedRectangle", ignoreCase = true)
             // Full-bleed rectangle underlay from zstack (modifier already fillMaxSize).
             val fillBleed =
-                shapeType.equals("rectangle", ignoreCase = true) &&
+                rectLike &&
                     explicitSize <= 0 &&
                     frameW <= 0 &&
                     frameH <= 0
             if (fillBleed) {
                 val fill = resolveColorProvider(context, el.opt("fill"))
+                val r = el.num("cornerRadius", 0.0)
+                val bleedMod = if (r > 0) modifier.fillMaxSize().cornerRadius(r.toInt().dp) else modifier.fillMaxSize()
                 if (fill != null) {
-                    Box(modifier = modifier.fillMaxSize().background(fill)) {}
+                    Box(modifier = bleedMod.background(fill)) {}
                 } else {
                     Box(modifier = modifier.fillMaxSize()) {}
                 }
@@ -99,7 +106,13 @@ internal fun RenderMedia(scope: RenderScope, el: El, modifier: GlanceModifier) {
                     isCapsule -> modifier.width((size * 2).dp).height(size.dp)
                     else -> modifier.size(size.dp)
                 }
-                val shapeBmp = drawShapeBitmap(context, el.raw, size)
+                // New shape types draw at the frame aspect; legacy ones keep their bitmap.
+                val newShape = shapeType.equals("roundedRectangle", true) || shapeType.equals("ellipse", true)
+                val shapeBmp = if (newShape && frameW > 0 && frameH > 0) {
+                    drawShapeBitmap(context, el.raw, size, frameW.toFloat(), frameH.toFloat())
+                } else {
+                    drawShapeBitmap(context, el.raw, size)
+                }
                 if (shapeBmp != null) {
                     Image(
                         provider = ImageProvider(shapeBmp),
@@ -110,7 +123,7 @@ internal fun RenderMedia(scope: RenderScope, el: El, modifier: GlanceModifier) {
                 } else {
                     val symbol = when (shapeType.lowercase(Locale.US)) {
                         "capsule" -> "[====]"
-                        "rectangle" -> "[##]"
+                        "rectangle", "roundedrectangle" -> "[##]"
                         else -> "(o)"
                     }
                     Text(symbol, modifier = shapeModifier, style = textStyleFromElement(context, el.raw))

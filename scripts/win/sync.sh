@@ -14,7 +14,9 @@ echo "==> tar+scp → ${HOST}:C:\\work\\tauri-plugin-widgets"
 TMP="$(mktemp -t tpw-sync.XXXXXX.tgz)"
 trap 'rm -f "$TMP"' EXIT
 # GNU/BSD tar: exclude build artifacts
-tar -C "$ROOT" \
+# COPYFILE_DISABLE: macOS bsdtar otherwise adds AppleDouble ._* entries for xattrs
+# (--exclude does not stop them); Windows then saw 102 case files, half of them junk.
+COPYFILE_DISABLE=1 tar -C "$ROOT" \
   --exclude '.git' \
   --exclude 'target' \
   --exclude 'node_modules' \

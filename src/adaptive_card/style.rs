@@ -3,9 +3,9 @@
 use crate::models::{
     ButtonElement, CanvasElement, ChartElement, ColorValue, ContainerElement, DateElement,
     DividerElement, ElementStyle, FontWeight, GaugeElement, GridElement, HStackElement,
-    ImageElement, LabelElement, LinkElement, ListElement, ProgressElement, ShapeElement,
-    TextAlignment, TextElement, TimerElement, ToggleElement, VStackElement, WidgetElement,
-    ZStackElement,
+    ImageElement, LabelElement, LinkElement, ListElement, PaddingValue, ProgressElement,
+    ShapeElement, TextAlignment, TextElement, TimerElement, ToggleElement, VStackElement,
+    WidgetElement, ZStackElement,
 };
 use serde_json::{json, Value};
 
@@ -22,6 +22,36 @@ pub(super) fn flex_width(c: &WidgetElement) -> Value {
 }
 
 fn flex_of(e: &WidgetElement) -> Option<f64> {
+    style_of(e)?.flex
+}
+
+/// `layoutPriority` of a child (stack column widths).
+pub(super) fn priority_of(e: &WidgetElement) -> Option<f64> {
+    style_of(e)?.layout_priority
+}
+
+/// Takes all the width a row offers, as on Apple / desktop: a linear progress, a
+/// `frame.maxWidth: infinity`, or a stack holding one. Its row column then gets "stretch"
+/// instead of "auto" (an auto column shrank empty progress columns to nothing).
+pub(super) fn fills_width(e: &WidgetElement) -> bool {
+    let infinite = style_of(e)
+        .and_then(|s| s.frame.as_ref())
+        .is_some_and(|f| matches!(f.max_width, Some(crate::models::FrameDimension::Infinity)));
+    infinite
+        || match e {
+            WidgetElement::Progress(p) => {
+                !matches!(p.bar_style, Some(crate::models::ProgressStyle::Circular))
+            }
+            WidgetElement::VStack(VStackElement { children, .. })
+            | WidgetElement::HStack(HStackElement { children, .. }) => {
+                children.iter().any(fills_width)
+            }
+            _ => false,
+        }
+}
+
+/// Shared style of any element (`None` for `spacer`).
+pub(super) fn style_of(e: &WidgetElement) -> Option<&ElementStyle> {
     match e {
         WidgetElement::VStack(VStackElement { style, .. })
         | WidgetElement::HStack(HStackElement { style, .. })
@@ -42,9 +72,81 @@ fn flex_of(e: &WidgetElement) -> Option<f64> {
         | WidgetElement::Shape(ShapeElement { style, .. })
         | WidgetElement::Timer(TimerElement { style, .. })
         | WidgetElement::Canvas(CanvasElement { style, .. })
-        | WidgetElement::Label(LabelElement { style, .. }) => style.flex,
+        | WidgetElement::Label(LabelElement { style, .. })
+        | WidgetElement::Repeat(crate::models::RepeatElement { style, .. })
+        | WidgetElement::Use(crate::models::UseElement { style, .. }) => Some(style),
         WidgetElement::Spacer(_) => None,
     }
+}
+
+/// `"12px"` for AC pixel sizes.
+pub(super) fn px(v: f64) -> String {
+    format!("{}px", v.max(0.0).round() as i64)
+}
+
+/// Empty block of a fixed height (vertical margin / gap emulation).
+fn v_gap(h: f64) -> Value {
+    json!({"type": "Container", "spacing": "None", "minHeight": px(h), "items": []})
+}
+
+/// Style every element gets after its own conversion: `frame.minHeight` (AC `minHeight`)
+/// and `margin` (fixed-height blocks above / below, fixed-width columns beside).
+/// `offsetX/Y`, `rotation`, `scale`, `accentable`, `frame.minWidth` have no AC form.
+pub(super) fn apply_common(mut v: Value, style: &ElementStyle) -> Value {
+    if let Some(min_h) = style
+        .frame
+        .as_ref()
+        .and_then(|f| f.min_height)
+        .filter(|h| *h > 0.0)
+    {
+        if !matches!(v["type"].as_str(), Some("Container" | "ColumnSet")) {
+            v = json!({"type": "Container", "spacing": "None", "items": [v]});
+        }
+        v["minHeight"] = json!(px(min_h));
+    }
+    if let Some(m) = &style.margin {
+        let (t, b, l, r) = match *m {
+            PaddingValue::Uniform(u) => (u, u, u, u),
+            PaddingValue::Edges {
+                top,
+                bottom,
+                leading,
+                trailing,
+            } => (
+                top.unwrap_or(0.0),
+                bottom.unwrap_or(0.0),
+                leading.unwrap_or(0.0),
+                trailing.unwrap_or(0.0),
+            ),
+        };
+        if t > 0.0 || b > 0.0 {
+            let mut items = Vec::new();
+            if t > 0.0 {
+                items.push(v_gap(t));
+            }
+            items.push(v);
+            if b > 0.0 {
+                items.push(v_gap(b));
+            }
+            v = json!({"type": "Container", "spacing": "None", "items": items});
+        }
+        if l > 0.0 || r > 0.0 {
+            let mut cols = Vec::new();
+            if l > 0.0 {
+                cols.push(json!({"type": "Column", "width": px(l), "items": []}));
+            }
+            cols.push(
+                json!({"type": "Column", "width": "stretch", "spacing": "None", "items": [v]}),
+            );
+            if r > 0.0 {
+                cols.push(
+                    json!({"type": "Column", "width": px(r), "spacing": "None", "items": []}),
+                );
+            }
+            v = json!({"type": "ColumnSet", "spacing": "None", "columns": cols});
+        }
+    }
+    v
 }
 
 fn push_id_token(obj: &mut Value, token: &str) {
@@ -100,9 +202,13 @@ pub(super) fn apply_container_style(obj: &mut Value, style: &ElementStyle) {
                 }
             }
             _ => {
-                // Adaptive Cards only has emphasis / good / attention / warning / accent / default.
+                // Adaptive Cards only has emphasis / good / attention / warning / accent / default:
+                // the style is the fallback, a repeated 1x1 PNG gives the exact colour.
                 obj["style"] = json!("emphasis");
                 if let Some(hex) = background_hex(bg) {
+                    if let Some(uri) = crate::rasterize::solid_png_data_uri(&hex) {
+                        obj["backgroundImage"] = json!({ "url": uri, "fillMode": "repeat" });
+                    }
                     push_id_token(obj, &format!("card:{hex}"));
                 }
             }
@@ -138,8 +244,10 @@ fn background_hex(bg: &crate::models::BackgroundValue) -> Option<String> {
             }
         }
         crate::models::BackgroundValue::Gradient(g) => g
-            .colors
+            .stops
             .first()
+            .map(|s| &s.color)
+            .or(g.colors.first())
             .map(|c| c.trim().to_ascii_lowercase())
             .filter(|c| c.starts_with('#')),
     }

@@ -79,6 +79,7 @@ fn dump_element(el: &WidgetElement, parent: ParentAxis) -> Value {
             spacing,
             alignment,
             style,
+            ..
         }) => {
             put_opt_f64(&mut obj, "spacing", *spacing);
             if let Some(a) = alignment {
@@ -100,6 +101,7 @@ fn dump_element(el: &WidgetElement, parent: ParentAxis) -> Value {
             spacing,
             alignment,
             style,
+            ..
         }) => {
             put_opt_f64(&mut obj, "spacing", *spacing);
             if let Some(a) = alignment {
@@ -304,6 +306,7 @@ fn dump_element(el: &WidgetElement, parent: ParentAxis) -> Value {
             url,
             action,
             style,
+            ..
         }) => {
             if let Some(u) = url {
                 obj.insert("url".into(), json!(u));
@@ -439,7 +442,12 @@ mod tests {
             .copied()
             .collect();
         all.sort();
-        let mut expected: Vec<&str> = ELEMENT_TYPES.to_vec();
+        // `repeat` / `use` are expanded before rendering: no renderer tier.
+        let mut expected: Vec<&str> = ELEMENT_TYPES
+            .iter()
+            .copied()
+            .filter(|t| !matches!(*t, "repeat" | "use"))
+            .collect();
         expected.sort();
         assert_eq!(all, expected);
     }

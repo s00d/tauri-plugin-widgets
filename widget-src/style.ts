@@ -88,6 +88,74 @@ export const TEXT_STYLE_SIZES: Record<string, number> = {
 };
 export const TEXT_STYLE_BOLD: Record<string, boolean> = { headline: true };
 
+/** `padding` / `margin` value (number or per-edge object) → CSS box shorthand. */
+function edges(v: number | Record<string, number | undefined>): string {
+  if (typeof v === "number") return v + "px";
+  return (v.top || 0) + "px " + (v.trailing || 0) + "px " + (v.bottom || 0) + "px " + (v.leading || 0) + "px";
+}
+
+type Gradient = {
+  gradientType?: string;
+  colors?: string[];
+  direction?: string;
+  stops?: { color: string; location: number }[];
+  startPoint?: { x: number; y: number };
+  endPoint?: { x: number; y: number };
+};
+
+/** CSS gradient for a `GradientConfig`. Unit points map onto a square box: the CSS angle
+ *  is the start→end direction and stops are re-projected onto the CSS gradient line, so a
+ *  non-square element is approximate (SwiftUI stretches the unit square). */
+export function gradientCss(g: Gradient): string {
+  const stops = g.stops && g.stops.length ? g.stops : null;
+  const list = function (pos: (loc: number) => number): string {
+    if (!stops) return (g.colors || []).map(hex).join(", ");
+    return stops
+      .map(function (s) {
+        return hex(s.color) + " " + +(pos(s.location) * 100).toFixed(2) + "%";
+      })
+      .join(", ");
+  };
+  if (g.gradientType === "radial") {
+    const c = g.startPoint;
+    return "radial-gradient(circle" + (c ? " at " + c.x * 100 + "% " + c.y * 100 + "%" : "") + ", " + list((l) => l) + ")";
+  }
+  if (g.gradientType === "angular") return "conic-gradient(" + list((l) => l) + ")";
+  const sp = g.startPoint,
+    ep = g.endPoint;
+  if (sp && ep && (sp.x !== ep.x || sp.y !== ep.y)) {
+    const dx = ep.x - sp.x,
+      dy = ep.y - sp.y;
+    const a = Math.atan2(dx, -dy); // CSS: 0deg = up, clockwise
+    const ux = Math.sin(a),
+      uy = -Math.cos(a);
+    const len = Math.abs(ux) + Math.abs(uy); // gradient line length in a unit square
+    const t = function (p: { x: number; y: number }) {
+      return ((p.x - 0.5) * ux + (p.y - 0.5) * uy) / len + 0.5;
+    };
+    const ts = t(sp),
+      te = t(ep);
+    return (
+      "linear-gradient(" +
+      +((a * 180) / Math.PI).toFixed(2) +
+      "deg, " +
+      list(function (l) {
+        return ts + l * (te - ts);
+      }) +
+      ")"
+    );
+  }
+  const dirs: Record<string, string> = {
+    topToBottom: "to bottom",
+    bottomToTop: "to top",
+    leadingToTrailing: "to right",
+    trailingToLeading: "to left",
+    topLeadingToBottomTrailing: "to bottom right",
+    topTrailingToBottomLeading: "to bottom left",
+  };
+  return "linear-gradient(" + (dirs[g.direction || ""] || "to bottom") + ", " + list((l) => l) + ")";
+}
+
 export function applyStyle(el: HTMLElement | SVGElement, d: ElNode): void {
   if (d.padding != null) {
     if (typeof d.padding === "number") el.style.padding = d.padding + "px";
@@ -98,26 +166,11 @@ export function applyStyle(el: HTMLElement | SVGElement, d: ElNode): void {
       el.style.paddingRight = (d.padding.trailing || 0) + "px";
     }
   }
+  if (d.margin != null) el.style.margin = edges(d.margin);
   if (d.background) {
     if (typeof d.background === "string") el.style.background = hex(d.background);
-    else if (d.background.colors) {
-      const g = d.background;
-      const cols = g.colors.map(hex).join(", ");
-      const dirs: Record<string, string> = {
-        topToBottom: "to bottom",
-        bottomToTop: "to top",
-        leadingToTrailing: "to right",
-        trailingToLeading: "to left",
-        topLeadingToBottomTrailing: "to bottom right",
-        topTrailingToBottomLeading: "to bottom left",
-      };
-      if (g.gradientType === "radial")
-        el.style.background = "radial-gradient(circle, " + cols + ")";
-      else if (g.gradientType === "angular")
-        el.style.background = "conic-gradient(" + cols + ")";
-      else
-        el.style.background =
-          "linear-gradient(" + (dirs[g.direction] || "to bottom") + ", " + cols + ")";
+    else if (d.background.colors || d.background.stops) {
+      el.style.background = gradientCss(d.background);
     } else if (d.background.light && d.background.dark) {
       el.style.background = isDark()
         ? hex(d.background.dark)
@@ -155,18 +208,42 @@ export function applyStyle(el: HTMLElement | SVGElement, d: ElNode): void {
     }
     if (d.frame.maxWidth === "infinity") el.style.maxWidth = "100%";
     else if (d.frame.maxWidth) el.style.maxWidth = d.frame.maxWidth + "px";
+    if (d.frame.minWidth) el.style.minWidth = d.frame.minWidth + "px";
+    if (d.frame.minHeight) el.style.minHeight = d.frame.minHeight + "px";
   }
   if (d.clipShape) {
     el.style.overflow = "hidden";
-    if (d.clipShape === "circle") el.style.borderRadius = "50%";
+    if (d.clipShape === "circle" || d.clipShape === "ellipse") el.style.borderRadius = "50%";
     else if (d.clipShape === "capsule") el.style.borderRadius = "9999px";
-    else if (d.clipShape === "rectangle" && d.cornerRadius)
+    else if ((d.clipShape === "rectangle" || d.clipShape === "roundedRectangle") && d.cornerRadius)
       el.style.borderRadius = d.cornerRadius + "px";
   }
   if (d.flex && d.flex > 0) {
     el.style.flex = String(d.flex);
-    el.style.minWidth = "0";
+    if (!(d.frame && d.frame.minWidth)) el.style.minWidth = "0";
   }
+  if (d.aspectRatio > 0) el.style.aspectRatio = String(d.aspectRatio);
+  // Higher priority keeps its size in a crowded stack; lower gives way first.
+  if (typeof d.layoutPriority === "number" && d.layoutPriority !== 0) {
+    if (d.layoutPriority > 0) el.style.flexShrink = "0";
+    else {
+      el.style.flexShrink = String(1 - d.layoutPriority);
+      if (!(d.frame && d.frame.minWidth)) el.style.minWidth = "0";
+    }
+  }
+  var tf = "";
+  if (d.offsetX || d.offsetY) tf += "translate(" + (d.offsetX || 0) + "px," + (d.offsetY || 0) + "px) ";
+  if (d.rotation) tf += "rotate(" + d.rotation + "deg) ";
+  if (d.scale != null && d.scale !== 1) tf += "scale(" + d.scale + ")";
+  if (tf) el.style.transform = tf.trim();
+  // Desktop has no tinted Home Screen; keep the marker so hosts can style it.
+  if (d.accentable === true) el.setAttribute("data-accentable", "");
+  if (typeof d.accessibilityLabel === "string" && d.accessibilityLabel) {
+    el.setAttribute("aria-label", d.accessibilityLabel);
+    el.setAttribute("role", el.getAttribute("role") || "img");
+  }
+  // Desktop has no locked-screen redaction; keep the marker so hosts can style it.
+  if (d.privacySensitive === true) el.setAttribute("data-privacy-sensitive", "");
 }
 
 export function fw(w: string | null | undefined): number {

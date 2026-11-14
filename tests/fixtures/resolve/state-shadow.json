@@ -1,0 +1,31 @@
+{
+  "about": "Loop variables and template args shadow the `state` root like they shadow `data`; `{{state}}` alone is the whole merged state; with no state at all `{{state.x}}` renders empty (state is a known root since contract v3).",
+  "config": {
+    "state": { "n": 1 },
+    "templates": { "row": { "type": "text", "content": "{{arg.v}}/{{state.n}}" } },
+    "small": {
+      "type": "vstack",
+      "children": [
+        { "type": "repeat", "each": "data.list", "as": "state", "template": { "type": "text", "content": "{{state.n}}" } },
+        { "type": "use", "template": "row", "args": { "v": "{{state.n}}" } },
+        { "type": "text", "content": "{{state}}" },
+        { "type": "progress", "value": 0, "bind": { "value": "state.n" } }
+      ]
+    },
+    "medium": { "type": "text", "content": "[{{state.x}}]" }
+  },
+  "ctx": { "nowMs": 0, "locale": "en", "data": { "list": [{ "n": "loop" }] }, "state": { "n": 7 } },
+  "expected": {
+    "version": 1,
+    "small": {
+      "type": "vstack",
+      "children": [
+        { "type": "text", "content": "loop" },
+        { "type": "text", "content": "7/7" },
+        { "type": "text", "content": "{\"n\":7}" },
+        { "type": "progress", "value": 7 }
+      ]
+    },
+    "medium": { "type": "text", "content": "[]" }
+  }
+}

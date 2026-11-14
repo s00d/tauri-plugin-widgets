@@ -21,6 +21,21 @@ Default permissions for the widgets plugin — enables all commands.
 - `allow-get-widget-diagnostics`
 - `allow-get-widget-trace`
 - `allow-flush-widget-trace`
+- `allow-set-widget-data`
+- `allow-set-widget-instances`
+- `allow-get-active-widgets`
+- `allow-start-activity`
+- `allow-update-activity`
+- `allow-end-activity`
+- `allow-list-activities`
+- `allow-activity-island`
+- `allow-get-activity-push-to-start-token`
+- `allow-set-widget-state`
+- `allow-get-widget-state`
+- `allow-register-activity-template`
+- `allow-get-widget-push-token`
+- `allow-can-promote-activities`
+- `allow-open-activity-promotion-settings`
 
 ## Permission Table
 
@@ -30,6 +45,58 @@ Default permissions for the widgets plugin — enables all commands.
 <th>Description</th>
 </tr>
 
+
+<tr>
+<td>
+
+`widgets:allow-activity-island`
+
+</td>
+<td>
+
+Enables the activity_island command without any pre-configured scope.
+
+</td>
+</tr>
+
+<tr>
+<td>
+
+`widgets:deny-activity-island`
+
+</td>
+<td>
+
+Denies the activity_island command without any pre-configured scope.
+
+</td>
+</tr>
+
+<tr>
+<td>
+
+`widgets:allow-can-promote-activities`
+
+</td>
+<td>
+
+Enables the can_promote_activities command without any pre-configured scope.
+
+</td>
+</tr>
+
+<tr>
+<td>
+
+`widgets:deny-can-promote-activities`
+
+</td>
+<td>
+
+Denies the can_promote_activities command without any pre-configured scope.
+
+</td>
+</tr>
 
 <tr>
 <td>
@@ -86,6 +153,32 @@ Denies the create_widget_window command without any pre-configured scope.
 <tr>
 <td>
 
+`widgets:allow-end-activity`
+
+</td>
+<td>
+
+Enables the end_activity command without any pre-configured scope.
+
+</td>
+</tr>
+
+<tr>
+<td>
+
+`widgets:deny-end-activity`
+
+</td>
+<td>
+
+Denies the end_activity command without any pre-configured scope.
+
+</td>
+</tr>
+
+<tr>
+<td>
+
 `widgets:allow-flush-widget-trace`
 
 </td>
@@ -105,6 +198,58 @@ Enables the flush_widget_trace command without any pre-configured scope.
 <td>
 
 Denies the flush_widget_trace command without any pre-configured scope.
+
+</td>
+</tr>
+
+<tr>
+<td>
+
+`widgets:allow-get-active-widgets`
+
+</td>
+<td>
+
+Enables the get_active_widgets command without any pre-configured scope.
+
+</td>
+</tr>
+
+<tr>
+<td>
+
+`widgets:deny-get-active-widgets`
+
+</td>
+<td>
+
+Denies the get_active_widgets command without any pre-configured scope.
+
+</td>
+</tr>
+
+<tr>
+<td>
+
+`widgets:allow-get-activity-push-to-start-token`
+
+</td>
+<td>
+
+Enables the get_activity_push_to_start_token command without any pre-configured scope.
+
+</td>
+</tr>
+
+<tr>
+<td>
+
+`widgets:deny-get-activity-push-to-start-token`
+
+</td>
+<td>
+
+Denies the get_activity_push_to_start_token command without any pre-configured scope.
 
 </td>
 </tr>
@@ -190,6 +335,58 @@ Denies the get_widget_diagnostics command without any pre-configured scope.
 <tr>
 <td>
 
+`widgets:allow-get-widget-push-token`
+
+</td>
+<td>
+
+Enables the get_widget_push_token command without any pre-configured scope.
+
+</td>
+</tr>
+
+<tr>
+<td>
+
+`widgets:deny-get-widget-push-token`
+
+</td>
+<td>
+
+Denies the get_widget_push_token command without any pre-configured scope.
+
+</td>
+</tr>
+
+<tr>
+<td>
+
+`widgets:allow-get-widget-state`
+
+</td>
+<td>
+
+Enables the get_widget_state command without any pre-configured scope.
+
+</td>
+</tr>
+
+<tr>
+<td>
+
+`widgets:deny-get-widget-state`
+
+</td>
+<td>
+
+Denies the get_widget_state command without any pre-configured scope.
+
+</td>
+</tr>
+
+<tr>
+<td>
+
 `widgets:allow-get-widget-trace`
 
 </td>
@@ -216,6 +413,58 @@ Denies the get_widget_trace command without any pre-configured scope.
 <tr>
 <td>
 
+`widgets:allow-list-activities`
+
+</td>
+<td>
+
+Enables the list_activities command without any pre-configured scope.
+
+</td>
+</tr>
+
+<tr>
+<td>
+
+`widgets:deny-list-activities`
+
+</td>
+<td>
+
+Denies the list_activities command without any pre-configured scope.
+
+</td>
+</tr>
+
+<tr>
+<td>
+
+`widgets:allow-open-activity-promotion-settings`
+
+</td>
+<td>
+
+Enables the open_activity_promotion_settings command without any pre-configured scope.
+
+</td>
+</tr>
+
+<tr>
+<td>
+
+`widgets:deny-open-activity-promotion-settings`
+
+</td>
+<td>
+
+Denies the open_activity_promotion_settings command without any pre-configured scope.
+
+</td>
+</tr>
+
+<tr>
+<td>
+
 `widgets:allow-poll-pending-actions`
 
 </td>
@@ -235,6 +484,32 @@ Enables the poll_pending_actions command without any pre-configured scope.
 <td>
 
 Denies the poll_pending_actions command without any pre-configured scope.
+
+</td>
+</tr>
+
+<tr>
+<td>
+
+`widgets:allow-register-activity-template`
+
+</td>
+<td>
+
+Enables the register_activity_template command without any pre-configured scope.
+
+</td>
+</tr>
+
+<tr>
+<td>
+
+`widgets:deny-register-activity-template`
+
+</td>
+<td>
+
+Denies the register_activity_template command without any pre-configured scope.
 
 </td>
 </tr>
@@ -443,6 +718,136 @@ Enables the set_widget_config_from_path command without any pre-configured scope
 <td>
 
 Denies the set_widget_config_from_path command without any pre-configured scope.
+
+</td>
+</tr>
+
+<tr>
+<td>
+
+`widgets:allow-set-widget-data`
+
+</td>
+<td>
+
+Enables the set_widget_data command without any pre-configured scope.
+
+</td>
+</tr>
+
+<tr>
+<td>
+
+`widgets:deny-set-widget-data`
+
+</td>
+<td>
+
+Denies the set_widget_data command without any pre-configured scope.
+
+</td>
+</tr>
+
+<tr>
+<td>
+
+`widgets:allow-set-widget-instances`
+
+</td>
+<td>
+
+Enables the set_widget_instances command without any pre-configured scope.
+
+</td>
+</tr>
+
+<tr>
+<td>
+
+`widgets:deny-set-widget-instances`
+
+</td>
+<td>
+
+Denies the set_widget_instances command without any pre-configured scope.
+
+</td>
+</tr>
+
+<tr>
+<td>
+
+`widgets:allow-set-widget-state`
+
+</td>
+<td>
+
+Enables the set_widget_state command without any pre-configured scope.
+
+</td>
+</tr>
+
+<tr>
+<td>
+
+`widgets:deny-set-widget-state`
+
+</td>
+<td>
+
+Denies the set_widget_state command without any pre-configured scope.
+
+</td>
+</tr>
+
+<tr>
+<td>
+
+`widgets:allow-start-activity`
+
+</td>
+<td>
+
+Enables the start_activity command without any pre-configured scope.
+
+</td>
+</tr>
+
+<tr>
+<td>
+
+`widgets:deny-start-activity`
+
+</td>
+<td>
+
+Denies the start_activity command without any pre-configured scope.
+
+</td>
+</tr>
+
+<tr>
+<td>
+
+`widgets:allow-update-activity`
+
+</td>
+<td>
+
+Enables the update_activity command without any pre-configured scope.
+
+</td>
+</tr>
+
+<tr>
+<td>
+
+`widgets:deny-update-activity`
+
+</td>
+<td>
+
+Denies the update_activity command without any pre-configured scope.
 
 </td>
 </tr>

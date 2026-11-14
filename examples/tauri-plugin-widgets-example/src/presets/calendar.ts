@@ -55,8 +55,7 @@ function weekRow(days: Array<number | null>, today: number): WidgetElement {
   };
 }
 
-function buildCalendarConfig(): WidgetConfig {
-  const now = new Date();
+function layouts(now: Date): Pick<WidgetConfig, "small" | "medium" | "large"> {
   const day = now.getDate();
   const monthLong = now.toLocaleDateString("en-US", { month: "long" });
   const yearMonth = now.toLocaleDateString("en-US", { month: "long", year: "numeric" });
@@ -125,6 +124,14 @@ function buildCalendarConfig(): WidgetConfig {
   };
 
   return { small, medium, large };
+}
+
+/** Today plus tomorrow as a timeline entry at local midnight: the highlight (and the
+ *  month on the 1st) moves on the device without the app. */
+function buildCalendarConfig(): WidgetConfig {
+  const now = new Date();
+  const midnight = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1);
+  return { ...layouts(now), entries: [{ at: midnight.getTime(), ...layouts(midnight) }] };
 }
 
 export const calendar: PresetDef = {

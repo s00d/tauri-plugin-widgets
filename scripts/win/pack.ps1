@@ -24,7 +24,7 @@ $replacements = @{
 }
 Get-ChildItem -Path $work -Recurse -File | ForEach-Object {
   $ext = $_.Extension.ToLowerInvariant()
-  # Textual templates only — rewriting PNGs/binaries as text corrupts StoreLogo.png.
+  # Textual templates only - rewriting PNGs/binaries as text corrupts StoreLogo.png.
   if ($ext -notin @(".xml", ".cs", ".csproj", ".json", ".props", ".targets", ".config", ".txt", ".md", ".appxmanifest")) {
     return
   }
@@ -76,4 +76,4 @@ if ($null -ne $makeappx) {
   Write-Host "makeappx: not found - publish dir is still usable; install Windows SDK via bootstrap.ps1"
 }
 
-Write-Host ("pack: OK → " + $publishDir)
+Write-Host ("pack: OK -> " + $publishDir)

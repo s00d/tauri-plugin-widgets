@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <application>
+        <!-- WidgetRenderTest host window: hardware-rendered so outline clips (corner radius) show.
+             uiMode/density handled in place: the test flips night mode per case. -->
+        <activity
+            android:name="git.s00d.widgets.CaptureActivity"
+            android:exported="false"
+            android:hardwareAccelerated="true"
+            android:configChanges="uiMode|density|screenSize|smallestScreenSize|screenLayout|orientation"
+            android:theme="@android:style/Theme.Translucent.NoTitleBar" />
+    </application>
+</manifest>

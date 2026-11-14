@@ -45,3 +45,13 @@ docs/content/3.api/2.reference.md
 docs/content/3.api/4.commands.md
 docs/content/3.api/8.permissions.md
 docs/content/6.changelog.md
+mutants.out*/
+.stryker-tmp/
+reports/mutation/
+swift/muter_logs/
+swift_mutated/
+fuzz/target/
+fuzz/corpus/
+fuzz/artifacts/
+.pnpm-store/
+ios/.build/

@@ -9,7 +9,6 @@ import androidx.glance.action.ActionParameters
 import androidx.glance.appwidget.AppWidgetId
 import androidx.glance.appwidget.action.ActionCallback
 import androidx.glance.appwidget.state.updateAppWidgetState
-import org.json.JSONArray
 import org.json.JSONObject
 
 private const val CONFIG_STATE_KEY_NAME = "__widget_config_state__"
@@ -20,6 +19,7 @@ internal val NONCE_STATE_KEY = stringPreferencesKey(NONCE_STATE_KEY_NAME)
 internal val ACTION_KEY = ActionParameters.Key<String>("action")
 internal val PAYLOAD_KEY = ActionParameters.Key<String>("payload")
 internal val URL_KEY = ActionParameters.Key<String>("url")
+internal val SET_KEY = ActionParameters.Key<String>("set")
 
 class WidgetActionCallback : ActionCallback {
     override suspend fun onAction(
@@ -32,20 +32,18 @@ class WidgetActionCallback : ActionCallback {
         val action = parameters[ACTION_KEY]
         val payload = parameters[PAYLOAD_KEY]
         val url = parameters[URL_KEY]
+        val set = parameters[SET_KEY]
         val normalizedUrl = url?.trim().orEmpty().let {
             if (it.equals("null", ignoreCase = true) || it.equals("undefined", ignoreCase = true)) "" else it
         }
+        val logicalWidgetId = WidgetStoreKeys.resolveWidgetId(context, appWidgetId)
+
+        // Contract v3 `set`: write the placement's state in-process first, then the action.
+        val stateChanged = !set.isNullOrBlank() && applySet(context, appWidgetId, set)
 
         // Action-driven buttons are the primary flow in widgets.
         // Only attempt URL open when no action is provided.
         if (!action.isNullOrBlank()) {
-            val logicalWidgetId = WidgetStoreKeys.resolveWidgetId(context, appWidgetId)
-            val toggled = applyLocalListToggleIfNeeded(
-                context, glanceId, group, logicalWidgetId, action, payload,
-            )
-            if (toggled) {
-                Log.d(TAG, "action local list toggle applied action=$action")
-            }
             // Always queue (one delivery path, nothing lost). A running app is woken to drain
             // it now; otherwise the host drains on Ready/Resumed.
             WidgetStoreKeys.enqueueAction(context, group, action, payload, logicalWidgetId)
@@ -64,67 +62,26 @@ class WidgetActionCallback : ActionCallback {
             }
         }
 
+        if (stateChanged) {
+            // A running session recomposes only on a Glance state change; WidgetRoot re-reads prefs.
+            runCatching {
+                updateAppWidgetState(context, glanceId) { it[NONCE_STATE_KEY] = System.currentTimeMillis().toString() }
+            }.onFailure { e -> Log.e(TAG, "state nonce bump failed=${e.message}", e) }
+        }
         runCatching { TauriGlanceWidget().update(context, glanceId) }
             .onFailure { e -> Log.e(TAG, "action-triggered update failed=${e.message}", e) }
     }
 
-    private suspend fun applyLocalListToggleIfNeeded(
-        context: Context,
-        glanceId: androidx.glance.GlanceId,
-        group: String,
-        logicalWidgetId: String,
-        action: String,
-        payload: String?,
-    ): Boolean {
-        val prefs = context.getSharedPreferences(group, Context.MODE_PRIVATE)
-        val raw = prefs.getString(WidgetStoreKeys.configKey(logicalWidgetId), null) ?: return false
-        val root = runCatching { JSONObject(raw) }.getOrNull() ?: return false
-        var changed = false
-        listOf("small", "medium", "large").forEach { key ->
-            changed = toggleListItemsInElement(root.optJSONObject(key), action, payload) || changed
-        }
-        if (!changed) return false
-        val updated = root.toString()
-        prefs.edit().putString(WidgetStoreKeys.configKey(logicalWidgetId), updated).apply()
-        runCatching {
-            updateAppWidgetState(context, glanceId) { state ->
-                state[CONFIG_STATE_KEY] = updated
-                state[NONCE_STATE_KEY] = System.currentTimeMillis().toString()
-            }
-        }.onFailure { e ->
-            Log.e(TAG, "local toggle update state failed=${e.message}", e)
-        }
+    /** Apply element `set` to the placement's stored state; false when nothing was written. */
+    private fun applySet(context: Context, appWidgetId: Int, setRaw: String): Boolean {
+        val set = Resolve.json(setRaw) as? JSONObject ?: return false
+        val p = Placement.read(context, appWidgetId)
+        val prefs = context.getSharedPreferences(p.group, Context.MODE_PRIVATE)
+        val defaults = (Resolve.json(p.configRaw) as? JSONObject)?.opt("state")
+        val current = WidgetStoreKeys.readState(prefs, p.widgetId, p.instance, defaults)
+        WidgetStoreKeys.writeState(prefs, p.widgetId, p.instance, WidgetStoreKeys.applySet(current, set))
+        val merged = WidgetStoreKeys.readState(prefs, p.widgetId, p.instance, defaults)
+        WidgetBridgePlugin.pluginInstance?.takeIf { it.isAlive() }?.notifyStateChanged(p.widgetId, p.instance, merged)
         return true
-    }
-
-    private fun toggleListItemsInElement(el: JSONObject?, action: String, payload: String?): Boolean {
-        if (el == null) return false
-        var changed = false
-        if (el.widgetString("type", "") == "list") {
-            val items = el.optJSONArray("items") ?: JSONArray()
-            for (i in 0 until items.length()) {
-                val item = items.optJSONObject(i) ?: continue
-                if (item.widgetString("action", "") != action) continue
-                if (!payload.isNullOrBlank()) {
-                    val itemPayload = item.widgetString("payload", "")
-                    if (itemPayload != payload) continue
-                }
-                val hasChecked = item.has("checked")
-                val hasIsOn = item.has("isOn")
-                if (!hasChecked && !hasIsOn) continue
-                val current = item.optBoolean("checked", item.optBoolean("isOn", false))
-                val next = !current
-                if (hasChecked || !hasIsOn) item.put("checked", next)
-                if (hasIsOn) item.put("isOn", next)
-                changed = true
-            }
-        }
-        val children = el.optJSONArray("children")
-        if (children != null) {
-            for (i in 0 until children.length()) {
-                changed = toggleListItemsInElement(children.optJSONObject(i), action, payload) || changed
-            }
-        }
-        return changed
     }
 }

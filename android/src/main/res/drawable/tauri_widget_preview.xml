@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Picker preview (API < 31 previewImage): a neutral card; apps can ship their own
+     drawable with this name. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="180dp" android:height="180dp"
+    android:viewportWidth="180" android:viewportHeight="180">
+    <path android:fillColor="#FFF2F2F7" android:pathData="M16,0h148a16,16 0 0 1 16,16v148a16,16 0 0 1 -16,16h-148a16,16 0 0 1 -16,-16v-148a16,16 0 0 1 16,-16z" />
+    <path android:fillColor="#FF2563EB" android:pathData="M20,24h80a6,6 0 0 1 0,12h-80a6,6 0 0 1 0,-12z" />
+    <path android:fillColor="#FFC7C7CC" android:pathData="M20,52h120a5,5 0 0 1 0,10h-120a5,5 0 0 1 0,-10z" />
+    <path android:fillColor="#FFC7C7CC" android:pathData="M20,74h96a5,5 0 0 1 0,10h-96a5,5 0 0 1 0,-10z" />
+    <path android:fillColor="#FFDCE4F7" android:pathData="M20,110h140a10,10 0 0 1 0,20h-140a10,10 0 0 1 0,-20z" />
+</vector>

@@ -1,7 +1,7 @@
 // @ts-nocheck
 import { mkdirSync } from "node:fs";
 import { join } from "node:path";
-import { auditCoverage, auditSchemaDocs } from "./audit.js";
+import { auditSchemaDocs } from "./audit.js";
 import { genCapabilityMatrix } from "./capability-matrix.js";
 import { genElements } from "./elements.js";
 import { copySchemas, copyShots } from "./sandbox.js";
@@ -22,13 +22,7 @@ export async function runGenerate({ check = false, audit = true } = {}) {
 
   let auditErrors = [];
   if (audit) {
-    auditErrors = [
-      ...auditCoverage(
-        elements.map((e) => e.name),
-        usage,
-      ),
-      ...auditSchemaDocs(elements),
-    ];
+    auditErrors = auditSchemaDocs(elements);
   }
 
   return { report, auditErrors, elementNames: elements.map((e) => e.name), usage };

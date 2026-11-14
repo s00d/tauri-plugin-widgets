@@ -80,6 +80,18 @@ export async function onWidgetAction(
   } catch {
     // desktop / iOS
   }
+  // A tap that launched the app was queued before this listener existed: the host holds
+  // it until now (first poll opens its gate). Deliver it once through `widget-action`.
+  try {
+    for (const a of await pollPendingWidgetActions()) {
+      // Already drained: one failed re-emit must not drop the rest.
+      await widgetAction(a.action, a.payload ?? undefined, { widgetId: a.widgetId, group: a.group }).catch(
+        console.error,
+      );
+    }
+  } catch {
+    // no queue on this platform
+  }
   return () => {
     unlisten();
     void pending?.unregister();

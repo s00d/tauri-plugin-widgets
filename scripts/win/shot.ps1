@@ -23,6 +23,17 @@ function Ensure-PreviewHost {
   )
   $src = Join-Path $Repo "templates\windows-widget\PreviewHost"
   $smokeDir = Join-Path $env:TEMP ("tpw-previewhost-" + $(if ($FullRenderer) { "full" } else { "smoke" }))
+  # Reuse the last build while no PreviewHost source is newer than it (sync.sh keeps mtimes):
+  # `record-windows <case>` used to pay a full dotnet build per case.
+  $built = Get-ChildItem -Path $smokeDir -Recurse -Filter "AcPreviewHost.exe" -ErrorAction SilentlyContinue |
+    Where-Object { $_.FullName -match "Release" } | Select-Object -First 1
+  if ($null -ne $built) {
+    $newest = Get-ChildItem -Path $src -Recurse -File | Sort-Object LastWriteTime -Descending | Select-Object -First 1
+    if ($newest.LastWriteTime -le $built.LastWriteTime) {
+      Write-Host "==> PreviewHost up to date (reuse)"
+      return [string]$built.FullName
+    }
+  }
   if (Test-Path $smokeDir) { Remove-Item -Recurse -Force $smokeDir }
   Copy-Item -Recurse $src $smokeDir
   Get-ChildItem -Path $smokeDir -Recurse -Force -Filter "._*" | Remove-Item -Force -ErrorAction SilentlyContinue
@@ -39,7 +50,7 @@ function Ensure-PreviewHost {
   dotnet build $proj -c Release -p:Platform=$platform -p:RuntimeIdentifier=$rid -p:Smoke=$smokeFlag | Out-Host
   if ($LASTEXITCODE -ne 0) {
     if ($FullRenderer) {
-      Write-Host "WARN: full AC renderer build failed — falling back to Smoke=true walker"
+      Write-Host "WARN: full AC renderer build failed - falling back to Smoke=true walker"
       return Ensure-PreviewHost -FullRenderer:$false
     }
     exit $LASTEXITCODE
@@ -127,7 +138,10 @@ foreach ($cf in $caseFiles) {
   $size = [string]$caseJson.size
   if (-not $size) { $size = "small" }
 
-  $snap = Join-Path $Repo ("tests\snapshots\adaptive\" + $name + ".json")
+  # Real cards from the Mac (ADAPTIVE_OUT=out/adaptive gen-adaptive-snapshots, rasterize on);
+  # tests/snapshots/adaptive is structural only (v2-* PNGs are redacted to "<png>").
+  $snap = Join-Path $Repo ("out\adaptive\" + $name + ".json")
+  if (-not (Test-Path $snap)) { $snap = Join-Path $Repo ("tests\snapshots\adaptive\" + $name + ".json") }
   $cardPath = Join-Path $outDir ($name + ".card.json")
   if (Test-Path $snap) {
     Copy-Item $snap $cardPath -Force

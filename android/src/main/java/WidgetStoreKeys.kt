@@ -35,8 +35,94 @@ object WidgetStoreKeys {
     const val KEY_REGISTERED = "registered_kinds"
     const val INSTANCE_WIDGET_ID_PREFIX = "widgetId:"
     const val INSTANCE_GROUP_PREFIX = "group:"
+    /** Meta key: instance id picked in [WidgetConfigActivity] for an appWidgetId. */
+    const val INSTANCE_CHOICE_PREFIX = "instanceChoice:"
+    /** `instances:{widgetId}`: `[{id, title}]` choices (`setWidgetInstances`). */
+    const val INSTANCES_PREFIX = "instances:"
 
     fun configKey(widgetId: String): String = CONFIG_PREFIX + widgetId
+
+    const val DATA_PREFIX = "data:"
+    /** Contract v3 local state: `state:{widgetId}` and `state:{widgetId}#{instance}`. */
+    const val STATE_PREFIX = "state:"
+    /** Contract v3 activity layouts stored on the device (`registerActivityTemplate`). */
+    const val ACTIVITY_TEMPLATE_PREFIX = "activity-template:"
+
+    /** Guards read-modify-write of `state:` keys (tap receiver vs plugin thread). */
+    private val STATE_LOCK = Any()
+
+    /** Merged state: `config.state` [defaults], then `state:{id}`, then `state:{id}#{instance}`. */
+    fun readState(prefs: android.content.SharedPreferences, widgetId: String, instance: String?, defaults: Any?): Any? =
+        Resolve.mergeData(
+            listOf(defaults) + lookupKeys(STATE_PREFIX, widgetId, instance).reversed()
+                .map { Resolve.json(prefs.getString(WidgetSanitizer.sanitizeKey(it), null)) },
+        )
+
+    /**
+     * Write the state of exactly this scope (the placement when [instance] is set): [patch]
+     * shallow-merged over what is stored, or stored as is when [replace]. Returns the stored object.
+     */
+    fun writeState(
+        prefs: android.content.SharedPreferences,
+        widgetId: String,
+        instance: String?,
+        patch: org.json.JSONObject,
+        replace: Boolean = false,
+    ): org.json.JSONObject = synchronized(STATE_LOCK) {
+        val key = WidgetSanitizer.sanitizeKey(STATE_PREFIX + scopedId(widgetId, instance))
+        val base = if (replace) null else Resolve.json(prefs.getString(key, null))
+        val next = Resolve.mergeData(listOf(base as? org.json.JSONObject ?: org.json.JSONObject(), patch)) as org.json.JSONObject
+        prefs.edit().putString(key, next.toString()).commit()
+        next
+    }
+
+    /** Drop the stored state of exactly this scope (`setWidgetState` with `patch: null`). */
+    fun clearState(prefs: android.content.SharedPreferences, widgetId: String, instance: String?) {
+        synchronized(STATE_LOCK) {
+            prefs.edit().remove(WidgetSanitizer.sanitizeKey(STATE_PREFIX + scopedId(widgetId, instance))).commit()
+        }
+    }
+
+    /**
+     * Element `set` against the current merged state: `"$toggle"` flips a boolean (missing →
+     * `true`), `"$inc"` / `"$dec"` add / subtract 1 (missing → 0 first); other values as is.
+     */
+    fun applySet(current: Any?, set: org.json.JSONObject): org.json.JSONObject {
+        val cur = current as? org.json.JSONObject
+        val out = org.json.JSONObject()
+        set.keys().forEach { k ->
+            val old = cur?.opt(k)
+            val v = set.opt(k)
+            out.put(k, when (v) {
+                "\$toggle" -> if (old is Boolean) !old else true
+                "\$inc", "\$dec" -> {
+                    val n = (old as? Number) ?: 0
+                    val d = if (v == "\$inc") 1 else -1
+                    if (n is Int || n is Long) n.toLong() + d else n.toDouble() + d
+                }
+                else -> v
+            })
+        }
+        return out
+    }
+    const val FETCHED_PREFS = "__tauri_widget_fetched__"
+    /** Matches Rust `store::INSTANCE_SEPARATOR`. */
+    const val INSTANCE_SEPARATOR = "#"
+
+    /** `widgetId` or `widgetId#instance`. */
+    fun scopedId(widgetId: String, instance: String?): String =
+        if (instance.isNullOrEmpty()) widgetId else widgetId + INSTANCE_SEPARATOR + instance
+
+    /** Placement's own key first, then the widget's (Rust `store::lookup_keys`). */
+    fun lookupKeys(prefix: String, widgetId: String, instance: String?): List<String> =
+        if (instance.isNullOrEmpty()) listOf(prefix + widgetId)
+        else listOf(prefix + scopedId(widgetId, instance), prefix + widgetId)
+
+    /** `w#7` → (`w`, `7`); `w` → (`w`, null). */
+    fun splitScoped(id: String): Pair<String, String?> {
+        val i = id.indexOf(INSTANCE_SEPARATOR)
+        return if (i < 0) id to null else id.substring(0, i) to id.substring(i + 1).ifEmpty { null }
+    }
 
     fun isConfigKey(key: String): Boolean = key.startsWith(CONFIG_PREFIX)
 
@@ -78,7 +164,19 @@ object WidgetStoreKeys {
         metaPrefs(context).edit()
             .remove(instanceWidgetIdKey(appWidgetId))
             .remove(instanceGroupKey(appWidgetId))
+            .remove(INSTANCE_CHOICE_PREFIX + appWidgetId)
             .apply()
+    }
+
+    fun setPlacementInstance(context: Context, appWidgetId: Int, instance: String) {
+        if (appWidgetId < 0 || instance.isEmpty()) return
+        metaPrefs(context).edit().putString(INSTANCE_CHOICE_PREFIX + appWidgetId, instance).commit()
+    }
+
+    /** Instance id of a placement: the configured choice, else the appWidgetId; null when unplaced. */
+    fun placementInstance(context: Context, appWidgetId: Int): String? {
+        if (appWidgetId < 0) return null
+        return metaPrefs(context).getString(INSTANCE_CHOICE_PREFIX + appWidgetId, null) ?: appWidgetId.toString()
     }
 
     fun resolveGroup(context: Context, appWidgetId: Int = -1): String {

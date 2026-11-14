@@ -1,5 +1,27 @@
 # Changelog
 
+## 0.8.0
+
+### Added
+- Live activities: `startActivity` / `updateActivity` / `endActivity` / `listActivities`, templates with data-only updates (`registerActivityTemplate`), push tokens, state and content events. iOS Lock Screen and Dynamic Island, Android ongoing notifications.
+- Desktop Dynamic Island: a live activity as a pill at the camera notch on macOS, and the same pill on Windows and Linux (`activitySurface: "island"`); compact around the notch, expanded on hover.
+- Local state: `state` defaults and `set` on `button` / `toggle` / `link` (`"$toggle"`, `"$inc"`, `"$dec"`) change the widget in place without the app; `setWidgetState` / `getWidgetState`, `widget-state-changed` event.
+- Data without the layout: `setWidgetData(widgetId, data)` with `{{data.path}}` bindings; `source` lets the widget fetch JSON from a URL itself.
+- Dynamic content: `when` conditions, `repeat` lists from arrays, reusable `templates` / `use`, localized `strings`, `requires` for newer configs on older apps.
+- Scheduled entries (`entries: [{ at, small, … }]`) switched without the app, and the `transition` hint (`opacity`, `slide`, `numeric`).
+- Instances: one widget placed several times with its own config and data (`setWidgetInstances`, `getActiveWidgets`, Apple "Edit Widget" choice).
+- Android: widget scheduler, configuration activity, loading / error / preview layouts, Samsung widget info.
+- `getWidgetPushToken` for widget push updates on iOS.
+- Docs: Features section with recordings, a standalone widget constructor page, animated home page.
+
+### Changed
+- The resolve contract (bindings, conditions, state) is shared and tested across Rust, TS, Swift and Kotlin (contract v3).
+- Windows Adaptive Cards: exact colours, unique ids, progress bars, shape and image sizes, ZStack sizing closer to the other renderers.
+- Element types (`ContentMode`, `ChartType`, …) are generated from the schema (`guest-js/generated`); `ContentMode` adds `stretch` / `center`, `ChartType` adds `point`.
+
+### Fixed
+- Rendering differences between platforms found by golden screenshots on iOS, Android, macOS, Windows, Linux and the desktop renderer.
+
 ## 0.7.0
 
 ### Breaking

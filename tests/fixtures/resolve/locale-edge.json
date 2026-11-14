@@ -1,0 +1,9 @@
+{
+  "about": "Exact language beats a regional variant even when the variant sorts first (raw keys sort case-sensitively); language is the part before '-'.",
+  "config": {
+    "strings": { "PT-BR": { "x": "br" }, "pt": { "x": "pt" }, "pl": { "x": "pl" } },
+    "small": { "type": "text", "content": "{{t.x}}" }
+  },
+  "ctx": { "nowMs": 0, "locale": "pt-AO" },
+  "expected": { "version": 1, "small": { "type": "text", "content": "pt" } }
+}

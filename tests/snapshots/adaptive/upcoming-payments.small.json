@@ -2,7 +2,11 @@
   "$schema": "http://adaptivecards.io/schemas/adaptive-card.json",
   "body": [
     {
-      "id": "card:#1c1c1e;gap:10",
+      "backgroundImage": {
+        "fillMode": "repeat",
+        "url": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAAEElEQVR4AQEFAPr/ABwcHv8CBAFWW3W0KwAAAABJRU5ErkJggg=="
+      },
+      "id": "card:#1c1c1e",
       "items": [
         {
           "id": "rule:#3878fa",
@@ -42,9 +46,9 @@
               "width": "auto"
             },
             {
+              "id": "gap:10;#2",
               "items": [
                 {
-                  "id": "gap:2",
                   "items": [
                     {
                       "color": "Default",
@@ -56,17 +60,20 @@
                     },
                     {
                       "color": "Light",
+                      "id": "gap:2",
                       "size": "Small",
+                      "spacing": "Small",
                       "text": "Jun 1",
                       "type": "TextBlock",
                       "weight": "Bolder",
                       "wrap": false
                     }
                   ],
-                  "spacing": "Small",
+                  "spacing": "None",
                   "type": "Container"
                 }
               ],
+              "spacing": "Medium",
               "type": "Column",
               "width": 100
             }
@@ -76,6 +83,7 @@
           "type": "ColumnSet"
         },
         {
+          "id": "gap:10;#3",
           "spacing": "Medium",
           "text": " ",
           "type": "TextBlock"
@@ -83,15 +91,16 @@
         {
           "color": "Accent",
           "horizontalAlignment": "Left",
-          "id": "fg:#3878fa",
+          "id": "fg:#3878fa;gap:10",
           "size": "Medium",
+          "spacing": "Medium",
           "text": "$12.50",
           "type": "TextBlock",
           "weight": "Bolder",
           "wrap": false
         }
       ],
-      "spacing": "Medium",
+      "spacing": "None",
       "style": "emphasis",
       "type": "Container"
     }

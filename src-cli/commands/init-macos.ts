@@ -88,10 +88,13 @@ export function initMacosAction(opts: InitMacosOptions): void {
   copyTemplate(join(templateDir, "project.yml"), join(widgetDir, "project.yml"), {
     TAURI_WIDGETS_SWIFT_PATH: swiftPackagePath,
     WIDGET_BUNDLE_ID: bundleId,
+    "{{APP_GROUP}}": appGroup,
   });
   console.log("  Created project.yml");
 
-  copyFileSync(join(templateDir, "Info.plist"), join(widgetDir, "Info.plist"));
+  copyTemplate(join(templateDir, "Info.plist"), join(widgetDir, "Info.plist"), {
+    "{{APP_GROUP}}": appGroup,
+  });
   console.log("  Created Info.plist");
 
   copyFileSync(join(templateDir, "build-widget.sh"), join(widgetDir, "build-widget.sh"));

@@ -2,10 +2,18 @@
   "$schema": "http://adaptivecards.io/schemas/adaptive-card.json",
   "body": [
     {
+      "backgroundImage": {
+        "fillMode": "repeat",
+        "url": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAAEElEQVR4AQEFAPr/AAsSIP8BpgE9UW0PqQAAAABJRU5ErkJggg=="
+      },
       "horizontalAlignment": "Center",
-      "id": "card:#0b1220;gap:8",
+      "id": "card:#0b1220",
       "items": [
         {
+          "backgroundImage": {
+            "fillMode": "repeat",
+            "url": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAAEElEQVR4AQEFAPr/AB4pO/8CbQGCctJLRAAAAABJRU5ErkJggg=="
+          },
           "id": "card:#1e293b",
           "items": [
             {
@@ -15,7 +23,7 @@
                     {
                       "color": "Accent",
                       "size": "Small",
-                      "text": "*",
+                      "text": "⚙",
                       "type": "TextBlock",
                       "weight": "Bolder",
                       "wrap": true
@@ -25,6 +33,7 @@
                   "width": "auto"
                 },
                 {
+                  "id": "gap:6",
                   "items": [
                     {
                       "color": "Light",
@@ -36,12 +45,12 @@
                       "wrap": true
                     }
                   ],
+                  "spacing": "Default",
                   "type": "Column",
                   "width": "auto"
                 }
               ],
-              "id": "gap:6",
-              "spacing": "Default",
+              "spacing": "None",
               "type": "ColumnSet"
             }
           ],
@@ -53,7 +62,7 @@
           "type": "Container"
         }
       ],
-      "spacing": "Default",
+      "spacing": "None",
       "style": "emphasis",
       "type": "Container"
     }

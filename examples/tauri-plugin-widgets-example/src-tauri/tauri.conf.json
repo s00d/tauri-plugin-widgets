@@ -11,11 +11,13 @@
     "frontendDist": "../dist"
   },
   "app": {
+    "macOSPrivateApi": true,
     "windows": [
       {
         "title": "Widget Plugin Example",
         "width": 480,
-        "height": 800
+        "height": 800,
+        "backgroundThrottling": "disabled"
       }
     ],
     "security": {

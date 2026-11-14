@@ -1,0 +1,95 @@
+{
+  "$schema": "http://adaptivecards.io/schemas/adaptive-card.json",
+  "body": [
+    {
+      "backgroundImage": {
+        "fillMode": "repeat",
+        "url": "data:image/png;base64,<png>"
+      },
+      "id": "card:#111827",
+      "items": [
+        {
+          "items": [
+            {
+              "color": "Good",
+              "size": "Small",
+              "text": "track",
+              "type": "TextBlock",
+              "wrap": true
+            },
+            {
+              "size": "Stretch",
+              "type": "Image",
+              "url": "data:image/png;base64,<png>"
+            }
+          ],
+          "type": "Container"
+        },
+        {
+          "id": "gap:8",
+          "items": [
+            {
+              "color": "Accent",
+              "size": "Small",
+              "text": "done (past range)",
+              "type": "TextBlock",
+              "wrap": true
+            },
+            {
+              "columns": [
+                {
+                  "backgroundImage": {
+                    "fillMode": "repeat",
+                    "url": "data:image/png;base64,<png>"
+                  },
+                  "id": "fill:#3b82f6",
+                  "items": [],
+                  "minHeight": "6px",
+                  "type": "Column",
+                  "width": 100
+                },
+                {
+                  "backgroundImage": {
+                    "fillMode": "repeat",
+                    "url": "data:image/png;base64,<png>"
+                  },
+                  "items": [],
+                  "minHeight": "6px",
+                  "spacing": "None",
+                  "type": "Column",
+                  "width": 1
+                }
+              ],
+              "spacing": "Small",
+              "type": "ColumnSet"
+            }
+          ],
+          "spacing": "Default",
+          "type": "Container"
+        },
+        {
+          "horizontalAlignment": "Center",
+          "id": "gap:8;#2",
+          "size": "Stretch",
+          "spacing": "Default",
+          "type": "Image",
+          "url": "data:image/png;base64,<png>"
+        },
+        {
+          "color": "Light",
+          "id": "gap:8;#3",
+          "size": "Default",
+          "spacing": "Default",
+          "text": "Done!",
+          "type": "TextBlock",
+          "wrap": true
+        }
+      ],
+      "spacing": "None",
+      "style": "emphasis",
+      "type": "Container"
+    }
+  ],
+  "type": "AdaptiveCard",
+  "version": "1.5"
+}

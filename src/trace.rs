@@ -267,31 +267,186 @@ pub fn trace_path(app_data: &Path) -> PathBuf {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use proptest::prelude::*;
+    use proptest_state_machine::{prop_state_machine, ReferenceStateMachine, StateMachineTest};
 
-    #[test]
-    fn ring_caps_at_200() {
-        let store = TraceStore::new();
-        // Force-enable by pushing only works if debug — tests are debug.
-        for i in 0..250 {
-            store.push(TraceEvent::Poll { count: i });
-        }
-        let list = store.list_since(None);
-        assert!(list.len() <= RING_CAP);
-        assert_eq!(list.last().unwrap().event, TraceEvent::Poll { count: 249 });
+    #[derive(Clone, Debug)]
+    enum Op {
+        /// Push `n` poll events (counts continue from the model's counter).
+        Push(usize),
+        /// Flush the ring to disk (only when dirty or the file is missing).
+        Flush,
+        /// Load the disk file into the running store.
+        LoadInPlace,
+        /// Fresh store (app restart) that loads the disk file.
+        Restart,
     }
 
+    /// Model of the journal: ring of poll counts, dirty flag, flushed-since-start flag,
+    /// last flushed contents on disk.
+    #[derive(Clone, Debug, Default)]
+    struct Model {
+        ring: VecDeque<usize>,
+        next: usize,
+        dirty: bool,
+        flushed: bool,
+        disk: Option<Vec<usize>>,
+    }
+
+    impl ReferenceStateMachine for Model {
+        type State = Model;
+        type Transition = Op;
+
+        fn init_state() -> BoxedStrategy<Model> {
+            Just(Model::default()).boxed()
+        }
+
+        fn transitions(_: &Model) -> BoxedStrategy<Op> {
+            prop_oneof![
+                4 => (1usize..90).prop_map(Op::Push),
+                1 => Just(Op::Flush),
+                1 => Just(Op::LoadInPlace),
+                1 => Just(Op::Restart),
+            ]
+            .boxed()
+        }
+
+        fn apply(mut m: Model, op: &Op) -> Model {
+            match *op {
+                Op::Push(n) => {
+                    for _ in 0..n {
+                        m.ring.push_back(m.next);
+                        m.next += 1;
+                        if m.ring.len() > RING_CAP {
+                            m.ring.pop_front();
+                        }
+                    }
+                    m.dirty = true;
+                }
+                Op::Flush => {
+                    if m.dirty || m.disk.is_none() {
+                        m.disk = Some(m.ring.iter().copied().collect());
+                    }
+                    m.dirty = false;
+                    m.flushed = true;
+                }
+                Op::LoadInPlace => {
+                    if let Some(d) = &m.disk {
+                        m.ring = d.iter().copied().collect();
+                        m.dirty = false;
+                    }
+                }
+                Op::Restart => {
+                    m.ring = m.disk.clone().unwrap_or_default().into();
+                    m.dirty = false;
+                    m.flushed = false;
+                }
+            }
+            m
+        }
+    }
+
+    struct Sut {
+        store: TraceStore,
+        dir: tempfile::TempDir,
+        next: usize,
+    }
+
+    struct TraceMachine;
+
+    impl StateMachineTest for TraceMachine {
+        type SystemUnderTest = Sut;
+        type Reference = Model;
+
+        fn init_test(_: &Model) -> Sut {
+            Sut {
+                store: TraceStore::new(),
+                dir: tempfile::tempdir().unwrap(),
+                next: 0,
+            }
+        }
+
+        fn apply(mut sut: Sut, _: &Model, op: Op) -> Sut {
+            let path = trace_path(sut.dir.path());
+            match op {
+                Op::Push(n) => {
+                    for _ in 0..n {
+                        sut.store.push(TraceEvent::Poll { count: sut.next });
+                        sut.next += 1;
+                    }
+                }
+                Op::Flush => {
+                    sut.store.flush_to_path(&path).unwrap();
+                    assert!(path.exists() && !path.with_extension("tmp").exists());
+                }
+                Op::LoadInPlace => sut.store.load_from_path(&path),
+                Op::Restart => {
+                    sut.store = TraceStore::new();
+                    sut.store.load_from_path(&path);
+                }
+            }
+            sut
+        }
+
+        fn check_invariants(sut: &Sut, m: &Model) {
+            let counts = |list: Vec<TraceEntry>| -> Vec<usize> {
+                list.into_iter()
+                    .map(|e| match e.event {
+                        TraceEvent::Poll { count } => count,
+                        other => panic!("{other:?}"),
+                    })
+                    .collect()
+            };
+            let all = sut.store.list_since(None);
+            let want: Vec<usize> = m.ring.iter().copied().collect();
+            assert_eq!(counts(all.clone()), want);
+            assert!(all.windows(2).all(|w| w[0].ts <= w[1].ts));
+            if let Some(first) = all.first() {
+                assert_eq!(sut.store.list_since(Some(first.ts)).len(), all.len());
+            }
+            assert!(sut.store.list_since(Some(u64::MAX)).is_empty());
+            // Dirty and never flushed by this store → due now; otherwise not within 10 s.
+            assert_eq!(sut.store.needs_timed_flush(), m.dirty && !m.flushed);
+            let path = trace_path(sut.dir.path());
+            let on_disk: Option<Vec<TraceEntry>> = fs::read_to_string(&path)
+                .ok()
+                .map(|s| serde_json::from_str(&s).unwrap());
+            assert_eq!(on_disk.map(counts), m.disk.clone());
+        }
+    }
+
+    prop_state_machine! {
+        #![proptest_config(ProptestConfig { cases: 48, ..ProptestConfig::default() })]
+        /// Journal vs a model: ring capped at 200 (oldest dropped), flush writes only when
+        /// dirty (or no file yet), load replaces the ring and clears dirty, restart reloads
+        /// the last flush, the timed flush is due only while dirty and never flushed.
+        #[test]
+        fn trace_store_follows_the_model(sequential 1..40 => TraceMachine);
+    }
+
+    /// Wire format of an event in the flushed journal: `kind` tag, camelCase fields, the
+    /// reload outcome nested with its own tag, `ts` flattened beside them.
     #[test]
-    fn serialize_reload_throttled() {
-        let e = TraceEvent::Reload {
+    fn flushed_event_wire_format() {
+        let store = TraceStore::new();
+        let dir = tempfile::tempdir().unwrap();
+        let path = trace_path(dir.path());
+        assert!(path.ends_with("widgets/widget_trace.json"));
+        store.push(TraceEvent::Reload {
             performed: false,
             reason: ReloadOutcome::Throttled {
                 remaining_secs: 840,
             },
-        };
-        let v = serde_json::to_value(&e).unwrap();
-        assert_eq!(v["kind"], "reload");
-        assert_eq!(v["performed"], false);
-        assert_eq!(v["reason"]["outcome"], "throttled");
-        assert_eq!(v["reason"]["remainingSecs"], 840);
+        });
+        store.flush_to_path(&path).unwrap();
+        let v: serde_json::Value =
+            serde_json::from_str(&fs::read_to_string(&path).unwrap()).unwrap();
+        let e = &v[0];
+        assert_eq!(e["kind"], "reload");
+        assert_eq!(e["performed"], false);
+        assert_eq!(e["reason"]["outcome"], "throttled");
+        assert_eq!(e["reason"]["remainingSecs"], 840);
+        assert!(e["ts"].as_u64().unwrap() > 0);
+        assert!(trace_enabled(), "tests run with debug assertions");
     }
 }

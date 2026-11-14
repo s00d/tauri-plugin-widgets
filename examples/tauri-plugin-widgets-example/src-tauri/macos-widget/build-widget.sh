@@ -45,10 +45,12 @@ gen_entitlements() {
 }
 
 if [[ -f "$CONF" ]] && command -v node >/dev/null 2>&1; then
+  # Same as the template: tauri.macos.conf.json wins (macOS Team-ID group), else tauri.conf.json.
   GROUP="$(node -e "
-    const fs = require('fs');
-    const conf = JSON.parse(fs.readFileSync(process.argv[1], 'utf8'));
-    const g = conf.plugins && conf.plugins.widgets && conf.plugins.widgets.appGroup;
+    const fs = require('fs'), path = require('path');
+    const read = (p) => (fs.existsSync(p) ? JSON.parse(fs.readFileSync(p, 'utf8')) : {});
+    const pick = (c) => c.plugins && c.plugins.widgets && c.plugins.widgets.appGroup;
+    const g = pick(read(path.join(path.dirname(process.argv[1]), 'tauri.macos.conf.json'))) || pick(read(process.argv[1]));
     if (!g) { console.error('ERROR: plugins.widgets.appGroup missing in', process.argv[1]); process.exit(1); }
     process.stdout.write(String(g));
   " "$CONF")"
@@ -95,6 +97,11 @@ fi
 
 echo "[widget] Building TauriWidgetExtension ($CONFIGURATION)..."
 
+# Extension version = app version, build number new on every build: WidgetKit caches an
+# extension's widget list by version, so an unchanged "1" hides new widgets and changes.
+APP_VERSION="$(node -e "process.stdout.write(require(process.argv[1]).version)" "$SCRIPT_DIR/../../package.json" 2>/dev/null || echo 1.0)"
+BUILD_NUMBER="$(date +%s)"
+
 xcodebuild build \
     -project "$XCODEPROJ" \
     -scheme "TauriWidgetExtension" \
@@ -115,6 +122,11 @@ fi
 
 # Strip accidental nested Frameworks (SwiftPM copy) — host app should not ship them twice.
 rm -rf "$APPEX_PATH/Contents/Frameworks"
+
+# Version stamped into the built Info.plist (xcodegen writes literals, so build settings
+# cannot do it). Before signing: the signature covers Info.plist.
+/usr/libexec/PlistBuddy -c "Set :CFBundleShortVersionString $APP_VERSION" \
+    -c "Set :CFBundleVersion $BUILD_NUMBER" "$APPEX_PATH/Contents/Info.plist"
 
 # ─── Sign .appex with WidgetKit entitlements ─────────────────────────────────
 

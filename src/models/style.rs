@@ -42,6 +42,71 @@ pub struct ElementStyle {
     /// Layout weight for flexible sizing inside stacks (like Android `layout_weight`).
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub flex: Option<f64>,
+    /// Hide this content where the OS redacts private data (iOS / macOS locked screen,
+    /// StandBy). Ignored where no redaction exists.
+    #[serde(
+        rename = "privacySensitive",
+        default,
+        skip_serializing_if = "Option::is_none"
+    )]
+    pub privacy_sensitive: Option<bool>,
+    /// Text read by screen readers instead of the visible content.
+    #[serde(
+        rename = "accessibilityLabel",
+        default,
+        skip_serializing_if = "Option::is_none"
+    )]
+    pub accessibility_label: Option<String>,
+    /// Set fields from data with their JSON type: `{"value": "data.progress"}`.
+    /// Use for numbers / booleans / arrays (`{{…}}` only fills strings).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub bind: Option<std::collections::BTreeMap<String, String>>,
+    /// Outer spacing (number or per-edge object), outside background and border.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub margin: Option<PaddingValue>,
+    /// Keep width / height at this ratio (`1` = square).
+    #[serde(
+        rename = "aspectRatio",
+        default,
+        skip_serializing_if = "Option::is_none"
+    )]
+    pub aspect_ratio: Option<f64>,
+    /// Who keeps its size in a crowded stack: higher first. Default `0`.
+    #[serde(
+        rename = "layoutPriority",
+        default,
+        skip_serializing_if = "Option::is_none"
+    )]
+    pub layout_priority: Option<f64>,
+    /// Move right by points after layout (does not affect siblings).
+    #[serde(rename = "offsetX", default, skip_serializing_if = "Option::is_none")]
+    pub offset_x: Option<f64>,
+    /// Move down by points after layout (does not affect siblings).
+    #[serde(rename = "offsetY", default, skip_serializing_if = "Option::is_none")]
+    pub offset_y: Option<f64>,
+    /// Rotate by degrees (clockwise).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub rotation: Option<f64>,
+    /// Scale factor (`1` = unchanged).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub scale: Option<f64>,
+    /// Apple tinted / accented Home Screen: draw this part in the accent color
+    /// (`widgetAccentable`). Ignored elsewhere.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub accentable: Option<bool>,
+    /// Show only when the condition holds (`{"path": "data.n", "gt": 0}`; see
+    /// [`crate::resolve`]). Removed before rendering.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[cfg_attr(
+        feature = "schema",
+        schemars(with = "Option<serde_json::Map<String, serde_json::Value>>")
+    )]
+    pub when: Option<serde_json::Value>,
+    /// How this element changes between timeline entries / redraws (a hint):
+    /// `numeric` animates digits, `opacity` cross-fades, `slide` pushes from the bottom.
+    /// Apple and desktop animate; Android and Adaptive Cards ignore it.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub transition: Option<Transition>,
 }
 
 /// Color value — hex string, semantic name, or adaptive `{ light, dark }` pair.
@@ -80,6 +145,10 @@ impl From<String> for ColorValue {
 #[cfg_attr(feature = "schema", derive(JsonSchema))]
 #[serde(rename_all = "camelCase")]
 pub enum ClipShape {
+    /// `roundedRectangle` (uses `cornerRadius`).
+    RoundedRectangle,
+    /// `ellipse`.
+    Ellipse,
     /// `circle`.
     Circle,
     /// `capsule`.
@@ -156,10 +225,45 @@ pub struct GradientConfig {
     #[serde(rename = "gradientType")]
     pub gradient_type: GradientType,
     /// Stop colors, in order.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub colors: Vec<String>,
     /// Direction for linear gradients
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub direction: Option<GradientDirection>,
+    /// Colors at explicit positions (`location` 0…1); replaces `colors` when set.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub stops: Vec<GradientStop>,
+    /// Start point in unit space (`{x:0,y:0}` = top leading); overrides `direction`.
+    #[serde(
+        rename = "startPoint",
+        default,
+        skip_serializing_if = "Option::is_none"
+    )]
+    pub start_point: Option<UnitPoint>,
+    /// End point in unit space (`{x:1,y:1}` = bottom trailing).
+    #[serde(rename = "endPoint", default, skip_serializing_if = "Option::is_none")]
+    pub end_point: Option<UnitPoint>,
+}
+
+/// A gradient color at a position.
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+#[cfg_attr(feature = "schema", derive(JsonSchema))]
+#[serde(rename_all = "camelCase")]
+pub struct GradientStop {
+    /// Hex color.
+    pub color: String,
+    /// Position `0…1` along the gradient.
+    pub location: f64,
+}
+
+/// A point in unit coordinates (`0…1` on both axes, origin top leading).
+#[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq)]
+#[cfg_attr(feature = "schema", derive(JsonSchema))]
+pub struct UnitPoint {
+    /// Horizontal position, `0` = leading.
+    pub x: f64,
+    /// Vertical position, `0` = top.
+    pub y: f64,
 }
 
 /// Gradient shape.
@@ -272,6 +376,12 @@ pub struct FrameConfig {
     /// Maximum height — a fixed point value or `"infinity"`.
     #[serde(rename = "maxHeight", default, skip_serializing_if = "Option::is_none")]
     pub max_height: Option<FrameDimension>,
+    /// Minimum width in points.
+    #[serde(rename = "minWidth", default, skip_serializing_if = "Option::is_none")]
+    pub min_width: Option<f64>,
+    /// Minimum height in points.
+    #[serde(rename = "minHeight", default, skip_serializing_if = "Option::is_none")]
+    pub min_height: Option<f64>,
 }
 
 /// A frame dimension — either a fixed point value or `"infinity"`.
@@ -468,6 +578,10 @@ pub enum ContentMode {
     Fit,
     /// `fill`.
     Fill,
+    /// `stretch`: fill both axes, ignoring the aspect ratio.
+    Stretch,
+    /// `center`: natural size, centered, no scaling.
+    Center,
 }
 
 /// Progress indicator style.
@@ -521,8 +635,10 @@ pub enum ChartType {
     Line,
     /// `area`.
     Area,
-    /// `pie`.
+    /// `pie` (donut with `innerRadius`).
     Pie,
+    /// `point`: scatter dots.
+    Point,
 }
 
 /// Shape kind for [`crate::models::ShapeElement`].
@@ -537,6 +653,10 @@ pub enum ShapeType {
     Capsule,
     /// `rectangle`.
     Rectangle,
+    /// `roundedRectangle` (uses `cornerRadius`).
+    RoundedRectangle,
+    /// `ellipse`.
+    Ellipse,
 }
 
 /// Countdown/countup direction for [`crate::models::TimerElement`].
@@ -553,85 +673,174 @@ pub enum TimerCounting {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use proptest::prelude::*;
 
-    #[test]
-    fn color_value_roundtrip_solid_and_adaptive() {
-        let solid = ColorValue::Solid("#ff0000".into());
-        let s = serde_json::to_string(&solid).unwrap();
-        let back: ColorValue = serde_json::from_str(&s).unwrap();
-        assert!(matches!(back, ColorValue::Solid(ref x) if x == "#ff0000"));
-
-        let adaptive = ColorValue::Adaptive {
-            light: "#fff".into(),
-            dark: "#000".into(),
-        };
-        let s = serde_json::to_string(&adaptive).unwrap();
-        let back: ColorValue = serde_json::from_str(&s).unwrap();
-        assert!(matches!(
-            back,
-            ColorValue::Adaptive {
-                ref light,
-                ref dark
-            } if light == "#fff" && dark == "#000"
-        ));
+    proptest! {
+        /// Any solid / adaptive colour and any uniform / per-edge padding survives
+        /// serialize → deserialize with the same variant and values.
+        #[test]
+        fn color_and_padding_roundtrip(
+            a in "[#a-zA-Z0-9]{0,8}",
+            b in "[#a-zA-Z0-9]{0,8}",
+            u in -4_000_000i32..4_000_000,
+            edges in proptest::array::uniform4(proptest::option::of(0u32..40_000)),
+        ) {
+            // Quarter steps: exact in f64 and in JSON (serde_json's default float parser
+            // is not round-trip exact for arbitrary f64).
+            let u = f64::from(u) / 4.0;
+            let edges = edges.map(|e| e.map(|q| f64::from(q) / 4.0));
+            for c in [ColorValue::Solid(a.clone()), ColorValue::Adaptive { light: a.clone(), dark: b.clone() }] {
+                let back: ColorValue = serde_json::from_str(&serde_json::to_string(&c).unwrap()).unwrap();
+                match (&c, &back) {
+                    (ColorValue::Solid(x), ColorValue::Solid(y)) => prop_assert_eq!(x, y),
+                    (ColorValue::Adaptive { light: l1, dark: d1 }, ColorValue::Adaptive { light: l2, dark: d2 }) => {
+                        prop_assert_eq!((l1, d1), (l2, d2))
+                    }
+                    _ => prop_assert!(false, "{:?} -> {:?}", c, back),
+                }
+            }
+            let back: PaddingValue = serde_json::from_str(&serde_json::to_string(&PaddingValue::Uniform(u)).unwrap()).unwrap();
+            prop_assert!(matches!(back, PaddingValue::Uniform(v) if v == u));
+            let [top, bottom, leading, trailing] = edges;
+            let p = PaddingValue::Edges { top, bottom, leading, trailing };
+            let back: PaddingValue = serde_json::from_str(&serde_json::to_string(&p).unwrap()).unwrap();
+            match back {
+                PaddingValue::Edges { top: t, bottom: b, leading: l, trailing: tr } => {
+                    prop_assert_eq!((t, b, l, tr), (top, bottom, leading, trailing))
+                }
+                // All-`None` edges serialize to `{}`, which is still an edges object.
+                other => prop_assert!(false, "{:?}", other),
+            }
+        }
     }
 
+    /// Wire spellings and defaults of the style vocabulary: uniform padding is a bare
+    /// number → an empty style is `{}` → border width defaults to 1 → chart / shape
+    /// defaults → camelCase enums → `infinity` is the only frame keyword.
     #[test]
-    fn padding_value_roundtrip() {
-        let u = PaddingValue::Uniform(8.0);
-        let s = serde_json::to_string(&u).unwrap();
-        assert_eq!(s, "8.0");
-        let back: PaddingValue = serde_json::from_str(&s).unwrap();
-        assert!(matches!(back, PaddingValue::Uniform(v) if (v - 8.0).abs() < f64::EPSILON));
-
-        let edges = PaddingValue::Edges {
-            top: Some(1.0),
-            bottom: Some(2.0),
-            leading: Some(3.0),
-            trailing: None,
-        };
-        let s = serde_json::to_string(&edges).unwrap();
-        let back: PaddingValue = serde_json::from_str(&s).unwrap();
-        assert!(matches!(back, PaddingValue::Edges { .. }));
-    }
-
-    #[test]
-    fn element_style_default_is_empty_object() {
-        let s = serde_json::to_string(&ElementStyle::default()).unwrap();
-        assert_eq!(s, "{}");
-    }
-
-    #[test]
-    fn border_config_default_width() {
+    fn style_wire_spellings_and_defaults() {
+        assert_eq!(
+            serde_json::to_string(&PaddingValue::Uniform(8.0)).unwrap(),
+            "8.0"
+        );
+        assert_eq!(
+            serde_json::to_string(&ElementStyle::default()).unwrap(),
+            "{}"
+        );
         let b: BorderConfig = serde_json::from_str(r##"{"color":"#ffffff"}"##).unwrap();
         assert!((b.width - 1.0).abs() < f64::EPSILON);
         assert_eq!(b.color, "#ffffff");
-    }
-
-    #[test]
-    fn chart_shape_defaults() {
         assert!(matches!(ChartType::default(), ChartType::Bar));
         assert!(matches!(ShapeType::default(), ShapeType::Circle));
-    }
-
-    #[test]
-    fn enums_deserialize_camel_case() {
         let w: FontWeight = serde_json::from_str(r#""semibold""#).unwrap();
         assert!(matches!(w, FontWeight::Semibold));
         let a: TextAlignment = serde_json::from_str(r#""trailing""#).unwrap();
         assert!(matches!(a, TextAlignment::Trailing));
         let t: TimerCounting = serde_json::from_str(r#""down""#).unwrap();
         assert!(matches!(t, TimerCounting::Down));
-    }
-
-    #[test]
-    fn frame_dimension_accepts_infinity() {
         let d: FrameDimension = serde_json::from_str(r#""infinity""#).unwrap();
         assert!(matches!(d, FrameDimension::Infinity));
-    }
-
-    #[test]
-    fn frame_dimension_rejects_unknown_keyword() {
         assert!(serde_json::from_str::<FrameDimension>(r#""auto""#).is_err());
     }
+}
+
+/// Distribution of stack children along the stack axis.
+#[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq)]
+#[cfg_attr(feature = "schema", derive(JsonSchema))]
+#[serde(rename_all = "camelCase")]
+pub enum Justify {
+    /// Packed at the start (default).
+    Start,
+    /// Packed in the middle.
+    Center,
+    /// Packed at the end.
+    End,
+    /// First and last at the edges, equal gaps between.
+    SpaceBetween,
+    /// Equal space around each child.
+    SpaceAround,
+    /// Equal gaps everywhere, edges included.
+    SpaceEvenly,
+}
+
+/// Where text is cut when it does not fit.
+#[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq)]
+#[cfg_attr(feature = "schema", derive(JsonSchema))]
+#[serde(rename_all = "camelCase")]
+pub enum TruncationMode {
+    /// `…end`.
+    Head,
+    /// `sta…end`.
+    Middle,
+    /// `start…` (default).
+    Tail,
+}
+
+/// SF Symbol rendering mode.
+#[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq)]
+#[cfg_attr(feature = "schema", derive(JsonSchema))]
+#[serde(rename_all = "camelCase")]
+pub enum SymbolRendering {
+    /// One color (default).
+    Monochrome,
+    /// One color, layered opacity.
+    Hierarchical,
+    /// Up to three `paletteColors`.
+    Palette,
+    /// The symbol's own colors.
+    Multicolor,
+}
+
+/// Button look.
+#[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq)]
+#[cfg_attr(feature = "schema", derive(JsonSchema))]
+#[serde(rename_all = "camelCase")]
+pub enum ButtonVariant {
+    /// Tinted rounded background (default).
+    Bordered,
+    /// Filled with `backgroundColor` / accent, white label.
+    Prominent,
+    /// Label only.
+    Plain,
+    /// Outline in the label color, no fill.
+    Outline,
+}
+
+/// Toggle look.
+#[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq)]
+#[cfg_attr(feature = "schema", derive(JsonSchema))]
+#[serde(rename_all = "camelCase")]
+pub enum ToggleVariant {
+    /// Switch (default).
+    Switch,
+    /// Checkbox.
+    Checkbox,
+}
+
+/// Line / area curve.
+#[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq)]
+#[cfg_attr(feature = "schema", derive(JsonSchema))]
+#[serde(rename_all = "camelCase")]
+pub enum ChartInterpolation {
+    /// Straight segments (default).
+    Linear,
+    /// Smooth curve through every point.
+    Monotone,
+    /// Steps.
+    Step,
+}
+
+/// Content change animation hint (`transition`).
+#[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq)]
+#[cfg_attr(feature = "schema", derive(JsonSchema))]
+#[serde(rename_all = "camelCase")]
+pub enum Transition {
+    /// Swap without animation.
+    None,
+    /// Cross-fade.
+    Opacity,
+    /// Push the new content in from the bottom.
+    Slide,
+    /// Roll changed digits (`contentTransition(.numericText())`).
+    Numeric,
 }

@@ -1,86 +1,89 @@
-//! Linux desktop-widget pinning: X11 `_NET_WM_*` hints and optional gtk-layer-shell.
+//! Linux desktop-widget pinning: GDK/EWMH hints before the first map and optional
+//! gtk-layer-shell on Wayland.
 
 use tauri::{Runtime, WebviewWindow};
-use x11rb::connection::Connection;
-use x11rb::protocol::xproto::{AtomEnum, ConnectionExt as XprotoConnectionExt, PropMode};
-use x11rb::wrapper::ConnectionExt as WrapperConnectionExt;
 
-/// Pin a widget webview as a desktop-layer surface when possible.
+use crate::desktop::placement::WindowModes;
+use crate::models::{WidgetWindowConfig, WindowLayer};
+
+/// A native handle query; `Err` when it fails or panics.
+pub(crate) fn native<T, E: std::fmt::Display>(
+    what: &str,
+    f: impl FnOnce() -> Result<T, E>,
+) -> Result<T, String> {
+    // ponytail: MockRuntime's `gtk_window` / `default_vbox` are `unimplemented!()` (as its
+    // monitor queries, see `window::monitor_query`); without the catch a widget or activity
+    // command panics and never answers under `tauri::test`.
+    std::panic::catch_unwind(std::panic::AssertUnwindSafe(f))
+        .map_err(|_| format!("{what}: not available"))?
+        .map_err(|e| format!("{what}: {e}"))
+}
+
+/// Pin a **not yet shown** widget window.
 ///
-/// - **X11**: `_NET_WM_WINDOW_TYPE_DESKTOP` (+ `_NET_WM_STATE_SKIP_TASKBAR` when requested).
-/// - **Wayland** (`feature = "layer-shell"`): remap into a gtk-layer-shell Background surface.
-/// - Failures are logged; the ordinary frameless window remains usable (fallback).
-pub fn pin_widget_window<R: Runtime>(win: &WebviewWindow<R>, skip_taskbar: bool) {
-    // Prefer the actual native backend over env vars: X11 apps can still run
-    // when WAYLAND_DISPLAY is set (XWayland). Layer-shell only when the handle
-    // is not X11 (covers compositors that omit WAYLAND_DISPLAY for wayland-0).
+/// - **Wayland** (`feature = "layer-shell"`, layer other than `normal`): the webview moves
+///   into a gtk-layer-shell surface (anchors / margins from the position, monitor,
+///   namespace = label) which is shown here. Returns `true`.
+/// - Otherwise sets GDK hints that land in the first map, so the window manager never
+///   sees an ordinary window: `_NET_WM_WINDOW_TYPE_DESKTOP` for the `desktop` layer,
+///   `SKIP_TASKBAR` / `SKIP_PAGER`, `STICKY`, `BELOW`. Returns `false`: the caller shows
+///   the window and re-applies its position (WMs often ignore it for DESKTOP windows).
+///
+/// Failures are logged; the ordinary frameless window remains usable.
+pub(crate) fn pin_widget_window<R: Runtime>(
+    win: &WebviewWindow<R>,
+    cfg: &WidgetWindowConfig,
+    modes: &WindowModes,
+    pos: Option<(f64, f64)>,
+) -> bool {
+    // Prefer the actual native backend over env vars: X11 apps can still run when
+    // WAYLAND_DISPLAY is set (XWayland).
     let is_x11 = x11_xid(win).is_some();
 
     #[cfg(feature = "layer-shell")]
-    {
-        if !is_x11 {
-            match apply_layer_shell(win) {
-                Ok(()) => {
-                    log::debug!("linux: gtk-layer-shell Background applied");
-                    return;
-                }
-                Err(e) => {
-                    log::warn!("linux: layer-shell failed ({e}); keeping normal window");
-                }
+    if !is_x11 && modes.layer != WindowLayer::Normal {
+        match apply_layer_shell(win, cfg, modes, pos) {
+            Ok(()) => {
+                log::debug!("linux: gtk-layer-shell surface for '{}'", cfg.label);
+                return true;
             }
+            Err(e) => log::warn!("linux: layer-shell failed ({e}); keeping normal window"),
         }
     }
+    #[cfg(not(feature = "layer-shell"))]
+    let _ = (pos, is_x11);
 
-    if is_x11 {
-        if let Err(e) = apply_x11_desktop_hints(win, skip_taskbar) {
-            log::warn!("linux: X11 desktop hints failed: {e}");
-        }
+    let island = cfg.label == crate::desktop::island::LABEL;
+    if let Err(e) = apply_gtk_hints(win, modes, cfg.skip_taskbar, island) {
+        log::warn!("linux: desktop hints failed: {e}");
     }
+    false
 }
 
-fn apply_x11_desktop_hints<R: Runtime>(
+fn apply_gtk_hints<R: Runtime>(
     win: &WebviewWindow<R>,
+    modes: &WindowModes,
     skip_taskbar: bool,
+    island: bool,
 ) -> Result<(), String> {
-    let xid = x11_xid(win).ok_or_else(|| "no X11 window id".to_string())?;
-
-    let (conn, _) = x11rb::connect(None).map_err(|e| format!("x11 connect: {e}"))?;
-
-    let type_atom = intern(&conn, b"_NET_WM_WINDOW_TYPE")?;
-    let desktop_atom = intern(&conn, b"_NET_WM_WINDOW_TYPE_DESKTOP")?;
-    WrapperConnectionExt::change_property32(
-        &conn,
-        PropMode::REPLACE,
-        xid,
-        type_atom,
-        AtomEnum::ATOM,
-        &[desktop_atom],
-    )
-    .map_err(|e| format!("change_property TYPE: {e}"))?;
-
-    if skip_taskbar {
-        let state_atom = intern(&conn, b"_NET_WM_STATE")?;
-        let skip_atom = intern(&conn, b"_NET_WM_STATE_SKIP_TASKBAR")?;
-        // EWMH ADD via ClientMessage — do not REPLACE _NET_WM_STATE (wipes ABOVE / sticky).
-        let root = conn.setup().roots.first().map(|s| s.root).unwrap_or(0);
-        let event = x11rb::protocol::xproto::ClientMessageEvent::new(
-            32,
-            xid,
-            state_atom,
-            [1u32, skip_atom, 0, 0, 0], // 1 = _NET_WM_STATE_ADD
-        );
-        conn.send_event(
-            false,
-            root,
-            x11rb::protocol::xproto::EventMask::SUBSTRUCTURE_REDIRECT
-                | x11rb::protocol::xproto::EventMask::SUBSTRUCTURE_NOTIFY,
-            event,
-        )
-        .map_err(|e| format!("send_event STATE ADD: {e}"))?;
+    use gtk::prelude::*;
+    let gw = native("gtk_window", || win.gtk_window())?;
+    if modes.layer == WindowLayer::Desktop {
+        gw.set_type_hint(gtk::gdk::WindowTypeHint::Desktop);
     }
-
-    conn.flush().map_err(|e| format!("x11 flush: {e}"))?;
-    log::debug!("linux: X11 DESKTOP hints set on xid={xid}");
+    // Activity island: a DOCK stays above normal windows on every desktop, unfocused.
+    if island {
+        gw.set_type_hint(gtk::gdk::WindowTypeHint::Dock);
+    }
+    if skip_taskbar {
+        gw.set_skip_taskbar_hint(true);
+        gw.set_skip_pager_hint(true);
+    }
+    if modes.all_workspaces {
+        gw.stick();
+    }
+    gw.set_keep_below(modes.on_bottom());
+    gw.set_keep_above(modes.on_top());
     Ok(())
 }
 
@@ -95,53 +98,83 @@ fn x11_xid<R: Runtime>(win: &WebviewWindow<R>) -> Option<u32> {
     }
 }
 
-fn intern(conn: &impl Connection, name: &[u8]) -> Result<u32, String> {
-    Ok(XprotoConnectionExt::intern_atom(conn, false, name)
-        .map_err(|e| format!("intern_atom: {e}"))?
-        .reply()
-        .map_err(|e| format!("intern_atom reply: {e}"))?
-        .atom)
-}
-
 #[cfg(feature = "layer-shell")]
-fn apply_layer_shell<R: Runtime>(win: &WebviewWindow<R>) -> Result<(), String> {
+fn apply_layer_shell<R: Runtime>(
+    win: &WebviewWindow<R>,
+    cfg: &WidgetWindowConfig,
+    modes: &WindowModes,
+    pos: Option<(f64, f64)>,
+) -> Result<(), String> {
+    use crate::desktop::placement::{layer_anchor, Rect};
     use gtk::prelude::*;
     use gtk_layer_shell::{Edge, Layer, LayerShell};
 
-    // Window must not be mapped when init_layer_shell runs — hide first.
-    let _ = win.hide();
+    let island = cfg.label == crate::desktop::island::LABEL;
+    let layer = match modes.layer {
+        _ if island => Layer::Overlay,
+        WindowLayer::Desktop => Layer::Background,
+        WindowLayer::Bottom => Layer::Bottom,
+        WindowLayer::Top => Layer::Top,
+        WindowLayer::Normal => return Err("normal layer".into()),
+    };
 
-    let old = win.gtk_window().map_err(|e| format!("gtk_window: {e}"))?;
+    // The Tauri window is still unmapped: init_layer_shell needs that.
+    let old = native("gtk_window", || win.gtk_window())?;
     let app = old
         .application()
         .ok_or_else(|| "gtk window has no application".to_string())?;
-
-    let vbox = win
-        .default_vbox()
-        .map_err(|e| format!("default_vbox: {e}"))?;
+    let vbox = native("default_vbox", || win.default_vbox())?;
     old.remove(&vbox);
 
     let layer_win = gtk::ApplicationWindow::new(&app);
     layer_win.set_app_paintable(true);
+    if let Some(v) = WidgetExt::screen(&layer_win).and_then(|s| s.rgba_visual()) {
+        layer_win.set_visual(Some(&v));
+    }
     layer_win.add(&vbox);
 
     layer_win.init_layer_shell();
-    layer_win.set_layer(Layer::Background);
-    layer_win.set_anchor(Edge::Left, false);
-    layer_win.set_anchor(Edge::Right, false);
-    layer_win.set_anchor(Edge::Top, false);
-    layer_win.set_anchor(Edge::Bottom, false);
-    // Keyboard interactivity — best-effort across gtk-layer-shell versions.
-    #[allow(unused_must_use)]
-    {
-        layer_win.set_keyboard_interactivity(false);
+    layer_win.set_layer(layer);
+    layer_win.set_namespace(&cfg.label);
+
+    let monitor = gtk::gdk::Display::default().and_then(|d| match pos {
+        Some((x, y)) => d.monitor_at_point(x as i32, y as i32),
+        None => d.primary_monitor(),
+    });
+    let geom = monitor.as_ref().map_or(Rect::default(), |m| {
+        let g = m.geometry();
+        Rect {
+            x: g.x() as f64,
+            y: g.y() as f64,
+            w: g.width() as f64,
+            h: g.height() as f64,
+        }
+    });
+    if let Some(m) = &monitor {
+        layer_win.set_monitor(m);
+    }
+    let mut a = layer_anchor(cfg.placement.as_ref(), pos, geom);
+    // Activity island: top edge only, so the compositor keeps it centred as it resizes.
+    if island {
+        a.left = None;
+        a.right = None;
+    }
+    for (edge, margin) in [
+        (Edge::Top, a.top),
+        (Edge::Bottom, a.bottom),
+        (Edge::Left, a.left),
+        (Edge::Right, a.right),
+    ] {
+        layer_win.set_anchor(edge, margin.is_some());
+        layer_win.set_layer_shell_margin(edge, margin.unwrap_or(0));
+    }
+    #[allow(deprecated)]
+    layer_win.set_keyboard_interactivity(modes.focusable);
+    if modes.click_through {
+        layer_win.input_shape_combine_region(Some(&gtk::cairo::Region::create()));
     }
 
-    let (w, h) = win
-        .inner_size()
-        .map(|s| (s.width as i32, s.height as i32))
-        .unwrap_or((340, 340));
-    layer_win.set_default_size(w, h);
+    layer_win.set_default_size(cfg.width.round() as i32, cfg.height.round() as i32);
     layer_win.show_all();
 
     // The webview now lives in `layer_win`; close it together with the (hidden) Tauri

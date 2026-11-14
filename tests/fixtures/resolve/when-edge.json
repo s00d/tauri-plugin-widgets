@@ -1,0 +1,219 @@
+{
+  "about": "`when` edges: ordering at the boundary, ne/in on missing paths (false), empty string is falsy, deep eq of arrays/objects (prefix / superset / other differ); `{{index}}` outside a repeat stays literal.",
+  "config": {
+    "data": {
+      "n": 3,
+      "s": "ok",
+      "e": "",
+      "arr": [
+        1.5,
+        2
+      ],
+      "obj": {
+        "a": 1
+      }
+    },
+    "small": {
+      "type": "vstack",
+      "children": [
+        {
+          "type": "text",
+          "content": "gte-above",
+          "when": {
+            "path": "data.n",
+            "gte": 2
+          }
+        },
+        {
+          "type": "text",
+          "content": "lt-equal-no",
+          "when": {
+            "path": "data.n",
+            "lt": 3
+          }
+        },
+        {
+          "type": "text",
+          "content": "lt-above",
+          "when": {
+            "path": "data.n",
+            "lt": 4
+          }
+        },
+        {
+          "type": "text",
+          "content": "lte-equal",
+          "when": {
+            "path": "data.n",
+            "lte": 3
+          }
+        },
+        {
+          "type": "text",
+          "content": "lte-below-no",
+          "when": {
+            "path": "data.n",
+            "lte": 2
+          }
+        },
+        {
+          "type": "text",
+          "content": "ne-equal-no",
+          "when": {
+            "path": "data.s",
+            "ne": "ok"
+          }
+        },
+        {
+          "type": "text",
+          "content": "ne-missing-no",
+          "when": {
+            "path": "data.x",
+            "ne": "ok"
+          }
+        },
+        {
+          "type": "text",
+          "content": "in-no",
+          "when": {
+            "path": "data.s",
+            "in": [
+              "x"
+            ]
+          }
+        },
+        {
+          "type": "text",
+          "content": "in-missing-no",
+          "when": {
+            "path": "data.x",
+            "in": [
+              "ok"
+            ]
+          }
+        },
+        {
+          "type": "text",
+          "content": "str-truthy",
+          "when": {
+            "path": "data.s"
+          }
+        },
+        {
+          "type": "text",
+          "content": "str-empty-no",
+          "when": {
+            "path": "data.e"
+          }
+        },
+        {
+          "type": "text",
+          "content": "arr-num-eq",
+          "when": {
+            "path": "data.arr",
+            "eq": [
+              1.5,
+              2
+            ]
+          }
+        },
+        {
+          "type": "text",
+          "content": "arr-prefix-no",
+          "when": {
+            "path": "data.arr",
+            "eq": [
+              1.5
+            ]
+          }
+        },
+        {
+          "type": "text",
+          "content": "arr-other-no",
+          "when": {
+            "path": "data.arr",
+            "eq": [
+              1.5,
+              3
+            ]
+          }
+        },
+        {
+          "type": "text",
+          "content": "obj-eq",
+          "when": {
+            "path": "data.obj",
+            "eq": {
+              "a": 1
+            }
+          }
+        },
+        {
+          "type": "text",
+          "content": "obj-superset-no",
+          "when": {
+            "path": "data.obj",
+            "eq": {
+              "a": 1,
+              "b": 2
+            }
+          }
+        },
+        {
+          "type": "text",
+          "content": "obj-other-no",
+          "when": {
+            "path": "data.obj",
+            "eq": {
+              "b": 1
+            }
+          }
+        },
+        {
+          "type": "text",
+          "content": "i={{index}}"
+        }
+      ]
+    }
+  },
+  "ctx": {
+    "nowMs": 0,
+    "locale": "en"
+  },
+  "expected": {
+    "version": 1,
+    "small": {
+      "type": "vstack",
+      "children": [
+        {
+          "type": "text",
+          "content": "gte-above"
+        },
+        {
+          "type": "text",
+          "content": "lt-above"
+        },
+        {
+          "type": "text",
+          "content": "lte-equal"
+        },
+        {
+          "type": "text",
+          "content": "str-truthy"
+        },
+        {
+          "type": "text",
+          "content": "arr-num-eq"
+        },
+        {
+          "type": "text",
+          "content": "obj-eq"
+        },
+        {
+          "type": "text",
+          "content": "i={{index}}"
+        }
+      ]
+    }
+  }
+}

@@ -1,0 +1,9 @@
+{
+  "about": "Only plain digits index arrays (10 works, 1e0 does not); strings and numbers have no properties; '}}' before '{{' and after the last placeholder stays text.",
+  "config": {
+    "data": { "list": ["i0", "i1", "i2", "i3", "i4", "i5", "i6", "i7", "i8", "i9", "i10"], "s": "abc", "n": 5 },
+    "small": { "type": "text", "content": "}}{{data.list.10}}|{{data.list.1e0}}|{{data.s.length}}|{{data.n.x}}|{{locale}} a}}b" }
+  },
+  "ctx": { "nowMs": 0, "locale": "en" },
+  "expected": { "version": 1, "small": { "type": "text", "content": "}}i10||||en a}}b" } }
+}

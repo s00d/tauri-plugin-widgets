@@ -2,6 +2,10 @@
   "$schema": "http://adaptivecards.io/schemas/adaptive-card.json",
   "body": [
     {
+      "backgroundImage": {
+        "fillMode": "repeat",
+        "url": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAAEElEQVR4AQEFAPr/AB4pO/8CbQGCctJLRAAAAABJRU5ErkJggg=="
+      },
       "horizontalAlignment": "Center",
       "id": "badge:overlay",
       "items": [

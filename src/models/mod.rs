@@ -4,12 +4,15 @@
 //! live here; shared style values are in [`style`] and data payloads
 //! ([`ChartDataPoint`], [`ListItem`], [`CanvasDrawCommand`]) are in [`data`].
 
+mod activity;
 mod data;
 mod style;
+pub use activity::*;
 pub use data::*;
 pub use style::*;
 
 use serde::{Deserialize, Serialize};
+use std::collections::BTreeMap;
 
 #[cfg(feature = "schema")]
 use schemars::JsonSchema;
@@ -53,10 +56,158 @@ pub struct WidgetWindowConfig {
     /// Widget identity within the group (required for built-in renderer).
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub widget_id: Option<String>,
+    /// Placement id for the built-in renderer: reads `config:{widgetId}#{instance}`
+    /// first and fills `{{instance}}`. Defaults to none.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub instance: Option<String>,
     /// Size family the renderer should display: `"small"`, `"medium"`,
     /// or `"large"`.  Defaults to `"small"` when omitted.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub size: Option<String>,
+    /// Stacking layer. Unset: `top` when `alwaysOnTop`, else `desktop` on Linux (the
+    /// historical DESKTOP pin) and `normal` on macOS / Windows.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub layer: Option<WindowLayer>,
+    /// Let clicks pass through to whatever is below. Default `false`.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub click_through: Option<bool>,
+    /// Whether the window can take keyboard focus. Default `true`.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub focusable: Option<bool>,
+    /// Show on every virtual desktop / Space. Default: `true` for the `desktop` layer.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub all_workspaces: Option<bool>,
+    /// System window shadow (macOS / Windows). Default: platform default.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub shadow: Option<bool>,
+    /// Backdrop material hint (macOS vibrancy, Windows 11 mica / acrylic). Needs a
+    /// transparent window; ignored where the platform has no such material (Linux).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub effects: Option<WindowEffectHint>,
+    /// Place relative to a monitor's work area instead of absolute `x` / `y`.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub placement: Option<WidgetPlacement>,
+    /// Remember where the user moved the window (per label) and restore it next time.
+    /// Default `true`; a remembered position wins over `x` / `y` / `placement` while it
+    /// is still on a connected monitor.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub remember_position: Option<bool>,
+}
+
+impl Default for WidgetWindowConfig {
+    fn default() -> Self {
+        Self {
+            label: String::new(),
+            url: None,
+            width: 0.0,
+            height: 0.0,
+            x: None,
+            y: None,
+            always_on_top: false,
+            skip_taskbar: true,
+            group: None,
+            widget_id: None,
+            instance: None,
+            size: None,
+            layer: None,
+            click_through: None,
+            focusable: None,
+            all_workspaces: None,
+            shadow: None,
+            effects: None,
+            placement: None,
+            remember_position: None,
+        }
+    }
+}
+
+/// Stacking layer of a desktop widget window.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[cfg_attr(feature = "schema", derive(JsonSchema))]
+#[serde(rename_all = "camelCase")]
+pub enum WindowLayer {
+    /// Ordinary window.
+    Normal,
+    /// Above other windows (always on top; Wayland layer-shell `Top`).
+    Top,
+    /// Below other windows but above the desktop (always on bottom; Wayland `Bottom`).
+    Bottom,
+    /// Part of the desktop: X11 `_NET_WM_WINDOW_TYPE_DESKTOP`, Wayland `Background`,
+    /// macOS desktop window level. Windows: parented behind the desktop icons (WorkerW,
+    /// or a Progman child on 24H2), re-attached after an Explorer restart.
+    Desktop,
+}
+
+/// Backdrop material hint for [`WidgetWindowConfig::effects`].
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[cfg_attr(feature = "schema", derive(JsonSchema))]
+#[serde(rename_all = "camelCase")]
+pub enum WindowEffectHint {
+    /// macOS HUD vibrancy; Windows acrylic.
+    Vibrancy,
+    /// Windows 11 mica; macOS under-window vibrancy.
+    Mica,
+    /// Windows acrylic; macOS HUD vibrancy.
+    Acrylic,
+    /// Windows blur; macOS under-window vibrancy.
+    Blur,
+}
+
+/// Monitor-relative placement for [`WidgetWindowConfig::placement`].
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+#[cfg_attr(feature = "schema", derive(JsonSchema))]
+#[serde(rename_all = "camelCase")]
+pub struct WidgetPlacement {
+    /// Monitor index (in `availableMonitors` order) or monitor name. Default: primary.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub monitor: Option<MonitorSelector>,
+    /// Corner / edge of the work area to stick to. Default `top-left`.
+    #[serde(default)]
+    pub anchor: PlacementAnchor,
+    /// Logical px inward from the anchored vertical edge (ignored for centered axes,
+    /// where it shifts right).
+    #[serde(default)]
+    pub offset_x: f64,
+    /// Logical px inward from the anchored horizontal edge (shifts down when centered).
+    #[serde(default)]
+    pub offset_y: f64,
+}
+
+/// Monitor by index or by name.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[cfg_attr(feature = "schema", derive(JsonSchema))]
+#[serde(untagged)]
+pub enum MonitorSelector {
+    /// Index in the list of available monitors.
+    Index(u32),
+    /// Monitor name as reported by the OS.
+    Name(String),
+}
+
+/// Work-area anchor for [`WidgetPlacement`].
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Serialize, Deserialize)]
+#[cfg_attr(feature = "schema", derive(JsonSchema))]
+#[serde(rename_all = "kebab-case")]
+pub enum PlacementAnchor {
+    /// Top-left corner.
+    #[default]
+    TopLeft,
+    /// Top edge, centered.
+    Top,
+    /// Top-right corner.
+    TopRight,
+    /// Left edge, centered.
+    Left,
+    /// Center.
+    Center,
+    /// Right edge, centered.
+    Right,
+    /// Bottom-left corner.
+    BottomLeft,
+    /// Bottom edge, centered.
+    Bottom,
+    /// Bottom-right corner.
+    BottomRight,
 }
 
 fn default_true() -> bool {
@@ -82,6 +233,87 @@ pub struct WidgetConfig {
     /// Layout for the large size family.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub large: Option<WidgetElement>,
+    /// iOS / watchOS Lock Screen accessory families (circular, rectangular, inline).
+    /// Falls back to `small`. Ignored elsewhere. Not a resolve family: `{{…}}`, `when`,
+    /// `repeat` and `entries` do not apply to it.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub accessory: Option<WidgetElement>,
+    /// Scheduled states: from `at` on, an entry's layouts replace the base ones.
+    /// The OS switches them while the app is closed (WidgetKit timeline, Android alarm,
+    /// desktop timer). See [`crate::resolve`].
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub entries: Vec<WidgetEntry>,
+    /// Localized strings per locale (`"en"`, `"pt-BR"`), used as `{{t.key}}` in any text.
+    #[serde(default, skip_serializing_if = "BTreeMap::is_empty")]
+    pub strings: BTreeMap<String, BTreeMap<String, String>>,
+    /// Locale used when the device locale has no `strings` table. Default: first table.
+    #[serde(
+        rename = "defaultLocale",
+        default,
+        skip_serializing_if = "Option::is_none"
+    )]
+    pub default_locale: Option<String>,
+    /// JSON the widget fetches by itself on a schedule; its fields are `{{data.path}}`.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub source: Option<DataSource>,
+    /// Default values for `{{data.path}}` (overridden by `setWidgetData` and `source`).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[cfg_attr(
+        feature = "schema",
+        schemars(with = "Option<BTreeMap<String, serde_json::Value>>")
+    )]
+    pub data: Option<serde_json::Value>,
+    /// Defaults of the widget's local state, read as `{{state.key}}` / `when` /
+    /// `bind` / `repeat.each: "state.list"`. Taps on elements with `set` change it
+    /// in-process (no app needed); `setWidgetState` changes it from the app. The stored
+    /// state (`state:{widgetId}`, `state:{widgetId}#{instance}`) is merged over these per
+    /// top-level key.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[cfg_attr(
+        feature = "schema",
+        schemars(with = "Option<serde_json::Map<String, serde_json::Value>>")
+    )]
+    pub state: Option<serde_json::Map<String, serde_json::Value>>,
+    /// How content changes between timeline entries / redraws (a hint):
+    /// `numeric` animates digits, `opacity` cross-fades, `slide` pushes from the bottom.
+    /// Apple and desktop animate; Android and Adaptive Cards ignore it.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub transition: Option<Transition>,
+    /// Reusable elements expanded by `{"type": "use", "template": "<key>"}`.
+    #[serde(default, skip_serializing_if = "BTreeMap::is_empty")]
+    pub templates: BTreeMap<String, WidgetElement>,
+    /// Minimum renderer contract; older renderers show `fallback` instead.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub requires: Option<Requires>,
+    /// Layouts shown by renderers that do not meet `requires`.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub fallback: Option<FallbackLayouts>,
+}
+
+/// Renderer requirements of a config.
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+#[cfg_attr(feature = "schema", derive(JsonSchema))]
+#[serde(rename_all = "camelCase")]
+pub struct Requires {
+    /// Render-time contract version ([`crate::resolve::CONTRACT_VERSION`]).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub resolve: Option<u64>,
+}
+
+/// Layouts for renderers below `requires`.
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+#[cfg_attr(feature = "schema", derive(JsonSchema))]
+#[serde(rename_all = "camelCase")]
+pub struct FallbackLayouts {
+    /// Small layout.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub small: Option<WidgetElement>,
+    /// Medium layout.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub medium: Option<WidgetElement>,
+    /// Large layout.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub large: Option<WidgetElement>,
 }
 
 impl Default for WidgetConfig {
@@ -91,8 +323,68 @@ impl Default for WidgetConfig {
             small: None,
             medium: None,
             large: None,
+            accessory: None,
+            entries: Vec::new(),
+            strings: BTreeMap::new(),
+            default_locale: None,
+            source: None,
+            data: None,
+            state: None,
+            transition: None,
+            templates: BTreeMap::new(),
+            requires: None,
+            fallback: None,
         }
     }
+}
+
+/// One scheduled state of a widget ([`WidgetConfig::entries`]).
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+#[cfg_attr(feature = "schema", derive(JsonSchema))]
+#[serde(rename_all = "camelCase")]
+pub struct WidgetEntry {
+    /// Unix epoch milliseconds from which this entry is shown.
+    pub at: u64,
+    /// Small layout from `at` on (base layout when omitted).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub small: Option<WidgetElement>,
+    /// Medium layout from `at` on (base layout when omitted).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub medium: Option<WidgetElement>,
+    /// Large layout from `at` on (base layout when omitted).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub large: Option<WidgetElement>,
+    /// Lock Screen accessory layout from `at` on (base layout when omitted).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub accessory: Option<WidgetElement>,
+}
+
+/// Remote JSON the widget fetches without the app ([`WidgetConfig::source`]).
+///
+/// `url`, header values and `body` may use `{{instance}}` and `{{locale}}`, so each
+/// placement of a widget can ask for its own data.
+#[derive(Debug, Clone, Serialize, Deserialize, Default, PartialEq)]
+#[cfg_attr(feature = "schema", derive(JsonSchema))]
+#[serde(rename_all = "camelCase")]
+pub struct DataSource {
+    /// `https://` URL returning a JSON object (at most 256 KiB).
+    pub url: String,
+    /// Minutes between fetches. Default 30; the OS may stretch it (minimum 15).
+    #[serde(
+        rename = "refreshMinutes",
+        default,
+        skip_serializing_if = "Option::is_none"
+    )]
+    pub refresh_minutes: Option<u32>,
+    /// `GET` (default) or `POST`.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub method: Option<String>,
+    /// Extra request headers.
+    #[serde(default, skip_serializing_if = "BTreeMap::is_empty")]
+    pub headers: BTreeMap<String, String>,
+    /// Request body for `POST`.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub body: Option<String>,
 }
 
 impl WidgetConfig {
@@ -102,6 +394,30 @@ impl WidgetConfig {
             small: Some(el.into()),
             ..Default::default()
         }
+    }
+
+    /// Every layout root, scheduled entries included (for host-side passes such as
+    /// normalization and image prefetch).
+    pub fn layouts_mut(&mut self) -> impl Iterator<Item = &mut WidgetElement> {
+        let fallback = self
+            .fallback
+            .as_mut()
+            .map(|f| [&mut f.small, &mut f.medium, &mut f.large]);
+        [
+            &mut self.small,
+            &mut self.medium,
+            &mut self.large,
+            &mut self.accessory,
+        ]
+        .into_iter()
+        .chain(
+            self.entries
+                .iter_mut()
+                .flat_map(|e| [&mut e.small, &mut e.medium, &mut e.large, &mut e.accessory]),
+        )
+        .chain(fallback.into_iter().flatten())
+        .flatten()
+        .chain(self.templates.values_mut())
     }
 
     /// Set the `medium` size family.
@@ -189,6 +505,54 @@ pub enum WidgetElement {
     /// Convenience element combining an SF Symbol / icon with text.
     #[serde(rename = "label")]
     Label(LabelElement),
+    /// One `template` copy per item of a data array, spliced into the parent's children
+    /// (resolved before rendering; see [`crate::resolve`]).
+    #[serde(rename = "repeat")]
+    Repeat(RepeatElement),
+    /// A named entry of [`WidgetConfig::templates`] with arguments (resolved before
+    /// rendering).
+    #[serde(rename = "use")]
+    Use(UseElement),
+}
+
+/// Repeat a template for every item of an array.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[cfg_attr(feature = "schema", derive(JsonSchema))]
+#[serde(rename_all = "camelCase")]
+pub struct RepeatElement {
+    /// Path of the array: `data.tasks`, or a loop / template variable (`task.subtasks`).
+    pub each: String,
+    /// Name of the item inside the template (`{{task.title}}`). Default `item`.
+    #[serde(rename = "as", default, skip_serializing_if = "Option::is_none")]
+    pub as_name: Option<String>,
+    /// At most this many items (hard cap 50).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub limit: Option<u32>,
+    /// Element drawn per item; `{{index}}` is its 0-based position.
+    pub template: Box<WidgetElement>,
+    #[serde(flatten)]
+    /// Shared style (only `when` is used).
+    pub style: ElementStyle,
+}
+
+/// Expand a named template.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[cfg_attr(feature = "schema", derive(JsonSchema))]
+#[serde(rename_all = "camelCase")]
+pub struct UseElement {
+    /// Key in [`WidgetConfig::templates`].
+    pub template: String,
+    /// Arguments, read as `{{arg.name}}` / `bind: {"value": "arg.name"}`. A value that is
+    /// exactly one `{{expr}}` keeps the expression's JSON type.
+    #[serde(default, skip_serializing_if = "BTreeMap::is_empty")]
+    #[cfg_attr(
+        feature = "schema",
+        schemars(with = "BTreeMap<String, serde_json::Value>")
+    )]
+    pub args: BTreeMap<String, serde_json::Value>,
+    #[serde(flatten)]
+    /// Style fields here override the template root (instance wins).
+    pub style: ElementStyle,
 }
 
 /// Vertical stack of children.
@@ -205,6 +569,9 @@ pub struct VStackElement {
     /// Horizontal alignment of children.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub alignment: Option<HorizontalAlignment>,
+    /// Distribution of children along the stack axis (`spaceBetween`, …). Default `start`.
+    #[serde(rename = "justify", default, skip_serializing_if = "Option::is_none")]
+    pub justify: Option<Justify>,
     #[serde(flatten)]
     /// Shared visual style (padding, background, frame, …).
     pub style: ElementStyle,
@@ -224,6 +591,9 @@ pub struct HStackElement {
     /// Vertical alignment of children.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub alignment: Option<VerticalAlignment>,
+    /// Distribution of children along the stack axis (`spaceBetween`, …). Default `start`.
+    #[serde(rename = "justify", default, skip_serializing_if = "Option::is_none")]
+    pub justify: Option<Justify>,
     #[serde(flatten)]
     /// Shared visual style (padding, background, frame, …).
     pub style: ElementStyle,
@@ -328,6 +698,54 @@ pub struct TextElement {
     /// Maximum number of lines before truncation.
     #[serde(rename = "lineLimit", default, skip_serializing_if = "Option::is_none")]
     pub line_limit: Option<u32>,
+    /// Where text is cut when it does not fit. Default `tail`.
+    #[serde(
+        rename = "truncationMode",
+        default,
+        skip_serializing_if = "Option::is_none"
+    )]
+    pub truncation_mode: Option<TruncationMode>,
+    /// Allow shrinking the font down to this factor (`0.5` = half) before truncating.
+    #[serde(
+        rename = "minimumScaleFactor",
+        default,
+        skip_serializing_if = "Option::is_none"
+    )]
+    pub minimum_scale_factor: Option<f64>,
+    /// Line height in points.
+    #[serde(
+        rename = "lineHeight",
+        default,
+        skip_serializing_if = "Option::is_none"
+    )]
+    pub line_height: Option<f64>,
+    /// Extra space between characters in points.
+    #[serde(
+        rename = "letterSpacing",
+        default,
+        skip_serializing_if = "Option::is_none"
+    )]
+    pub letter_spacing: Option<f64>,
+    /// Underline the text.
+    #[serde(rename = "underline", default, skip_serializing_if = "Option::is_none")]
+    pub underline: Option<bool>,
+    /// Strike the text through.
+    #[serde(
+        rename = "strikethrough",
+        default,
+        skip_serializing_if = "Option::is_none"
+    )]
+    pub strikethrough: Option<bool>,
+    /// Italic.
+    #[serde(rename = "italic", default, skip_serializing_if = "Option::is_none")]
+    pub italic: Option<bool>,
+    /// Equal-width digits (counters, prices) without a monospaced font.
+    #[serde(
+        rename = "monospacedDigit",
+        default,
+        skip_serializing_if = "Option::is_none"
+    )]
+    pub monospaced_digit: Option<bool>,
     #[serde(flatten)]
     /// Shared visual style (padding, background, frame, …).
     pub style: ElementStyle,
@@ -384,6 +802,34 @@ pub struct ImageElement {
         skip_serializing_if = "Option::is_none"
     )]
     pub content_mode: Option<ContentMode>,
+    /// Symbol shown when `url` / `data` cannot be loaded.
+    #[serde(
+        rename = "fallbackSystemName",
+        default,
+        skip_serializing_if = "Option::is_none"
+    )]
+    pub fallback_system_name: Option<String>,
+    /// SF Symbol rendering mode (`hierarchical`, `palette`, `multicolor`). Apple; others draw monochrome.
+    #[serde(
+        rename = "symbolRendering",
+        default,
+        skip_serializing_if = "Option::is_none"
+    )]
+    pub symbol_rendering: Option<SymbolRendering>,
+    /// SF Symbol stroke weight. Apple only.
+    #[serde(
+        rename = "symbolWeight",
+        default,
+        skip_serializing_if = "Option::is_none"
+    )]
+    pub symbol_weight: Option<FontWeight>,
+    /// Colors for `symbolRendering: palette` (primary, secondary, tertiary).
+    #[serde(
+        rename = "paletteColors",
+        default,
+        skip_serializing_if = "Vec::is_empty"
+    )]
+    pub palette_colors: Vec<ColorValue>,
     #[serde(flatten)]
     /// Shared visual style (padding, background, frame, …).
     pub style: ElementStyle,
@@ -411,6 +857,24 @@ pub struct ProgressElement {
     /// `linear` (default) or `circular`.
     #[serde(rename = "barStyle", default, skip_serializing_if = "Option::is_none")]
     pub bar_style: Option<ProgressStyle>,
+    /// Unix ms: with `endAt`, the bar fills by itself between the two times (no refresh needed on Apple / desktop).
+    /// WidgetKit animates it live only for spans up to 10 minutes (a live bar keeps Notification
+    /// Center busy); a longer span shows the value at each timeline entry / reload.
+    #[serde(rename = "startAt", default, skip_serializing_if = "Option::is_none")]
+    pub start_at: Option<u64>,
+    /// Unix ms the time-driven bar reaches full (see `startAt`).
+    #[serde(rename = "endAt", default, skip_serializing_if = "Option::is_none")]
+    pub end_at: Option<u64>,
+    /// Color of the unfilled track.
+    #[serde(
+        rename = "trackColor",
+        default,
+        skip_serializing_if = "Option::is_none"
+    )]
+    pub track_color: Option<ColorValue>,
+    /// Bar height (linear) or ring width (circular) in points.
+    #[serde(rename = "thickness", default, skip_serializing_if = "Option::is_none")]
+    pub thickness: Option<f64>,
     #[serde(flatten)]
     /// Shared visual style (padding, background, frame, …).
     pub style: ElementStyle,
@@ -425,6 +889,10 @@ impl Default for ProgressElement {
             tint: None,
             color: None,
             bar_style: None,
+            start_at: None,
+            end_at: None,
+            track_color: None,
+            thickness: None,
             style: ElementStyle::default(),
         }
     }
@@ -466,6 +934,18 @@ pub struct GaugeElement {
         skip_serializing_if = "Option::is_none"
     )]
     pub gauge_style: Option<GaugeStyle>,
+    /// Unix ms: with `endAt`, the gauge moves by itself between the two times.
+    #[serde(rename = "startAt", default, skip_serializing_if = "Option::is_none")]
+    pub start_at: Option<u64>,
+    /// Unix ms the time-driven gauge reaches `max`.
+    #[serde(rename = "endAt", default, skip_serializing_if = "Option::is_none")]
+    pub end_at: Option<u64>,
+    /// Label at the minimum end.
+    #[serde(rename = "minLabel", default, skip_serializing_if = "Option::is_none")]
+    pub min_label: Option<String>,
+    /// Label at the maximum end.
+    #[serde(rename = "maxLabel", default, skip_serializing_if = "Option::is_none")]
+    pub max_label: Option<String>,
     #[serde(flatten)]
     /// Shared visual style (padding, background, frame, …).
     pub style: ElementStyle,
@@ -484,6 +964,16 @@ pub struct ButtonElement {
     /// Action identifier — emits a `widget-action` Tauri event when tapped.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub action: Option<String>,
+    /// Local state written on tap, in-process (no app needed): `{"done": "$toggle"}`.
+    /// `"$toggle"` flips a boolean (missing → `true`), `"$inc"` / `"$dec"` add / subtract 1
+    /// (missing → 0 first), `null` removes the key (the default shows again), any other
+    /// JSON is stored as is. With `action` too, the action is sent after the write.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[cfg_attr(
+        feature = "schema",
+        schemars(with = "Option<serde_json::Map<String, serde_json::Value>>")
+    )]
+    pub set: Option<serde_json::Map<String, serde_json::Value>>,
     /// Label text color.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub color: Option<ColorValue>,
@@ -504,6 +994,20 @@ pub struct ButtonElement {
         skip_serializing_if = "Option::is_none"
     )]
     pub text_alignment: Option<TextAlignment>,
+    /// Visual style (`bordered`, `prominent`, `plain`, `outline`). Unset keeps each
+    /// platform's classic button look; set it for the same look everywhere.
+    #[serde(rename = "variant", default, skip_serializing_if = "Option::is_none")]
+    pub variant: Option<ButtonVariant>,
+    /// Icon (SF Symbol name; Material / emoji elsewhere) before the label.
+    #[serde(
+        rename = "systemName",
+        default,
+        skip_serializing_if = "Option::is_none"
+    )]
+    pub system_name: Option<String>,
+    /// Draw dimmed and ignore taps.
+    #[serde(rename = "disabled", default, skip_serializing_if = "Option::is_none")]
+    pub disabled: Option<bool>,
     #[serde(flatten)]
     /// Shared visual style (padding, background, frame, …).
     pub style: ElementStyle,
@@ -526,6 +1030,27 @@ pub struct ToggleElement {
     /// Action identifier sent back to the app.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub action: Option<String>,
+    /// Local state written on tap, in-process (no app needed): `{"done": "$toggle"}`.
+    /// `"$toggle"` flips a boolean (missing → `true`), `"$inc"` / `"$dec"` add / subtract 1
+    /// (missing → 0 first), `null` removes the key (the default shows again), any other
+    /// JSON is stored as is. With `action` too, the action is sent after the write.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[cfg_attr(
+        feature = "schema",
+        schemars(with = "Option<serde_json::Map<String, serde_json::Value>>")
+    )]
+    pub set: Option<serde_json::Map<String, serde_json::Value>>,
+    /// `switch` or `checkbox`. Unset keeps each platform's classic toggle (a glyph on
+    /// Android); set it for the same control everywhere.
+    #[serde(rename = "variant", default, skip_serializing_if = "Option::is_none")]
+    pub variant: Option<ToggleVariant>,
+    /// Color when off.
+    #[serde(
+        rename = "uncheckedTint",
+        default,
+        skip_serializing_if = "Option::is_none"
+    )]
+    pub unchecked_tint: Option<ColorValue>,
     #[serde(flatten)]
     /// Shared visual style (padding, background, frame, …).
     pub style: ElementStyle,
@@ -592,6 +1117,40 @@ pub struct ChartElement {
     /// Default series tint.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub tint: Option<ColorValue>,
+    /// Show the x axis labels (bar / line / area). Unset keeps each platform's classic
+    /// chart (labels on Apple and desktop, none on Android); set it to match.
+    #[serde(rename = "showXAxis", default, skip_serializing_if = "Option::is_none")]
+    pub show_x_axis: Option<bool>,
+    /// Show the y axis. Default `false`.
+    #[serde(rename = "showYAxis", default, skip_serializing_if = "Option::is_none")]
+    pub show_y_axis: Option<bool>,
+    /// Show a legend of `series` (or pie slices). Default `false`.
+    #[serde(
+        rename = "showLegend",
+        default,
+        skip_serializing_if = "Option::is_none"
+    )]
+    pub show_legend: Option<bool>,
+    /// Lower bound of the y scale (default: data minimum or 0).
+    #[serde(rename = "yMin", default, skip_serializing_if = "Option::is_none")]
+    pub y_min: Option<f64>,
+    /// Upper bound of the y scale (default: data maximum).
+    #[serde(rename = "yMax", default, skip_serializing_if = "Option::is_none")]
+    pub y_max: Option<f64>,
+    /// Line / area curve: `linear` (default), `monotone`, `step`.
+    #[serde(
+        rename = "interpolation",
+        default,
+        skip_serializing_if = "Option::is_none"
+    )]
+    pub interpolation: Option<ChartInterpolation>,
+    /// Pie hole as a fraction of the radius (`0.6` = donut). Default `0`.
+    #[serde(
+        rename = "innerRadius",
+        default,
+        skip_serializing_if = "Option::is_none"
+    )]
+    pub inner_radius: Option<f64>,
     #[serde(flatten)]
     /// Shared visual style (padding, background, frame, …).
     pub style: ElementStyle,
@@ -636,6 +1195,16 @@ pub struct LinkElement {
     /// Action identifier — emits `widget-action` event.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub action: Option<String>,
+    /// Local state written on tap, in-process (no app needed): `{"done": "$toggle"}`.
+    /// `"$toggle"` flips a boolean (missing → `true`), `"$inc"` / `"$dec"` add / subtract 1
+    /// (missing → 0 first), `null` removes the key (the default shows again), any other
+    /// JSON is stored as is. With `action` too, the action is sent after the write.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[cfg_attr(
+        feature = "schema",
+        schemars(with = "Option<serde_json::Map<String, serde_json::Value>>")
+    )]
+    pub set: Option<serde_json::Map<String, serde_json::Value>>,
     #[serde(flatten)]
     /// Shared visual style (padding, background, frame, …).
     pub style: ElementStyle,
@@ -694,6 +1263,19 @@ pub struct TimerElement {
     /// Text color.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub color: Option<ColorValue>,
+    /// ISO-8601 start of a range timer (`startDate`…`targetDate`); counting up starts here.
+    #[serde(rename = "startDate", default, skip_serializing_if = "Option::is_none")]
+    pub start_date: Option<String>,
+    /// Always show hours (`0:05:00`). Default: only when needed.
+    #[serde(rename = "showHours", default, skip_serializing_if = "Option::is_none")]
+    pub show_hours: Option<bool>,
+    /// Text shown once a countdown reached `targetDate` (default: `0:00`).
+    #[serde(
+        rename = "completedText",
+        default,
+        skip_serializing_if = "Option::is_none"
+    )]
+    pub completed_text: Option<String>,
     #[serde(flatten)]
     /// Shared visual style (padding, background, frame, …).
     pub style: ElementStyle,
@@ -912,8 +1494,35 @@ mod tests {
     use super::*;
     use std::path::PathBuf;
 
+    /// Build → serialize → parse back: builders nest layouts, ergonomic setters land as
+    /// camelCase fields, `None` is omitted (never `null`), parsing fills defaults (version,
+    /// grid columns, window flags) and `layouts_mut` visits entry layouts too.
     #[test]
-    fn option_none_omitted_from_json() {
+    fn build_serialize_parse_and_walk_layouts() {
+        // 1. Builders.
+        let c = WidgetConfig::small(text("s"))
+            .with_medium(text("m"))
+            .with_large(hstack(vec![text("l").into()]));
+        assert!(c.small.is_some() && c.medium.is_some());
+        match c.large {
+            Some(WidgetElement::HStack(h)) => assert_eq!(h.children.len(), 1),
+            other => panic!("{other:?}"),
+        }
+        let cfg = WidgetConfig::small(vstack(vec![text("72°")
+            .font_size(36.0)
+            .font_weight(FontWeight::Bold)
+            .color("#fff")
+            .into()]));
+        let v = serde_json::to_value(&cfg).unwrap();
+        assert_eq!(v["small"]["type"], "vstack");
+        let child = &v["small"]["children"][0];
+        assert_eq!(child["type"], "text");
+        assert_eq!(child["content"], "72°");
+        assert_eq!(child["fontSize"], 36.0);
+        assert_eq!(child["fontWeight"], "bold");
+        assert_eq!(child["color"], "#fff");
+
+        // 2. Unset options are omitted and stay unset after the round trip.
         let cfg = WidgetConfig::small(TextElement {
             content: "hi".into(),
             font_size: Some(12.0),
@@ -936,22 +1545,26 @@ mod tests {
             }
             other => panic!("expected text, got {other:?}"),
         }
-    }
 
-    #[test]
-    fn ergonomic_builders_serialize() {
-        let cfg = WidgetConfig::small(vstack(vec![text("72°")
-            .font_size(36.0)
-            .font_weight(FontWeight::Bold)
-            .color("#fff")
-            .into()]));
-        let v = serde_json::to_value(&cfg).unwrap();
-        assert_eq!(v["small"]["type"], "vstack");
-        assert_eq!(v["small"]["children"][0]["type"], "text");
-        assert_eq!(v["small"]["children"][0]["content"], "72°");
-        assert_eq!(v["small"]["children"][0]["fontSize"], 36.0);
-        assert_eq!(v["small"]["children"][0]["fontWeight"], "bold");
-        assert_eq!(v["small"]["children"][0]["color"], "#fff");
+        // 3. Parse defaults.
+        let parsed: WidgetConfig = serde_json::from_str(r#"{"small":{"type":"grid"}}"#).unwrap();
+        assert_eq!(parsed.version, 1);
+        match parsed.small {
+            Some(WidgetElement::Grid(g)) => assert_eq!(g.columns, 2),
+            other => panic!("{other:?}"),
+        }
+        let w: WidgetWindowConfig =
+            serde_json::from_str(r#"{"label":"a","width":1,"height":1}"#).unwrap();
+        assert!(w.skip_taskbar);
+        assert!(!w.always_on_top);
+
+        // 4. Layout walk includes timeline entries.
+        let mut c: WidgetConfig = serde_json::from_value(serde_json::json!({
+            "small": {"type": "spacer"},
+            "entries": [{"at": 1, "medium": {"type": "spacer"}, "large": {"type": "spacer"}}]
+        }))
+        .unwrap();
+        assert_eq!(c.layouts_mut().count(), 3);
     }
 
     fn walk_json_files(dir: &std::path::Path, out: &mut Vec<PathBuf>) {

@@ -19,16 +19,21 @@ const TRACKS: Track[] = [
 let playing = true;
 let trackIdx = 0;
 let positionSec = 222;
+/** Wall clock of the last advance: position follows real time at any tick rate. */
+let lastTickMs = Date.now();
 
 function fmt(sec: number): string {
   const m = Math.floor(sec / 60);
-  const s = sec % 60;
+  const s = Math.floor(sec % 60);
   return `${m}:${String(s).padStart(2, "0")}`;
 }
 
 function advance() {
+  const now = Date.now();
+  const dt = (now - lastTickMs) / 1000;
+  lastTickMs = now;
   if (!playing) return;
-  positionSec++;
+  positionSec += dt;
   if (positionSec >= TRACKS[trackIdx].durationSec) {
     trackIdx = (trackIdx + 1) % TRACKS.length;
     positionSec = 0;
@@ -43,6 +48,24 @@ function buildMusicConfig(): WidgetConfig {
   const playBtn = playing ? "\u23F8" : "\u25B6";
   const playBtnLabel = playing ? `${playBtn} Pause` : `${playBtn} Play`;
   const upcoming = [1, 2, 3].map((i) => TRACKS[(trackIdx + i) % TRACKS.length]);
+  // While playing the bar and the elapsed time run on the device clock (WidgetKit animates
+  // `startAt`/`endAt` and a counting-up timer itself; it allows only a few reloads).
+  const startMs = Date.now() - positionSec * 1000;
+  const endMs = startMs + track.durationSec * 1000;
+  const bar = (): WidgetElement => ({
+    type: "vstack", spacing: 2, alignment: "leading", children: [
+      playing
+        ? { type: "progress", value: progress, startAt: startMs, endAt: endMs, tint: "#e94560" }
+        : { type: "progress", value: progress, tint: "#e94560" },
+      { type: "hstack", spacing: 4, children: [
+        playing
+          ? { type: "timer", targetDate: new Date(endMs).toISOString(), startDate: new Date(startMs).toISOString(),
+              counting: "up", fontSize: 11, color: "secondaryLabel" }
+          : { type: "text", content: posStr, fontSize: 11, color: "secondaryLabel" },
+        { type: "text", content: `/ ${track.durationStr}`, fontSize: 11, color: "secondaryLabel" },
+      ] },
+    ],
+  });
 
   const small: WidgetElement = {
     type: "vstack", padding: 14, spacing: 8, cornerRadius: 16,
@@ -58,7 +81,7 @@ function buildMusicConfig(): WidgetConfig {
           { type: "text", content: track.artist, textStyle: "caption", color: "secondaryLabel" },
         ] },
       ] },
-      { type: "progress", value: progress, tint: "#e94560", label: `${posStr} / ${track.durationStr}`, color: "secondaryLabel" },
+      bar(),
     ],
   };
 
@@ -73,7 +96,7 @@ function buildMusicConfig(): WidgetConfig {
       { type: "vstack", spacing: 6, alignment: "leading", flex: 1, children: [
         { type: "text", content: track.title, textStyle: "headline", color: "label", lineLimit: 1 },
         { type: "text", content: `${track.artist} \u2022 ${track.album}`, textStyle: "caption", color: "secondaryLabel" },
-        { type: "progress", value: progress, tint: "#e94560", label: `${posStr} / ${track.durationStr}`, color: "secondaryLabel" },
+        bar(),
         { type: "hstack", spacing: 20, children: [
           { type: "button", label: "\u23EA", action: "music_prev",
             backgroundColor: { light: "#E0E7FF", dark: "#1a2744" }, color: { light: "#3730a3", dark: "#e2e8f0" }, fontSize: 14, textAlignment: "center" },
@@ -101,7 +124,7 @@ function buildMusicConfig(): WidgetConfig {
           { type: "text", content: track.album, textStyle: "caption", color: "secondaryLabel" },
         ] },
       ] },
-      { type: "progress", value: progress, tint: "#e94560", label: `${posStr} / ${track.durationStr}`, color: "secondaryLabel" },
+      bar(),
       { type: "hstack", spacing: 16, children: [
         { type: "button", label: "\u23EA Prev", action: "music_prev",
           backgroundColor: { light: "#E0E7FF", dark: "#1a2744" }, color: { light: "#3730a3", dark: "#e2e8f0" }, fontSize: 13, cornerRadius: 8, textAlignment: "center", flex: 1 },
@@ -129,7 +152,7 @@ export const music: PresetDef = {
   name: "Music",
   config: buildMusicConfig(),
   builder: buildMusicConfig,
-  intervalMs: 1000,
+  intervalMs: 200,
   onAction(action, _payload, log) {
     switch (action) {
       case "music_toggle":

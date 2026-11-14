@@ -17,11 +17,15 @@ export type VisualCase = {
   macos?: { width: number; height: number };
 };
 
-/** darwin → desktop; linux → linux; win32 → windows */
-export function goldenPlatform(): "desktop" | "linux" | "windows" {
+/**
+ * Baseline dir for Playwright (Chromium) shots: darwin → desktop; linux → linux-chromium;
+ * win32 → windows. `tests/golden/linux` belongs to the WebKitGTK host (`just record-linux`),
+ * which renders different glyphs — the two must not share files.
+ */
+export function goldenPlatform(): "desktop" | "linux-chromium" | "windows" {
   switch (process.platform) {
     case "linux":
-      return "linux";
+      return "linux-chromium";
     case "win32":
       return "windows";
     default:
@@ -81,6 +85,8 @@ export const GOLDEN_RECORD =
   process.env.GOLDEN_RECORD === "1" || process.env.GOLDEN_RECORD === "true";
 /** Migration-only bulk record; day-to-day requires CASE= with GOLDEN_RECORD. */
 export const GOLDEN_RECORD_ALL = process.env.GOLDEN_RECORD_ALL === "1";
+/** CI: a case without a baseline fails instead of being skipped (locally it is a note). */
+export const GOLDEN_STRICT = !!process.env.CI && process.env.CI !== "false" && process.env.CI !== "0";
 
 /** Fixed wall-clock for date/timer fixtures (UTC). */
 export const FIXED_NOW_MS = Date.UTC(2026, 7, 1, 12, 0, 0);

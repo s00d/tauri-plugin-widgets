@@ -15,7 +15,7 @@ export const docsGenerateCommand = defineCommand({
     "skip-audit": {
       type: "boolean",
       default: false,
-      description: "Skip element/golden/schema-doc coverage asserts",
+      description: "Skip schema description asserts",
     },
   },
   async run({ args }) {

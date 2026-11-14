@@ -2,7 +2,11 @@
   "$schema": "http://adaptivecards.io/schemas/adaptive-card.json",
   "body": [
     {
-      "id": "card:#1c1c1e;gap:2",
+      "backgroundImage": {
+        "fillMode": "repeat",
+        "url": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAAEElEQVR4AQEFAPr/ABwcHv8CBAFWW3W0KwAAAABJRU5ErkJggg=="
+      },
+      "id": "card:#1c1c1e",
       "items": [
         {
           "columns": [
@@ -23,11 +27,14 @@
               "width": "stretch"
             },
             {
+              "id": "gap:4",
               "items": [],
+              "spacing": "Default",
               "type": "Column",
               "width": "stretch"
             },
             {
+              "id": "gap:4;#2",
               "items": [
                 {
                   "color": "Light",
@@ -40,19 +47,19 @@
                   "wrap": false
                 }
               ],
+              "spacing": "Default",
               "type": "Column",
               "width": "auto"
             }
           ],
-          "id": "gap:4",
-          "spacing": "Default",
+          "spacing": "None",
           "type": "ColumnSet"
         },
         {
-          "id": "rule:#3a3a3c",
+          "id": "rule:#3a3a3c;gap:2",
           "items": [],
           "separator": true,
-          "spacing": "Medium",
+          "spacing": "Small",
           "type": "Container"
         },
         {
@@ -78,11 +85,12 @@
                   "width": "stretch"
                 },
                 {
+                  "id": "gap:2;#2",
                   "items": [
                     {
                       "actions": [
                         {
-                          "id": "bg:#636366;fg:#fff",
+                          "id": "bg:#636366;fg:#fff;#2",
                           "title": "+/-",
                           "type": "Action.Execute",
                           "verb": "calc:+-"
@@ -91,15 +99,17 @@
                       "type": "ActionSet"
                     }
                   ],
+                  "spacing": "Small",
                   "type": "Column",
                   "width": "stretch"
                 },
                 {
+                  "id": "gap:2;#3",
                   "items": [
                     {
                       "actions": [
                         {
-                          "id": "bg:#636366;fg:#fff",
+                          "id": "bg:#636366;fg:#fff;#3",
                           "title": "BS",
                           "type": "Action.Execute",
                           "verb": "calc:BS"
@@ -108,10 +118,12 @@
                       "type": "ActionSet"
                     }
                   ],
+                  "spacing": "Small",
                   "type": "Column",
                   "width": "stretch"
                 },
                 {
+                  "id": "gap:2;#4",
                   "items": [
                     {
                       "actions": [
@@ -125,12 +137,12 @@
                       "type": "ActionSet"
                     }
                   ],
+                  "spacing": "Small",
                   "type": "Column",
                   "width": "stretch"
                 }
               ],
-              "id": "gap:2",
-              "spacing": "Small",
+              "spacing": "None",
               "type": "ColumnSet"
             },
             {
@@ -153,11 +165,12 @@
                   "width": "stretch"
                 },
                 {
+                  "id": "gap:2;#6",
                   "items": [
                     {
                       "actions": [
                         {
-                          "id": "bg:#3a3a3c;fg:#fff",
+                          "id": "bg:#3a3a3c;fg:#fff;#2",
                           "title": "8",
                           "type": "Action.Execute",
                           "verb": "calc:8"
@@ -166,15 +179,17 @@
                       "type": "ActionSet"
                     }
                   ],
+                  "spacing": "Small",
                   "type": "Column",
                   "width": "stretch"
                 },
                 {
+                  "id": "gap:2;#7",
                   "items": [
                     {
                       "actions": [
                         {
-                          "id": "bg:#3a3a3c;fg:#fff",
+                          "id": "bg:#3a3a3c;fg:#fff;#3",
                           "title": "9",
                           "type": "Action.Execute",
                           "verb": "calc:9"
@@ -183,15 +198,17 @@
                       "type": "ActionSet"
                     }
                   ],
+                  "spacing": "Small",
                   "type": "Column",
                   "width": "stretch"
                 },
                 {
+                  "id": "gap:2;#8",
                   "items": [
                     {
                       "actions": [
                         {
-                          "id": "bg:#f09a36;fg:#fff",
+                          "id": "bg:#f09a36;fg:#fff;#2",
                           "title": "x",
                           "type": "Action.Execute",
                           "verb": "calc:*"
@@ -200,11 +217,12 @@
                       "type": "ActionSet"
                     }
                   ],
+                  "spacing": "Small",
                   "type": "Column",
                   "width": "stretch"
                 }
               ],
-              "id": "gap:2",
+              "id": "gap:2;#5",
               "spacing": "Small",
               "type": "ColumnSet"
             },
@@ -215,7 +233,7 @@
                     {
                       "actions": [
                         {
-                          "id": "bg:#3a3a3c;fg:#fff",
+                          "id": "bg:#3a3a3c;fg:#fff;#4",
                           "title": "4",
                           "type": "Action.Execute",
                           "verb": "calc:4"
@@ -228,11 +246,12 @@
                   "width": "stretch"
                 },
                 {
+                  "id": "gap:2;#10",
                   "items": [
                     {
                       "actions": [
                         {
-                          "id": "bg:#3a3a3c;fg:#fff",
+                          "id": "bg:#3a3a3c;fg:#fff;#5",
                           "title": "5",
                           "type": "Action.Execute",
                           "verb": "calc:5"
@@ -241,15 +260,17 @@
                       "type": "ActionSet"
                     }
                   ],
+                  "spacing": "Small",
                   "type": "Column",
                   "width": "stretch"
                 },
                 {
+                  "id": "gap:2;#11",
                   "items": [
                     {
                       "actions": [
                         {
-                          "id": "bg:#3a3a3c;fg:#fff",
+                          "id": "bg:#3a3a3c;fg:#fff;#6",
                           "title": "6",
                           "type": "Action.Execute",
                           "verb": "calc:6"
@@ -258,15 +279,17 @@
                       "type": "ActionSet"
                     }
                   ],
+                  "spacing": "Small",
                   "type": "Column",
                   "width": "stretch"
                 },
                 {
+                  "id": "gap:2;#12",
                   "items": [
                     {
                       "actions": [
                         {
-                          "id": "bg:#f09a36;fg:#fff",
+                          "id": "bg:#f09a36;fg:#fff;#3",
                           "title": "-",
                           "type": "Action.Execute",
                           "verb": "calc:-"
@@ -275,11 +298,12 @@
                       "type": "ActionSet"
                     }
                   ],
+                  "spacing": "Small",
                   "type": "Column",
                   "width": "stretch"
                 }
               ],
-              "id": "gap:2",
+              "id": "gap:2;#9",
               "spacing": "Small",
               "type": "ColumnSet"
             },
@@ -290,7 +314,7 @@
                     {
                       "actions": [
                         {
-                          "id": "bg:#3a3a3c;fg:#fff",
+                          "id": "bg:#3a3a3c;fg:#fff;#7",
                           "title": "1",
                           "type": "Action.Execute",
                           "verb": "calc:1"
@@ -303,11 +327,12 @@
                   "width": "stretch"
                 },
                 {
+                  "id": "gap:2;#14",
                   "items": [
                     {
                       "actions": [
                         {
-                          "id": "bg:#3a3a3c;fg:#fff",
+                          "id": "bg:#3a3a3c;fg:#fff;#8",
                           "title": "2",
                           "type": "Action.Execute",
                           "verb": "calc:2"
@@ -316,15 +341,17 @@
                       "type": "ActionSet"
                     }
                   ],
+                  "spacing": "Small",
                   "type": "Column",
                   "width": "stretch"
                 },
                 {
+                  "id": "gap:2;#15",
                   "items": [
                     {
                       "actions": [
                         {
-                          "id": "bg:#3a3a3c;fg:#fff",
+                          "id": "bg:#3a3a3c;fg:#fff;#9",
                           "title": "3",
                           "type": "Action.Execute",
                           "verb": "calc:3"
@@ -333,15 +360,17 @@
                       "type": "ActionSet"
                     }
                   ],
+                  "spacing": "Small",
                   "type": "Column",
                   "width": "stretch"
                 },
                 {
+                  "id": "gap:2;#16",
                   "items": [
                     {
                       "actions": [
                         {
-                          "id": "bg:#f09a36;fg:#fff",
+                          "id": "bg:#f09a36;fg:#fff;#4",
                           "title": "+",
                           "type": "Action.Execute",
                           "verb": "calc:+"
@@ -350,11 +379,12 @@
                       "type": "ActionSet"
                     }
                   ],
+                  "spacing": "Small",
                   "type": "Column",
                   "width": "stretch"
                 }
               ],
-              "id": "gap:2",
+              "id": "gap:2;#13",
               "spacing": "Small",
               "type": "ColumnSet"
             },
@@ -365,7 +395,7 @@
                     {
                       "actions": [
                         {
-                          "id": "bg:#636366;fg:#fff",
+                          "id": "bg:#636366;fg:#fff;#4",
                           "title": "%",
                           "type": "Action.Execute",
                           "verb": "calc:%"
@@ -378,11 +408,12 @@
                   "width": "stretch"
                 },
                 {
+                  "id": "gap:2;#18",
                   "items": [
                     {
                       "actions": [
                         {
-                          "id": "bg:#3a3a3c;fg:#fff",
+                          "id": "bg:#3a3a3c;fg:#fff;#10",
                           "title": "0",
                           "type": "Action.Execute",
                           "verb": "calc:0"
@@ -391,15 +422,17 @@
                       "type": "ActionSet"
                     }
                   ],
+                  "spacing": "Small",
                   "type": "Column",
                   "width": "stretch"
                 },
                 {
+                  "id": "gap:2;#19",
                   "items": [
                     {
                       "actions": [
                         {
-                          "id": "bg:#3a3a3c;fg:#fff",
+                          "id": "bg:#3a3a3c;fg:#fff;#11",
                           "title": ".",
                           "type": "Action.Execute",
                           "verb": "calc:."
@@ -408,15 +441,17 @@
                       "type": "ActionSet"
                     }
                   ],
+                  "spacing": "Small",
                   "type": "Column",
                   "width": "stretch"
                 },
                 {
+                  "id": "gap:2;#20",
                   "items": [
                     {
                       "actions": [
                         {
-                          "id": "bg:#f09a36;fg:#fff",
+                          "id": "bg:#f09a36;fg:#fff;#5",
                           "title": "=",
                           "type": "Action.Execute",
                           "verb": "calc:="
@@ -425,11 +460,12 @@
                       "type": "ActionSet"
                     }
                   ],
+                  "spacing": "Small",
                   "type": "Column",
                   "width": "stretch"
                 }
               ],
-              "id": "gap:2",
+              "id": "gap:2;#17",
               "spacing": "Small",
               "type": "ColumnSet"
             }
@@ -438,7 +474,7 @@
           "type": "Container"
         }
       ],
-      "spacing": "Small",
+      "spacing": "None",
       "style": "emphasis",
       "type": "Container"
     }

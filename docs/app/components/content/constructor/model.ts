@@ -177,8 +177,8 @@ export function isContainer(node: WidgetNode | null | undefined): boolean {
     node.type === "grid" ||
     node.type === "container" ||
     node.type === "list" ||
-    node.type === "link" ||
-    node.type === "button"
+    // `link` wraps children; `button` has none in the schema (label / systemName instead).
+    node.type === "link"
   );
 }
 

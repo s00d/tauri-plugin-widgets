@@ -1,0 +1,30 @@
+# Muter (https://github.com/muter-mutation-testing/muter): mutation testing of the Swift
+# logic that unit tests reach — render-time resolution (Resolve.swift only; the script passes
+# `--files-to-mutate`). Rendering is covered by golden images (RenderTests / MacRenderTests)
+# instead. Run: pnpm mutants:swift
+# Keep Resolve.swift ASCII-only (comments too): Muter places mutations by byte offset, and a
+# multi-byte character before an operator corrupts its rewritten copy (build fails).
+executable: /usr/bin/swift
+arguments:
+  - test
+  - --filter
+  - ResolveTests
+exclude:
+  - Tests
+  - .build
+  - Generated
+  - render
+  - Colors.swift
+  - DynamicElementView.swift
+  - Models.swift
+  - Modifiers.swift
+  - SVGPath.swift
+  - WidgetActionIntent.swift
+  - WidgetChrome.swift
+  - InstanceIntent.swift
+  - LiveActivity.swift
+  - TauriWidgetProvider.swift
+  - WidgetDataStore.swift
+excludeCalls:
+  - print
+  - os_log

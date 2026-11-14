@@ -4,6 +4,50 @@
   "description": "Top-level widget config with layouts per size family.",
   "type": "object",
   "properties": {
+    "accessory": {
+      "description": "iOS / watchOS Lock Screen accessory families (circular, rectangular, inline). Falls back to `small`. Ignored elsewhere. Not a resolve family: `{{…}}`, `when`, `repeat` and `entries` do not apply to it.",
+      "anyOf": [
+        {
+          "$ref": "#/definitions/WidgetElement"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "data": {
+      "description": "Default values for `{{data.path}}` (overridden by `setWidgetData` and `source`).",
+      "type": [
+        "object",
+        "null"
+      ],
+      "additionalProperties": true
+    },
+    "defaultLocale": {
+      "description": "Locale used when the device locale has no `strings` table. Default: first table.",
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "entries": {
+      "description": "Scheduled states: from `at` on, an entry's layouts replace the base ones. The OS switches them while the app is closed (WidgetKit timeline, Android alarm, desktop timer). See [`crate::resolve`].",
+      "type": "array",
+      "items": {
+        "$ref": "#/definitions/WidgetEntry"
+      }
+    },
+    "fallback": {
+      "description": "Layouts shown by renderers that do not meet `requires`.",
+      "anyOf": [
+        {
+          "$ref": "#/definitions/FallbackLayouts"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
     "large": {
       "description": "Layout for the large size family.",
       "anyOf": [
@@ -26,11 +70,69 @@
         }
       ]
     },
+    "requires": {
+      "description": "Minimum renderer contract; older renderers show `fallback` instead.",
+      "anyOf": [
+        {
+          "$ref": "#/definitions/Requires"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
     "small": {
       "description": "Layout for the small size family.",
       "anyOf": [
         {
           "$ref": "#/definitions/WidgetElement"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "source": {
+      "description": "JSON the widget fetches by itself on a schedule; its fields are `{{data.path}}`.",
+      "anyOf": [
+        {
+          "$ref": "#/definitions/DataSource"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "state": {
+      "description": "Defaults of the widget's local state, read as `{{state.key}}` / `when` / `bind` / `repeat.each: \"state.list\"`. Taps on elements with `set` change it in-process (no app needed); `setWidgetState` changes it from the app. The stored state (`state:{widgetId}`, `state:{widgetId}#{instance}`) is merged over these per top-level key.",
+      "type": [
+        "object",
+        "null"
+      ],
+      "additionalProperties": true
+    },
+    "strings": {
+      "description": "Localized strings per locale (`\"en\"`, `\"pt-BR\"`), used as `{{t.key}}` in any text.",
+      "type": "object",
+      "additionalProperties": {
+        "type": "object",
+        "additionalProperties": {
+          "type": "string"
+        }
+      }
+    },
+    "templates": {
+      "description": "Reusable elements expanded by `{\"type\": \"use\", \"template\": \"<key>\"}`.",
+      "type": "object",
+      "additionalProperties": {
+        "$ref": "#/definitions/WidgetElement"
+      }
+    },
+    "transition": {
+      "description": "How content changes between timeline entries / redraws (a hint): `numeric` animates digits, `opacity` cross-fades, `slide` pushes from the bottom. Apple and desktop animate; Android and Adaptive Cards ignore it.",
+      "anyOf": [
+        {
+          "$ref": "#/definitions/Transition"
         },
         {
           "type": "null"
@@ -99,6 +201,39 @@
           "format": "double"
         }
       }
+    },
+    "ButtonVariant": {
+      "description": "Button look.",
+      "oneOf": [
+        {
+          "description": "Tinted rounded background (default).",
+          "type": "string",
+          "enum": [
+            "bordered"
+          ]
+        },
+        {
+          "description": "Filled with `backgroundColor` / accent, white label.",
+          "type": "string",
+          "enum": [
+            "prominent"
+          ]
+        },
+        {
+          "description": "Label only.",
+          "type": "string",
+          "enum": [
+            "plain"
+          ]
+        },
+        {
+          "description": "Outline in the label color, no fill.",
+          "type": "string",
+          "enum": [
+            "outline"
+          ]
+        }
+      ]
     },
     "CanvasDrawCommand": {
       "description": "A single declarative draw command for [`crate::models::CanvasElement`].",
@@ -516,12 +651,45 @@
           "description": "Category / x-axis label.",
           "type": "string"
         },
+        "series": {
+          "description": "Series name: points with the same `series` form one line / bar group.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
         "value": {
           "description": "Value plotted for this point.",
           "type": "number",
           "format": "double"
         }
       }
+    },
+    "ChartInterpolation": {
+      "description": "Line / area curve.",
+      "oneOf": [
+        {
+          "description": "Straight segments (default).",
+          "type": "string",
+          "enum": [
+            "linear"
+          ]
+        },
+        {
+          "description": "Smooth curve through every point.",
+          "type": "string",
+          "enum": [
+            "monotone"
+          ]
+        },
+        {
+          "description": "Steps.",
+          "type": "string",
+          "enum": [
+            "step"
+          ]
+        }
+      ]
     },
     "ChartType": {
       "description": "Chart kind.",
@@ -548,10 +716,17 @@
           ]
         },
         {
-          "description": "`pie`.",
+          "description": "`pie` (donut with `innerRadius`).",
           "type": "string",
           "enum": [
             "pie"
+          ]
+        },
+        {
+          "description": "`point`: scatter dots.",
+          "type": "string",
+          "enum": [
+            "point"
           ]
         }
       ]
@@ -559,6 +734,20 @@
     "ClipShape": {
       "description": "Clip shape for content masking.",
       "oneOf": [
+        {
+          "description": "`roundedRectangle` (uses `cornerRadius`).",
+          "type": "string",
+          "enum": [
+            "roundedRectangle"
+          ]
+        },
+        {
+          "description": "`ellipse`.",
+          "type": "string",
+          "enum": [
+            "ellipse"
+          ]
+        },
         {
           "description": "`circle`.",
           "type": "string",
@@ -625,8 +814,65 @@
           "enum": [
             "fill"
           ]
+        },
+        {
+          "description": "`stretch`: fill both axes, ignoring the aspect ratio.",
+          "type": "string",
+          "enum": [
+            "stretch"
+          ]
+        },
+        {
+          "description": "`center`: natural size, centered, no scaling.",
+          "type": "string",
+          "enum": [
+            "center"
+          ]
         }
       ]
+    },
+    "DataSource": {
+      "description": "Remote JSON the widget fetches without the app ([`WidgetConfig::source`]).\n\n`url`, header values and `body` may use `{{instance}}` and `{{locale}}`, so each placement of a widget can ask for its own data.",
+      "type": "object",
+      "required": [
+        "url"
+      ],
+      "properties": {
+        "body": {
+          "description": "Request body for `POST`.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "headers": {
+          "description": "Extra request headers.",
+          "type": "object",
+          "additionalProperties": {
+            "type": "string"
+          }
+        },
+        "method": {
+          "description": "`GET` (default) or `POST`.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "refreshMinutes": {
+          "description": "Minutes between fetches. Default 30; the OS may stretch it (minimum 15).",
+          "type": [
+            "integer",
+            "null"
+          ],
+          "format": "uint32",
+          "minimum": 0.0
+        },
+        "url": {
+          "description": "`https://` URL returning a JSON object (at most 256 KiB).",
+          "type": "string"
+        }
+      }
     },
     "DateStyle": {
       "description": "Date / relative-time display style.",
@@ -667,6 +913,45 @@
           ]
         }
       ]
+    },
+    "FallbackLayouts": {
+      "description": "Layouts for renderers below `requires`.",
+      "type": "object",
+      "properties": {
+        "large": {
+          "description": "Large layout.",
+          "anyOf": [
+            {
+              "$ref": "#/definitions/WidgetElement"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "medium": {
+          "description": "Medium layout.",
+          "anyOf": [
+            {
+              "$ref": "#/definitions/WidgetElement"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "small": {
+          "description": "Small layout.",
+          "anyOf": [
+            {
+              "$ref": "#/definitions/WidgetElement"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      }
     },
     "FontDesign": {
       "description": "Font design (default, monospaced, rounded, serif).",
@@ -803,6 +1088,22 @@
             }
           ]
         },
+        "minHeight": {
+          "description": "Minimum height in points.",
+          "type": [
+            "number",
+            "null"
+          ],
+          "format": "double"
+        },
+        "minWidth": {
+          "description": "Minimum width in points.",
+          "type": [
+            "number",
+            "null"
+          ],
+          "format": "double"
+        },
         "width": {
           "description": "Fixed width in points.",
           "type": [
@@ -853,7 +1154,6 @@
       "description": "Linear, radial, or angular gradient background.",
       "type": "object",
       "required": [
-        "colors",
         "gradientType"
       ],
       "properties": {
@@ -875,6 +1175,17 @@
             }
           ]
         },
+        "endPoint": {
+          "description": "End point in unit space (`{x:1,y:1}` = bottom trailing).",
+          "anyOf": [
+            {
+              "$ref": "#/definitions/UnitPoint"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
         "gradientType": {
           "description": "`\"linear\"`, `\"radial\"`, or `\"angular\"`",
           "allOf": [
@@ -882,6 +1193,24 @@
               "$ref": "#/definitions/GradientType"
             }
           ]
+        },
+        "startPoint": {
+          "description": "Start point in unit space (`{x:0,y:0}` = top leading); overrides `direction`.",
+          "anyOf": [
+            {
+              "$ref": "#/definitions/UnitPoint"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "stops": {
+          "description": "Colors at explicit positions (`location` 0…1); replaces `colors` when set.",
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/GradientStop"
+          }
         }
       }
     },
@@ -932,6 +1261,25 @@
         }
       ]
     },
+    "GradientStop": {
+      "description": "A gradient color at a position.",
+      "type": "object",
+      "required": [
+        "color",
+        "location"
+      ],
+      "properties": {
+        "color": {
+          "description": "Hex color.",
+          "type": "string"
+        },
+        "location": {
+          "description": "Position `0…1` along the gradient.",
+          "type": "number",
+          "format": "double"
+        }
+      }
+    },
     "GradientType": {
       "description": "Gradient shape.",
       "oneOf": [
@@ -980,6 +1328,53 @@
           "type": "string",
           "enum": [
             "trailing"
+          ]
+        }
+      ]
+    },
+    "Justify": {
+      "description": "Distribution of stack children along the stack axis.",
+      "oneOf": [
+        {
+          "description": "Packed at the start (default).",
+          "type": "string",
+          "enum": [
+            "start"
+          ]
+        },
+        {
+          "description": "Packed in the middle.",
+          "type": "string",
+          "enum": [
+            "center"
+          ]
+        },
+        {
+          "description": "Packed at the end.",
+          "type": "string",
+          "enum": [
+            "end"
+          ]
+        },
+        {
+          "description": "First and last at the edges, equal gaps between.",
+          "type": "string",
+          "enum": [
+            "spaceBetween"
+          ]
+        },
+        {
+          "description": "Equal space around each child.",
+          "type": "string",
+          "enum": [
+            "spaceAround"
+          ]
+        },
+        {
+          "description": "Equal gaps everywhere, edges included.",
+          "type": "string",
+          "enum": [
+            "spaceEvenly"
           ]
         }
       ]
@@ -1085,6 +1480,21 @@
         }
       ]
     },
+    "Requires": {
+      "description": "Renderer requirements of a config.",
+      "type": "object",
+      "properties": {
+        "resolve": {
+          "description": "Render-time contract version ([`crate::resolve::CONTRACT_VERSION`]).",
+          "type": [
+            "integer",
+            "null"
+          ],
+          "format": "uint64",
+          "minimum": 0.0
+        }
+      }
+    },
     "ShadowConfig": {
       "description": "Drop shadow configuration.",
       "type": "object",
@@ -1144,6 +1554,53 @@
           "type": "string",
           "enum": [
             "rectangle"
+          ]
+        },
+        {
+          "description": "`roundedRectangle` (uses `cornerRadius`).",
+          "type": "string",
+          "enum": [
+            "roundedRectangle"
+          ]
+        },
+        {
+          "description": "`ellipse`.",
+          "type": "string",
+          "enum": [
+            "ellipse"
+          ]
+        }
+      ]
+    },
+    "SymbolRendering": {
+      "description": "SF Symbol rendering mode.",
+      "oneOf": [
+        {
+          "description": "One color (default).",
+          "type": "string",
+          "enum": [
+            "monochrome"
+          ]
+        },
+        {
+          "description": "One color, layered opacity.",
+          "type": "string",
+          "enum": [
+            "hierarchical"
+          ]
+        },
+        {
+          "description": "Up to three `paletteColors`.",
+          "type": "string",
+          "enum": [
+            "palette"
+          ]
+        },
+        {
+          "description": "The symbol's own colors.",
+          "type": "string",
+          "enum": [
+            "multicolor"
           ]
         }
       ]
@@ -1275,6 +1732,104 @@
         }
       ]
     },
+    "ToggleVariant": {
+      "description": "Toggle look.",
+      "oneOf": [
+        {
+          "description": "Switch (default).",
+          "type": "string",
+          "enum": [
+            "switch"
+          ]
+        },
+        {
+          "description": "Checkbox.",
+          "type": "string",
+          "enum": [
+            "checkbox"
+          ]
+        }
+      ]
+    },
+    "Transition": {
+      "description": "Content change animation hint (`transition`).",
+      "oneOf": [
+        {
+          "description": "Swap without animation.",
+          "type": "string",
+          "enum": [
+            "none"
+          ]
+        },
+        {
+          "description": "Cross-fade.",
+          "type": "string",
+          "enum": [
+            "opacity"
+          ]
+        },
+        {
+          "description": "Push the new content in from the bottom.",
+          "type": "string",
+          "enum": [
+            "slide"
+          ]
+        },
+        {
+          "description": "Roll changed digits (`contentTransition(.numericText())`).",
+          "type": "string",
+          "enum": [
+            "numeric"
+          ]
+        }
+      ]
+    },
+    "TruncationMode": {
+      "description": "Where text is cut when it does not fit.",
+      "oneOf": [
+        {
+          "description": "`…end`.",
+          "type": "string",
+          "enum": [
+            "head"
+          ]
+        },
+        {
+          "description": "`sta…end`.",
+          "type": "string",
+          "enum": [
+            "middle"
+          ]
+        },
+        {
+          "description": "`start…` (default).",
+          "type": "string",
+          "enum": [
+            "tail"
+          ]
+        }
+      ]
+    },
+    "UnitPoint": {
+      "description": "A point in unit coordinates (`0…1` on both axes, origin top leading).",
+      "type": "object",
+      "required": [
+        "x",
+        "y"
+      ],
+      "properties": {
+        "x": {
+          "description": "Horizontal position, `0` = leading.",
+          "type": "number",
+          "format": "double"
+        },
+        "y": {
+          "description": "Vertical position, `0` = top.",
+          "type": "number",
+          "format": "double"
+        }
+      }
+    },
     "VerticalAlignment": {
       "description": "Vertical alignment of children within a stack.",
       "oneOf": [
@@ -1311,6 +1866,20 @@
             "type"
           ],
           "properties": {
+            "accentable": {
+              "description": "Apple tinted / accented Home Screen: draw this part in the accent color (`widgetAccentable`). Ignored elsewhere.",
+              "type": [
+                "boolean",
+                "null"
+              ]
+            },
+            "accessibilityLabel": {
+              "description": "Text read by screen readers instead of the visible content.",
+              "type": [
+                "string",
+                "null"
+              ]
+            },
             "alignment": {
               "description": "Horizontal alignment of children.",
               "anyOf": [
@@ -1322,6 +1891,14 @@
                 }
               ]
             },
+            "aspectRatio": {
+              "description": "Keep width / height at this ratio (`1` = square).",
+              "type": [
+                "number",
+                "null"
+              ],
+              "format": "double"
+            },
             "background": {
               "description": "Solid, adaptive, or gradient background.",
               "anyOf": [
@@ -1332,6 +1909,16 @@
                   "type": "null"
                 }
               ]
+            },
+            "bind": {
+              "description": "Set fields from data with their JSON type: `{\"value\": \"data.progress\"}`. Use for numbers / booleans / arrays (`{{…}}` only fills strings).",
+              "type": [
+                "object",
+                "null"
+              ],
+              "additionalProperties": {
+                "type": "string"
+              }
             },
             "border": {
               "description": "Border color and width.",
@@ -1389,6 +1976,52 @@
                 }
               ]
             },
+            "justify": {
+              "description": "Distribution of children along the stack axis (`spaceBetween`, …). Default `start`.",
+              "anyOf": [
+                {
+                  "$ref": "#/definitions/Justify"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "layoutPriority": {
+              "description": "Who keeps its size in a crowded stack: higher first. Default `0`.",
+              "type": [
+                "number",
+                "null"
+              ],
+              "format": "double"
+            },
+            "margin": {
+              "description": "Outer spacing (number or per-edge object), outside background and border.",
+              "anyOf": [
+                {
+                  "$ref": "#/definitions/PaddingValue"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "offsetX": {
+              "description": "Move right by points after layout (does not affect siblings).",
+              "type": [
+                "number",
+                "null"
+              ],
+              "format": "double"
+            },
+            "offsetY": {
+              "description": "Move down by points after layout (does not affect siblings).",
+              "type": [
+                "number",
+                "null"
+              ],
+              "format": "double"
+            },
             "opacity": {
               "description": "Opacity from `0` (invisible) to `1` (opaque).",
               "type": [
@@ -1407,6 +2040,29 @@
                   "type": "null"
                 }
               ]
+            },
+            "privacySensitive": {
+              "description": "Hide this content where the OS redacts private data (iOS / macOS locked screen, StandBy). Ignored where no redaction exists.",
+              "type": [
+                "boolean",
+                "null"
+              ]
+            },
+            "rotation": {
+              "description": "Rotate by degrees (clockwise).",
+              "type": [
+                "number",
+                "null"
+              ],
+              "format": "double"
+            },
+            "scale": {
+              "description": "Scale factor (`1` = unchanged).",
+              "type": [
+                "number",
+                "null"
+              ],
+              "format": "double"
             },
             "shadow": {
               "description": "Drop shadow.",
@@ -1427,11 +2083,30 @@
               ],
               "format": "double"
             },
+            "transition": {
+              "description": "How this element changes between timeline entries / redraws (a hint): `numeric` animates digits, `opacity` cross-fades, `slide` pushes from the bottom. Apple and desktop animate; Android and Adaptive Cards ignore it.",
+              "anyOf": [
+                {
+                  "$ref": "#/definitions/Transition"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
             "type": {
               "type": "string",
               "enum": [
                 "vstack"
               ]
+            },
+            "when": {
+              "description": "Show only when the condition holds (`{\"path\": \"data.n\", \"gt\": 0}`; see [`crate::resolve`]). Removed before rendering.",
+              "type": [
+                "object",
+                "null"
+              ],
+              "additionalProperties": true
             }
           }
         },
@@ -1442,6 +2117,20 @@
             "type"
           ],
           "properties": {
+            "accentable": {
+              "description": "Apple tinted / accented Home Screen: draw this part in the accent color (`widgetAccentable`). Ignored elsewhere.",
+              "type": [
+                "boolean",
+                "null"
+              ]
+            },
+            "accessibilityLabel": {
+              "description": "Text read by screen readers instead of the visible content.",
+              "type": [
+                "string",
+                "null"
+              ]
+            },
             "alignment": {
               "description": "Vertical alignment of children.",
               "anyOf": [
@@ -1453,6 +2142,14 @@
                 }
               ]
             },
+            "aspectRatio": {
+              "description": "Keep width / height at this ratio (`1` = square).",
+              "type": [
+                "number",
+                "null"
+              ],
+              "format": "double"
+            },
             "background": {
               "description": "Solid, adaptive, or gradient background.",
               "anyOf": [
@@ -1463,6 +2160,16 @@
                   "type": "null"
                 }
               ]
+            },
+            "bind": {
+              "description": "Set fields from data with their JSON type: `{\"value\": \"data.progress\"}`. Use for numbers / booleans / arrays (`{{…}}` only fills strings).",
+              "type": [
+                "object",
+                "null"
+              ],
+              "additionalProperties": {
+                "type": "string"
+              }
             },
             "border": {
               "description": "Border color and width.",
@@ -1520,6 +2227,52 @@
                 }
               ]
             },
+            "justify": {
+              "description": "Distribution of children along the stack axis (`spaceBetween`, …). Default `start`.",
+              "anyOf": [
+                {
+                  "$ref": "#/definitions/Justify"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "layoutPriority": {
+              "description": "Who keeps its size in a crowded stack: higher first. Default `0`.",
+              "type": [
+                "number",
+                "null"
+              ],
+              "format": "double"
+            },
+            "margin": {
+              "description": "Outer spacing (number or per-edge object), outside background and border.",
+              "anyOf": [
+                {
+                  "$ref": "#/definitions/PaddingValue"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "offsetX": {
+              "description": "Move right by points after layout (does not affect siblings).",
+              "type": [
+                "number",
+                "null"
+              ],
+              "format": "double"
+            },
+            "offsetY": {
+              "description": "Move down by points after layout (does not affect siblings).",
+              "type": [
+                "number",
+                "null"
+              ],
+              "format": "double"
+            },
             "opacity": {
               "description": "Opacity from `0` (invisible) to `1` (opaque).",
               "type": [
@@ -1538,6 +2291,29 @@
                   "type": "null"
                 }
               ]
+            },
+            "privacySensitive": {
+              "description": "Hide this content where the OS redacts private data (iOS / macOS locked screen, StandBy). Ignored where no redaction exists.",
+              "type": [
+                "boolean",
+                "null"
+              ]
+            },
+            "rotation": {
+              "description": "Rotate by degrees (clockwise).",
+              "type": [
+                "number",
+                "null"
+              ],
+              "format": "double"
+            },
+            "scale": {
+              "description": "Scale factor (`1` = unchanged).",
+              "type": [
+                "number",
+                "null"
+              ],
+              "format": "double"
             },
             "shadow": {
               "description": "Drop shadow.",
@@ -1558,11 +2334,30 @@
               ],
               "format": "double"
             },
+            "transition": {
+              "description": "How this element changes between timeline entries / redraws (a hint): `numeric` animates digits, `opacity` cross-fades, `slide` pushes from the bottom. Apple and desktop animate; Android and Adaptive Cards ignore it.",
+              "anyOf": [
+                {
+                  "$ref": "#/definitions/Transition"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
             "type": {
               "type": "string",
               "enum": [
                 "hstack"
               ]
+            },
+            "when": {
+              "description": "Show only when the condition holds (`{\"path\": \"data.n\", \"gt\": 0}`; see [`crate::resolve`]). Removed before rendering.",
+              "type": [
+                "object",
+                "null"
+              ],
+              "additionalProperties": true
             }
           }
         },
@@ -1573,12 +2368,34 @@
             "type"
           ],
           "properties": {
+            "accentable": {
+              "description": "Apple tinted / accented Home Screen: draw this part in the accent color (`widgetAccentable`). Ignored elsewhere.",
+              "type": [
+                "boolean",
+                "null"
+              ]
+            },
+            "accessibilityLabel": {
+              "description": "Text read by screen readers instead of the visible content.",
+              "type": [
+                "string",
+                "null"
+              ]
+            },
             "alignment": {
               "description": "Alignment of layers within the stack (e.g. `center`, `topLeading`).",
               "type": [
                 "string",
                 "null"
               ]
+            },
+            "aspectRatio": {
+              "description": "Keep width / height at this ratio (`1` = square).",
+              "type": [
+                "number",
+                "null"
+              ],
+              "format": "double"
             },
             "background": {
               "description": "Solid, adaptive, or gradient background.",
@@ -1590,6 +2407,16 @@
                   "type": "null"
                 }
               ]
+            },
+            "bind": {
+              "description": "Set fields from data with their JSON type: `{\"value\": \"data.progress\"}`. Use for numbers / booleans / arrays (`{{…}}` only fills strings).",
+              "type": [
+                "object",
+                "null"
+              ],
+              "additionalProperties": {
+                "type": "string"
+              }
             },
             "border": {
               "description": "Border color and width.",
@@ -1647,6 +2474,41 @@
                 }
               ]
             },
+            "layoutPriority": {
+              "description": "Who keeps its size in a crowded stack: higher first. Default `0`.",
+              "type": [
+                "number",
+                "null"
+              ],
+              "format": "double"
+            },
+            "margin": {
+              "description": "Outer spacing (number or per-edge object), outside background and border.",
+              "anyOf": [
+                {
+                  "$ref": "#/definitions/PaddingValue"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "offsetX": {
+              "description": "Move right by points after layout (does not affect siblings).",
+              "type": [
+                "number",
+                "null"
+              ],
+              "format": "double"
+            },
+            "offsetY": {
+              "description": "Move down by points after layout (does not affect siblings).",
+              "type": [
+                "number",
+                "null"
+              ],
+              "format": "double"
+            },
             "opacity": {
               "description": "Opacity from `0` (invisible) to `1` (opaque).",
               "type": [
@@ -1666,6 +2528,29 @@
                 }
               ]
             },
+            "privacySensitive": {
+              "description": "Hide this content where the OS redacts private data (iOS / macOS locked screen, StandBy). Ignored where no redaction exists.",
+              "type": [
+                "boolean",
+                "null"
+              ]
+            },
+            "rotation": {
+              "description": "Rotate by degrees (clockwise).",
+              "type": [
+                "number",
+                "null"
+              ],
+              "format": "double"
+            },
+            "scale": {
+              "description": "Scale factor (`1` = unchanged).",
+              "type": [
+                "number",
+                "null"
+              ],
+              "format": "double"
+            },
             "shadow": {
               "description": "Drop shadow.",
               "anyOf": [
@@ -1677,11 +2562,30 @@
                 }
               ]
             },
+            "transition": {
+              "description": "How this element changes between timeline entries / redraws (a hint): `numeric` animates digits, `opacity` cross-fades, `slide` pushes from the bottom. Apple and desktop animate; Android and Adaptive Cards ignore it.",
+              "anyOf": [
+                {
+                  "$ref": "#/definitions/Transition"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
             "type": {
               "type": "string",
               "enum": [
                 "zstack"
               ]
+            },
+            "when": {
+              "description": "Show only when the condition holds (`{\"path\": \"data.n\", \"gt\": 0}`; see [`crate::resolve`]). Removed before rendering.",
+              "type": [
+                "object",
+                "null"
+              ],
+              "additionalProperties": true
             }
           }
         },
@@ -1692,6 +2596,28 @@
             "type"
           ],
           "properties": {
+            "accentable": {
+              "description": "Apple tinted / accented Home Screen: draw this part in the accent color (`widgetAccentable`). Ignored elsewhere.",
+              "type": [
+                "boolean",
+                "null"
+              ]
+            },
+            "accessibilityLabel": {
+              "description": "Text read by screen readers instead of the visible content.",
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "aspectRatio": {
+              "description": "Keep width / height at this ratio (`1` = square).",
+              "type": [
+                "number",
+                "null"
+              ],
+              "format": "double"
+            },
             "background": {
               "description": "Solid, adaptive, or gradient background.",
               "anyOf": [
@@ -1702,6 +2628,16 @@
                   "type": "null"
                 }
               ]
+            },
+            "bind": {
+              "description": "Set fields from data with their JSON type: `{\"value\": \"data.progress\"}`. Use for numbers / booleans / arrays (`{{…}}` only fills strings).",
+              "type": [
+                "object",
+                "null"
+              ],
+              "additionalProperties": {
+                "type": "string"
+              }
             },
             "border": {
               "description": "Border color and width.",
@@ -1766,6 +2702,41 @@
                 }
               ]
             },
+            "layoutPriority": {
+              "description": "Who keeps its size in a crowded stack: higher first. Default `0`.",
+              "type": [
+                "number",
+                "null"
+              ],
+              "format": "double"
+            },
+            "margin": {
+              "description": "Outer spacing (number or per-edge object), outside background and border.",
+              "anyOf": [
+                {
+                  "$ref": "#/definitions/PaddingValue"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "offsetX": {
+              "description": "Move right by points after layout (does not affect siblings).",
+              "type": [
+                "number",
+                "null"
+              ],
+              "format": "double"
+            },
+            "offsetY": {
+              "description": "Move down by points after layout (does not affect siblings).",
+              "type": [
+                "number",
+                "null"
+              ],
+              "format": "double"
+            },
             "opacity": {
               "description": "Opacity from `0` (invisible) to `1` (opaque).",
               "type": [
@@ -1785,8 +2756,31 @@
                 }
               ]
             },
+            "privacySensitive": {
+              "description": "Hide this content where the OS redacts private data (iOS / macOS locked screen, StandBy). Ignored where no redaction exists.",
+              "type": [
+                "boolean",
+                "null"
+              ]
+            },
+            "rotation": {
+              "description": "Rotate by degrees (clockwise).",
+              "type": [
+                "number",
+                "null"
+              ],
+              "format": "double"
+            },
             "rowSpacing": {
               "description": "Row spacing (points).",
+              "type": [
+                "number",
+                "null"
+              ],
+              "format": "double"
+            },
+            "scale": {
+              "description": "Scale factor (`1` = unchanged).",
               "type": [
                 "number",
                 "null"
@@ -1812,11 +2806,30 @@
               ],
               "format": "double"
             },
+            "transition": {
+              "description": "How this element changes between timeline entries / redraws (a hint): `numeric` animates digits, `opacity` cross-fades, `slide` pushes from the bottom. Apple and desktop animate; Android and Adaptive Cards ignore it.",
+              "anyOf": [
+                {
+                  "$ref": "#/definitions/Transition"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
             "type": {
               "type": "string",
               "enum": [
                 "grid"
               ]
+            },
+            "when": {
+              "description": "Show only when the condition holds (`{\"path\": \"data.n\", \"gt\": 0}`; see [`crate::resolve`]). Removed before rendering.",
+              "type": [
+                "object",
+                "null"
+              ],
+              "additionalProperties": true
             }
           }
         },
@@ -1827,6 +2840,28 @@
             "type"
           ],
           "properties": {
+            "accentable": {
+              "description": "Apple tinted / accented Home Screen: draw this part in the accent color (`widgetAccentable`). Ignored elsewhere.",
+              "type": [
+                "boolean",
+                "null"
+              ]
+            },
+            "accessibilityLabel": {
+              "description": "Text read by screen readers instead of the visible content.",
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "aspectRatio": {
+              "description": "Keep width / height at this ratio (`1` = square).",
+              "type": [
+                "number",
+                "null"
+              ],
+              "format": "double"
+            },
             "background": {
               "description": "Solid, adaptive, or gradient background.",
               "anyOf": [
@@ -1837,6 +2872,16 @@
                   "type": "null"
                 }
               ]
+            },
+            "bind": {
+              "description": "Set fields from data with their JSON type: `{\"value\": \"data.progress\"}`. Use for numbers / booleans / arrays (`{{…}}` only fills strings).",
+              "type": [
+                "object",
+                "null"
+              ],
+              "additionalProperties": {
+                "type": "string"
+              }
             },
             "border": {
               "description": "Border color and width.",
@@ -1901,6 +2946,41 @@
                 }
               ]
             },
+            "layoutPriority": {
+              "description": "Who keeps its size in a crowded stack: higher first. Default `0`.",
+              "type": [
+                "number",
+                "null"
+              ],
+              "format": "double"
+            },
+            "margin": {
+              "description": "Outer spacing (number or per-edge object), outside background and border.",
+              "anyOf": [
+                {
+                  "$ref": "#/definitions/PaddingValue"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "offsetX": {
+              "description": "Move right by points after layout (does not affect siblings).",
+              "type": [
+                "number",
+                "null"
+              ],
+              "format": "double"
+            },
+            "offsetY": {
+              "description": "Move down by points after layout (does not affect siblings).",
+              "type": [
+                "number",
+                "null"
+              ],
+              "format": "double"
+            },
             "opacity": {
               "description": "Opacity from `0` (invisible) to `1` (opaque).",
               "type": [
@@ -1920,6 +3000,29 @@
                 }
               ]
             },
+            "privacySensitive": {
+              "description": "Hide this content where the OS redacts private data (iOS / macOS locked screen, StandBy). Ignored where no redaction exists.",
+              "type": [
+                "boolean",
+                "null"
+              ]
+            },
+            "rotation": {
+              "description": "Rotate by degrees (clockwise).",
+              "type": [
+                "number",
+                "null"
+              ],
+              "format": "double"
+            },
+            "scale": {
+              "description": "Scale factor (`1` = unchanged).",
+              "type": [
+                "number",
+                "null"
+              ],
+              "format": "double"
+            },
             "shadow": {
               "description": "Drop shadow.",
               "anyOf": [
@@ -1931,11 +3034,30 @@
                 }
               ]
             },
+            "transition": {
+              "description": "How this element changes between timeline entries / redraws (a hint): `numeric` animates digits, `opacity` cross-fades, `slide` pushes from the bottom. Apple and desktop animate; Android and Adaptive Cards ignore it.",
+              "anyOf": [
+                {
+                  "$ref": "#/definitions/Transition"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
             "type": {
               "type": "string",
               "enum": [
                 "container"
               ]
+            },
+            "when": {
+              "description": "Show only when the condition holds (`{\"path\": \"data.n\", \"gt\": 0}`; see [`crate::resolve`]). Removed before rendering.",
+              "type": [
+                "object",
+                "null"
+              ],
+              "additionalProperties": true
             }
           }
         },
@@ -1947,6 +3069,20 @@
             "type"
           ],
           "properties": {
+            "accentable": {
+              "description": "Apple tinted / accented Home Screen: draw this part in the accent color (`widgetAccentable`). Ignored elsewhere.",
+              "type": [
+                "boolean",
+                "null"
+              ]
+            },
+            "accessibilityLabel": {
+              "description": "Text read by screen readers instead of the visible content.",
+              "type": [
+                "string",
+                "null"
+              ]
+            },
             "alignment": {
               "description": "Text alignment within the line.",
               "anyOf": [
@@ -1958,6 +3094,14 @@
                 }
               ]
             },
+            "aspectRatio": {
+              "description": "Keep width / height at this ratio (`1` = square).",
+              "type": [
+                "number",
+                "null"
+              ],
+              "format": "double"
+            },
             "background": {
               "description": "Solid, adaptive, or gradient background.",
               "anyOf": [
@@ -1968,6 +3112,16 @@
                   "type": "null"
                 }
               ]
+            },
+            "bind": {
+              "description": "Set fields from data with their JSON type: `{\"value\": \"data.progress\"}`. Use for numbers / booleans / arrays (`{{…}}` only fills strings).",
+              "type": [
+                "object",
+                "null"
+              ],
+              "additionalProperties": {
+                "type": "string"
+              }
             },
             "border": {
               "description": "Border color and width.",
@@ -2063,6 +3217,37 @@
                 }
               ]
             },
+            "italic": {
+              "description": "Italic.",
+              "type": [
+                "boolean",
+                "null"
+              ]
+            },
+            "layoutPriority": {
+              "description": "Who keeps its size in a crowded stack: higher first. Default `0`.",
+              "type": [
+                "number",
+                "null"
+              ],
+              "format": "double"
+            },
+            "letterSpacing": {
+              "description": "Extra space between characters in points.",
+              "type": [
+                "number",
+                "null"
+              ],
+              "format": "double"
+            },
+            "lineHeight": {
+              "description": "Line height in points.",
+              "type": [
+                "number",
+                "null"
+              ],
+              "format": "double"
+            },
             "lineLimit": {
               "description": "Maximum number of lines before truncation.",
               "type": [
@@ -2071,6 +3256,48 @@
               ],
               "format": "uint32",
               "minimum": 0.0
+            },
+            "margin": {
+              "description": "Outer spacing (number or per-edge object), outside background and border.",
+              "anyOf": [
+                {
+                  "$ref": "#/definitions/PaddingValue"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "minimumScaleFactor": {
+              "description": "Allow shrinking the font down to this factor (`0.5` = half) before truncating.",
+              "type": [
+                "number",
+                "null"
+              ],
+              "format": "double"
+            },
+            "monospacedDigit": {
+              "description": "Equal-width digits (counters, prices) without a monospaced font.",
+              "type": [
+                "boolean",
+                "null"
+              ]
+            },
+            "offsetX": {
+              "description": "Move right by points after layout (does not affect siblings).",
+              "type": [
+                "number",
+                "null"
+              ],
+              "format": "double"
+            },
+            "offsetY": {
+              "description": "Move down by points after layout (does not affect siblings).",
+              "type": [
+                "number",
+                "null"
+              ],
+              "format": "double"
             },
             "opacity": {
               "description": "Opacity from `0` (invisible) to `1` (opaque).",
@@ -2091,6 +3318,29 @@
                 }
               ]
             },
+            "privacySensitive": {
+              "description": "Hide this content where the OS redacts private data (iOS / macOS locked screen, StandBy). Ignored where no redaction exists.",
+              "type": [
+                "boolean",
+                "null"
+              ]
+            },
+            "rotation": {
+              "description": "Rotate by degrees (clockwise).",
+              "type": [
+                "number",
+                "null"
+              ],
+              "format": "double"
+            },
+            "scale": {
+              "description": "Scale factor (`1` = unchanged).",
+              "type": [
+                "number",
+                "null"
+              ],
+              "format": "double"
+            },
             "shadow": {
               "description": "Drop shadow.",
               "anyOf": [
@@ -2100,6 +3350,13 @@
                 {
                   "type": "null"
                 }
+              ]
+            },
+            "strikethrough": {
+              "description": "Strike the text through.",
+              "type": [
+                "boolean",
+                "null"
               ]
             },
             "textStyle": {
@@ -2113,11 +3370,48 @@
                 }
               ]
             },
+            "transition": {
+              "description": "How this element changes between timeline entries / redraws (a hint): `numeric` animates digits, `opacity` cross-fades, `slide` pushes from the bottom. Apple and desktop animate; Android and Adaptive Cards ignore it.",
+              "anyOf": [
+                {
+                  "$ref": "#/definitions/Transition"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "truncationMode": {
+              "description": "Where text is cut when it does not fit. Default `tail`.",
+              "anyOf": [
+                {
+                  "$ref": "#/definitions/TruncationMode"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
             "type": {
               "type": "string",
               "enum": [
                 "text"
               ]
+            },
+            "underline": {
+              "description": "Underline the text.",
+              "type": [
+                "boolean",
+                "null"
+              ]
+            },
+            "when": {
+              "description": "Show only when the condition holds (`{\"path\": \"data.n\", \"gt\": 0}`; see [`crate::resolve`]). Removed before rendering.",
+              "type": [
+                "object",
+                "null"
+              ],
+              "additionalProperties": true
             }
           }
         },
@@ -2128,6 +3422,28 @@
             "type"
           ],
           "properties": {
+            "accentable": {
+              "description": "Apple tinted / accented Home Screen: draw this part in the accent color (`widgetAccentable`). Ignored elsewhere.",
+              "type": [
+                "boolean",
+                "null"
+              ]
+            },
+            "accessibilityLabel": {
+              "description": "Text read by screen readers instead of the visible content.",
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "aspectRatio": {
+              "description": "Keep width / height at this ratio (`1` = square).",
+              "type": [
+                "number",
+                "null"
+              ],
+              "format": "double"
+            },
             "background": {
               "description": "Solid, adaptive, or gradient background.",
               "anyOf": [
@@ -2138,6 +3454,16 @@
                   "type": "null"
                 }
               ]
+            },
+            "bind": {
+              "description": "Set fields from data with their JSON type: `{\"value\": \"data.progress\"}`. Use for numbers / booleans / arrays (`{{…}}` only fills strings).",
+              "type": [
+                "object",
+                "null"
+              ],
+              "additionalProperties": {
+                "type": "string"
+              }
             },
             "border": {
               "description": "Border color and width.",
@@ -2198,6 +3524,13 @@
                 "null"
               ]
             },
+            "fallbackSystemName": {
+              "description": "Symbol shown when `url` / `data` cannot be loaded.",
+              "type": [
+                "string",
+                "null"
+              ]
+            },
             "flex": {
               "description": "Layout weight for flexible sizing inside stacks (like Android `layout_weight`).",
               "type": [
@@ -2216,6 +3549,41 @@
                   "type": "null"
                 }
               ]
+            },
+            "layoutPriority": {
+              "description": "Who keeps its size in a crowded stack: higher first. Default `0`.",
+              "type": [
+                "number",
+                "null"
+              ],
+              "format": "double"
+            },
+            "margin": {
+              "description": "Outer spacing (number or per-edge object), outside background and border.",
+              "anyOf": [
+                {
+                  "$ref": "#/definitions/PaddingValue"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "offsetX": {
+              "description": "Move right by points after layout (does not affect siblings).",
+              "type": [
+                "number",
+                "null"
+              ],
+              "format": "double"
+            },
+            "offsetY": {
+              "description": "Move down by points after layout (does not affect siblings).",
+              "type": [
+                "number",
+                "null"
+              ],
+              "format": "double"
             },
             "opacity": {
               "description": "Opacity from `0` (invisible) to `1` (opaque).",
@@ -2236,6 +3604,36 @@
                 }
               ]
             },
+            "paletteColors": {
+              "description": "Colors for `symbolRendering: palette` (primary, secondary, tertiary).",
+              "type": "array",
+              "items": {
+                "$ref": "#/definitions/ColorValue"
+              }
+            },
+            "privacySensitive": {
+              "description": "Hide this content where the OS redacts private data (iOS / macOS locked screen, StandBy). Ignored where no redaction exists.",
+              "type": [
+                "boolean",
+                "null"
+              ]
+            },
+            "rotation": {
+              "description": "Rotate by degrees (clockwise).",
+              "type": [
+                "number",
+                "null"
+              ],
+              "format": "double"
+            },
+            "scale": {
+              "description": "Scale factor (`1` = unchanged).",
+              "type": [
+                "number",
+                "null"
+              ],
+              "format": "double"
+            },
             "shadow": {
               "description": "Drop shadow.",
               "anyOf": [
@@ -2255,11 +3653,44 @@
               ],
               "format": "double"
             },
+            "symbolRendering": {
+              "description": "SF Symbol rendering mode (`hierarchical`, `palette`, `multicolor`). Apple; others draw monochrome.",
+              "anyOf": [
+                {
+                  "$ref": "#/definitions/SymbolRendering"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "symbolWeight": {
+              "description": "SF Symbol stroke weight. Apple only.",
+              "anyOf": [
+                {
+                  "$ref": "#/definitions/FontWeight"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
             "systemName": {
               "description": "SF Symbol name (Apple) or Material / drawable name (Android).",
               "type": [
                 "string",
                 "null"
+              ]
+            },
+            "transition": {
+              "description": "How this element changes between timeline entries / redraws (a hint): `numeric` animates digits, `opacity` cross-fades, `slide` pushes from the bottom. Apple and desktop animate; Android and Adaptive Cards ignore it.",
+              "anyOf": [
+                {
+                  "$ref": "#/definitions/Transition"
+                },
+                {
+                  "type": "null"
+                }
               ]
             },
             "type": {
@@ -2274,6 +3705,14 @@
                 "string",
                 "null"
               ]
+            },
+            "when": {
+              "description": "Show only when the condition holds (`{\"path\": \"data.n\", \"gt\": 0}`; see [`crate::resolve`]). Removed before rendering.",
+              "type": [
+                "object",
+                "null"
+              ],
+              "additionalProperties": true
             }
           }
         },
@@ -2285,6 +3724,28 @@
             "value"
           ],
           "properties": {
+            "accentable": {
+              "description": "Apple tinted / accented Home Screen: draw this part in the accent color (`widgetAccentable`). Ignored elsewhere.",
+              "type": [
+                "boolean",
+                "null"
+              ]
+            },
+            "accessibilityLabel": {
+              "description": "Text read by screen readers instead of the visible content.",
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "aspectRatio": {
+              "description": "Keep width / height at this ratio (`1` = square).",
+              "type": [
+                "number",
+                "null"
+              ],
+              "format": "double"
+            },
             "background": {
               "description": "Solid, adaptive, or gradient background.",
               "anyOf": [
@@ -2306,6 +3767,16 @@
                   "type": "null"
                 }
               ]
+            },
+            "bind": {
+              "description": "Set fields from data with their JSON type: `{\"value\": \"data.progress\"}`. Use for numbers / booleans / arrays (`{{…}}` only fills strings).",
+              "type": [
+                "object",
+                "null"
+              ],
+              "additionalProperties": {
+                "type": "string"
+              }
             },
             "border": {
               "description": "Border color and width.",
@@ -2348,6 +3819,15 @@
               ],
               "format": "double"
             },
+            "endAt": {
+              "description": "Unix ms the time-driven bar reaches full (see `startAt`).",
+              "type": [
+                "integer",
+                "null"
+              ],
+              "format": "uint64",
+              "minimum": 0.0
+            },
             "flex": {
               "description": "Layout weight for flexible sizing inside stacks (like Android `layout_weight`).",
               "type": [
@@ -2374,6 +3854,41 @@
                 "null"
               ]
             },
+            "layoutPriority": {
+              "description": "Who keeps its size in a crowded stack: higher first. Default `0`.",
+              "type": [
+                "number",
+                "null"
+              ],
+              "format": "double"
+            },
+            "margin": {
+              "description": "Outer spacing (number or per-edge object), outside background and border.",
+              "anyOf": [
+                {
+                  "$ref": "#/definitions/PaddingValue"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "offsetX": {
+              "description": "Move right by points after layout (does not affect siblings).",
+              "type": [
+                "number",
+                "null"
+              ],
+              "format": "double"
+            },
+            "offsetY": {
+              "description": "Move down by points after layout (does not affect siblings).",
+              "type": [
+                "number",
+                "null"
+              ],
+              "format": "double"
+            },
             "opacity": {
               "description": "Opacity from `0` (invisible) to `1` (opaque).",
               "type": [
@@ -2393,6 +3908,29 @@
                 }
               ]
             },
+            "privacySensitive": {
+              "description": "Hide this content where the OS redacts private data (iOS / macOS locked screen, StandBy). Ignored where no redaction exists.",
+              "type": [
+                "boolean",
+                "null"
+              ]
+            },
+            "rotation": {
+              "description": "Rotate by degrees (clockwise).",
+              "type": [
+                "number",
+                "null"
+              ],
+              "format": "double"
+            },
+            "scale": {
+              "description": "Scale factor (`1` = unchanged).",
+              "type": [
+                "number",
+                "null"
+              ],
+              "format": "double"
+            },
             "shadow": {
               "description": "Drop shadow.",
               "anyOf": [
@@ -2403,6 +3941,23 @@
                   "type": "null"
                 }
               ]
+            },
+            "startAt": {
+              "description": "Unix ms: with `endAt`, the bar fills by itself between the two times (no refresh needed on Apple / desktop). WidgetKit animates it live only for spans up to 10 minutes (a live bar keeps Notification Center busy); a longer span shows the value at each timeline entry / reload.",
+              "type": [
+                "integer",
+                "null"
+              ],
+              "format": "uint64",
+              "minimum": 0.0
+            },
+            "thickness": {
+              "description": "Bar height (linear) or ring width (circular) in points.",
+              "type": [
+                "number",
+                "null"
+              ],
+              "format": "double"
             },
             "tint": {
               "description": "Accent / fill color for the completed portion.",
@@ -2421,6 +3976,28 @@
               "type": "number",
               "format": "double"
             },
+            "trackColor": {
+              "description": "Color of the unfilled track.",
+              "anyOf": [
+                {
+                  "$ref": "#/definitions/ColorValue"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "transition": {
+              "description": "How this element changes between timeline entries / redraws (a hint): `numeric` animates digits, `opacity` cross-fades, `slide` pushes from the bottom. Apple and desktop animate; Android and Adaptive Cards ignore it.",
+              "anyOf": [
+                {
+                  "$ref": "#/definitions/Transition"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
             "type": {
               "type": "string",
               "enum": [
@@ -2431,6 +4008,14 @@
               "description": "Current value. Clamped to `0..=total` by renderers.",
               "type": "number",
               "format": "double"
+            },
+            "when": {
+              "description": "Show only when the condition holds (`{\"path\": \"data.n\", \"gt\": 0}`; see [`crate::resolve`]). Removed before rendering.",
+              "type": [
+                "object",
+                "null"
+              ],
+              "additionalProperties": true
             }
           }
         },
@@ -2442,6 +4027,28 @@
             "value"
           ],
           "properties": {
+            "accentable": {
+              "description": "Apple tinted / accented Home Screen: draw this part in the accent color (`widgetAccentable`). Ignored elsewhere.",
+              "type": [
+                "boolean",
+                "null"
+              ]
+            },
+            "accessibilityLabel": {
+              "description": "Text read by screen readers instead of the visible content.",
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "aspectRatio": {
+              "description": "Keep width / height at this ratio (`1` = square).",
+              "type": [
+                "number",
+                "null"
+              ],
+              "format": "double"
+            },
             "background": {
               "description": "Solid, adaptive, or gradient background.",
               "anyOf": [
@@ -2452,6 +4059,16 @@
                   "type": "null"
                 }
               ]
+            },
+            "bind": {
+              "description": "Set fields from data with their JSON type: `{\"value\": \"data.progress\"}`. Use for numbers / booleans / arrays (`{{…}}` only fills strings).",
+              "type": [
+                "object",
+                "null"
+              ],
+              "additionalProperties": {
+                "type": "string"
+              }
             },
             "border": {
               "description": "Border color and width.",
@@ -2501,6 +4118,15 @@
                 "null"
               ]
             },
+            "endAt": {
+              "description": "Unix ms the time-driven gauge reaches `max`.",
+              "type": [
+                "integer",
+                "null"
+              ],
+              "format": "uint64",
+              "minimum": 0.0
+            },
             "flex": {
               "description": "Layout weight for flexible sizing inside stacks (like Android `layout_weight`).",
               "type": [
@@ -2538,6 +4164,25 @@
                 "null"
               ]
             },
+            "layoutPriority": {
+              "description": "Who keeps its size in a crowded stack: higher first. Default `0`.",
+              "type": [
+                "number",
+                "null"
+              ],
+              "format": "double"
+            },
+            "margin": {
+              "description": "Outer spacing (number or per-edge object), outside background and border.",
+              "anyOf": [
+                {
+                  "$ref": "#/definitions/PaddingValue"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
             "max": {
               "description": "Upper bound. Default `1`.",
               "type": [
@@ -2546,8 +4191,38 @@
               ],
               "format": "double"
             },
+            "maxLabel": {
+              "description": "Label at the maximum end.",
+              "type": [
+                "string",
+                "null"
+              ]
+            },
             "min": {
               "description": "Lower bound. Default `0`.",
+              "type": [
+                "number",
+                "null"
+              ],
+              "format": "double"
+            },
+            "minLabel": {
+              "description": "Label at the minimum end.",
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "offsetX": {
+              "description": "Move right by points after layout (does not affect siblings).",
+              "type": [
+                "number",
+                "null"
+              ],
+              "format": "double"
+            },
+            "offsetY": {
+              "description": "Move down by points after layout (does not affect siblings).",
               "type": [
                 "number",
                 "null"
@@ -2573,6 +4248,29 @@
                 }
               ]
             },
+            "privacySensitive": {
+              "description": "Hide this content where the OS redacts private data (iOS / macOS locked screen, StandBy). Ignored where no redaction exists.",
+              "type": [
+                "boolean",
+                "null"
+              ]
+            },
+            "rotation": {
+              "description": "Rotate by degrees (clockwise).",
+              "type": [
+                "number",
+                "null"
+              ],
+              "format": "double"
+            },
+            "scale": {
+              "description": "Scale factor (`1` = unchanged).",
+              "type": [
+                "number",
+                "null"
+              ],
+              "format": "double"
+            },
             "shadow": {
               "description": "Drop shadow.",
               "anyOf": [
@@ -2584,11 +4282,31 @@
                 }
               ]
             },
+            "startAt": {
+              "description": "Unix ms: with `endAt`, the gauge moves by itself between the two times.",
+              "type": [
+                "integer",
+                "null"
+              ],
+              "format": "uint64",
+              "minimum": 0.0
+            },
             "tint": {
               "description": "Accent color.",
               "anyOf": [
                 {
                   "$ref": "#/definitions/ColorValue"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "transition": {
+              "description": "How this element changes between timeline entries / redraws (a hint): `numeric` animates digits, `opacity` cross-fades, `slide` pushes from the bottom. Apple and desktop animate; Android and Adaptive Cards ignore it.",
+              "anyOf": [
+                {
+                  "$ref": "#/definitions/Transition"
                 },
                 {
                   "type": "null"
@@ -2605,6 +4323,14 @@
               "description": "Current value within `[min, max]`.",
               "type": "number",
               "format": "double"
+            },
+            "when": {
+              "description": "Show only when the condition holds (`{\"path\": \"data.n\", \"gt\": 0}`; see [`crate::resolve`]). Removed before rendering.",
+              "type": [
+                "object",
+                "null"
+              ],
+              "additionalProperties": true
             }
           }
         },
@@ -2616,12 +4342,34 @@
             "type"
           ],
           "properties": {
+            "accentable": {
+              "description": "Apple tinted / accented Home Screen: draw this part in the accent color (`widgetAccentable`). Ignored elsewhere.",
+              "type": [
+                "boolean",
+                "null"
+              ]
+            },
+            "accessibilityLabel": {
+              "description": "Text read by screen readers instead of the visible content.",
+              "type": [
+                "string",
+                "null"
+              ]
+            },
             "action": {
               "description": "Action identifier — emits a `widget-action` Tauri event when tapped.",
               "type": [
                 "string",
                 "null"
               ]
+            },
+            "aspectRatio": {
+              "description": "Keep width / height at this ratio (`1` = square).",
+              "type": [
+                "number",
+                "null"
+              ],
+              "format": "double"
             },
             "background": {
               "description": "Solid, adaptive, or gradient background.",
@@ -2644,6 +4392,16 @@
                   "type": "null"
                 }
               ]
+            },
+            "bind": {
+              "description": "Set fields from data with their JSON type: `{\"value\": \"data.progress\"}`. Use for numbers / booleans / arrays (`{{…}}` only fills strings).",
+              "type": [
+                "object",
+                "null"
+              ],
+              "additionalProperties": {
+                "type": "string"
+              }
             },
             "border": {
               "description": "Border color and width.",
@@ -2686,6 +4444,13 @@
               ],
               "format": "double"
             },
+            "disabled": {
+              "description": "Draw dimmed and ignore taps.",
+              "type": [
+                "boolean",
+                "null"
+              ]
+            },
             "flex": {
               "description": "Layout weight for flexible sizing inside stacks (like Android `layout_weight`).",
               "type": [
@@ -2717,6 +4482,41 @@
               "description": "Button label text.",
               "type": "string"
             },
+            "layoutPriority": {
+              "description": "Who keeps its size in a crowded stack: higher first. Default `0`.",
+              "type": [
+                "number",
+                "null"
+              ],
+              "format": "double"
+            },
+            "margin": {
+              "description": "Outer spacing (number or per-edge object), outside background and border.",
+              "anyOf": [
+                {
+                  "$ref": "#/definitions/PaddingValue"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "offsetX": {
+              "description": "Move right by points after layout (does not affect siblings).",
+              "type": [
+                "number",
+                "null"
+              ],
+              "format": "double"
+            },
+            "offsetY": {
+              "description": "Move down by points after layout (does not affect siblings).",
+              "type": [
+                "number",
+                "null"
+              ],
+              "format": "double"
+            },
             "opacity": {
               "description": "Opacity from `0` (invisible) to `1` (opaque).",
               "type": [
@@ -2736,6 +4536,37 @@
                 }
               ]
             },
+            "privacySensitive": {
+              "description": "Hide this content where the OS redacts private data (iOS / macOS locked screen, StandBy). Ignored where no redaction exists.",
+              "type": [
+                "boolean",
+                "null"
+              ]
+            },
+            "rotation": {
+              "description": "Rotate by degrees (clockwise).",
+              "type": [
+                "number",
+                "null"
+              ],
+              "format": "double"
+            },
+            "scale": {
+              "description": "Scale factor (`1` = unchanged).",
+              "type": [
+                "number",
+                "null"
+              ],
+              "format": "double"
+            },
+            "set": {
+              "description": "Local state written on tap, in-process (no app needed): `{\"done\": \"$toggle\"}`. `\"$toggle\"` flips a boolean (missing → `true`), `\"$inc\"` / `\"$dec\"` add / subtract 1 (missing → 0 first), `null` removes the key (the default shows again), any other JSON is stored as is. With `action` too, the action is sent after the write.",
+              "type": [
+                "object",
+                "null"
+              ],
+              "additionalProperties": true
+            },
             "shadow": {
               "description": "Drop shadow.",
               "anyOf": [
@@ -2747,11 +4578,29 @@
                 }
               ]
             },
+            "systemName": {
+              "description": "Icon (SF Symbol name; Material / emoji elsewhere) before the label.",
+              "type": [
+                "string",
+                "null"
+              ]
+            },
             "textAlignment": {
               "description": "Label text alignment.",
               "anyOf": [
                 {
                   "$ref": "#/definitions/TextAlignment"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "transition": {
+              "description": "How this element changes between timeline entries / redraws (a hint): `numeric` animates digits, `opacity` cross-fades, `slide` pushes from the bottom. Apple and desktop animate; Android and Adaptive Cards ignore it.",
+              "anyOf": [
+                {
+                  "$ref": "#/definitions/Transition"
                 },
                 {
                   "type": "null"
@@ -2770,6 +4619,25 @@
                 "string",
                 "null"
               ]
+            },
+            "variant": {
+              "description": "Visual style (`bordered`, `prominent`, `plain`, `outline`). Unset keeps each platform's classic button look; set it for the same look everywhere.",
+              "anyOf": [
+                {
+                  "$ref": "#/definitions/ButtonVariant"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "when": {
+              "description": "Show only when the condition holds (`{\"path\": \"data.n\", \"gt\": 0}`; see [`crate::resolve`]). Removed before rendering.",
+              "type": [
+                "object",
+                "null"
+              ],
+              "additionalProperties": true
             }
           }
         },
@@ -2781,12 +4649,34 @@
             "type"
           ],
           "properties": {
+            "accentable": {
+              "description": "Apple tinted / accented Home Screen: draw this part in the accent color (`widgetAccentable`). Ignored elsewhere.",
+              "type": [
+                "boolean",
+                "null"
+              ]
+            },
+            "accessibilityLabel": {
+              "description": "Text read by screen readers instead of the visible content.",
+              "type": [
+                "string",
+                "null"
+              ]
+            },
             "action": {
               "description": "Action identifier sent back to the app.",
               "type": [
                 "string",
                 "null"
               ]
+            },
+            "aspectRatio": {
+              "description": "Keep width / height at this ratio (`1` = square).",
+              "type": [
+                "number",
+                "null"
+              ],
+              "format": "double"
             },
             "background": {
               "description": "Solid, adaptive, or gradient background.",
@@ -2798,6 +4688,16 @@
                   "type": "null"
                 }
               ]
+            },
+            "bind": {
+              "description": "Set fields from data with their JSON type: `{\"value\": \"data.progress\"}`. Use for numbers / booleans / arrays (`{{…}}` only fills strings).",
+              "type": [
+                "object",
+                "null"
+              ],
+              "additionalProperties": {
+                "type": "string"
+              }
             },
             "border": {
               "description": "Border color and width.",
@@ -2859,6 +4759,41 @@
                 "null"
               ]
             },
+            "layoutPriority": {
+              "description": "Who keeps its size in a crowded stack: higher first. Default `0`.",
+              "type": [
+                "number",
+                "null"
+              ],
+              "format": "double"
+            },
+            "margin": {
+              "description": "Outer spacing (number or per-edge object), outside background and border.",
+              "anyOf": [
+                {
+                  "$ref": "#/definitions/PaddingValue"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "offsetX": {
+              "description": "Move right by points after layout (does not affect siblings).",
+              "type": [
+                "number",
+                "null"
+              ],
+              "format": "double"
+            },
+            "offsetY": {
+              "description": "Move down by points after layout (does not affect siblings).",
+              "type": [
+                "number",
+                "null"
+              ],
+              "format": "double"
+            },
             "opacity": {
               "description": "Opacity from `0` (invisible) to `1` (opaque).",
               "type": [
@@ -2877,6 +4812,37 @@
                   "type": "null"
                 }
               ]
+            },
+            "privacySensitive": {
+              "description": "Hide this content where the OS redacts private data (iOS / macOS locked screen, StandBy). Ignored where no redaction exists.",
+              "type": [
+                "boolean",
+                "null"
+              ]
+            },
+            "rotation": {
+              "description": "Rotate by degrees (clockwise).",
+              "type": [
+                "number",
+                "null"
+              ],
+              "format": "double"
+            },
+            "scale": {
+              "description": "Scale factor (`1` = unchanged).",
+              "type": [
+                "number",
+                "null"
+              ],
+              "format": "double"
+            },
+            "set": {
+              "description": "Local state written on tap, in-process (no app needed): `{\"done\": \"$toggle\"}`. `\"$toggle\"` flips a boolean (missing → `true`), `\"$inc\"` / `\"$dec\"` add / subtract 1 (missing → 0 first), `null` removes the key (the default shows again), any other JSON is stored as is. With `action` too, the action is sent after the write.",
+              "type": [
+                "object",
+                "null"
+              ],
+              "additionalProperties": true
             },
             "shadow": {
               "description": "Drop shadow.",
@@ -2900,11 +4866,52 @@
                 }
               ]
             },
+            "transition": {
+              "description": "How this element changes between timeline entries / redraws (a hint): `numeric` animates digits, `opacity` cross-fades, `slide` pushes from the bottom. Apple and desktop animate; Android and Adaptive Cards ignore it.",
+              "anyOf": [
+                {
+                  "$ref": "#/definitions/Transition"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
             "type": {
               "type": "string",
               "enum": [
                 "toggle"
               ]
+            },
+            "uncheckedTint": {
+              "description": "Color when off.",
+              "anyOf": [
+                {
+                  "$ref": "#/definitions/ColorValue"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "variant": {
+              "description": "`switch` or `checkbox`. Unset keeps each platform's classic toggle (a glyph on Android); set it for the same control everywhere.",
+              "anyOf": [
+                {
+                  "$ref": "#/definitions/ToggleVariant"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "when": {
+              "description": "Show only when the condition holds (`{\"path\": \"data.n\", \"gt\": 0}`; see [`crate::resolve`]). Removed before rendering.",
+              "type": [
+                "object",
+                "null"
+              ],
+              "additionalProperties": true
             }
           }
         },
@@ -2915,6 +4922,28 @@
             "type"
           ],
           "properties": {
+            "accentable": {
+              "description": "Apple tinted / accented Home Screen: draw this part in the accent color (`widgetAccentable`). Ignored elsewhere.",
+              "type": [
+                "boolean",
+                "null"
+              ]
+            },
+            "accessibilityLabel": {
+              "description": "Text read by screen readers instead of the visible content.",
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "aspectRatio": {
+              "description": "Keep width / height at this ratio (`1` = square).",
+              "type": [
+                "number",
+                "null"
+              ],
+              "format": "double"
+            },
             "background": {
               "description": "Solid, adaptive, or gradient background.",
               "anyOf": [
@@ -2925,6 +4954,16 @@
                   "type": "null"
                 }
               ]
+            },
+            "bind": {
+              "description": "Set fields from data with their JSON type: `{\"value\": \"data.progress\"}`. Use for numbers / booleans / arrays (`{{…}}` only fills strings).",
+              "type": [
+                "object",
+                "null"
+              ],
+              "additionalProperties": {
+                "type": "string"
+              }
             },
             "border": {
               "description": "Border color and width.",
@@ -2986,6 +5025,41 @@
                 }
               ]
             },
+            "layoutPriority": {
+              "description": "Who keeps its size in a crowded stack: higher first. Default `0`.",
+              "type": [
+                "number",
+                "null"
+              ],
+              "format": "double"
+            },
+            "margin": {
+              "description": "Outer spacing (number or per-edge object), outside background and border.",
+              "anyOf": [
+                {
+                  "$ref": "#/definitions/PaddingValue"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "offsetX": {
+              "description": "Move right by points after layout (does not affect siblings).",
+              "type": [
+                "number",
+                "null"
+              ],
+              "format": "double"
+            },
+            "offsetY": {
+              "description": "Move down by points after layout (does not affect siblings).",
+              "type": [
+                "number",
+                "null"
+              ],
+              "format": "double"
+            },
             "opacity": {
               "description": "Opacity from `0` (invisible) to `1` (opaque).",
               "type": [
@@ -3004,6 +5078,29 @@
                   "type": "null"
                 }
               ]
+            },
+            "privacySensitive": {
+              "description": "Hide this content where the OS redacts private data (iOS / macOS locked screen, StandBy). Ignored where no redaction exists.",
+              "type": [
+                "boolean",
+                "null"
+              ]
+            },
+            "rotation": {
+              "description": "Rotate by degrees (clockwise).",
+              "type": [
+                "number",
+                "null"
+              ],
+              "format": "double"
+            },
+            "scale": {
+              "description": "Scale factor (`1` = unchanged).",
+              "type": [
+                "number",
+                "null"
+              ],
+              "format": "double"
             },
             "shadow": {
               "description": "Drop shadow.",
@@ -3024,11 +5121,30 @@
               ],
               "format": "double"
             },
+            "transition": {
+              "description": "How this element changes between timeline entries / redraws (a hint): `numeric` animates digits, `opacity` cross-fades, `slide` pushes from the bottom. Apple and desktop animate; Android and Adaptive Cards ignore it.",
+              "anyOf": [
+                {
+                  "$ref": "#/definitions/Transition"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
             "type": {
               "type": "string",
               "enum": [
                 "divider"
               ]
+            },
+            "when": {
+              "description": "Show only when the condition holds (`{\"path\": \"data.n\", \"gt\": 0}`; see [`crate::resolve`]). Removed before rendering.",
+              "type": [
+                "object",
+                "null"
+              ],
+              "additionalProperties": true
             }
           }
         },
@@ -3063,6 +5179,28 @@
             "type"
           ],
           "properties": {
+            "accentable": {
+              "description": "Apple tinted / accented Home Screen: draw this part in the accent color (`widgetAccentable`). Ignored elsewhere.",
+              "type": [
+                "boolean",
+                "null"
+              ]
+            },
+            "accessibilityLabel": {
+              "description": "Text read by screen readers instead of the visible content.",
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "aspectRatio": {
+              "description": "Keep width / height at this ratio (`1` = square).",
+              "type": [
+                "number",
+                "null"
+              ],
+              "format": "double"
+            },
             "background": {
               "description": "Solid, adaptive, or gradient background.",
               "anyOf": [
@@ -3073,6 +5211,16 @@
                   "type": "null"
                 }
               ]
+            },
+            "bind": {
+              "description": "Set fields from data with their JSON type: `{\"value\": \"data.progress\"}`. Use for numbers / booleans / arrays (`{{…}}` only fills strings).",
+              "type": [
+                "object",
+                "null"
+              ],
+              "additionalProperties": {
+                "type": "string"
+              }
             },
             "border": {
               "description": "Border color and width.",
@@ -3157,6 +5305,41 @@
                 }
               ]
             },
+            "layoutPriority": {
+              "description": "Who keeps its size in a crowded stack: higher first. Default `0`.",
+              "type": [
+                "number",
+                "null"
+              ],
+              "format": "double"
+            },
+            "margin": {
+              "description": "Outer spacing (number or per-edge object), outside background and border.",
+              "anyOf": [
+                {
+                  "$ref": "#/definitions/PaddingValue"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "offsetX": {
+              "description": "Move right by points after layout (does not affect siblings).",
+              "type": [
+                "number",
+                "null"
+              ],
+              "format": "double"
+            },
+            "offsetY": {
+              "description": "Move down by points after layout (does not affect siblings).",
+              "type": [
+                "number",
+                "null"
+              ],
+              "format": "double"
+            },
             "opacity": {
               "description": "Opacity from `0` (invisible) to `1` (opaque).",
               "type": [
@@ -3176,6 +5359,29 @@
                 }
               ]
             },
+            "privacySensitive": {
+              "description": "Hide this content where the OS redacts private data (iOS / macOS locked screen, StandBy). Ignored where no redaction exists.",
+              "type": [
+                "boolean",
+                "null"
+              ]
+            },
+            "rotation": {
+              "description": "Rotate by degrees (clockwise).",
+              "type": [
+                "number",
+                "null"
+              ],
+              "format": "double"
+            },
+            "scale": {
+              "description": "Scale factor (`1` = unchanged).",
+              "type": [
+                "number",
+                "null"
+              ],
+              "format": "double"
+            },
             "shadow": {
               "description": "Drop shadow.",
               "anyOf": [
@@ -3187,11 +5393,30 @@
                 }
               ]
             },
+            "transition": {
+              "description": "How this element changes between timeline entries / redraws (a hint): `numeric` animates digits, `opacity` cross-fades, `slide` pushes from the bottom. Apple and desktop animate; Android and Adaptive Cards ignore it.",
+              "anyOf": [
+                {
+                  "$ref": "#/definitions/Transition"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
             "type": {
               "type": "string",
               "enum": [
                 "date"
               ]
+            },
+            "when": {
+              "description": "Show only when the condition holds (`{\"path\": \"data.n\", \"gt\": 0}`; see [`crate::resolve`]). Removed before rendering.",
+              "type": [
+                "object",
+                "null"
+              ],
+              "additionalProperties": true
             }
           }
         },
@@ -3203,6 +5428,28 @@
             "type"
           ],
           "properties": {
+            "accentable": {
+              "description": "Apple tinted / accented Home Screen: draw this part in the accent color (`widgetAccentable`). Ignored elsewhere.",
+              "type": [
+                "boolean",
+                "null"
+              ]
+            },
+            "accessibilityLabel": {
+              "description": "Text read by screen readers instead of the visible content.",
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "aspectRatio": {
+              "description": "Keep width / height at this ratio (`1` = square).",
+              "type": [
+                "number",
+                "null"
+              ],
+              "format": "double"
+            },
             "background": {
               "description": "Solid, adaptive, or gradient background.",
               "anyOf": [
@@ -3213,6 +5460,16 @@
                   "type": "null"
                 }
               ]
+            },
+            "bind": {
+              "description": "Set fields from data with their JSON type: `{\"value\": \"data.progress\"}`. Use for numbers / booleans / arrays (`{{…}}` only fills strings).",
+              "type": [
+                "object",
+                "null"
+              ],
+              "additionalProperties": {
+                "type": "string"
+              }
             },
             "border": {
               "description": "Border color and width.",
@@ -3278,6 +5535,60 @@
                 }
               ]
             },
+            "innerRadius": {
+              "description": "Pie hole as a fraction of the radius (`0.6` = donut). Default `0`.",
+              "type": [
+                "number",
+                "null"
+              ],
+              "format": "double"
+            },
+            "interpolation": {
+              "description": "Line / area curve: `linear` (default), `monotone`, `step`.",
+              "anyOf": [
+                {
+                  "$ref": "#/definitions/ChartInterpolation"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "layoutPriority": {
+              "description": "Who keeps its size in a crowded stack: higher first. Default `0`.",
+              "type": [
+                "number",
+                "null"
+              ],
+              "format": "double"
+            },
+            "margin": {
+              "description": "Outer spacing (number or per-edge object), outside background and border.",
+              "anyOf": [
+                {
+                  "$ref": "#/definitions/PaddingValue"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "offsetX": {
+              "description": "Move right by points after layout (does not affect siblings).",
+              "type": [
+                "number",
+                "null"
+              ],
+              "format": "double"
+            },
+            "offsetY": {
+              "description": "Move down by points after layout (does not affect siblings).",
+              "type": [
+                "number",
+                "null"
+              ],
+              "format": "double"
+            },
             "opacity": {
               "description": "Opacity from `0` (invisible) to `1` (opaque).",
               "type": [
@@ -3297,6 +5608,29 @@
                 }
               ]
             },
+            "privacySensitive": {
+              "description": "Hide this content where the OS redacts private data (iOS / macOS locked screen, StandBy). Ignored where no redaction exists.",
+              "type": [
+                "boolean",
+                "null"
+              ]
+            },
+            "rotation": {
+              "description": "Rotate by degrees (clockwise).",
+              "type": [
+                "number",
+                "null"
+              ],
+              "format": "double"
+            },
+            "scale": {
+              "description": "Scale factor (`1` = unchanged).",
+              "type": [
+                "number",
+                "null"
+              ],
+              "format": "double"
+            },
             "shadow": {
               "description": "Drop shadow.",
               "anyOf": [
@@ -3306,6 +5640,27 @@
                 {
                   "type": "null"
                 }
+              ]
+            },
+            "showLegend": {
+              "description": "Show a legend of `series` (or pie slices). Default `false`.",
+              "type": [
+                "boolean",
+                "null"
+              ]
+            },
+            "showXAxis": {
+              "description": "Show the x axis labels (bar / line / area). Unset keeps each platform's classic chart (labels on Apple and desktop, none on Android); set it to match.",
+              "type": [
+                "boolean",
+                "null"
+              ]
+            },
+            "showYAxis": {
+              "description": "Show the y axis. Default `false`.",
+              "type": [
+                "boolean",
+                "null"
               ]
             },
             "tint": {
@@ -3319,11 +5674,46 @@
                 }
               ]
             },
+            "transition": {
+              "description": "How this element changes between timeline entries / redraws (a hint): `numeric` animates digits, `opacity` cross-fades, `slide` pushes from the bottom. Apple and desktop animate; Android and Adaptive Cards ignore it.",
+              "anyOf": [
+                {
+                  "$ref": "#/definitions/Transition"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
             "type": {
               "type": "string",
               "enum": [
                 "chart"
               ]
+            },
+            "when": {
+              "description": "Show only when the condition holds (`{\"path\": \"data.n\", \"gt\": 0}`; see [`crate::resolve`]). Removed before rendering.",
+              "type": [
+                "object",
+                "null"
+              ],
+              "additionalProperties": true
+            },
+            "yMax": {
+              "description": "Upper bound of the y scale (default: data maximum).",
+              "type": [
+                "number",
+                "null"
+              ],
+              "format": "double"
+            },
+            "yMin": {
+              "description": "Lower bound of the y scale (default: data minimum or 0).",
+              "type": [
+                "number",
+                "null"
+              ],
+              "format": "double"
             }
           }
         },
@@ -3334,6 +5724,28 @@
             "type"
           ],
           "properties": {
+            "accentable": {
+              "description": "Apple tinted / accented Home Screen: draw this part in the accent color (`widgetAccentable`). Ignored elsewhere.",
+              "type": [
+                "boolean",
+                "null"
+              ]
+            },
+            "accessibilityLabel": {
+              "description": "Text read by screen readers instead of the visible content.",
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "aspectRatio": {
+              "description": "Keep width / height at this ratio (`1` = square).",
+              "type": [
+                "number",
+                "null"
+              ],
+              "format": "double"
+            },
             "background": {
               "description": "Solid, adaptive, or gradient background.",
               "anyOf": [
@@ -3344,6 +5756,16 @@
                   "type": "null"
                 }
               ]
+            },
+            "bind": {
+              "description": "Set fields from data with their JSON type: `{\"value\": \"data.progress\"}`. Use for numbers / booleans / arrays (`{{…}}` only fills strings).",
+              "type": [
+                "object",
+                "null"
+              ],
+              "additionalProperties": {
+                "type": "string"
+              }
             },
             "border": {
               "description": "Border color and width.",
@@ -3427,6 +5849,41 @@
                 "$ref": "#/definitions/ListItem"
               }
             },
+            "layoutPriority": {
+              "description": "Who keeps its size in a crowded stack: higher first. Default `0`.",
+              "type": [
+                "number",
+                "null"
+              ],
+              "format": "double"
+            },
+            "margin": {
+              "description": "Outer spacing (number or per-edge object), outside background and border.",
+              "anyOf": [
+                {
+                  "$ref": "#/definitions/PaddingValue"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "offsetX": {
+              "description": "Move right by points after layout (does not affect siblings).",
+              "type": [
+                "number",
+                "null"
+              ],
+              "format": "double"
+            },
+            "offsetY": {
+              "description": "Move down by points after layout (does not affect siblings).",
+              "type": [
+                "number",
+                "null"
+              ],
+              "format": "double"
+            },
             "opacity": {
               "description": "Opacity from `0` (invisible) to `1` (opaque).",
               "type": [
@@ -3445,6 +5902,29 @@
                   "type": "null"
                 }
               ]
+            },
+            "privacySensitive": {
+              "description": "Hide this content where the OS redacts private data (iOS / macOS locked screen, StandBy). Ignored where no redaction exists.",
+              "type": [
+                "boolean",
+                "null"
+              ]
+            },
+            "rotation": {
+              "description": "Rotate by degrees (clockwise).",
+              "type": [
+                "number",
+                "null"
+              ],
+              "format": "double"
+            },
+            "scale": {
+              "description": "Scale factor (`1` = unchanged).",
+              "type": [
+                "number",
+                "null"
+              ],
+              "format": "double"
             },
             "shadow": {
               "description": "Drop shadow.",
@@ -3465,11 +5945,30 @@
               ],
               "format": "double"
             },
+            "transition": {
+              "description": "How this element changes between timeline entries / redraws (a hint): `numeric` animates digits, `opacity` cross-fades, `slide` pushes from the bottom. Apple and desktop animate; Android and Adaptive Cards ignore it.",
+              "anyOf": [
+                {
+                  "$ref": "#/definitions/Transition"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
             "type": {
               "type": "string",
               "enum": [
                 "list"
               ]
+            },
+            "when": {
+              "description": "Show only when the condition holds (`{\"path\": \"data.n\", \"gt\": 0}`; see [`crate::resolve`]). Removed before rendering.",
+              "type": [
+                "object",
+                "null"
+              ],
+              "additionalProperties": true
             }
           }
         },
@@ -3480,12 +5979,34 @@
             "type"
           ],
           "properties": {
+            "accentable": {
+              "description": "Apple tinted / accented Home Screen: draw this part in the accent color (`widgetAccentable`). Ignored elsewhere.",
+              "type": [
+                "boolean",
+                "null"
+              ]
+            },
+            "accessibilityLabel": {
+              "description": "Text read by screen readers instead of the visible content.",
+              "type": [
+                "string",
+                "null"
+              ]
+            },
             "action": {
               "description": "Action identifier — emits `widget-action` event.",
               "type": [
                 "string",
                 "null"
               ]
+            },
+            "aspectRatio": {
+              "description": "Keep width / height at this ratio (`1` = square).",
+              "type": [
+                "number",
+                "null"
+              ],
+              "format": "double"
             },
             "background": {
               "description": "Solid, adaptive, or gradient background.",
@@ -3497,6 +6018,16 @@
                   "type": "null"
                 }
               ]
+            },
+            "bind": {
+              "description": "Set fields from data with their JSON type: `{\"value\": \"data.progress\"}`. Use for numbers / booleans / arrays (`{{…}}` only fills strings).",
+              "type": [
+                "object",
+                "null"
+              ],
+              "additionalProperties": {
+                "type": "string"
+              }
             },
             "border": {
               "description": "Border color and width.",
@@ -3554,6 +6085,41 @@
                 }
               ]
             },
+            "layoutPriority": {
+              "description": "Who keeps its size in a crowded stack: higher first. Default `0`.",
+              "type": [
+                "number",
+                "null"
+              ],
+              "format": "double"
+            },
+            "margin": {
+              "description": "Outer spacing (number or per-edge object), outside background and border.",
+              "anyOf": [
+                {
+                  "$ref": "#/definitions/PaddingValue"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "offsetX": {
+              "description": "Move right by points after layout (does not affect siblings).",
+              "type": [
+                "number",
+                "null"
+              ],
+              "format": "double"
+            },
+            "offsetY": {
+              "description": "Move down by points after layout (does not affect siblings).",
+              "type": [
+                "number",
+                "null"
+              ],
+              "format": "double"
+            },
             "opacity": {
               "description": "Opacity from `0` (invisible) to `1` (opaque).",
               "type": [
@@ -3573,11 +6139,53 @@
                 }
               ]
             },
+            "privacySensitive": {
+              "description": "Hide this content where the OS redacts private data (iOS / macOS locked screen, StandBy). Ignored where no redaction exists.",
+              "type": [
+                "boolean",
+                "null"
+              ]
+            },
+            "rotation": {
+              "description": "Rotate by degrees (clockwise).",
+              "type": [
+                "number",
+                "null"
+              ],
+              "format": "double"
+            },
+            "scale": {
+              "description": "Scale factor (`1` = unchanged).",
+              "type": [
+                "number",
+                "null"
+              ],
+              "format": "double"
+            },
+            "set": {
+              "description": "Local state written on tap, in-process (no app needed): `{\"done\": \"$toggle\"}`. `\"$toggle\"` flips a boolean (missing → `true`), `\"$inc\"` / `\"$dec\"` add / subtract 1 (missing → 0 first), `null` removes the key (the default shows again), any other JSON is stored as is. With `action` too, the action is sent after the write.",
+              "type": [
+                "object",
+                "null"
+              ],
+              "additionalProperties": true
+            },
             "shadow": {
               "description": "Drop shadow.",
               "anyOf": [
                 {
                   "$ref": "#/definitions/ShadowConfig"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "transition": {
+              "description": "How this element changes between timeline entries / redraws (a hint): `numeric` animates digits, `opacity` cross-fades, `slide` pushes from the bottom. Apple and desktop animate; Android and Adaptive Cards ignore it.",
+              "anyOf": [
+                {
+                  "$ref": "#/definitions/Transition"
                 },
                 {
                   "type": "null"
@@ -3596,6 +6204,14 @@
                 "string",
                 "null"
               ]
+            },
+            "when": {
+              "description": "Show only when the condition holds (`{\"path\": \"data.n\", \"gt\": 0}`; see [`crate::resolve`]). Removed before rendering.",
+              "type": [
+                "object",
+                "null"
+              ],
+              "additionalProperties": true
             }
           }
         },
@@ -3607,6 +6223,28 @@
             "type"
           ],
           "properties": {
+            "accentable": {
+              "description": "Apple tinted / accented Home Screen: draw this part in the accent color (`widgetAccentable`). Ignored elsewhere.",
+              "type": [
+                "boolean",
+                "null"
+              ]
+            },
+            "accessibilityLabel": {
+              "description": "Text read by screen readers instead of the visible content.",
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "aspectRatio": {
+              "description": "Keep width / height at this ratio (`1` = square).",
+              "type": [
+                "number",
+                "null"
+              ],
+              "format": "double"
+            },
             "background": {
               "description": "Solid, adaptive, or gradient background.",
               "anyOf": [
@@ -3617,6 +6255,16 @@
                   "type": "null"
                 }
               ]
+            },
+            "bind": {
+              "description": "Set fields from data with their JSON type: `{\"value\": \"data.progress\"}`. Use for numbers / booleans / arrays (`{{…}}` only fills strings).",
+              "type": [
+                "object",
+                "null"
+              ],
+              "additionalProperties": {
+                "type": "string"
+              }
             },
             "border": {
               "description": "Border color and width.",
@@ -3678,6 +6326,41 @@
                 }
               ]
             },
+            "layoutPriority": {
+              "description": "Who keeps its size in a crowded stack: higher first. Default `0`.",
+              "type": [
+                "number",
+                "null"
+              ],
+              "format": "double"
+            },
+            "margin": {
+              "description": "Outer spacing (number or per-edge object), outside background and border.",
+              "anyOf": [
+                {
+                  "$ref": "#/definitions/PaddingValue"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "offsetX": {
+              "description": "Move right by points after layout (does not affect siblings).",
+              "type": [
+                "number",
+                "null"
+              ],
+              "format": "double"
+            },
+            "offsetY": {
+              "description": "Move down by points after layout (does not affect siblings).",
+              "type": [
+                "number",
+                "null"
+              ],
+              "format": "double"
+            },
             "opacity": {
               "description": "Opacity from `0` (invisible) to `1` (opaque).",
               "type": [
@@ -3696,6 +6379,29 @@
                   "type": "null"
                 }
               ]
+            },
+            "privacySensitive": {
+              "description": "Hide this content where the OS redacts private data (iOS / macOS locked screen, StandBy). Ignored where no redaction exists.",
+              "type": [
+                "boolean",
+                "null"
+              ]
+            },
+            "rotation": {
+              "description": "Rotate by degrees (clockwise).",
+              "type": [
+                "number",
+                "null"
+              ],
+              "format": "double"
+            },
+            "scale": {
+              "description": "Scale factor (`1` = unchanged).",
+              "type": [
+                "number",
+                "null"
+              ],
+              "format": "double"
             },
             "shadow": {
               "description": "Drop shadow.",
@@ -3743,11 +6449,30 @@
               ],
               "format": "double"
             },
+            "transition": {
+              "description": "How this element changes between timeline entries / redraws (a hint): `numeric` animates digits, `opacity` cross-fades, `slide` pushes from the bottom. Apple and desktop animate; Android and Adaptive Cards ignore it.",
+              "anyOf": [
+                {
+                  "$ref": "#/definitions/Transition"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
             "type": {
               "type": "string",
               "enum": [
                 "shape"
               ]
+            },
+            "when": {
+              "description": "Show only when the condition holds (`{\"path\": \"data.n\", \"gt\": 0}`; see [`crate::resolve`]). Removed before rendering.",
+              "type": [
+                "object",
+                "null"
+              ],
+              "additionalProperties": true
             }
           }
         },
@@ -3759,6 +6484,28 @@
             "type"
           ],
           "properties": {
+            "accentable": {
+              "description": "Apple tinted / accented Home Screen: draw this part in the accent color (`widgetAccentable`). Ignored elsewhere.",
+              "type": [
+                "boolean",
+                "null"
+              ]
+            },
+            "accessibilityLabel": {
+              "description": "Text read by screen readers instead of the visible content.",
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "aspectRatio": {
+              "description": "Keep width / height at this ratio (`1` = square).",
+              "type": [
+                "number",
+                "null"
+              ],
+              "format": "double"
+            },
             "background": {
               "description": "Solid, adaptive, or gradient background.",
               "anyOf": [
@@ -3769,6 +6516,16 @@
                   "type": "null"
                 }
               ]
+            },
+            "bind": {
+              "description": "Set fields from data with their JSON type: `{\"value\": \"data.progress\"}`. Use for numbers / booleans / arrays (`{{…}}` only fills strings).",
+              "type": [
+                "object",
+                "null"
+              ],
+              "additionalProperties": {
+                "type": "string"
+              }
             },
             "border": {
               "description": "Border color and width.",
@@ -3801,6 +6558,13 @@
                 {
                   "type": "null"
                 }
+              ]
+            },
+            "completedText": {
+              "description": "Text shown once a countdown reached `targetDate` (default: `0:00`).",
+              "type": [
+                "string",
+                "null"
               ]
             },
             "cornerRadius": {
@@ -3860,6 +6624,41 @@
                 }
               ]
             },
+            "layoutPriority": {
+              "description": "Who keeps its size in a crowded stack: higher first. Default `0`.",
+              "type": [
+                "number",
+                "null"
+              ],
+              "format": "double"
+            },
+            "margin": {
+              "description": "Outer spacing (number or per-edge object), outside background and border.",
+              "anyOf": [
+                {
+                  "$ref": "#/definitions/PaddingValue"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "offsetX": {
+              "description": "Move right by points after layout (does not affect siblings).",
+              "type": [
+                "number",
+                "null"
+              ],
+              "format": "double"
+            },
+            "offsetY": {
+              "description": "Move down by points after layout (does not affect siblings).",
+              "type": [
+                "number",
+                "null"
+              ],
+              "format": "double"
+            },
             "opacity": {
               "description": "Opacity from `0` (invisible) to `1` (opaque).",
               "type": [
@@ -3879,6 +6678,29 @@
                 }
               ]
             },
+            "privacySensitive": {
+              "description": "Hide this content where the OS redacts private data (iOS / macOS locked screen, StandBy). Ignored where no redaction exists.",
+              "type": [
+                "boolean",
+                "null"
+              ]
+            },
+            "rotation": {
+              "description": "Rotate by degrees (clockwise).",
+              "type": [
+                "number",
+                "null"
+              ],
+              "format": "double"
+            },
+            "scale": {
+              "description": "Scale factor (`1` = unchanged).",
+              "type": [
+                "number",
+                "null"
+              ],
+              "format": "double"
+            },
             "shadow": {
               "description": "Drop shadow.",
               "anyOf": [
@@ -3890,15 +6712,48 @@
                 }
               ]
             },
+            "showHours": {
+              "description": "Always show hours (`0:05:00`). Default: only when needed.",
+              "type": [
+                "boolean",
+                "null"
+              ]
+            },
+            "startDate": {
+              "description": "ISO-8601 start of a range timer (`startDate`…`targetDate`); counting up starts here.",
+              "type": [
+                "string",
+                "null"
+              ]
+            },
             "targetDate": {
               "description": "ISO 8601 target date.",
               "type": "string"
+            },
+            "transition": {
+              "description": "How this element changes between timeline entries / redraws (a hint): `numeric` animates digits, `opacity` cross-fades, `slide` pushes from the bottom. Apple and desktop animate; Android and Adaptive Cards ignore it.",
+              "anyOf": [
+                {
+                  "$ref": "#/definitions/Transition"
+                },
+                {
+                  "type": "null"
+                }
+              ]
             },
             "type": {
               "type": "string",
               "enum": [
                 "timer"
               ]
+            },
+            "when": {
+              "description": "Show only when the condition holds (`{\"path\": \"data.n\", \"gt\": 0}`; see [`crate::resolve`]). Removed before rendering.",
+              "type": [
+                "object",
+                "null"
+              ],
+              "additionalProperties": true
             }
           }
         },
@@ -3911,6 +6766,28 @@
             "width"
           ],
           "properties": {
+            "accentable": {
+              "description": "Apple tinted / accented Home Screen: draw this part in the accent color (`widgetAccentable`). Ignored elsewhere.",
+              "type": [
+                "boolean",
+                "null"
+              ]
+            },
+            "accessibilityLabel": {
+              "description": "Text read by screen readers instead of the visible content.",
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "aspectRatio": {
+              "description": "Keep width / height at this ratio (`1` = square).",
+              "type": [
+                "number",
+                "null"
+              ],
+              "format": "double"
+            },
             "background": {
               "description": "Solid, adaptive, or gradient background.",
               "anyOf": [
@@ -3921,6 +6798,16 @@
                   "type": "null"
                 }
               ]
+            },
+            "bind": {
+              "description": "Set fields from data with their JSON type: `{\"value\": \"data.progress\"}`. Use for numbers / booleans / arrays (`{{…}}` only fills strings).",
+              "type": [
+                "object",
+                "null"
+              ],
+              "additionalProperties": {
+                "type": "string"
+              }
             },
             "border": {
               "description": "Border color and width.",
@@ -3983,6 +6870,41 @@
               "type": "number",
               "format": "double"
             },
+            "layoutPriority": {
+              "description": "Who keeps its size in a crowded stack: higher first. Default `0`.",
+              "type": [
+                "number",
+                "null"
+              ],
+              "format": "double"
+            },
+            "margin": {
+              "description": "Outer spacing (number or per-edge object), outside background and border.",
+              "anyOf": [
+                {
+                  "$ref": "#/definitions/PaddingValue"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "offsetX": {
+              "description": "Move right by points after layout (does not affect siblings).",
+              "type": [
+                "number",
+                "null"
+              ],
+              "format": "double"
+            },
+            "offsetY": {
+              "description": "Move down by points after layout (does not affect siblings).",
+              "type": [
+                "number",
+                "null"
+              ],
+              "format": "double"
+            },
             "opacity": {
               "description": "Opacity from `0` (invisible) to `1` (opaque).",
               "type": [
@@ -4002,6 +6924,29 @@
                 }
               ]
             },
+            "privacySensitive": {
+              "description": "Hide this content where the OS redacts private data (iOS / macOS locked screen, StandBy). Ignored where no redaction exists.",
+              "type": [
+                "boolean",
+                "null"
+              ]
+            },
+            "rotation": {
+              "description": "Rotate by degrees (clockwise).",
+              "type": [
+                "number",
+                "null"
+              ],
+              "format": "double"
+            },
+            "scale": {
+              "description": "Scale factor (`1` = unchanged).",
+              "type": [
+                "number",
+                "null"
+              ],
+              "format": "double"
+            },
             "shadow": {
               "description": "Drop shadow.",
               "anyOf": [
@@ -4013,11 +6958,30 @@
                 }
               ]
             },
+            "transition": {
+              "description": "How this element changes between timeline entries / redraws (a hint): `numeric` animates digits, `opacity` cross-fades, `slide` pushes from the bottom. Apple and desktop animate; Android and Adaptive Cards ignore it.",
+              "anyOf": [
+                {
+                  "$ref": "#/definitions/Transition"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
             "type": {
               "type": "string",
               "enum": [
                 "canvas"
               ]
+            },
+            "when": {
+              "description": "Show only when the condition holds (`{\"path\": \"data.n\", \"gt\": 0}`; see [`crate::resolve`]). Removed before rendering.",
+              "type": [
+                "object",
+                "null"
+              ],
+              "additionalProperties": true
             },
             "width": {
               "description": "Canvas width in points.",
@@ -4035,6 +6999,28 @@
             "type"
           ],
           "properties": {
+            "accentable": {
+              "description": "Apple tinted / accented Home Screen: draw this part in the accent color (`widgetAccentable`). Ignored elsewhere.",
+              "type": [
+                "boolean",
+                "null"
+              ]
+            },
+            "accessibilityLabel": {
+              "description": "Text read by screen readers instead of the visible content.",
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "aspectRatio": {
+              "description": "Keep width / height at this ratio (`1` = square).",
+              "type": [
+                "number",
+                "null"
+              ],
+              "format": "double"
+            },
             "background": {
               "description": "Solid, adaptive, or gradient background.",
               "anyOf": [
@@ -4045,6 +7031,16 @@
                   "type": "null"
                 }
               ]
+            },
+            "bind": {
+              "description": "Set fields from data with their JSON type: `{\"value\": \"data.progress\"}`. Use for numbers / booleans / arrays (`{{…}}` only fills strings).",
+              "type": [
+                "object",
+                "null"
+              ],
+              "additionalProperties": {
+                "type": "string"
+              }
             },
             "border": {
               "description": "Border color and width.",
@@ -4136,6 +7132,41 @@
                 }
               ]
             },
+            "layoutPriority": {
+              "description": "Who keeps its size in a crowded stack: higher first. Default `0`.",
+              "type": [
+                "number",
+                "null"
+              ],
+              "format": "double"
+            },
+            "margin": {
+              "description": "Outer spacing (number or per-edge object), outside background and border.",
+              "anyOf": [
+                {
+                  "$ref": "#/definitions/PaddingValue"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "offsetX": {
+              "description": "Move right by points after layout (does not affect siblings).",
+              "type": [
+                "number",
+                "null"
+              ],
+              "format": "double"
+            },
+            "offsetY": {
+              "description": "Move down by points after layout (does not affect siblings).",
+              "type": [
+                "number",
+                "null"
+              ],
+              "format": "double"
+            },
             "opacity": {
               "description": "Opacity from `0` (invisible) to `1` (opaque).",
               "type": [
@@ -4154,6 +7185,29 @@
                   "type": "null"
                 }
               ]
+            },
+            "privacySensitive": {
+              "description": "Hide this content where the OS redacts private data (iOS / macOS locked screen, StandBy). Ignored where no redaction exists.",
+              "type": [
+                "boolean",
+                "null"
+              ]
+            },
+            "rotation": {
+              "description": "Rotate by degrees (clockwise).",
+              "type": [
+                "number",
+                "null"
+              ],
+              "format": "double"
+            },
+            "scale": {
+              "description": "Scale factor (`1` = unchanged).",
+              "type": [
+                "number",
+                "null"
+              ],
+              "format": "double"
             },
             "shadow": {
               "description": "Drop shadow.",
@@ -4182,15 +7236,561 @@
               "description": "Label text.",
               "type": "string"
             },
+            "transition": {
+              "description": "How this element changes between timeline entries / redraws (a hint): `numeric` animates digits, `opacity` cross-fades, `slide` pushes from the bottom. Apple and desktop animate; Android and Adaptive Cards ignore it.",
+              "anyOf": [
+                {
+                  "$ref": "#/definitions/Transition"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
             "type": {
               "type": "string",
               "enum": [
                 "label"
               ]
+            },
+            "when": {
+              "description": "Show only when the condition holds (`{\"path\": \"data.n\", \"gt\": 0}`; see [`crate::resolve`]). Removed before rendering.",
+              "type": [
+                "object",
+                "null"
+              ],
+              "additionalProperties": true
+            }
+          }
+        },
+        {
+          "description": "One `template` copy per item of a data array, spliced into the parent's children (resolved before rendering; see [`crate::resolve`]).",
+          "type": "object",
+          "required": [
+            "each",
+            "template",
+            "type"
+          ],
+          "properties": {
+            "accentable": {
+              "description": "Apple tinted / accented Home Screen: draw this part in the accent color (`widgetAccentable`). Ignored elsewhere.",
+              "type": [
+                "boolean",
+                "null"
+              ]
+            },
+            "accessibilityLabel": {
+              "description": "Text read by screen readers instead of the visible content.",
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "as": {
+              "description": "Name of the item inside the template (`{{task.title}}`). Default `item`.",
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "aspectRatio": {
+              "description": "Keep width / height at this ratio (`1` = square).",
+              "type": [
+                "number",
+                "null"
+              ],
+              "format": "double"
+            },
+            "background": {
+              "description": "Solid, adaptive, or gradient background.",
+              "anyOf": [
+                {
+                  "$ref": "#/definitions/BackgroundValue"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "bind": {
+              "description": "Set fields from data with their JSON type: `{\"value\": \"data.progress\"}`. Use for numbers / booleans / arrays (`{{…}}` only fills strings).",
+              "type": [
+                "object",
+                "null"
+              ],
+              "additionalProperties": {
+                "type": "string"
+              }
+            },
+            "border": {
+              "description": "Border color and width.",
+              "anyOf": [
+                {
+                  "$ref": "#/definitions/BorderConfig"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "clipShape": {
+              "description": "Clip content to a shape (e.g. circle avatar from square image).",
+              "anyOf": [
+                {
+                  "$ref": "#/definitions/ClipShape"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "cornerRadius": {
+              "description": "Corner radius in points.",
+              "type": [
+                "number",
+                "null"
+              ],
+              "format": "double"
+            },
+            "each": {
+              "description": "Path of the array: `data.tasks`, or a loop / template variable (`task.subtasks`).",
+              "type": "string"
+            },
+            "flex": {
+              "description": "Layout weight for flexible sizing inside stacks (like Android `layout_weight`).",
+              "type": [
+                "number",
+                "null"
+              ],
+              "format": "double"
+            },
+            "frame": {
+              "description": "Explicit width / height / max constraints.",
+              "anyOf": [
+                {
+                  "$ref": "#/definitions/FrameConfig"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "layoutPriority": {
+              "description": "Who keeps its size in a crowded stack: higher first. Default `0`.",
+              "type": [
+                "number",
+                "null"
+              ],
+              "format": "double"
+            },
+            "limit": {
+              "description": "At most this many items (hard cap 50).",
+              "type": [
+                "integer",
+                "null"
+              ],
+              "format": "uint32",
+              "minimum": 0.0
+            },
+            "margin": {
+              "description": "Outer spacing (number or per-edge object), outside background and border.",
+              "anyOf": [
+                {
+                  "$ref": "#/definitions/PaddingValue"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "offsetX": {
+              "description": "Move right by points after layout (does not affect siblings).",
+              "type": [
+                "number",
+                "null"
+              ],
+              "format": "double"
+            },
+            "offsetY": {
+              "description": "Move down by points after layout (does not affect siblings).",
+              "type": [
+                "number",
+                "null"
+              ],
+              "format": "double"
+            },
+            "opacity": {
+              "description": "Opacity from `0` (invisible) to `1` (opaque).",
+              "type": [
+                "number",
+                "null"
+              ],
+              "format": "double"
+            },
+            "padding": {
+              "description": "Inset padding (number or per-edge object).",
+              "anyOf": [
+                {
+                  "$ref": "#/definitions/PaddingValue"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "privacySensitive": {
+              "description": "Hide this content where the OS redacts private data (iOS / macOS locked screen, StandBy). Ignored where no redaction exists.",
+              "type": [
+                "boolean",
+                "null"
+              ]
+            },
+            "rotation": {
+              "description": "Rotate by degrees (clockwise).",
+              "type": [
+                "number",
+                "null"
+              ],
+              "format": "double"
+            },
+            "scale": {
+              "description": "Scale factor (`1` = unchanged).",
+              "type": [
+                "number",
+                "null"
+              ],
+              "format": "double"
+            },
+            "shadow": {
+              "description": "Drop shadow.",
+              "anyOf": [
+                {
+                  "$ref": "#/definitions/ShadowConfig"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "template": {
+              "description": "Element drawn per item; `{{index}}` is its 0-based position.",
+              "allOf": [
+                {
+                  "$ref": "#/definitions/WidgetElement"
+                }
+              ]
+            },
+            "transition": {
+              "description": "How this element changes between timeline entries / redraws (a hint): `numeric` animates digits, `opacity` cross-fades, `slide` pushes from the bottom. Apple and desktop animate; Android and Adaptive Cards ignore it.",
+              "anyOf": [
+                {
+                  "$ref": "#/definitions/Transition"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "type": {
+              "type": "string",
+              "enum": [
+                "repeat"
+              ]
+            },
+            "when": {
+              "description": "Show only when the condition holds (`{\"path\": \"data.n\", \"gt\": 0}`; see [`crate::resolve`]). Removed before rendering.",
+              "type": [
+                "object",
+                "null"
+              ],
+              "additionalProperties": true
+            }
+          }
+        },
+        {
+          "description": "A named entry of [`WidgetConfig::templates`] with arguments (resolved before rendering).",
+          "type": "object",
+          "required": [
+            "template",
+            "type"
+          ],
+          "properties": {
+            "accentable": {
+              "description": "Apple tinted / accented Home Screen: draw this part in the accent color (`widgetAccentable`). Ignored elsewhere.",
+              "type": [
+                "boolean",
+                "null"
+              ]
+            },
+            "accessibilityLabel": {
+              "description": "Text read by screen readers instead of the visible content.",
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "args": {
+              "description": "Arguments, read as `{{arg.name}}` / `bind: {\"value\": \"arg.name\"}`. A value that is exactly one `{{expr}}` keeps the expression's JSON type.",
+              "type": "object",
+              "additionalProperties": true
+            },
+            "aspectRatio": {
+              "description": "Keep width / height at this ratio (`1` = square).",
+              "type": [
+                "number",
+                "null"
+              ],
+              "format": "double"
+            },
+            "background": {
+              "description": "Solid, adaptive, or gradient background.",
+              "anyOf": [
+                {
+                  "$ref": "#/definitions/BackgroundValue"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "bind": {
+              "description": "Set fields from data with their JSON type: `{\"value\": \"data.progress\"}`. Use for numbers / booleans / arrays (`{{…}}` only fills strings).",
+              "type": [
+                "object",
+                "null"
+              ],
+              "additionalProperties": {
+                "type": "string"
+              }
+            },
+            "border": {
+              "description": "Border color and width.",
+              "anyOf": [
+                {
+                  "$ref": "#/definitions/BorderConfig"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "clipShape": {
+              "description": "Clip content to a shape (e.g. circle avatar from square image).",
+              "anyOf": [
+                {
+                  "$ref": "#/definitions/ClipShape"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "cornerRadius": {
+              "description": "Corner radius in points.",
+              "type": [
+                "number",
+                "null"
+              ],
+              "format": "double"
+            },
+            "flex": {
+              "description": "Layout weight for flexible sizing inside stacks (like Android `layout_weight`).",
+              "type": [
+                "number",
+                "null"
+              ],
+              "format": "double"
+            },
+            "frame": {
+              "description": "Explicit width / height / max constraints.",
+              "anyOf": [
+                {
+                  "$ref": "#/definitions/FrameConfig"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "layoutPriority": {
+              "description": "Who keeps its size in a crowded stack: higher first. Default `0`.",
+              "type": [
+                "number",
+                "null"
+              ],
+              "format": "double"
+            },
+            "margin": {
+              "description": "Outer spacing (number or per-edge object), outside background and border.",
+              "anyOf": [
+                {
+                  "$ref": "#/definitions/PaddingValue"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "offsetX": {
+              "description": "Move right by points after layout (does not affect siblings).",
+              "type": [
+                "number",
+                "null"
+              ],
+              "format": "double"
+            },
+            "offsetY": {
+              "description": "Move down by points after layout (does not affect siblings).",
+              "type": [
+                "number",
+                "null"
+              ],
+              "format": "double"
+            },
+            "opacity": {
+              "description": "Opacity from `0` (invisible) to `1` (opaque).",
+              "type": [
+                "number",
+                "null"
+              ],
+              "format": "double"
+            },
+            "padding": {
+              "description": "Inset padding (number or per-edge object).",
+              "anyOf": [
+                {
+                  "$ref": "#/definitions/PaddingValue"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "privacySensitive": {
+              "description": "Hide this content where the OS redacts private data (iOS / macOS locked screen, StandBy). Ignored where no redaction exists.",
+              "type": [
+                "boolean",
+                "null"
+              ]
+            },
+            "rotation": {
+              "description": "Rotate by degrees (clockwise).",
+              "type": [
+                "number",
+                "null"
+              ],
+              "format": "double"
+            },
+            "scale": {
+              "description": "Scale factor (`1` = unchanged).",
+              "type": [
+                "number",
+                "null"
+              ],
+              "format": "double"
+            },
+            "shadow": {
+              "description": "Drop shadow.",
+              "anyOf": [
+                {
+                  "$ref": "#/definitions/ShadowConfig"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "template": {
+              "description": "Key in [`WidgetConfig::templates`].",
+              "type": "string"
+            },
+            "transition": {
+              "description": "How this element changes between timeline entries / redraws (a hint): `numeric` animates digits, `opacity` cross-fades, `slide` pushes from the bottom. Apple and desktop animate; Android and Adaptive Cards ignore it.",
+              "anyOf": [
+                {
+                  "$ref": "#/definitions/Transition"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "type": {
+              "type": "string",
+              "enum": [
+                "use"
+              ]
+            },
+            "when": {
+              "description": "Show only when the condition holds (`{\"path\": \"data.n\", \"gt\": 0}`; see [`crate::resolve`]). Removed before rendering.",
+              "type": [
+                "object",
+                "null"
+              ],
+              "additionalProperties": true
             }
           }
         }
       ]
+    },
+    "WidgetEntry": {
+      "description": "One scheduled state of a widget ([`WidgetConfig::entries`]).",
+      "type": "object",
+      "required": [
+        "at"
+      ],
+      "properties": {
+        "accessory": {
+          "description": "Lock Screen accessory layout from `at` on (base layout when omitted).",
+          "anyOf": [
+            {
+              "$ref": "#/definitions/WidgetElement"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "at": {
+          "description": "Unix epoch milliseconds from which this entry is shown.",
+          "type": "integer",
+          "format": "uint64",
+          "minimum": 0.0
+        },
+        "large": {
+          "description": "Large layout from `at` on (base layout when omitted).",
+          "anyOf": [
+            {
+              "$ref": "#/definitions/WidgetElement"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "medium": {
+          "description": "Medium layout from `at` on (base layout when omitted).",
+          "anyOf": [
+            {
+              "$ref": "#/definitions/WidgetElement"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "small": {
+          "description": "Small layout from `at` on (base layout when omitted).",
+          "anyOf": [
+            {
+              "$ref": "#/definitions/WidgetElement"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      }
     }
   }
 }

@@ -1,0 +1,312 @@
+{
+  "kind": "FrameLayout",
+  "rect": [
+    0,
+    0,
+    1080,
+    510
+  ],
+  "children": [
+    {
+      "kind": "FrameLayout",
+      "rect": [
+        0,
+        0,
+        1080,
+        510
+      ],
+      "children": [
+        {
+          "kind": "FrameLayout",
+          "rect": [
+            0,
+            0,
+            1080,
+            510
+          ],
+          "children": [
+            {
+              "kind": "LinearLayout",
+              "rect": [
+                0,
+                0,
+                1080,
+                510
+              ],
+              "children": [
+                {
+                  "kind": "TextView",
+                  "rect": [
+                    36,
+                    36,
+                    1008,
+                    53
+                  ],
+                  "text": "Truncated in the middle of a long line of text",
+                  "px": 39,
+                  "color": "#FFE5E7EB"
+                },
+                {
+                  "kind": "FrameLayout",
+                  "rect": [
+                    36,
+                    89,
+                    1008,
+                    18
+                  ]
+                },
+                {
+                  "kind": "TextView",
+                  "rect": [
+                    36,
+                    107,
+                    1008,
+                    53
+                  ],
+                  "text": "Head truncation of a very long line of text",
+                  "px": 39,
+                  "color": "#FFE5E7EB"
+                },
+                {
+                  "kind": "FrameLayout",
+                  "rect": [
+                    36,
+                    160,
+                    1008,
+                    18
+                  ]
+                },
+                {
+                  "kind": "TextView",
+                  "rect": [
+                    36,
+                    178,
+                    1008,
+                    81
+                  ],
+                  "text": "Shrinks to fit this long title line",
+                  "px": 60,
+                  "color": "#FFE5E7EB"
+                },
+                {
+                  "kind": "FrameLayout",
+                  "rect": [
+                    36,
+                    259,
+                    1008,
+                    18
+                  ]
+                },
+                {
+                  "kind": "LinearLayout",
+                  "rect": [
+                    36,
+                    277,
+                    1008,
+                    53
+                  ],
+                  "children": [
+                    {
+                      "kind": "FrameLayout",
+                      "rect": [
+                        0,
+                        0,
+                        103,
+                        53
+                      ],
+                      "children": [
+                        {
+                          "kind": "TextView",
+                          "rect": [
+                            0,
+                            0,
+                            103,
+                            53
+                          ],
+                          "text": "Under",
+                          "px": 39,
+                          "color": "#FFE5E7EB"
+                        }
+                      ]
+                    },
+                    {
+                      "kind": "FrameLayout",
+                      "rect": [
+                        103,
+                        0,
+                        30,
+                        53
+                      ]
+                    },
+                    {
+                      "kind": "FrameLayout",
+                      "rect": [
+                        133,
+                        0,
+                        99,
+                        53
+                      ],
+                      "children": [
+                        {
+                          "kind": "TextView",
+                          "rect": [
+                            0,
+                            0,
+                            99,
+                            53
+                          ],
+                          "text": "Strike",
+                          "px": 39,
+                          "color": "#FFE5E7EB"
+                        }
+                      ]
+                    },
+                    {
+                      "kind": "FrameLayout",
+                      "rect": [
+                        232,
+                        0,
+                        30,
+                        53
+                      ]
+                    },
+                    {
+                      "kind": "FrameLayout",
+                      "rect": [
+                        262,
+                        0,
+                        81,
+                        53
+                      ],
+                      "children": [
+                        {
+                          "kind": "TextView",
+                          "rect": [
+                            0,
+                            0,
+                            81,
+                            53
+                          ],
+                          "text": "Italic",
+                          "px": 39,
+                          "color": "#FFE5E7EB"
+                        }
+                      ]
+                    },
+                    {
+                      "kind": "FrameLayout",
+                      "rect": [
+                        343,
+                        0,
+                        30,
+                        53
+                      ]
+                    },
+                    {
+                      "kind": "FrameLayout",
+                      "rect": [
+                        373,
+                        0,
+                        172,
+                        53
+                      ],
+                      "children": [
+                        {
+                          "kind": "TextView",
+                          "rect": [
+                            0,
+                            0,
+                            172,
+                            53
+                          ],
+                          "text": "12,345.67",
+                          "px": 39,
+                          "color": "#FFE5E7EB"
+                        }
+                      ]
+                    },
+                    {
+                      "kind": "FrameLayout",
+                      "rect": [
+                        545,
+                        0,
+                        30,
+                        53
+                      ]
+                    },
+                    {
+                      "kind": "FrameLayout",
+                      "rect": [
+                        575,
+                        3,
+                        201,
+                        46
+                      ],
+                      "children": [
+                        {
+                          "kind": "FrameLayout",
+                          "rect": [
+                            0,
+                            0,
+                            201,
+                            46
+                          ],
+                          "children": [
+                            {
+                              "kind": "Chronometer",
+                              "rect": [
+                                0,
+                                0,
+                                201,
+                                46
+                              ],
+                              "text": "S p a c e",
+                              "px": 39,
+                              "color": "#FFE5E7EB"
+                            }
+                          ]
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "kind": "FrameLayout",
+                  "rect": [
+                    36,
+                    330,
+                    1008,
+                    18
+                  ]
+                },
+                {
+                  "kind": "FrameLayout",
+                  "rect": [
+                    36,
+                    348,
+                    1008,
+                    126
+                  ],
+                  "children": [
+                    {
+                      "kind": "Chronometer",
+                      "rect": [
+                        0,
+                        0,
+                        929,
+                        46
+                      ],
+                      "text": "Line height 22 for two wrapped lines of body text here",
+                      "px": 39,
+                      "color": "#FFE5E7EB"
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

@@ -1,6 +1,49 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- Live activities (ongoing notifications); the app still asks for it at runtime on 13+. -->
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+    <!-- Android 16 Live Updates (promoted ongoing notifications); ignored on older versions. -->
+    <uses-permission android:name="android.permission.POST_PROMOTED_NOTIFICATIONS" />
+    <!-- Home-screen apps that get read access to cached widget images (content URIs). -->
+    <queries>
+        <intent>
+            <action android:name="android.intent.action.MAIN" />
+            <category android:name="android.intent.category.HOME" />
+        </intent>
+    </queries>
     <application>
+        <!-- Samsung One UI 7: lets System UI consider the activity notification for Live
+             Notifications / Now Bar (`android.ongoingActivityNoti.*` extras; allow-listed apps). -->
+        <meta-data
+            android:name="com.samsung.android.support.ongoing_activity"
+            android:value="true" />
+
+        <!-- Widget configuration / reconfigure (android:configure in the widget info):
+             picks the placement's instance from `instances:{widgetId}`, finishes at once without. -->
+        <activity
+            android:name=".WidgetConfigActivity"
+            android:exported="true"
+            android:excludeFromRecents="true"
+            android:theme="@android:style/Theme.DeviceDefault.Light.Dialog">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_CONFIGURE" />
+            </intent-filter>
+        </activity>
+        <!-- Cached widget images handed to the launcher by content URI. -->
+        <provider
+            android:name=".TauriWidgetFileProvider"
+            android:authorities="${applicationId}.tauri_widgets.files"
+            android:exported="false"
+            android:grantUriPermissions="true">
+            <meta-data
+                android:name="android.support.FILE_PROVIDER_PATHS"
+                android:resource="@xml/tauri_widget_files" />
+        </provider>
+
+        <!-- Redraw at scheduled `entries` / when a `source` is due (inexact alarm). -->
+        <receiver android:name=".WidgetTickReceiver" android:exported="false" />
+        <!-- Live activity notification action buttons. -->
+        <receiver android:name=".ActivityActionReceiver" android:exported="false" />
 
         <receiver
             android:name=".TauriGlanceWidgetReceiver"
@@ -11,6 +54,11 @@
             <meta-data
                 android:name="android.appwidget.provider"
                 android:resource="@xml/tauri_widget_info" />
+            <!-- Galaxy Z Flip cover screen (Flex Window): lists the widget under
+                 Settings > Cover screen > Widgets; needs `keyguard` in widgetCategory. -->
+            <meta-data
+                android:name="com.samsung.android.appwidget.provider"
+                android:resource="@xml/tauri_widget_samsung" />
         </receiver>
     </application>
 </manifest>

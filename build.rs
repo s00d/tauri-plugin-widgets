@@ -19,6 +19,21 @@ const COMMANDS: &[&str] = &[
     "get_widget_diagnostics",
     "get_widget_trace",
     "flush_widget_trace",
+    "set_widget_data",
+    "set_widget_instances",
+    "get_active_widgets",
+    "start_activity",
+    "update_activity",
+    "end_activity",
+    "list_activities",
+    "activity_island",
+    "get_activity_push_to_start_token",
+    "set_widget_state",
+    "get_widget_state",
+    "register_activity_template",
+    "get_widget_push_token",
+    "can_promote_activities",
+    "open_activity_promotion_settings",
 ];
 
 fn main() {
@@ -48,6 +63,33 @@ fn main() {
         };
         compile_reload_bridge(&sdk, arch);
     }
+
+    // Windows MSVC: tauri / tao import comctl32 v6 symbols (TaskDialogIndirect), which only
+    // resolve with a Common-Controls 6 manifest; without it the integration test exes die at
+    // load with STATUS_ENTRYPOINT_NOT_FOUND. Apps get it from tauri-build; tauri's own build.rs
+    // does this only inside the tauri workspace. Test targets of this crate only.
+    if target.contains("windows-msvc") {
+        embed_manifest_for_tests();
+    }
+}
+
+fn embed_manifest_for_tests() {
+    const MANIFEST: &str = r#"<assembly xmlns="urn:schemas-microsoft-com:asm.v1" manifestVersion="1.0">
+  <dependency>
+    <dependentAssembly>
+      <assemblyIdentity type="win32" name="Microsoft.Windows.Common-Controls" version="6.0.0.0"
+        processorArchitecture="*" publicKeyToken="6595b64144ccf1df" language="*" />
+    </dependentAssembly>
+  </dependency>
+</assembly>
+"#;
+    let path = PathBuf::from(std::env::var("OUT_DIR").unwrap()).join("windows-test-manifest.xml");
+    std::fs::write(&path, MANIFEST).expect("write windows-test-manifest.xml");
+    println!("cargo:rustc-link-arg-tests=/MANIFEST:EMBED");
+    println!(
+        "cargo:rustc-link-arg-tests=/MANIFESTINPUT:{}",
+        path.display()
+    );
 }
 
 fn compile_reload_bridge(sdk: &str, arch: &str) {

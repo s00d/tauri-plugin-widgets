@@ -113,7 +113,7 @@ function avatar(letter: string, size: number, iconData?: string): WidgetElement 
   };
 }
 
-function compactRow(item: UpcomingItem, dense: boolean): WidgetElement {
+function compactRow(item: UpcomingItem, dense: boolean, now: Date): WidgetElement {
   const size = dense ? 20 : 24;
   const nameSize = dense ? 10 : 11;
   const dateSize = dense ? 8 : 9;
@@ -141,7 +141,7 @@ function compactRow(item: UpcomingItem, dense: boolean): WidgetElement {
           },
           {
             type: "text",
-            content: formatRelativeDate(item.nextPayment),
+            content: formatRelativeDate(item.nextPayment, now),
             fontSize: dateSize,
             color: "secondaryLabel",
             lineLimit: 1,
@@ -209,7 +209,7 @@ function emptyBody(size: "small" | "medium" | "large"): WidgetElement {
   };
 }
 
-function smallHero(item: UpcomingItem): WidgetElement {
+function smallHero(item: UpcomingItem, now: Date): WidgetElement {
   return {
     type: "vstack",
     padding: 14,
@@ -241,7 +241,7 @@ function smallHero(item: UpcomingItem): WidgetElement {
               },
               {
                 type: "text",
-                content: formatRelativeDate(item.nextPayment),
+                content: formatRelativeDate(item.nextPayment, now),
                 fontSize: 11,
                 fontWeight: "semibold",
                 color: "secondaryLabel",
@@ -266,7 +266,7 @@ function smallHero(item: UpcomingItem): WidgetElement {
   };
 }
 
-function listFamily(items: UpcomingItem[], size: "medium" | "large"): WidgetElement {
+function listFamily(items: UpcomingItem[], size: "medium" | "large", now: Date): WidgetElement {
   const dense = size === "medium";
   const cap = size === "medium" ? 4 : 6;
   const visible = items.slice(0, cap);
@@ -287,7 +287,7 @@ function listFamily(items: UpcomingItem[], size: "medium" | "large"): WidgetElem
       columns: 2,
       spacing: dense ? 8 : 10,
       rowSpacing: dense ? 6 : 8,
-      children: visible.map((it) => compactRow(it, dense)),
+      children: visible.map((it) => compactRow(it, dense, now)),
     },
   ];
   if (rest > 0) {
@@ -314,7 +314,7 @@ function listFamily(items: UpcomingItem[], size: "medium" | "large"): WidgetElem
 }
 
 /** Build Subly-like Upcoming payments WidgetConfig from snapshot items. */
-export function buildUpcomingPayments(items: UpcomingItem[]): WidgetConfig {
+export function buildUpcomingPayments(items: UpcomingItem[], now = new Date()): WidgetConfig {
   if (items.length === 0) {
     return {
       version: 1,
@@ -325,15 +325,24 @@ export function buildUpcomingPayments(items: UpcomingItem[]): WidgetConfig {
   }
   return {
     version: 1,
-    small: smallHero(items[0]),
-    medium: listFamily(items, "medium"),
-    large: listFamily(items, "large"),
+    small: smallHero(items[0], now),
+    medium: listFamily(items, "medium", now),
+    large: listFamily(items, "large", now),
   };
+}
+
+/** Plus the layouts as of the next local midnight as a timeline entry, so
+ *  "Today" / "Tomorrow" roll over on the device without the app. */
+function withMidnight(items: UpcomingItem[]): WidgetConfig {
+  const now = new Date();
+  const midnight = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1);
+  const { small, medium, large } = buildUpcomingPayments(items, midnight);
+  return { ...buildUpcomingPayments(items, now), entries: [{ at: midnight.getTime(), small, medium, large }] };
 }
 
 export const upcomingPayments: PresetDef = {
   icon: "💳",
   name: "Upcoming Payments",
-  config: buildUpcomingPayments(DEMO_ITEMS),
-  builder: () => buildUpcomingPayments(DEMO_ITEMS),
+  config: withMidnight(DEMO_ITEMS),
+  builder: () => withMidnight(DEMO_ITEMS),
 };

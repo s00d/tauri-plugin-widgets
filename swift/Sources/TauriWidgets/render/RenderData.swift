@@ -1,4 +1,5 @@
 import SwiftUI
+import Charts
 
 // MARK: - Progress / Gauge / Chart / List
 
@@ -15,21 +16,57 @@ extension DynamicElementView {
 
     // MARK: Progress
 
+    /// `startAt`/`endAt` (Unix ms) as a date range, when both are set and ordered.
+    var timeRange: ClosedRange<Date>? {
+        guard let a = element.startAt, let b = element.endAt, b > a else { return nil }
+        return Date(timeIntervalSince1970: Double(a) / 1000)...Date(timeIntervalSince1970: Double(b) / 1000)
+    }
+
+    /// Fraction of `timeRange` elapsed now (clamped), or nil when not time-driven.
+    var timeFraction: Double? {
+        guard let r = timeRange else { return nil }
+        let span = r.upperBound.timeIntervalSince(r.lowerBound)
+        return min(max(Date.now.timeIntervalSince(r.lowerBound) / span, 0), 1)
+    }
+
+    /// Longest `startAt`…`endAt` span (seconds) drawn as a live `ProgressView(timerInterval:)`.
+    static let liveProgressMaxSpan: TimeInterval = 600
+
     @ViewBuilder func renderProgress() -> some View {
         let v = element.value ?? 0; let t = max(element.total ?? 1, 0.0001)
         let tc = resolveColor(element.tint) ?? Color.accentColor
-        let frac = min(max(v / t, 0), 1)
-        if element.barStyle == "circular" {
+        let track = resolveColor(element.trackColor) ?? tc.opacity(0.25)
+        let frac = timeFraction ?? min(max(v / t, 0), 1)
+        // Inside a short range the system ProgressView fills by itself (no timeline reloads).
+        // It redraws all the time while visible: measured in Notification Center at ~34% CPU
+        // for a 10 min range and ~100% for months, so a longer range is a static bar computed
+        // at render time (each timeline entry / reload), which over hours moves too little to
+        // need animation. Before / after the range a static bar is exact too.
+        let live: ClosedRange<Date>? = timeRange.flatMap { r in
+            r.contains(Date.now) && r.upperBound.timeIntervalSince(r.lowerBound) <= Self.liveProgressMaxSpan ? r : nil
+        }
+        if let live {
+            let pv = ProgressView(timerInterval: live, countsDown: false) {
+                if let lbl = element.label { Text(lbl).font(.caption2) }
+            } currentValueLabel: { EmptyView() }
+            if element.barStyle == "circular" {
+                pv.progressViewStyle(.circular).tint(tc)
+            } else {
+                pv.progressViewStyle(.linear).tint(tc)
+            }
+        } else if element.barStyle == "circular" {
+            let lw = element.thickness ?? 4
             // Custom ring — ProgressView breaks under ImageRenderer / macOS snapshots.
             ZStack {
-                Circle().stroke(tc.opacity(0.25), lineWidth: 4)
+                Circle().stroke(track, lineWidth: lw)
                 Circle()
                     .trim(from: 0, to: frac)
-                    .stroke(tc, style: StrokeStyle(lineWidth: 4, lineCap: .round))
+                    .stroke(tc, style: StrokeStyle(lineWidth: lw, lineCap: .round))
                     .rotationEffect(.degrees(-90))
             }
             .frame(width: 40, height: 40)
         } else {
+            let h = element.thickness ?? 6
             // Avoid bare GeometryReader in unconstrained HStacks — it steals height and
             // collapses into a tall thin strip (Tasks medium sidebar).
             VStack(alignment: .leading, spacing: 2) {
@@ -44,14 +81,14 @@ extension DynamicElementView {
                         )
                 }
                 Capsule()
-                    .fill(tc.opacity(0.25))
-                    .frame(height: 6)
+                    .fill(track)
+                    .frame(height: h)
                     .frame(maxWidth: .infinity)
                     .overlay(alignment: .leading) {
                         GeometryReader { geo in
                             Capsule()
                                 .fill(tc)
-                                .frame(width: max(geo.size.width * CGFloat(frac), 2), height: 6)
+                                .frame(width: max(geo.size.width * CGFloat(frac), 2), height: h)
                         }
                     }
             }
@@ -62,11 +99,13 @@ extension DynamicElementView {
     // MARK: Gauge
 
     @ViewBuilder func renderGauge() -> some View {
-        let v = element.value ?? 0; let lo = element.min ?? 0; let hi = element.max ?? 1
+        let lo = element.min ?? 0; let hi = element.max ?? 1
         let tc = resolveColor(element.tint) ?? Color.accentColor
         let ink = resolveColor(element.color) ?? .primary
         let span = max(hi - lo, 0.0001)
-        let frac = min(max((v - lo) / span, 0), 1)
+        // Time-driven: no native live Gauge API — value is computed at render time.
+        let frac = timeFraction ?? min(max(((element.value ?? 0) - lo) / span, 0), 1)
+        let ends = element.minLabel != nil || element.maxLabel != nil
         if element.gaugeStyle == "linear" {
             // Match desktop/HTML: label row + capsule bar (not accessoryLinear slider chrome).
             VStack(alignment: .leading, spacing: 2) {
@@ -86,6 +125,7 @@ extension DynamicElementView {
                     }
                 }
                 .frame(height: 6)
+                if ends { gaugeEndLabels(ink) }
             }
         } else {
             // Custom ring — accessoryCircular is blank/misaligned under ImageRenderer.
@@ -101,11 +141,23 @@ extension DynamicElementView {
                     }
                 }
                 .frame(width: 56, height: 56)
+                if ends { gaugeEndLabels(ink).frame(width: 56) }
                 if let lbl = element.label {
                     Text(lbl).font(.caption2).foregroundColor(ink)
                 }
             }
+            // Desktop: centered block (margin auto) that stretches in an unaligned column.
+            .frame(maxWidth: parentAxis == .vertical && parentAlign == nil ? .infinity : nil)
         }
+    }
+
+    @ViewBuilder func gaugeEndLabels(_ ink: Color) -> some View {
+        HStack {
+            Text(element.minLabel ?? "")
+            Spacer(minLength: 0)
+            Text(element.maxLabel ?? "")
+        }
+        .font(.system(size: 9)).foregroundColor(ink.opacity(0.6)).lineLimit(1)
     }
 
     // MARK: Chart
@@ -113,11 +165,15 @@ extension DynamicElementView {
     @ViewBuilder func renderChart() -> some View {
         let pts = element.chartData ?? []; let maxV = pts.map(\.value).max() ?? 1
         let tc = resolveColor(element.tint) ?? Color.accentColor
-        switch element.chartType {
-        case "line":  renderLineChart(pts: pts, maxV: maxV, tc: tc)
+        if usesSwiftCharts {
+            renderSwiftChart(pts: pts, tc: tc)
+        } else {
+            switch element.chartType {
+            case "line":  renderLineChart(pts: pts, maxV: maxV, tc: tc)
         case "area":  renderAreaChart(pts: pts, maxV: maxV, tc: tc)
         case "pie":   renderPieChart(pts: pts, tc: tc)
         default:      renderBarChart(pts: pts, maxV: maxV, tc: tc)
+            }
         }
     }
 
@@ -238,5 +294,77 @@ extension DynamicElementView {
                 }
             }
         }.aspectRatio(1, contentMode: .fit).frame(height: 80)
+    }
+
+    // MARK: Swift Charts (v2 options)
+
+    /// Legacy hand-drawn charts stay for plain configs (goldens); any v2 chart option
+    /// switches to Swift Charts.
+    var usesSwiftCharts: Bool {
+        element.chartType == "point" || element.showXAxis != nil || element.showYAxis != nil
+            || element.showLegend != nil || element.yMin != nil || element.yMax != nil
+            || element.interpolation != nil || element.innerRadius != nil
+            || (element.chartData ?? []).contains { $0.series != nil }
+    }
+
+    @ViewBuilder func renderSwiftChart(pts: [ChartDataPoint], tc: Color) -> some View {
+        let defColors: [Color] = [.blue, .green, .orange, .red, .purple, .yellow, .pink, .teal]
+        let isPie = element.chartType == "pie"
+        // Color domain: pie slices by label, otherwise series (first explicit color wins).
+        let keys: [String] = {
+            var seen: [String] = []
+            for p in pts {
+                let k = isPie ? p.label : (p.series ?? "")
+                if !seen.contains(k) { seen.append(k) }
+            }
+            return seen
+        }()
+        let colors: [Color] = keys.enumerated().map { i, k in
+            let explicit = pts.first { (isPie ? $0.label : ($0.series ?? "")) == k && $0.color != nil }
+            return resolveColor(explicit?.color) ?? (keys.count == 1 && !isPie ? tc : defColors[i % defColors.count])
+        }
+        let interp: InterpolationMethod = element.interpolation == "monotone" ? .monotone
+            : element.interpolation == "step" ? .stepCenter : .linear
+        let ink = resolveColor(element.color) ?? .secondary
+        let chart = Chart(pts.indices, id: \.self) { i in
+            let p = pts[i]
+            let key = isPie ? p.label : (p.series ?? "")
+            switch element.chartType {
+            case "pie":
+                SectorMark(angle: .value("Value", p.value),
+                           innerRadius: .ratio(element.innerRadius ?? 0), angularInset: 1)
+                    .foregroundStyle(by: .value("Series", key))
+            case "line":
+                LineMark(x: .value("Label", p.label), y: .value("Value", p.value))
+                    .interpolationMethod(interp)
+                    .foregroundStyle(by: .value("Series", key))
+            case "area":
+                AreaMark(x: .value("Label", p.label), y: .value("Value", p.value))
+                    .interpolationMethod(interp)
+                    .foregroundStyle(by: .value("Series", key))
+            case "point":
+                PointMark(x: .value("Label", p.label), y: .value("Value", p.value))
+                    .foregroundStyle(by: .value("Series", key))
+            default:
+                BarMark(x: .value("Label", p.label), y: .value("Value", p.value))
+                    .foregroundStyle(by: .value("Series", key))
+                    .position(by: .value("Series", key))
+            }
+        }
+        .chartForegroundStyleScale(domain: keys, range: colors)
+        .chartLegend((element.showLegend ?? false) && (isPie || keys.count > 1) ? .visible : .hidden)
+        .chartXAxis((element.showXAxis ?? true) && !isPie ? .automatic : .hidden)
+        .chartYAxis((element.showYAxis ?? false) && !isPie ? .automatic : .hidden)
+        .foregroundStyle(ink)
+        let values = pts.map(\.value)
+        if !isPie && (element.yMin != nil || element.yMax != nil) {
+            let lo = element.yMin ?? Swift.min(0, values.min() ?? 0)
+            let hi = Swift.max(element.yMax ?? values.max() ?? 1, lo + 0.0001)
+            chart.chartYScale(domain: lo...hi).frame(minHeight: 50)
+        } else if isPie {
+            chart.aspectRatio(1, contentMode: .fit)
+        } else {
+            chart.frame(minHeight: 50)
+        }
     }
 }

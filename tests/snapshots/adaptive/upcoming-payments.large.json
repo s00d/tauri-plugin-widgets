@@ -2,18 +2,22 @@
   "$schema": "http://adaptivecards.io/schemas/adaptive-card.json",
   "body": [
     {
-      "id": "card:#1c1c1e;gap:4",
+      "backgroundImage": {
+        "fillMode": "repeat",
+        "url": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAAEElEQVR4AQEFAPr/ABwcHv8CBAFWW3W0KwAAAABJRU5ErkJggg=="
+      },
+      "id": "card:#1c1c1e",
       "items": [
         {
           "color": "Default",
           "size": "Small",
-          "text": "◷ Upcoming",
+          "text": "📅 Upcoming",
           "type": "TextBlock",
           "weight": "Bolder",
           "wrap": true
         },
         {
-          "id": "gap:8",
+          "id": "gap:4",
           "items": [
             {
               "columns": [
@@ -50,6 +54,7 @@
                           "width": "auto"
                         },
                         {
+                          "id": "gap:6",
                           "items": [
                             {
                               "items": [
@@ -74,10 +79,12 @@
                               "type": "Container"
                             }
                           ],
+                          "spacing": "Default",
                           "type": "Column",
                           "width": 100
                         },
                         {
+                          "id": "gap:6;#2",
                           "items": [
                             {
                               "color": "Accent",
@@ -89,12 +96,12 @@
                               "wrap": false
                             }
                           ],
+                          "spacing": "Default",
                           "type": "Column",
                           "width": "auto"
                         }
                       ],
-                      "id": "gap:6",
-                      "spacing": "Default",
+                      "spacing": "None",
                       "type": "ColumnSet"
                     }
                   ],
@@ -102,6 +109,7 @@
                   "width": "stretch"
                 },
                 {
+                  "id": "gap:10",
                   "items": [
                     {
                       "columns": [
@@ -109,7 +117,7 @@
                           "items": [
                             {
                               "horizontalAlignment": "Center",
-                              "id": "badge:overlay",
+                              "id": "badge:overlay;#2",
                               "items": [
                                 {
                                   "spacing": "None",
@@ -118,7 +126,7 @@
                                 },
                                 {
                                   "color": "Light",
-                                  "id": "fg:#ffffff",
+                                  "id": "fg:#ffffff;#2",
                                   "size": "Small",
                                   "text": "C",
                                   "type": "TextBlock",
@@ -134,6 +142,7 @@
                           "width": "auto"
                         },
                         {
+                          "id": "gap:6;#3",
                           "items": [
                             {
                               "items": [
@@ -158,14 +167,16 @@
                               "type": "Container"
                             }
                           ],
+                          "spacing": "Default",
                           "type": "Column",
                           "width": 100
                         },
                         {
+                          "id": "gap:6;#4",
                           "items": [
                             {
                               "color": "Accent",
-                              "id": "fg:#3878fa",
+                              "id": "fg:#3878fa;#2",
                               "size": "Small",
                               "text": "$9.99",
                               "type": "TextBlock",
@@ -173,21 +184,21 @@
                               "wrap": false
                             }
                           ],
+                          "spacing": "Default",
                           "type": "Column",
                           "width": "auto"
                         }
                       ],
-                      "id": "gap:6",
-                      "spacing": "Default",
+                      "spacing": "None",
                       "type": "ColumnSet"
                     }
                   ],
+                  "spacing": "Medium",
                   "type": "Column",
                   "width": "stretch"
                 }
               ],
-              "id": "gap:10",
-              "spacing": "Medium",
+              "spacing": "None",
               "type": "ColumnSet"
             },
             {
@@ -200,7 +211,7 @@
                           "items": [
                             {
                               "horizontalAlignment": "Center",
-                              "id": "badge:overlay",
+                              "id": "badge:overlay;#3",
                               "items": [
                                 {
                                   "spacing": "None",
@@ -209,7 +220,7 @@
                                 },
                                 {
                                   "color": "Light",
-                                  "id": "fg:#ffffff",
+                                  "id": "fg:#ffffff;#3",
                                   "size": "Small",
                                   "text": "M",
                                   "type": "TextBlock",
@@ -225,6 +236,7 @@
                           "width": "auto"
                         },
                         {
+                          "id": "gap:6;#5",
                           "items": [
                             {
                               "items": [
@@ -249,14 +261,16 @@
                               "type": "Container"
                             }
                           ],
+                          "spacing": "Default",
                           "type": "Column",
                           "width": 100
                         },
                         {
+                          "id": "gap:6;#6",
                           "items": [
                             {
                               "color": "Accent",
-                              "id": "fg:#3878fa",
+                              "id": "fg:#3878fa;#3",
                               "size": "Small",
                               "text": "$4.99",
                               "type": "TextBlock",
@@ -264,12 +278,12 @@
                               "wrap": false
                             }
                           ],
+                          "spacing": "Default",
                           "type": "Column",
                           "width": "auto"
                         }
                       ],
-                      "id": "gap:6",
-                      "spacing": "Default",
+                      "spacing": "None",
                       "type": "ColumnSet"
                     }
                   ],
@@ -277,6 +291,7 @@
                   "width": "stretch"
                 },
                 {
+                  "id": "gap:10;#2",
                   "items": [
                     {
                       "columns": [
@@ -284,7 +299,7 @@
                           "items": [
                             {
                               "horizontalAlignment": "Center",
-                              "id": "badge:overlay",
+                              "id": "badge:overlay;#4",
                               "items": [
                                 {
                                   "spacing": "None",
@@ -293,7 +308,7 @@
                                 },
                                 {
                                   "color": "Light",
-                                  "id": "fg:#ffffff",
+                                  "id": "fg:#ffffff;#4",
                                   "size": "Small",
                                   "text": "N",
                                   "type": "TextBlock",
@@ -309,6 +324,7 @@
                           "width": "auto"
                         },
                         {
+                          "id": "gap:6;#7",
                           "items": [
                             {
                               "items": [
@@ -333,14 +349,16 @@
                               "type": "Container"
                             }
                           ],
+                          "spacing": "Default",
                           "type": "Column",
                           "width": 100
                         },
                         {
+                          "id": "gap:6;#8",
                           "items": [
                             {
                               "color": "Accent",
-                              "id": "fg:#3878fa",
+                              "id": "fg:#3878fa;#4",
                               "size": "Small",
                               "text": "$2.99",
                               "type": "TextBlock",
@@ -348,21 +366,22 @@
                               "wrap": false
                             }
                           ],
+                          "spacing": "Default",
                           "type": "Column",
                           "width": "auto"
                         }
                       ],
-                      "id": "gap:6",
-                      "spacing": "Default",
+                      "spacing": "None",
                       "type": "ColumnSet"
                     }
                   ],
+                  "spacing": "Medium",
                   "type": "Column",
                   "width": "stretch"
                 }
               ],
-              "id": "gap:10",
-              "spacing": "Medium",
+              "id": "gap:8",
+              "spacing": "Default",
               "type": "ColumnSet"
             },
             {
@@ -375,7 +394,7 @@
                           "items": [
                             {
                               "horizontalAlignment": "Center",
-                              "id": "badge:overlay",
+                              "id": "badge:overlay;#5",
                               "items": [
                                 {
                                   "spacing": "None",
@@ -384,7 +403,7 @@
                                 },
                                 {
                                   "color": "Light",
-                                  "id": "fg:#ffffff",
+                                  "id": "fg:#ffffff;#5",
                                   "size": "Small",
                                   "text": "G",
                                   "type": "TextBlock",
@@ -400,6 +419,7 @@
                           "width": "auto"
                         },
                         {
+                          "id": "gap:6;#9",
                           "items": [
                             {
                               "items": [
@@ -424,14 +444,16 @@
                               "type": "Container"
                             }
                           ],
+                          "spacing": "Default",
                           "type": "Column",
                           "width": 100
                         },
                         {
+                          "id": "gap:6;#10",
                           "items": [
                             {
                               "color": "Accent",
-                              "id": "fg:#3878fa",
+                              "id": "fg:#3878fa;#5",
                               "size": "Small",
                               "text": "$29.00",
                               "type": "TextBlock",
@@ -439,12 +461,12 @@
                               "wrap": false
                             }
                           ],
+                          "spacing": "Default",
                           "type": "Column",
                           "width": "auto"
                         }
                       ],
-                      "id": "gap:6",
-                      "spacing": "Default",
+                      "spacing": "None",
                       "type": "ColumnSet"
                     }
                   ],
@@ -452,6 +474,7 @@
                   "width": "stretch"
                 },
                 {
+                  "id": "gap:10;#3",
                   "items": [
                     {
                       "columns": [
@@ -459,7 +482,7 @@
                           "items": [
                             {
                               "horizontalAlignment": "Center",
-                              "id": "badge:overlay",
+                              "id": "badge:overlay;#6",
                               "items": [
                                 {
                                   "spacing": "None",
@@ -468,7 +491,7 @@
                                 },
                                 {
                                   "color": "Light",
-                                  "id": "fg:#ffffff",
+                                  "id": "fg:#ffffff;#6",
                                   "size": "Small",
                                   "text": "V",
                                   "type": "TextBlock",
@@ -484,6 +507,7 @@
                           "width": "auto"
                         },
                         {
+                          "id": "gap:6;#11",
                           "items": [
                             {
                               "items": [
@@ -508,14 +532,16 @@
                               "type": "Container"
                             }
                           ],
+                          "spacing": "Default",
                           "type": "Column",
                           "width": 100
                         },
                         {
+                          "id": "gap:6;#12",
                           "items": [
                             {
                               "color": "Accent",
-                              "id": "fg:#3878fa",
+                              "id": "fg:#3878fa;#6",
                               "size": "Small",
                               "text": "$6.49",
                               "type": "TextBlock",
@@ -523,21 +549,22 @@
                               "wrap": false
                             }
                           ],
+                          "spacing": "Default",
                           "type": "Column",
                           "width": "auto"
                         }
                       ],
-                      "id": "gap:6",
-                      "spacing": "Default",
+                      "spacing": "None",
                       "type": "ColumnSet"
                     }
                   ],
+                  "spacing": "Medium",
                   "type": "Column",
                   "width": "stretch"
                 }
               ],
-              "id": "gap:10",
-              "spacing": "Medium",
+              "id": "gap:8;#2",
+              "spacing": "Default",
               "type": "ColumnSet"
             }
           ],
@@ -545,20 +572,23 @@
           "type": "Container"
         },
         {
-          "spacing": "Medium",
+          "id": "gap:4;#2",
+          "spacing": "Default",
           "text": " ",
           "type": "TextBlock"
         },
         {
           "color": "Light",
+          "id": "gap:4;#3",
           "size": "Small",
+          "spacing": "Default",
           "text": "+4 more",
           "type": "TextBlock",
           "weight": "Bolder",
           "wrap": false
         }
       ],
-      "spacing": "Default",
+      "spacing": "None",
       "style": "emphasis",
       "type": "Container"
     }

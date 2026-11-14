@@ -355,8 +355,11 @@ export function validatePluginWidgets(widgets: unknown): PluginWidgetsFinding[] 
   }
   if (!w.appGroup || typeof w.appGroup !== "string") {
     out.push({ level: "error", msg: "appGroup is required (string)" });
-  } else if (!w.appGroup.startsWith("group.")) {
-    out.push({ level: "warn", msg: `appGroup "${w.appGroup}" does not start with group.` });
+  } else if (!w.appGroup.startsWith("group.") && !/^[A-Z0-9]{10}\./.test(w.appGroup)) {
+    out.push({
+      level: "warn",
+      msg: `appGroup "${w.appGroup}" is neither group.<id> (iOS / macOS) nor <TEAMID>.<id> (macOS)`,
+    });
   }
   if (w.extensionBundleId != null && typeof w.extensionBundleId !== "string") {
     out.push({ level: "error", msg: "extensionBundleId must be a string" });

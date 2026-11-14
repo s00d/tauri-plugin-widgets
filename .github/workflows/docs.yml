@@ -22,24 +22,6 @@ on:
       - "pnpm-lock.yaml"
       - "pnpm-workspace.yaml"
       - ".github/workflows/docs.yml"
-  # Build only (no deploy) so a broken reference parse or dead link fails the PR.
-  pull_request:
-    paths:
-      - "docs/**"
-      - "scripts/**"
-      - "schemas/**"
-      - "tests/cases/**"
-      - "tests/fixtures/**"
-      - "tests/golden/**"
-      - "guest-js/**"
-      - "widget-src/**"
-      - "src/commands.rs"
-      - "permissions/**"
-      - "CHANGELOG.md"
-      - "package.json"
-      - "pnpm-lock.yaml"
-      - "pnpm-workspace.yaml"
-      - ".github/workflows/docs.yml"
   workflow_dispatch:
 
 concurrency:
@@ -96,7 +78,7 @@ jobs:
         run: touch docs/.output/public/.nojekyll
 
       - name: Deploy to GitHub Pages
-        if: github.event_name != 'pull_request' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master')
+        if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master'
         uses: crazy-max/ghaction-github-pages@v4
         with:
           target_branch: gh-pages

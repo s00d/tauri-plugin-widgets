@@ -1,0 +1,150 @@
+{
+  "kind": "FrameLayout",
+  "rect": [
+    0,
+    0,
+    510,
+    510
+  ],
+  "children": [
+    {
+      "kind": "FrameLayout",
+      "rect": [
+        0,
+        0,
+        510,
+        510
+      ],
+      "children": [
+        {
+          "kind": "FrameLayout",
+          "rect": [
+            0,
+            0,
+            510,
+            510
+          ],
+          "children": [
+            {
+              "kind": "LinearLayout",
+              "rect": [
+                0,
+                0,
+                510,
+                510
+              ],
+              "children": [
+                {
+                  "kind": "TextView",
+                  "rect": [
+                    30,
+                    30,
+                    450,
+                    73
+                  ],
+                  "text": "Москва 18°",
+                  "px": 54,
+                  "color": "#FFF8FAFC"
+                },
+                {
+                  "kind": "FrameLayout",
+                  "rect": [
+                    30,
+                    103,
+                    450,
+                    18
+                  ]
+                },
+                {
+                  "kind": "TextView",
+                  "rect": [
+                    30,
+                    121,
+                    450,
+                    57
+                  ],
+                  "text": "東京 · العربية · 🚀",
+                  "px": 39,
+                  "color": "#FF38BDF8"
+                },
+                {
+                  "kind": "FrameLayout",
+                  "rect": [
+                    30,
+                    178,
+                    450,
+                    18
+                  ]
+                },
+                {
+                  "kind": "LinearLayout",
+                  "rect": [
+                    30,
+                    196,
+                    450,
+                    68
+                  ],
+                  "children": [
+                    {
+                      "kind": "LinearLayout",
+                      "rect": [
+                        0,
+                        0,
+                        450,
+                        50
+                      ],
+                      "children": [
+                        {
+                          "kind": "TextView",
+                          "rect": [
+                            0,
+                            0,
+                            450,
+                            50
+                          ],
+                          "text": "湿度 humidity",
+                          "px": 33,
+                          "color": "#FFA78BFA"
+                        }
+                      ]
+                    },
+                    {
+                      "kind": "ImageView",
+                      "rect": [
+                        0,
+                        50,
+                        450,
+                        18
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "kind": "FrameLayout",
+                  "rect": [
+                    30,
+                    264,
+                    450,
+                    18
+                  ]
+                },
+                {
+                  "kind": "TextView",
+                  "rect": [
+                    30,
+                    282,
+                    450,
+                    44
+                  ],
+                  "text": "€1,234.56  vs  ₽999",
+                  "px": 33,
+                  "color": "#FF94A3B8"
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

@@ -26,6 +26,8 @@ object WireTypes {
     const val TIMER = "timer"
     const val CANVAS = "canvas"
     const val LABEL = "label"
+    const val REPEAT = "repeat"
+    const val USE = "use"
     const val SPACER = "spacer"
 
     val ALL: Set<String> = setOf(
@@ -49,6 +51,8 @@ object WireTypes {
         TIMER,
         CANVAS,
         LABEL,
+        REPEAT,
+        USE,
         SPACER,
     )
 }

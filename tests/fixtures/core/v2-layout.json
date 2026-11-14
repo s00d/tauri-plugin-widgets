@@ -1,0 +1,140 @@
+{
+  "$schema": "https://s00d.github.io/tauri-plugin-widgets/schemas/widget-config.v1.json",
+  "version": 1,
+  "medium": {
+    "type": "vstack",
+    "padding": 10,
+    "spacing": 6,
+    "background": "#0f172a",
+    "children": [
+      {
+        "type": "hstack",
+        "justify": "spaceBetween",
+        "background": "#1e293b",
+        "cornerRadius": 6,
+        "padding": 4,
+        "children": [
+          {
+            "type": "text",
+            "content": "A",
+            "fontSize": 13,
+            "color": "#e5e7eb"
+          },
+          {
+            "type": "text",
+            "content": "B",
+            "fontSize": 13,
+            "color": "#e5e7eb"
+          },
+          {
+            "type": "text",
+            "content": "C",
+            "fontSize": 13,
+            "color": "#e5e7eb"
+          }
+        ]
+      },
+      {
+        "type": "hstack",
+        "justify": "spaceEvenly",
+        "background": "#1e293b",
+        "cornerRadius": 6,
+        "padding": 4,
+        "children": [
+          {
+            "type": "text",
+            "content": "A",
+            "fontSize": 13,
+            "color": "#e5e7eb"
+          },
+          {
+            "type": "text",
+            "content": "B",
+            "fontSize": 13,
+            "color": "#e5e7eb"
+          },
+          {
+            "type": "text",
+            "content": "C",
+            "fontSize": 13,
+            "color": "#e5e7eb"
+          }
+        ]
+      },
+      {
+        "type": "hstack",
+        "justify": "center",
+        "background": "#1e293b",
+        "cornerRadius": 6,
+        "padding": 4,
+        "children": [
+          {
+            "type": "text",
+            "content": "A",
+            "fontSize": 13,
+            "color": "#e5e7eb"
+          },
+          {
+            "type": "text",
+            "content": "B",
+            "fontSize": 13,
+            "color": "#e5e7eb"
+          }
+        ]
+      },
+      {
+        "type": "hstack",
+        "spacing": 8,
+        "children": [
+          {
+            "type": "shape",
+            "shapeType": "rectangle",
+            "fill": "#22c55e",
+            "aspectRatio": 1,
+            "frame": {
+              "minWidth": 24,
+              "minHeight": 24
+            }
+          },
+          {
+            "type": "container",
+            "margin": 6,
+            "background": "#334155",
+            "cornerRadius": 4,
+            "padding": 4,
+            "children": [
+              {
+                "type": "text",
+                "content": "margin 6",
+                "fontSize": 13,
+                "color": "#e5e7eb"
+              }
+            ]
+          },
+          {
+            "type": "text",
+            "content": "offset",
+            "fontSize": 12,
+            "color": "#facc15",
+            "offsetX": 6,
+            "offsetY": 3
+          },
+          {
+            "type": "text",
+            "content": "rot",
+            "fontSize": 12,
+            "color": "#f472b6",
+            "rotation": -12
+          },
+          {
+            "type": "text",
+            "content": "x1.3",
+            "fontSize": 12,
+            "color": "#38bdf8",
+            "scale": 1.3
+          }
+        ]
+      }
+    ]
+  }
+}

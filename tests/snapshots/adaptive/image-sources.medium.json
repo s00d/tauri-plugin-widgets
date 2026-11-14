@@ -2,98 +2,117 @@
   "$schema": "http://adaptivecards.io/schemas/adaptive-card.json",
   "body": [
     {
-      "columns": [
+      "backgroundImage": {
+        "fillMode": "repeat",
+        "url": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAAEElEQVR4AQEFAPr/AA8XKv8B2QFQSio/GgAAAABJRU5ErkJggg=="
+      },
+      "id": "card:#0f172a",
+      "items": [
         {
-          "items": [
+          "columns": [
             {
-              "horizontalAlignment": "Center",
-              "id": "gap:4",
               "items": [
                 {
-                  "color": "Light",
-                  "id": "fg:#94a3b8",
-                  "size": "Small",
-                  "text": "SF",
-                  "type": "TextBlock",
-                  "weight": "Default",
-                  "wrap": true
-                },
-                {
-                  "color": "Attention",
-                  "size": "Large",
-                  "text": "*",
-                  "type": "TextBlock",
-                  "weight": "Bolder",
-                  "wrap": true
+                  "horizontalAlignment": "Center",
+                  "items": [
+                    {
+                      "color": "Light",
+                      "id": "fg:#94a3b8",
+                      "size": "Small",
+                      "text": "SF",
+                      "type": "TextBlock",
+                      "weight": "Default",
+                      "wrap": true
+                    },
+                    {
+                      "color": "Attention",
+                      "id": "gap:4",
+                      "size": "Large",
+                      "spacing": "Default",
+                      "text": "⭐",
+                      "type": "TextBlock",
+                      "weight": "Bolder",
+                      "wrap": true
+                    }
+                  ],
+                  "spacing": "None",
+                  "type": "Container"
                 }
               ],
-              "spacing": "Default",
-              "type": "Container"
-            }
-          ],
-          "type": "Column",
-          "width": "auto"
-        },
-        {
-          "items": [
+              "type": "Column",
+              "width": "auto"
+            },
             {
-              "horizontalAlignment": "Center",
-              "id": "gap:4",
+              "id": "gap:16",
               "items": [
                 {
-                  "color": "Light",
-                  "id": "fg:#94a3b8",
-                  "size": "Small",
-                  "text": "Data",
-                  "type": "TextBlock",
-                  "weight": "Default",
-                  "wrap": true
-                },
-                {
-                  "size": "Medium",
-                  "type": "Image",
-                  "url": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR4nGO4o6b2HwAFMgIozFXxQQAAAABJRU5ErkJggg=="
+                  "horizontalAlignment": "Center",
+                  "items": [
+                    {
+                      "color": "Light",
+                      "id": "fg:#94a3b8;#2",
+                      "size": "Small",
+                      "text": "Data",
+                      "type": "TextBlock",
+                      "weight": "Default",
+                      "wrap": true
+                    },
+                    {
+                      "id": "gap:4;#2",
+                      "size": "Medium",
+                      "spacing": "Default",
+                      "style": "Person",
+                      "type": "Image",
+                      "url": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR4nGO4o6b2HwAFMgIozFXxQQAAAABJRU5ErkJggg=="
+                    }
+                  ],
+                  "spacing": "None",
+                  "type": "Container"
                 }
               ],
-              "spacing": "Default",
-              "type": "Container"
-            }
-          ],
-          "type": "Column",
-          "width": "auto"
-        },
-        {
-          "items": [
+              "spacing": "Large",
+              "type": "Column",
+              "width": "auto"
+            },
             {
-              "horizontalAlignment": "Center",
-              "id": "gap:4",
+              "id": "gap:16;#2",
               "items": [
                 {
-                  "color": "Light",
-                  "id": "fg:#94a3b8",
-                  "size": "Small",
-                  "text": "URL",
-                  "type": "TextBlock",
-                  "weight": "Default",
-                  "wrap": true
-                },
-                {
-                  "size": "Medium",
-                  "type": "Image",
-                  "url": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR4nGOw2PvjPwAGCwLtgxz7OwAAAABJRU5ErkJggg=="
+                  "horizontalAlignment": "Center",
+                  "items": [
+                    {
+                      "color": "Light",
+                      "id": "fg:#94a3b8;#3",
+                      "size": "Small",
+                      "text": "URL",
+                      "type": "TextBlock",
+                      "weight": "Default",
+                      "wrap": true
+                    },
+                    {
+                      "id": "gap:4;#3",
+                      "size": "Medium",
+                      "spacing": "Default",
+                      "type": "Image",
+                      "url": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR4nGOw2PvjPwAGCwLtgxz7OwAAAABJRU5ErkJggg=="
+                    }
+                  ],
+                  "spacing": "None",
+                  "type": "Container"
                 }
               ],
-              "spacing": "Default",
-              "type": "Container"
+              "spacing": "Large",
+              "type": "Column",
+              "width": "auto"
             }
           ],
-          "type": "Column",
-          "width": "auto"
+          "spacing": "None",
+          "type": "ColumnSet"
         }
       ],
-      "id": "gap:16",
-      "spacing": "Large",
-      "type": "ColumnSet"
+      "spacing": "None",
+      "style": "emphasis",
+      "type": "Container"
     }
   ],
   "type": "AdaptiveCard",

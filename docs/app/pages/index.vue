@@ -16,12 +16,12 @@ const heroLinks: ButtonProps[] = [
 ]
 
 const features: PageFeatureProps[] = [
-  { title: 'Declarative IR', description: 'Author once in JSON / TypeScript. Rust models are the source of truth; native renderers map the same tree.', icon: 'i-lucide-braces', to: '/guide/concepts' },
-  { title: 'Five native surfaces', description: 'Android Glance, iOS and macOS WidgetKit, Windows Widgets Board (Adaptive Cards) and desktop webviews.', icon: 'i-lucide-monitor-smartphone', to: '/guide/setup' },
+  { title: 'Five native surfaces', description: 'Android Glance, iOS and macOS WidgetKit, Windows Widgets Board (Adaptive Cards) and desktop webviews, from one JSON tree.', icon: 'i-lucide-monitor-smartphone', to: '/guide/setup' },
+  { title: 'Dynamic Island everywhere', description: 'Live activities as an island on iPhone and as a pill around the notch on macOS, Windows and Linux.', icon: 'i-lucide-pill', to: '/features/dynamic-island' },
+  { title: 'Interactive widgets', description: 'Buttons and toggles that reach your app, or change the widget by themselves with local state.', icon: 'i-lucide-pointer', to: '/features/interactive' },
+  { title: 'Timelines and live data', description: 'Prepared layouts for later times, values from the app or fetched by the widget itself.', icon: 'i-lucide-calendar-clock', to: '/features/timelines' },
   { title: 'Tested screenshots', description: 'Showcase images are the committed goldens: if a render regresses, the snapshot test and the docs image fail together.', icon: 'i-lucide-images', to: '/showcase' },
-  { title: 'Live playground', description: 'The same desktop widget.html renderer runs in the docs, with an editable config next to every preset.', icon: 'i-lucide-play', to: '/showcase' },
-  { title: 'Widget constructor', description: 'Build a widget tree in the browser with a schema-driven inspector and export the JSON.', icon: 'i-lucide-blocks', to: '/guide/constructor' },
-  { title: 'Generated reference', description: 'Elements, JS functions, Tauri commands and permissions, built from the sources on every release.', icon: 'i-lucide-book-open', to: '/api/reference' },
+  { title: 'Widget constructor', description: 'Assemble a widget from blocks with a live preview and export the JSON.', icon: 'i-lucide-blocks', to: '/constructor' },
 ]
 </script>
 
@@ -30,14 +30,17 @@ const features: PageFeatureProps[] = [
     <UPageHero
       title="One JSON config. Five native surfaces."
       description="Android Glance, Apple WidgetKit, Windows Adaptive Cards, and desktop webviews, from a single declarative IR."
+      orientation="horizontal"
       :links="heroLinks"
+      :ui="{ container: 'lg:py-24' }"
     >
       <template #headline>
-        <UButton to="/changelog" label="0.7.0: setup without config" trailing-icon="i-lucide-arrow-right" color="neutral" variant="subtle" size="sm" />
+        <UButton to="/features/dynamic-island" label="New: Dynamic Island on desktop" trailing-icon="i-lucide-arrow-right" color="neutral" variant="subtle" size="sm" />
       </template>
+      <LandingAssemble />
     </UPageHero>
 
-    <UPageSection title="What you get" :features="features" />
+    <UPageSection title="What you get" :features="features" :links="[{ label: 'All features', to: '/features', trailingIcon: 'i-lucide-arrow-right', color: 'neutral', variant: 'outline' }]" />
 
     <UPageSection
       title="Push a config, get a widget"

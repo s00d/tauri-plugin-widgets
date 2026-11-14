@@ -32,7 +32,7 @@ const editUrl = computed(() => (page.value?.generated ? undefined : `${edit}/${p
 // Hand-written pages have no frontmatter description: Nuxt Content takes the first paragraph,
 // which the body shows anyway. Only generated pages set one.
 const lead = computed(() => (page.value?.generated ? page.value.description : undefined))
-const tocLinks = computed(() => (page.value?.wide ? [] : page.value?.body?.toc?.links ?? []))
+const tocLinks = computed(() => page.value?.body?.toc?.links ?? [])
 const communityLinks = [
   { icon: 'i-simple-icons-github', label: 'GitHub', to: github, target: '_blank' },
   { icon: 'i-simple-icons-npm', label: 'npm', to: 'https://www.npmjs.com/package/tauri-plugin-widgets-api', target: '_blank' },

@@ -4,7 +4,7 @@ use std::collections::HashSet;
 use std::env;
 use std::sync::Mutex;
 use std::time::Instant;
-use tauri::{plugin::PluginApi, AppHandle, Emitter, Runtime};
+use tauri::{plugin::PluginApi, AppHandle, Emitter, Manager, Runtime};
 
 use crate::apply::{config_content_hash, ApplyOutcome, ReloadOutcome};
 use crate::config::WidgetsPluginConfig;
@@ -61,6 +61,11 @@ pub fn init<R: Runtime>(
         known_groups: Mutex::new(HashSet::new()),
         receipts: ReceiptStore::new(),
         trace: TraceStore::new(),
+        listener_gate: crate::store::ListenerGate::new(
+            crate::store::now_ms(),
+            crate::store::ListenerGate::DEFAULT_FALLBACK_MS,
+        ),
+        fallback_drain_scheduled: std::sync::atomic::AtomicBool::new(false),
     })
 }
 
@@ -116,6 +121,10 @@ pub struct Widget<R: Runtime> {
     known_groups: Mutex<HashSet<String>>,
     receipts: ReceiptStore,
     trace: TraceStore,
+    /// Hold queued taps until JavaScript listens (see [`crate::store::ListenerGate`]).
+    listener_gate: crate::store::ListenerGate,
+    /// One delayed drain for the gate fallback.
+    fallback_drain_scheduled: std::sync::atomic::AtomicBool,
 }
 
 impl<R: Runtime> Widget<R> {
@@ -128,6 +137,25 @@ impl<R: Runtime> Widget<R> {
 
     /// Drain pending actions for all known groups and emit `widget-action`.
     pub fn drain_pending_actions_to_events(&self) {
+        let now = crate::store::now_ms();
+        if !self.listener_gate.is_open(now) {
+            // Cold start: drain once when the fallback opens the gate, for apps that only
+            // `listen("widget-action")` (onWidgetAction drains earlier by itself).
+            if !self
+                .fallback_drain_scheduled
+                .swap(true, std::sync::atomic::Ordering::SeqCst)
+            {
+                let app = self.app.clone();
+                let wait = self.listener_gate.remaining_ms(now);
+                std::thread::spawn(move || {
+                    std::thread::sleep(std::time::Duration::from_millis(wait + 10));
+                    if let Some(w) = app.try_state::<Widget<R>>() {
+                        w.inner().drain_pending_actions_to_events();
+                    }
+                });
+            }
+            return;
+        }
         let groups: Vec<String> = self.known_groups.lock().unwrap().iter().cloned().collect();
         for group in groups {
             match self.poll_pending_actions(&group) {
@@ -416,6 +444,200 @@ impl<R: Runtime> Widget<R> {
         }
     }
 
+    /// Native list: Android `AppWidgetManager` ids, iOS `WidgetCenter` configurations
+    /// (instance = Edit Widget choice); merged with recent render receipts.
+    pub fn get_active_widgets(
+        &self,
+        group: &str,
+    ) -> crate::Result<Vec<crate::store::ActiveWidget>> {
+        #[derive(Serialize)]
+        struct G<'a> {
+            group: &'a str,
+        }
+        let res: Value = self
+            .handle
+            .run_mobile_plugin("getActiveWidgets", G { group })?;
+        let live: Vec<crate::store::ActiveWidget> =
+            serde_json::from_value(res.get("widgets").cloned().unwrap_or(Value::Array(vec![])))?;
+        let seen = crate::store::active_from_receipts(
+            &self.get_widget_diagnostics(group).unwrap_or_default(),
+            crate::store::now_ms(),
+            crate::store::ACTIVE_RECEIPT_MAX_AGE_MS,
+        );
+        let exact = res
+            .get("exactInstances")
+            .and_then(Value::as_bool)
+            .unwrap_or(true);
+        Ok(crate::store::merge_native_active(live, seen, exact))
+    }
+
+    /// JavaScript drains the queue itself: queued taps may be emitted from now on.
+    pub fn mark_listener_ready(&self) {
+        self.listener_gate.open();
+    }
+
+    /// Native widgets re-read data on reload; nothing to rebuild host-side.
+    pub fn data_changed(&self, _group: &str, _widget_id: &str, _instance: Option<&str>) {}
+
+    /// Native `setWidgetState {group, widgetId, instance, patch}`: apply the patch to
+    /// `state:{widgetId}[#instance]` with the `set` operators (`patch: null` clears the
+    /// layer) and resolve `{state}` with the placement's merged state.
+    pub fn set_widget_state(
+        &self,
+        group: &str,
+        widget_id: &str,
+        instance: Option<&str>,
+        patch: &Value,
+    ) -> crate::Result<Option<Value>> {
+        let res: Value = self.handle.run_mobile_plugin(
+            "setWidgetState",
+            StatePayload {
+                group,
+                widget_id,
+                instance,
+                patch: Some(patch),
+            },
+        )?;
+        Ok(res.get("state").cloned().filter(Value::is_object))
+    }
+
+    /// Native `getWidgetState {group, widgetId, instance}` → `{state}` (merged state).
+    pub fn get_widget_state(
+        &self,
+        group: &str,
+        widget_id: &str,
+        instance: Option<&str>,
+    ) -> crate::Result<Option<Value>> {
+        let res: Value = self.handle.run_mobile_plugin(
+            "getWidgetState",
+            StatePayload {
+                group,
+                widget_id,
+                instance,
+                patch: None,
+            },
+        )?;
+        Ok(res.get("state").cloned().filter(Value::is_object))
+    }
+
+    pub fn start_activity(
+        &self,
+        content: crate::models::ActivityContent,
+        group: &str,
+    ) -> crate::Result<crate::models::ActivityHandle> {
+        let res: Value = self.handle.run_mobile_plugin(
+            "startActivity",
+            ActivityPayload {
+                content: &content,
+                group,
+            },
+        )?;
+        Ok(serde_json::from_value(res)?)
+    }
+
+    pub fn update_activity(
+        &self,
+        content: crate::models::ActivityContent,
+        group: &str,
+    ) -> crate::Result<bool> {
+        self.handle
+            .run_mobile_plugin(
+                "updateActivity",
+                ActivityPayload {
+                    content: &content,
+                    group,
+                },
+            )
+            // `applied: false`: dropped as older than the last update (`timestamp`).
+            .map(|res: Value| res.get("applied").and_then(Value::as_bool).unwrap_or(true))
+            .map_err(Into::into)
+    }
+
+    pub fn end_activity(&self, id: &str, dismiss_after_ms: Option<u64>) -> crate::Result<bool> {
+        self.end_activity_with(id, dismiss_after_ms, None, None)
+    }
+
+    /// Native `endActivity {id, dismissAfterMs, content?, dismissalPolicy?}`: `content` is
+    /// the final state, `dismissalPolicy` `default` | `immediate` (`dismissAfterMs` wins).
+    pub fn end_activity_with(
+        &self,
+        id: &str,
+        dismiss_after_ms: Option<u64>,
+        content: Option<&crate::models::ActivityContent>,
+        dismissal_policy: Option<&str>,
+    ) -> crate::Result<bool> {
+        #[derive(Serialize)]
+        #[serde(rename_all = "camelCase")]
+        struct E<'a> {
+            id: &'a str,
+            dismiss_after_ms: Option<u64>,
+            #[serde(skip_serializing_if = "Option::is_none")]
+            content: Option<&'a crate::models::ActivityContent>,
+            #[serde(skip_serializing_if = "Option::is_none")]
+            dismissal_policy: Option<&'a str>,
+        }
+        let res: Value = self.handle.run_mobile_plugin(
+            "endActivity",
+            E {
+                id,
+                dismiss_after_ms,
+                content,
+                dismissal_policy,
+            },
+        )?;
+        Ok(res.get("ended").and_then(Value::as_bool).unwrap_or(true))
+    }
+
+    /// Native `getWidgetPushToken {group}` → `{token}` (WidgetKit push token, iOS 26+).
+    pub fn widget_push_token(&self, group: &str) -> crate::Result<Option<String>> {
+        let res: Value = self
+            .handle
+            .run_mobile_plugin("getWidgetPushToken", GroupPayload { group })?;
+        Ok(res.get("token").and_then(Value::as_str).map(str::to_string))
+    }
+
+    /// iOS 17.2+: ActivityKit push-to-start token. Android has no equivalent (`None`).
+    pub fn activity_push_to_start_token(&self) -> crate::Result<Option<String>> {
+        #[cfg(target_os = "ios")]
+        {
+            let res: Value = self.handle.run_mobile_plugin("getPushToStartToken", ())?;
+            Ok(res.get("token").and_then(Value::as_str).map(String::from))
+        }
+        #[cfg(not(target_os = "ios"))]
+        Ok(None)
+    }
+
+    /// Android 16+ Live Updates promotion check; `true` on iOS (no such gate).
+    pub fn can_promote_activities(&self) -> crate::Result<bool> {
+        #[cfg(target_os = "android")]
+        {
+            let res: Value = self
+                .handle
+                .run_mobile_plugin("canPostPromotedNotifications", ())?;
+            Ok(res.get("results").and_then(Value::as_bool).unwrap_or(true))
+        }
+        #[cfg(not(target_os = "android"))]
+        Ok(true)
+    }
+
+    /// Android: opens the promotion settings screen; `false` on iOS.
+    pub fn open_activity_promotion_settings(&self) -> crate::Result<bool> {
+        #[cfg(target_os = "android")]
+        {
+            let res: Value = self.handle.run_mobile_plugin("openPromotionSettings", ())?;
+            Ok(res.get("results").and_then(Value::as_bool).unwrap_or(false))
+        }
+        #[cfg(not(target_os = "android"))]
+        Ok(false)
+    }
+
+    pub fn list_activities(&self) -> crate::Result<Vec<String>> {
+        let res: Value = self.handle.run_mobile_plugin("listActivities", ())?;
+        Ok(serde_json::from_value(
+            res.get("ids").cloned().unwrap_or(Value::Array(vec![])),
+        )?)
+    }
+
     pub fn poll_pending_actions(
         &self,
         group: &str,
@@ -432,6 +654,12 @@ impl<R: Runtime> Widget<R> {
         let mut out = Vec::with_capacity(arr.len());
         for item in arr {
             match serde_json::from_value::<crate::WidgetActionEnvelope>(item) {
+                // A `set` tap in the widget: tell the app, never as a `widget-action`.
+                Ok(env) if env.action == crate::store::STATE_ACTION => {
+                    if let Some(ev) = crate::store::state_event(&env) {
+                        let _ = self.app.emit("widget-state-changed", ev);
+                    }
+                }
                 Ok(env) => out.push(env),
                 Err(e) => {
                     log::warn!("poll_pending_actions: skip malformed envelope: {e}");
@@ -508,4 +736,20 @@ impl<R: Runtime> Widget<R> {
         // Mobile: memory-only unless host later adds a shared file path.
         Ok(true)
     }
+}
+
+#[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
+struct StatePayload<'a> {
+    group: &'a str,
+    widget_id: &'a str,
+    instance: Option<&'a str>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    patch: Option<&'a Value>,
+}
+
+#[derive(Serialize)]
+struct ActivityPayload<'a> {
+    content: &'a crate::models::ActivityContent,
+    group: &'a str,
 }

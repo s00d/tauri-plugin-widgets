@@ -24,5 +24,5 @@ export { genElements } from "./generate/elements.js";
 export { copyShots, copySchemas } from "./generate/sandbox.js";
 export { groupCasesByPreset, genShowcase } from "./generate/showcase.js";
 export { genCapabilityMatrix } from "./generate/capability-matrix.js";
-export { auditSchemaDocs, auditCoverage } from "./generate/audit.js";
+export { auditSchemaDocs } from "./generate/audit.js";
 export { runGenerate } from "./generate/index.js";

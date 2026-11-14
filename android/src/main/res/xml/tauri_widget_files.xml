@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Cached widget images, handed to the launcher by content URI (TauriWidgetFileProvider). -->
+<paths>
+    <cache-path name="images" path="tauri_widget_images/" />
+</paths>

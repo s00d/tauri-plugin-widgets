@@ -1,0 +1,65 @@
+{
+  "$schema": "http://adaptivecards.io/schemas/adaptive-card.json",
+  "body": [
+    {
+      "backgroundImage": {
+        "fillMode": "repeat",
+        "url": "data:image/png;base64,<png>"
+      },
+      "id": "card:#111827",
+      "items": [
+        {
+          "columns": [
+            {
+              "items": [
+                {
+                  "horizontalAlignment": "Center",
+                  "size": "Stretch",
+                  "type": "Image",
+                  "url": "data:image/png;base64,<png>"
+                }
+              ],
+              "type": "Column",
+              "width": 100
+            },
+            {
+              "id": "gap:10",
+              "items": [
+                {
+                  "horizontalAlignment": "Center",
+                  "size": "Stretch",
+                  "type": "Image",
+                  "url": "data:image/png;base64,<png>"
+                }
+              ],
+              "spacing": "Medium",
+              "type": "Column",
+              "width": "auto"
+            },
+            {
+              "id": "gap:10;#2",
+              "items": [
+                {
+                  "horizontalAlignment": "Center",
+                  "size": "Stretch",
+                  "type": "Image",
+                  "url": "data:image/png;base64,<png>"
+                }
+              ],
+              "spacing": "Medium",
+              "type": "Column",
+              "width": 100
+            }
+          ],
+          "spacing": "None",
+          "type": "ColumnSet"
+        }
+      ],
+      "spacing": "None",
+      "style": "emphasis",
+      "type": "Container"
+    }
+  ],
+  "type": "AdaptiveCard",
+  "version": "1.5"
+}

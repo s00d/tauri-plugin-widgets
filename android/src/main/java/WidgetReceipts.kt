@@ -63,7 +63,9 @@ object WidgetReceipts {
             if (item.optString("widgetId") != widgetId) continue
             val ts = item.optLong("ts", 0L)
             if (now - ts > LIVE_MAX_AGE_MS) continue
-            item.optString("instance").toIntOrNull()?.let { out.add(it) }
+            // `appWidgetId` since configured instances (`nyc`) are not ids.
+            (if (item.has("appWidgetId")) item.optInt("appWidgetId") else item.optString("instance").toIntOrNull())
+                ?.let { out.add(it) }
         }
         return out
     }

@@ -2,7 +2,12 @@
   "$schema": "../gen/schemas/desktop-schema.json",
   "identifier": "default",
   "description": "Capability for all windows",
-  "windows": ["main", "desktop-widget"],
+  "windows": [
+    "main",
+    "desktop-widget",
+    "activity-*",
+    "island-launcher"
+  ],
   "permissions": [
     "core:default",
     "opener:default",

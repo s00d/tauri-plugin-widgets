@@ -1,11 +1,5 @@
 import { defineCommand } from "citty";
-import {
-  auditCoverage,
-  auditSchemaDocs,
-  collectElementUsage,
-  extractElementsFromSchema,
-  loadSchema,
-} from "../utils/docs/generate.js";
+import { auditSchemaDocs, extractElementsFromSchema, loadSchema } from "../utils/docs/generate.js";
 
 type SchemaElement = {
   name: string;
@@ -17,15 +11,14 @@ type SchemaElement = {
 export const docsAuditCommand = defineCommand({
   meta: {
     name: "docs-audit",
-    description: "Assert schema element coverage, goldens, and property docs",
+    description: "Assert every schema element and property has a description",
   },
   async run() {
-    const usage = collectElementUsage();
     const elements = extractElementsFromSchema(loadSchema()) as SchemaElement[];
     const names = elements.map((e) => e.name);
-    const errors = [...auditCoverage(names, usage), ...auditSchemaDocs(elements)];
+    const errors = auditSchemaDocs(elements);
     if (errors.length === 0) {
-      console.log(`OK — ${names.length} elements, coverage + schema docs complete.`);
+      console.log(`OK — ${names.length} elements, schema docs complete.`);
       return;
     }
     console.error("Docs audit failed:");

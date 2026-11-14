@@ -20,6 +20,7 @@ import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.unit.DpSize
 import androidx.core.graphics.PathParser
 import androidx.glance.ImageProvider
+import androidx.glance.appwidget.ImageProvider
 import org.json.JSONObject
 import java.util.Collections
 import java.util.Locale
@@ -41,7 +42,7 @@ internal fun buildStyleChromeBitmap(
     val bg = el.opt("background")
     val border = el.optJSONObject("border")
     val shadow = el.optJSONObject("shadow")
-    val isGradient = bg is JSONObject && bg.has("colors")
+    val isGradient = bg is JSONObject && (bg.has("colors") || bg.has("stops"))
     if (!isGradient && border == null && shadow == null) return null
 
     val density = context.resources.displayMetrics.density
@@ -101,23 +102,28 @@ internal fun buildStyleChromeBitmap(
     val fillPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply { style = Paint.Style.FILL }
     when {
         isGradient && bg is JSONObject -> {
-            val arr = bg.optJSONArray("colors") ?: return null
-            val stops = mutableListOf<Int>()
-            for (i in 0 until arr.length()) {
-                val c = parseColor(context, arr.optString(i, ""))?.toArgb()
-                if (c != null) stops += c
-            }
-            if (stops.isEmpty()) return null
-            if (stops.size == 1) stops += stops[0]
+            val (stops, positions) = gradientStops(context, bg) ?: return null
+            val pos = positions?.toFloatArray()
             val gType = bg.widgetString("gradientType", "linear").lowercase(Locale.US)
-            fillPaint.shader = when (gType) {
-                "radial" -> {
+            val sp = bg.optJSONObject("startPoint")
+            val ep = bg.optJSONObject("endPoint")
+            fillPaint.shader = when {
+                gType == "radial" -> {
                     val cx = content.centerX()
                     val cy = content.centerY()
                     val r = maxOf(content.width(), content.height()) / 2f
-                    RadialGradient(cx, cy, r.coerceAtLeast(1f), stops.toIntArray(), null, Shader.TileMode.CLAMP)
+                    RadialGradient(cx, cy, r.coerceAtLeast(1f), stops.toIntArray(), pos, Shader.TileMode.CLAMP)
                 }
-                "angular" -> SweepGradient(content.centerX(), content.centerY(), stops.toIntArray(), null)
+                gType == "angular" -> SweepGradient(content.centerX(), content.centerY(), stops.toIntArray(), pos)
+                sp != null && ep != null -> LinearGradient(
+                    content.left + content.width() * sp.optDouble("x", 0.0).toFloat(),
+                    content.top + content.height() * sp.optDouble("y", 0.0).toFloat(),
+                    content.left + content.width() * ep.optDouble("x", 0.0).toFloat(),
+                    content.top + content.height() * ep.optDouble("y", 1.0).toFloat(),
+                    stops.toIntArray(),
+                    pos,
+                    Shader.TileMode.CLAMP,
+                )
                 else -> {
                     val dir = bg.widgetString("direction", "topToBottom").lowercase(Locale.US)
                     val (x0, y0, x1, y1) = when (dir) {
@@ -131,7 +137,7 @@ internal fun buildStyleChromeBitmap(
                     LinearGradient(
                         x0, y0, x1, y1,
                         stops.toIntArray(),
-                        null,
+                        pos,
                         Shader.TileMode.CLAMP
                     )
                 }
@@ -183,6 +189,29 @@ internal fun buildStyleChromeBitmap(
     return bmp
 }
 
+/**
+ * Gradient colors and optional positions: `stops` (`{color, location}`) replace `colors`.
+ * Positions are sorted and clamped to 0…1 (Android shaders need them increasing).
+ */
+internal fun gradientStops(context: Context, bg: JSONObject): Pair<List<Int>, List<Float>?>? {
+    val stopsArr = bg.optJSONArray("stops")
+    if (stopsArr != null && stopsArr.length() > 0) {
+        val pairs = (0 until stopsArr.length()).mapNotNull { i ->
+            val o = stopsArr.optJSONObject(i) ?: return@mapNotNull null
+            val c = parseColor(context, o.widgetString("color", ""))?.toArgb() ?: return@mapNotNull null
+            o.optDouble("location", 0.0).toFloat().coerceIn(0f, 1f) to c
+        }.sortedBy { it.first }
+        if (pairs.isNotEmpty()) {
+            val list = if (pairs.size == 1) pairs + pairs else pairs
+            return list.map { it.second } to list.map { it.first }
+        }
+    }
+    val arr = bg.optJSONArray("colors") ?: return null
+    val colors = (0 until arr.length()).mapNotNull { parseColor(context, arr.optString(it, ""))?.toArgb() }
+    if (colors.isEmpty()) return null
+    return (if (colors.size == 1) colors + colors else colors) to null
+}
+
 /** Longest side of a decoded widget image. RemoteViews reject bitmaps above the
  *  screen-size memory budget, and a full-resolution photo is far above it. */
 private const val MAX_IMAGE_PX = 1024
@@ -204,24 +233,27 @@ private fun decodeBoundedFile(path: String): Bitmap? =
 internal fun imageProviderFromElement(context: Context, el: JSONObject): ImageProvider? {
     val localPath = el.widgetString("localPath", "")
     if (localPath.isNotBlank()) {
+        // Plugin-cached download: a content URI the launcher decodes itself, so a photo does
+        // not count against the RemoteViews bitmap budget. Bitmap when no provider / grant.
+        cachedImageUri(context, localPath)?.let { return ImageProvider(it) }
         decodeBoundedFile(localPath)?.let { return ImageProvider(it) }
     }
 
     val data = el.widgetString("data", "")
     if (data.isNotBlank()) {
-        decodeBase64Bitmap(data)?.let { return ImageProvider(it) }
+        decodeBase64Bitmap(data)?.let { return ImageProvider(clipImageBitmap(context, el, it)) }
     }
 
     val url = el.widgetString("url", "")
     if (url.startsWith("data:", true)) {
-        decodeBase64Bitmap(url)?.let { return ImageProvider(it) }
+        decodeBase64Bitmap(url)?.let { return ImageProvider(clipImageBitmap(context, el, it)) }
     } else if (url.startsWith("file://")) {
         val filePath = Uri.parse(url).path.orEmpty()
         if (filePath.isNotBlank()) {
-            decodeBoundedFile(filePath)?.let { return ImageProvider(it) }
+            decodeBoundedFile(filePath)?.let { return ImageProvider(clipImageBitmap(context, el, it)) }
         }
     } else if (url.startsWith("/")) {
-        decodeBoundedFile(url)?.let { return ImageProvider(it) }
+        decodeBoundedFile(url)?.let { return ImageProvider(clipImageBitmap(context, el, it)) }
     }
 
     val systemName = el.widgetString("systemName", "")
@@ -232,7 +264,38 @@ internal fun imageProviderFromElement(context: Context, el: JSONObject): ImagePr
     return null
 }
 
-internal fun resolveSystemImageProvider(context: Context, systemName: String): ImageProvider? {
+/**
+ * `clipShape` / `cornerRadius` baked into an image bitmap at its `size` (dp), scaled per
+ * `contentMode` (fill = center crop). Glance clips only through the view outline, which
+ * needs API 31+ and a hardware canvas; a baked mask holds everywhere. Unclipped → [src].
+ */
+internal fun clipImageBitmap(context: Context, el: JSONObject, src: Bitmap): Bitmap {
+    val shape = el.widgetString("clipShape", "").lowercase(Locale.US)
+    val radiusDp = el.optDouble("cornerRadius", 0.0).toFloat()
+    if (shape !in setOf("circle", "ellipse", "capsule") && radiusDp <= 0f) return src
+    val s = dpToPx(context, el.optDouble("size", 24.0).toFloat())
+    val out = Bitmap.createBitmap(s, s, Bitmap.Config.ARGB_8888)
+    val canvas = Canvas(out)
+    val box = RectF(0f, 0f, s.toFloat(), s.toFloat())
+    val r = if (radiusDp > 0f && shape !in setOf("circle", "ellipse", "capsule")) radiusDp * context.resources.displayMetrics.density else s / 2f
+    canvas.clipPath(Path().apply { addRoundRect(box, r, r, Path.Direction.CW) })
+    val fill = el.widgetString("contentMode", "fit").equals("fill", true)
+    val scale = if (fill) maxOf(s.toFloat() / src.width, s.toFloat() / src.height) else minOf(s.toFloat() / src.width, s.toFloat() / src.height)
+    val w = src.width * scale
+    val h = src.height * scale
+    canvas.drawBitmap(src, null, RectF((s - w) / 2f, (s - h) / 2f, (s + w) / 2f, (s + h) / 2f), Paint(Paint.FILTER_BITMAP_FLAG))
+    return out
+}
+
+internal fun resolveSystemImageProvider(context: Context, systemName: String): ImageProvider? =
+    systemIconResId(context, systemName, mipmap = true).takeIf { it != 0 }?.let { ImageProvider(it) }
+
+/**
+ * Drawable id for a symbol name (`play.fill` → `play.fill`, `play_fill`, …) in the app, then
+ * the framework; 0 when none. [mipmap] also searches app mipmaps (not for notification icons).
+ */
+@android.annotation.SuppressLint("DiscouragedApi") // the resource lives in the app, looked up by name
+internal fun systemIconResId(context: Context, systemName: String, mipmap: Boolean = false): Int {
     val candidates = mutableListOf<String>()
     val normalized = systemName.trim()
     if (normalized.isNotBlank()) {
@@ -244,14 +307,16 @@ internal fun resolveSystemImageProvider(context: Context, systemName: String): I
 
     for (name in candidates.distinct()) {
         val appDrawable = context.resources.getIdentifier(name, "drawable", context.packageName)
-        if (appDrawable != 0) return ImageProvider(appDrawable)
-        val appMipmap = context.resources.getIdentifier(name, "mipmap", context.packageName)
-        if (appMipmap != 0) return ImageProvider(appMipmap)
+        if (appDrawable != 0) return appDrawable
+        if (mipmap) {
+            val appMipmap = context.resources.getIdentifier(name, "mipmap", context.packageName)
+            if (appMipmap != 0) return appMipmap
+        }
 
         val androidDrawable = context.resources.getIdentifier(name, "drawable", "android")
-        if (androidDrawable != 0) return ImageProvider(androidDrawable)
+        if (androidDrawable != 0) return androidDrawable
     }
-    return null
+    return 0
 }
 
 internal fun decodeBase64Bitmap(raw: String): Bitmap? {
@@ -286,18 +351,43 @@ internal fun decodeBase64Bitmap(raw: String): Bitmap? {
     return out
 }
 
-internal fun drawChartBitmap(context: Context, el: JSONObject): Bitmap? {
+private class ChartPt(val value: Float, val color: Int, val explicit: Int?, val label: String, val series: String)
+
+/** Colors for series after the first (which takes `tint`), when a series has no point color. */
+private val CHART_PALETTE = intArrayOf(
+    0xFF4FC3F7.toInt(), 0xFFF472B6.toInt(), 0xFF34D399.toInt(), 0xFFFBBF24.toInt(), 0xFFA78BFA.toInt(), 0xFFF87171.toInt(),
+)
+
+private fun axisNumber(v: Float): String =
+    if (v == v.toLong().toFloat()) v.toLong().toString() else String.format(Locale.US, "%.1f", v)
+
+/**
+ * Chart bitmap (Glance has no chart). Types bar / line / area / point / pie (donut with
+ * `innerRadius`); `series` groups points into several lines or grouped bars; `yMin`/`yMax`
+ * fix the scale; `interpolation` linear / monotone / step; axes and legend are drawn
+ * inside the same bitmap. x labels on v2 charts unless `showXAxis: false` (legacy: only `true`).
+ */
+/** Any v2 chart option (as `usesSwiftCharts` in RenderData.swift / `greedy` in layout.ts). */
+internal fun isV2Chart(el: JSONObject): Boolean {
+    if (el.optString("chartType") == "point") return true
+    if (listOf("showXAxis", "showYAxis", "showLegend", "yMin", "yMax", "interpolation", "innerRadius").any { el.has(it) && !el.isNull(it) }) return true
+    val data = el.optJSONArray("chartData") ?: return false
+    return (0 until data.length()).any { data.optJSONObject(it)?.let { p -> p.has("series") && !p.isNull("series") } == true }
+}
+
+internal fun drawChartBitmap(context: Context, el: JSONObject, slotWDp: Float = 0f, slotHDp: Float = 0f): Bitmap? {
     val data = el.optJSONArray("chartData") ?: return null
     if (data.length() == 0) return null
 
-    val points = mutableListOf<Pair<Float, Int>>()
+    val tint = resolveColorProvider(context, el.opt("tint"))
+    val points = mutableListOf<ChartPt>()
     for (i in 0 until data.length()) {
         val p = data.optJSONObject(i) ?: continue
         val value = p.optDouble("value", 0.0).toFloat()
         val pointColorProvider = resolveColorProvider(context, p.opt("color"))
         val pointColor = pointColorProvider?.let { colorProviderArgb(it, context, Color.Transparent.toArgb()) }
-        val fallback = pointColor ?: colorProviderArgb(resolveColorProvider(context, el.opt("tint")), context, Color(0xFF4FC3F7).toArgb())
-        points += (value to fallback)
+        val fallback = pointColor ?: colorProviderArgb(tint, context, Color(0xFF4FC3F7).toArgb())
+        points += ChartPt(value, fallback, pointColor, p.widgetString("label", ""), p.widgetString("series", ""))
     }
     if (points.isEmpty()) return null
 
@@ -305,11 +395,15 @@ internal fun drawChartBitmap(context: Context, el: JSONObject): Bitmap? {
     val frame = el.optJSONObject("frame")
     val widthDp = if (chartType == "pie") {
         frame?.optDouble("width", 80.0)?.toFloat() ?: 80f
+    } else if (slotWDp > 0f) {
+        slotWDp
     } else {
         frame?.optDouble("width", 180.0)?.toFloat() ?: 180f
     }
     val heightDp = if (chartType == "pie") {
         widthDp
+    } else if (slotHDp > 0f) {
+        slotHDp
     } else {
         frame?.optDouble("height", 84.0)?.toFloat() ?: 84f
     }
@@ -323,98 +417,192 @@ internal fun drawChartBitmap(context: Context, el: JSONObject): Bitmap? {
         canvas.drawColor(colorProviderArgb(bgProvider, context, Color.Transparent.toArgb()))
     }
 
+    // Series in order of first appearance; a point without `series` belongs to "".
+    val seriesMap = LinkedHashMap<String, MutableList<ChartPt>>()
+    for (p in points) seriesMap.getOrPut(p.series) { mutableListOf() } += p
+    val series = seriesMap.entries.toList()
+    val multi = series.size > 1
+    val seriesColors = series.mapIndexed { i, (_, pts) ->
+        pts.firstNotNullOfOrNull { it.explicit }
+            ?: if (i == 0) colorProviderArgb(tint, context, CHART_PALETTE[0]) else CHART_PALETTE[i % CHART_PALETTE.size]
+    }
+
+    val isPie = chartType == "pie"
+    // x labels: Swift Charts / desktop show them on v2 charts unless `showXAxis: false`;
+    // legacy charts only with `showXAxis: true`.
+    val showX = !isPie && el.optBoolean("showXAxis", isV2Chart(el))
+    val showY = !isPie && el.optBoolean("showYAxis", false)
+    val legend: List<Pair<String, Int>> = when {
+        !el.optBoolean("showLegend", false) -> emptyList()
+        isPie -> points.map { it.label to it.color }.filter { it.first.isNotBlank() }
+        else -> series.mapIndexed { i, (name, _) -> name to seriesColors[i] }.filter { it.first.isNotBlank() }
+    }
+    val ink = colorProviderArgb(semanticSecondaryProvider(context), context, Color.Gray.toArgb())
+    val textPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply { color = ink; textSize = dpToPx(context, 9f).toFloat() }
+
+    val yMinOpt = if (el.has("yMin") && !el.isNull("yMin")) el.optDouble("yMin").toFloat() else null
+    val yMaxOpt = if (el.has("yMax") && !el.isNull("yMax")) el.optDouble("yMax").toFloat() else null
+    val dataMax = points.maxOf { it.value }
+    val dataMin = points.minOf { it.value }
+    val (lo, hi) = when (chartType) {
+        "line", "area", "point" -> (yMinOpt ?: dataMin) to (yMaxOpt ?: dataMax.coerceAtLeast(0.0001f))
+        else -> (yMinOpt ?: minOf(0f, dataMin)) to (yMaxOpt ?: dataMax.coerceAtLeast(0.0001f))
+    }
+    val span = (hi - lo).takeIf { it > 0.0001f } ?: 1f
+
     val pad = dpToPx(context, 6f).toFloat()
-    val chartRect = RectF(pad, pad, w - pad, h - pad)
-    val max = points.maxOf { it.first }.coerceAtLeast(0.0001f)
-    val min = points.minOf { it.first }
-    val span = (max - min).takeIf { it > 0.0001f } ?: 1f
+    val textH = textPaint.textSize * 1.4f
+    val legendH = if (legend.isNotEmpty()) textH else 0f
+    val xAxisH = if (showX) textH else 0f
+    val yGutter = if (showY) maxOf(textPaint.measureText(axisNumber(hi)), textPaint.measureText(axisNumber(lo))) + dpToPx(context, 4f) else 0f
+    val chartRect = RectF(pad + yGutter, pad, w - pad, h - pad - xAxisH - legendH)
+    if (isPie && legendH > 0f) {
+        // Keep the pie round above the legend row.
+        val side = minOf(chartRect.width(), chartRect.height())
+        chartRect.set(chartRect.centerX() - side / 2, chartRect.top, chartRect.centerX() + side / 2, chartRect.top + side)
+    }
+    fun yOf(v: Float) = chartRect.bottom - ((v.coerceIn(lo, hi) - lo) / span) * chartRect.height()
+    val maxLen = series.maxOf { it.value.size }
+    fun xOf(i: Int) = chartRect.left + chartRect.width() * (i.toFloat() / (maxLen - 1).coerceAtLeast(1))
 
     when (chartType) {
-        "line", "area" -> {
-            val stroke = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-                style = Paint.Style.STROKE
-                color = points.first().second
-                strokeWidth = dpToPx(context, 2.5f).toFloat()
-                strokeJoin = Paint.Join.ROUND
-                strokeCap = Paint.Cap.ROUND
-            }
-            val fill = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-                style = Paint.Style.FILL
-                color = (points.first().second and 0x55FFFFFF)
-            }
-            val xs = FloatArray(points.size)
-            val ys = FloatArray(points.size)
-            for (i in points.indices) {
-                xs[i] = chartRect.left + chartRect.width() * (i.toFloat() / (points.size - 1).coerceAtLeast(1))
-                val yNorm = (points[i].first - min) / span
-                ys[i] = chartRect.bottom - yNorm * chartRect.height()
-            }
-            val path = Path()
-            val area = Path()
-            path.moveTo(xs[0], ys[0])
-            area.moveTo(xs[0], chartRect.bottom)
-            area.lineTo(xs[0], ys[0])
-            if (points.size == 2) {
-                path.lineTo(xs[1], ys[1])
-                area.lineTo(xs[1], ys[1])
-            } else {
-                for (i in 0 until points.size - 1) {
-                    val x1 = xs[i]
-                    val y1 = ys[i]
-                    val x2 = xs[i + 1]
-                    val y2 = ys[i + 1]
-                    val cx1 = x1 + (x2 - x1) / 3f
-                    val cx2 = x1 + 2f * (x2 - x1) / 3f
-                    path.cubicTo(cx1, y1, cx2, y2, x2, y2)
-                    area.cubicTo(cx1, y1, cx2, y2, x2, y2)
+        "line", "area", "point" -> {
+            val interpolation = el.widgetString("interpolation", "")
+            series.forEachIndexed { si, (_, pts) ->
+                val color = if (multi) seriesColors[si] else pts.first().color
+                val xs = FloatArray(pts.size) { xOf(it) }
+                val ys = FloatArray(pts.size) { yOf(pts[it].value) }
+                if (chartType != "point" && pts.size > 1) {
+                    val stroke = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+                        style = Paint.Style.STROKE
+                        this.color = color
+                        strokeWidth = dpToPx(context, 2.5f).toFloat()
+                        strokeJoin = Paint.Join.ROUND
+                        strokeCap = Paint.Cap.ROUND
+                    }
+                    val path = Path()
+                    val area = Path()
+                    path.moveTo(xs[0], ys[0])
+                    area.moveTo(xs[0], chartRect.bottom)
+                    area.lineTo(xs[0], ys[0])
+                    for (i in 0 until pts.size - 1) {
+                        val x1 = xs[i]; val y1 = ys[i]; val x2 = xs[i + 1]; val y2 = ys[i + 1]
+                        when {
+                            interpolation == "step" -> {
+                                path.lineTo(x2, y1); path.lineTo(x2, y2)
+                                area.lineTo(x2, y1); area.lineTo(x2, y2)
+                            }
+                            interpolation == "linear" || pts.size == 2 -> {
+                                path.lineTo(x2, y2); area.lineTo(x2, y2)
+                            }
+                            else -> {
+                                // Horizontal tangents at each point: smooth, never overshoots (monotone).
+                                val cx1 = x1 + (x2 - x1) / 3f
+                                val cx2 = x1 + 2f * (x2 - x1) / 3f
+                                path.cubicTo(cx1, y1, cx2, y2, x2, y2)
+                                area.cubicTo(cx1, y1, cx2, y2, x2, y2)
+                            }
+                        }
+                    }
+                    if (chartType == "area") {
+                        area.lineTo(xs.last(), chartRect.bottom)
+                        area.close()
+                        canvas.drawPath(area, Paint(Paint.ANTI_ALIAS_FLAG).apply {
+                            style = Paint.Style.FILL
+                            this.color = (color and 0x55FFFFFF)
+                        })
+                    }
+                    canvas.drawPath(path, stroke)
                 }
-            }
-            if (chartType == "area") {
-                area.lineTo(chartRect.right, chartRect.bottom)
-                area.close()
-                canvas.drawPath(area, fill)
-            }
-            canvas.drawPath(path, stroke)
-            // Point markers for readability on small tiles.
-            val dot = Paint(Paint.ANTI_ALIAS_FLAG).apply { style = Paint.Style.FILL }
-            val r = dpToPx(context, 2.5f).toFloat()
-            for (i in points.indices) {
-                dot.color = points[i].second
-                canvas.drawCircle(xs[i], ys[i], r, dot)
+                // Point markers (the whole chart for `point`).
+                val dot = Paint(Paint.ANTI_ALIAS_FLAG).apply { style = Paint.Style.FILL }
+                val r = dpToPx(context, if (chartType == "point") 3.5f else 2.5f).toFloat()
+                for (i in pts.indices) {
+                    dot.color = if (multi) color else pts[i].color
+                    canvas.drawCircle(xs[i], ys[i], r, dot)
+                }
             }
         }
         "pie" -> {
-            val total = points.sumOf { it.first.toDouble() }.toFloat().coerceAtLeast(0.0001f)
+            val total = points.sumOf { it.value.toDouble() }.toFloat().coerceAtLeast(0.0001f)
             var start = -90f
-            for ((value, color) in points) {
-                val sweep = (value / total) * 360f
+            for (p in points) {
+                val sweep = (p.value / total) * 360f
                 val paint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
                     style = Paint.Style.FILL
-                    this.color = color
+                    this.color = p.color
                 }
                 canvas.drawArc(chartRect, start, sweep, true, paint)
                 start += sweep
             }
+            val inner = el.optDouble("innerRadius", 0.0).toFloat().coerceIn(0f, 0.95f)
+            if (inner > 0f) {
+                canvas.drawCircle(
+                    chartRect.centerX(), chartRect.centerY(), chartRect.width() / 2f * inner,
+                    Paint(Paint.ANTI_ALIAS_FLAG).apply { xfermode = android.graphics.PorterDuffXfermode(android.graphics.PorterDuff.Mode.CLEAR) },
+                )
+                bgProvider?.let {
+                    // Re-fill the hole with the chart background so it is not see-through.
+                    canvas.drawCircle(
+                        chartRect.centerX(), chartRect.centerY(), chartRect.width() / 2f * inner,
+                        Paint(Paint.ANTI_ALIAS_FLAG).apply { color = colorProviderArgb(it, context, Color.Transparent.toArgb()) },
+                    )
+                }
+            }
         }
         else -> {
             // Scale from 0 (or min(0, dataMin)) so the smallest positive bar isn't zero-height.
-            val dataMin = points.minOf { it.first }
-            val barMin = minOf(0f, dataMin)
-            val barMax = points.maxOf { it.first }.coerceAtLeast(0.0001f)
-            val barSpan = (barMax - barMin).takeIf { it > 0.0001f } ?: 1f
             val gap = dpToPx(context, 3f).toFloat()
-            val barW = ((chartRect.width() - gap * (points.size - 1)) / points.size).coerceAtLeast(1f)
-            for (i in points.indices) {
-                val value = points[i].first
-                val x = chartRect.left + i * (barW + gap)
-                val yNorm = (value - barMin) / barSpan
-                val y = chartRect.bottom - yNorm * chartRect.height()
-                val paint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-                    style = Paint.Style.FILL
-                    color = points[i].second
+            val groupW = ((chartRect.width() - gap * (maxLen - 1)) / maxLen).coerceAtLeast(1f)
+            val inner = if (multi) dpToPx(context, 1f).toFloat() else 0f
+            val barW = ((groupW - inner * (series.size - 1)) / series.size).coerceAtLeast(1f)
+            series.forEachIndexed { si, (_, pts) ->
+                for (i in pts.indices) {
+                    val x = chartRect.left + i * (groupW + gap) + si * (barW + inner)
+                    val y = yOf(pts[i].value)
+                    val paint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+                        style = Paint.Style.FILL
+                        color = if (multi) seriesColors[si] else pts[i].color
+                    }
+                    canvas.drawRoundRect(RectF(x, y, x + barW, chartRect.bottom), barW / 4f, barW / 4f, paint)
                 }
-                canvas.drawRoundRect(RectF(x, y, x + barW, chartRect.bottom), barW / 4f, barW / 4f, paint)
             }
+        }
+    }
+
+    if (showY) {
+        textPaint.textAlign = Paint.Align.RIGHT
+        val x = chartRect.left - dpToPx(context, 3f)
+        canvas.drawText(axisNumber(hi), x, chartRect.top - textPaint.ascent(), textPaint)
+        canvas.drawText(axisNumber(lo), x, chartRect.bottom, textPaint)
+        canvas.drawLine(chartRect.left, chartRect.top, chartRect.left, chartRect.bottom, Paint(textPaint).apply { alpha = 0x60 })
+    }
+    if (showX) {
+        textPaint.textAlign = Paint.Align.CENTER
+        val labels = series.maxByOrNull { it.value.size }!!.value
+        val y = chartRect.bottom + textH - textPaint.descent()
+        val gap = dpToPx(context, 3f).toFloat()
+        val groupW = (chartRect.width() - gap * (maxLen - 1)) / maxLen
+        labels.forEachIndexed { i, p ->
+            val x = if (chartType == "bar" || chartType !in setOf("line", "area", "point")) {
+                chartRect.left + i * (groupW + gap) + groupW / 2f
+            } else xOf(i)
+            canvas.drawText(p.label, x.coerceIn(textPaint.textSize, w - textPaint.textSize), y, textPaint)
+        }
+    }
+    if (legend.isNotEmpty()) {
+        textPaint.textAlign = Paint.Align.LEFT
+        val y = h - pad - textPaint.descent()
+        val r = textPaint.textSize / 3f
+        var x = pad + yGutter
+        val dot = Paint(Paint.ANTI_ALIAS_FLAG)
+        for ((name, color) in legend) {
+            if (x > w - pad) break
+            dot.color = color
+            canvas.drawCircle(x + r, y - textPaint.textSize / 3f, r, dot)
+            x += r * 2 + dpToPx(context, 3f)
+            canvas.drawText(name, x, y, textPaint)
+            x += textPaint.measureText(name) + dpToPx(context, 8f)
         }
     }
     return bmp
@@ -548,15 +736,14 @@ internal fun drawCanvasBitmap(context: Context, el: JSONObject): Bitmap? {
 
 internal fun drawProgressBitmap(context: Context, el: JSONObject, percent: Int): Bitmap? {
     val barStyle = el.widgetString("barStyle", "linear").lowercase(Locale.US)
-    val tint = colorProviderArgb(resolveColorProvider(context, el.opt("tint")), context, Color(0xFF4FC3F7).toArgb())
-    val dark = surfaceIsDark(context)
-    val bgColor = trackColorFromTint(tint, dark)
+    val (tint, bgColor) = barColors(context, el)
+    val thickness = el.optDouble("thickness", -1.0).toFloat()
     if (barStyle == "circular") {
         val sizeDp = el.optJSONObject("frame")?.optDouble("width", 40.0)?.toFloat() ?: 40f
         val s = dpToPx(context, sizeDp).coerceAtLeast(32)
         val bmp = Bitmap.createBitmap(s, s, Bitmap.Config.ARGB_8888)
         val canvas = Canvas(bmp)
-        val stroke = (s * 0.12f).coerceAtLeast(3f)
+        val stroke = if (thickness > 0f) dpToPx(context, thickness).toFloat().coerceAtMost(s / 2f) else (s * 0.12f).coerceAtLeast(3f)
         val pad = stroke / 2f + 1f
         val rect = RectF(pad, pad, s - pad, s - pad)
         val track = Paint(Paint.ANTI_ALIAS_FLAG).apply {
@@ -576,28 +763,41 @@ internal fun drawProgressBitmap(context: Context, el: JSONObject, percent: Int):
         return bmp
     }
 
-    val frame = el.optJSONObject("frame")
-    val widthDp = frame?.optDouble("width", 180.0)?.toFloat() ?: 180f
-    val heightDp = frame?.optDouble("height", 18.0)?.toFloat() ?: 18f
-    val w = dpToPx(context, widthDp).coerceAtLeast(80)
-    val h = dpToPx(context, heightDp).coerceAtLeast(8)
-    val bmp = Bitmap.createBitmap(w, h, Bitmap.Config.ARGB_8888)
+    return drawBarBitmap(tint, bgColor, percent, dpToPx(context, 180f), dpToPx(context, if (thickness > 0f) thickness else 6f))
+}
+
+/** Linear capsule bar (track + fill) at `w`×`h` px; the caller draws it at its real width. */
+internal fun drawBarBitmap(tint: Int, track: Int, percent: Int, w: Int, h: Int): Bitmap {
+    val bmp = Bitmap.createBitmap(w.coerceAtLeast(1), h.coerceAtLeast(1), Bitmap.Config.ARGB_8888)
     val canvas = Canvas(bmp)
-
-    val radius = (h / 2f).coerceAtLeast(2f)
-    val outer = RectF(0f, 0f, w.toFloat(), h.toFloat())
-    val filledW = (w * (percent.coerceIn(0, 100) / 100f)).coerceAtLeast(0f)
-    val inner = RectF(0f, 0f, filledW, h.toFloat())
-
-    val bgPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply { style = Paint.Style.FILL; color = bgColor }
-    val fgPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply { style = Paint.Style.FILL; color = tint }
-    canvas.drawRoundRect(outer, radius, radius, bgPaint)
-    if (filledW > 0f) canvas.drawRoundRect(inner, radius, radius, fgPaint)
+    val radius = bmp.height / 2f
+    val filledW = bmp.width * (percent.coerceIn(0, 100) / 100f)
+    canvas.drawRoundRect(RectF(0f, 0f, bmp.width.toFloat(), bmp.height.toFloat()), radius, radius,
+        Paint(Paint.ANTI_ALIAS_FLAG).apply { style = Paint.Style.FILL; color = track })
+    if (filledW > 0f) {
+        // At least a dot, like Apple's `max(width * frac, 2)`.
+        canvas.drawRoundRect(RectF(0f, 0f, filledW.coerceAtLeast(bmp.height.toFloat()), bmp.height.toFloat()), radius, radius,
+            Paint(Paint.ANTI_ALIAS_FLAG).apply { style = Paint.Style.FILL; color = tint })
+    }
     return bmp
 }
 
+/** Tint and track ARGB of a progress / gauge bar (`trackColor` or 25 % of the tint). */
+internal fun barColors(context: Context, el: JSONObject): Pair<Int, Int> {
+    val tint = colorProviderArgb(resolveColorProvider(context, el.opt("tint")), context, Color(0xFF4FC3F7).toArgb())
+    val track = resolveColorProvider(context, el.opt("trackColor"))
+        ?.let { colorProviderArgb(it, context, trackColorFromTint(tint, surfaceIsDark(context))) }
+        ?: trackColorFromTint(tint, surfaceIsDark(context))
+    return tint to track
+}
+
+/** Circular gauge ring (dp) when no frame width; Apple draws 56 pt. */
+internal const val GAUGE_RING_DP = 56
+
+/** Ring + label height over ring size (caption2 + a 4 pt gap, minus Android font padding ≈ 0.28 of 56 pt). */
+internal const val GAUGE_LABEL_RATIO = 1.28f
+
 internal fun drawGaugeBitmap(context: Context, el: JSONObject, percent: Int): Bitmap? {
-    val gaugeStyle = el.widgetString("gaugeStyle", "circular").lowercase(Locale.US)
     val tint = colorProviderArgb(resolveColorProvider(context, el.opt("tint")), context, Color(0xFF4FC3F7).toArgb())
     val dark = surfaceIsDark(context)
     val ink = colorProviderArgb(
@@ -612,57 +812,20 @@ internal fun drawGaugeBitmap(context: Context, el: JSONObject, percent: Int): Bi
         else -> ""
     }
 
-    if (gaugeStyle == "linear") {
-        val frame = el.optJSONObject("frame")
-        val widthDp = frame?.optDouble("width", 160.0)?.toFloat() ?: 160f
-        val barH = dpToPx(context, 8f).coerceAtLeast(6)
-        val labelH = if (label.isNotBlank() || valueLabel.isNotBlank()) dpToPx(context, 14f) else 0
-        val w = dpToPx(context, widthDp).coerceAtLeast(80)
-        val totalH = barH + labelH + if (labelH > 0) dpToPx(context, 4f) else 0
-        val bmp = Bitmap.createBitmap(w, totalH, Bitmap.Config.ARGB_8888)
-        val canvas = Canvas(bmp)
-        var y = 0f
-        if (labelH > 0) {
-            val lp = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-                color = ink
-                textSize = labelH * 0.7f
-                typeface = Typeface.DEFAULT
-            }
-            if (label.isNotBlank()) {
-                lp.textAlign = Paint.Align.LEFT
-                canvas.drawText(label, 0f, labelH - lp.descent(), lp)
-            }
-            if (valueLabel.isNotBlank()) {
-                lp.textAlign = Paint.Align.RIGHT
-                lp.typeface = Typeface.DEFAULT_BOLD
-                canvas.drawText(valueLabel, w.toFloat(), labelH - lp.descent(), lp)
-            }
-            y = labelH + dpToPx(context, 4f).toFloat()
-        }
-        val trackColor = trackColorFromTint(tint, dark)
-        val radius = barH / 2f
-        val outer = RectF(0f, y, w.toFloat(), y + barH)
-        val filledW = (w * (percent.coerceIn(0, 100) / 100f)).coerceAtLeast(0f)
-        canvas.drawRoundRect(outer, radius, radius, Paint(Paint.ANTI_ALIAS_FLAG).apply {
-            style = Paint.Style.FILL; color = trackColor
-        })
-        if (filledW > 0f) {
-            canvas.drawRoundRect(RectF(0f, y, filledW, y + barH), radius, radius, Paint(Paint.ANTI_ALIAS_FLAG).apply {
-                style = Paint.Style.FILL; color = tint
-            })
-        }
-        return bmp
-    }
-
+    val minLabel = el.widgetString("minLabel", "")
+    val maxLabel = el.widgetString("maxLabel", "")
+    val hasEnds = minLabel.isNotBlank() || maxLabel.isNotBlank()
     val frame = el.optJSONObject("frame")
-    val sizeDp = frame?.optDouble("width", 72.0)?.toFloat() ?: 72f
+    // Apple: 56 pt ring, 5 pt stroke, caption value, caption2 label 4 pt below.
+    val sizeDp = frame?.optDouble("width", GAUGE_RING_DP.toDouble())?.toFloat() ?: GAUGE_RING_DP.toFloat()
     val ring = dpToPx(context, sizeDp).coerceAtLeast(48)
-    val labelH = if (label.isNotBlank()) (ring * 0.22f).toInt().coerceAtLeast(12) else 0
+    val labelH = if (label.isNotBlank()) (ring * (GAUGE_LABEL_RATIO - 1f)).toInt().coerceAtLeast(12) else 0
+    val endsH = if (hasEnds) (ring * 0.18f).toInt().coerceAtLeast(10) else 0
     val s = ring
-    val totalH = ring + labelH
+    val totalH = ring + labelH + endsH
     val bmp = Bitmap.createBitmap(s, totalH, Bitmap.Config.ARGB_8888)
     val canvas = Canvas(bmp)
-    val stroke = (ring * 0.12f).coerceAtLeast(4f)
+    val stroke = (ring * 0.09f).coerceAtLeast(4f)
     val pad = stroke / 2f + 1f
     val rect = RectF(pad, pad, s - pad, ring - pad)
 
@@ -695,13 +858,22 @@ internal fun drawGaugeBitmap(context: Context, el: JSONObject, percent: Int): Bi
         val labelPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
             color = ink
             textAlign = Paint.Align.CENTER
-            textSize = ring * 0.14f
+            textSize = ring * 0.2f
             typeface = Typeface.DEFAULT
         }
         val ly = ring + labelH / 2f - (labelPaint.descent() + labelPaint.ascent()) / 2f
         canvas.drawText(label, cx, ly, labelPaint)
     }
+    if (hasEnds) drawEndLabels(canvas, minLabel, maxLabel, 0f, s.toFloat(), totalH.toFloat(), endsH * 0.85f, ink)
     return bmp
+}
+
+/** Gauge `minLabel` / `maxLabel`: small text at the bottom-left / bottom-right. */
+private fun drawEndLabels(canvas: Canvas, min: String, max: String, left: Float, right: Float, bottom: Float, size: Float, ink: Int) {
+    val p = Paint(Paint.ANTI_ALIAS_FLAG).apply { color = ink; textSize = size; alpha = 0xB0 }
+    val y = bottom - p.descent()
+    if (min.isNotBlank()) { p.textAlign = Paint.Align.LEFT; canvas.drawText(min, left, y, p) }
+    if (max.isNotBlank()) { p.textAlign = Paint.Align.RIGHT; canvas.drawText(max, right, y, p) }
 }
 
 internal fun paintFill(context: Context, color: Any?, fallbackHex: String): Paint {
@@ -721,14 +893,16 @@ internal fun paintStroke(context: Context, color: Any?, width: Float, fallbackHe
     }
 }
 
-internal fun drawShapeBitmap(context: Context, el: JSONObject, sizeDp: Int): Bitmap? {
+/** [frameW]/[frameH] (dp): draw at the frame's aspect so corners and ellipses are not stretched. */
+internal fun drawShapeBitmap(context: Context, el: JSONObject, sizeDp: Int, frameW: Float = -1f, frameH: Float = -1f): Bitmap? {
     val shape = el.widgetString("shapeType", "circle").lowercase(Locale.US)
-    val heightPx = dpToPx(context, sizeDp.toFloat()).coerceAtLeast(8)
+    val framed = frameW > 0f && frameH > 0f
+    val heightPx = dpToPx(context, if (framed) frameH else sizeDp.toFloat()).coerceAtLeast(8)
     // Capsule: width = 2*size, height = size
-    val widthPx = if (shape == "capsule") {
-        dpToPx(context, (sizeDp * 2).toFloat()).coerceAtLeast(8)
-    } else {
-        heightPx
+    val widthPx = when {
+        framed -> dpToPx(context, frameW).coerceAtLeast(8)
+        shape == "capsule" -> dpToPx(context, (sizeDp * 2).toFloat()).coerceAtLeast(8)
+        else -> heightPx
     }
     val bmp = Bitmap.createBitmap(widthPx, heightPx, Bitmap.Config.ARGB_8888)
     val canvas = Canvas(bmp)
@@ -739,20 +913,20 @@ internal fun drawShapeBitmap(context: Context, el: JSONObject, sizeDp: Int): Bit
         Color(0xFF888888).toArgb()
     )
     val strokeProvider = resolveColorProvider(context, el.opt("stroke"))
-    val strokeW = el.optDouble("strokeWidth", 0.0).toFloat().coerceAtLeast(0f)
+    val density = context.resources.displayMetrics.density
+    // strokeWidth / cornerRadius are points (dp), like every other IR length.
+    val strokeW = el.optDouble("strokeWidth", 0.0).toFloat().coerceAtLeast(0f) * density
 
     val fill = Paint(Paint.ANTI_ALIAS_FLAG).apply {
         style = Paint.Style.FILL
         color = fillColor
     }
-    val capsuleRadius = heightPx / 2f
+    val capsuleRadius = minOf(widthPx, heightPx) / 2f
+    val roundedR = el.optDouble("cornerRadius", 0.0).toFloat().coerceAtLeast(0f) * density
     when (shape) {
         "capsule" -> canvas.drawRoundRect(rect, capsuleRadius, capsuleRadius, fill)
-        "rectangle" -> {
-            val rr = el.optDouble("cornerRadius", 0.0).toFloat().coerceAtLeast(0f)
-            canvas.drawRoundRect(rect, rr, rr, fill)
-        }
-        else -> canvas.drawOval(rect, fill)
+        "rectangle", "roundedrectangle" -> canvas.drawRoundRect(rect, roundedR, roundedR, fill)
+        else -> canvas.drawOval(rect, fill) // circle, ellipse
     }
 
     if (strokeProvider != null && strokeW > 0f) {
@@ -765,10 +939,7 @@ internal fun drawShapeBitmap(context: Context, el: JSONObject, sizeDp: Int): Bit
         val sr = RectF(inset, inset, widthPx - inset, heightPx - inset)
         when (shape) {
             "capsule" -> canvas.drawRoundRect(sr, capsuleRadius, capsuleRadius, stroke)
-            "rectangle" -> {
-                val rr = el.optDouble("cornerRadius", 0.0).toFloat().coerceAtLeast(0f)
-                canvas.drawRoundRect(sr, rr, rr, stroke)
-            }
+            "rectangle", "roundedrectangle" -> canvas.drawRoundRect(sr, roundedR, roundedR, stroke)
             else -> canvas.drawOval(sr, stroke)
         }
     }

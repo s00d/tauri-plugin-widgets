@@ -9,6 +9,7 @@ import AppKit
 final class MacRenderTests: XCTestCase {
     private static let renderScale: CGFloat = 2
 
+    /// Given the visual cases, when each renders through the AppKit branches, then it matches its macOS PNG golden.
     func testCases() throws {
         let filter = ProcessInfo.processInfo.environment["CASE"]
         let cases = try VisualCase.loadAll(casesRoot: RepoPaths.cases, filter: filter)
@@ -100,12 +101,22 @@ final class MacRenderTests: XCTestCase {
         )
         .environment(\.colorScheme, scheme)
         .environment(\.locale, Locale(identifier: c.locale.replacingOccurrences(of: "_", with: "-")))
+        .environment(\.timeZone, TimeZone(identifier: "UTC")!)
         .environment(\.sizeCategory, .large)
 
         let hosting = NSHostingView(rootView: root)
         hosting.frame = NSRect(origin: .zero, size: size)
         hosting.appearance = NSAppearance(named: scheme == .dark ? .darkAqua : .aqua)
         hosting.layoutSubtreeIfNeeded()
+        // Without a window the backing scale is 1: layers (text included) rasterize at 1x and
+        // cacheDisplay upscales them into the 2x rep, so text came out blurry.
+        func setScale(_ layer: CALayer?) {
+            guard let layer else { return }
+            layer.contentsScale = scale
+            layer.setNeedsDisplay()
+            layer.sublayers?.forEach(setScale)
+        }
+        setScale(hosting.layer)
 
         guard let rep = NSBitmapImageRep(
             bitmapDataPlanes: nil,

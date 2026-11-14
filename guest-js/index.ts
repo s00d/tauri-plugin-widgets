@@ -42,6 +42,8 @@ export {
   createWidgetWindow,
   closeWidgetWindow,
   type WidgetWindowConfig,
+  type WidgetWindowLayer,
+  type WidgetPlacement,
 } from "./api/window";
 export {
   setWidgetConfig,
@@ -69,3 +71,34 @@ export {
   type WidgetActionPayload,
 } from "./api/actions";
 export { startWidgetUpdater } from "./api/updater";
+export {
+  getActiveWidgets,
+  setWidgetData,
+  setWidgetInstances,
+  setWidgetState,
+  getWidgetState,
+  type WidgetStateOptions,
+  type ActiveWidget,
+  type WidgetInstanceOption,
+} from "./api/instances";
+export {
+  startActivity,
+  updateActivity,
+  endActivity,
+  listActivities,
+  getActivityPushToStartToken,
+  canPromoteActivities,
+  openActivityPromotionSettings,
+  onActivityTokens,
+  registerActivityTemplate,
+  onActivityState,
+  onActivityContent,
+  getWidgetPushToken,
+  type EndActivityOptions,
+  type ActivityStateEvent,
+  type ActivityContentEvent,
+  type ActivityTokenEvent,
+  type ActivityContent,
+  type ActivityAction,
+  type ActivityHandle,
+} from "./api/activity";

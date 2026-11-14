@@ -59,9 +59,11 @@ export default defineAppConfig({
   edit: 'https://github.com/s00d/tauri-plugin-widgets/edit/main/docs/content',
   nav: [
     { label: 'Guide', to: '/guide' },
+    { label: 'Features', to: '/features' },
     { label: 'Elements', to: '/elements' },
     { label: 'API', to: '/api/js' },
     { label: 'Showcase', to: '/showcase' },
+    { label: 'Constructor', to: '/constructor' },
     { label: 'Changelog', to: '/changelog' },
   ],
 })

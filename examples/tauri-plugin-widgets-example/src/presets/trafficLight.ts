@@ -3,25 +3,30 @@ import type { PresetDef } from "./types";
 
 type Phase = "red" | "yellow" | "green";
 
+// Phases of several seconds: WidgetKit skips or delays timeline entries that live ~1 s.
 const CYCLE: { phase: Phase; dur: number }[] = [
-  { phase: "red", dur: 3 },
-  { phase: "yellow", dur: 1 },
-  { phase: "green", dur: 3 },
-  { phase: "yellow", dur: 1 },
+  { phase: "red", dur: 8 },
+  { phase: "yellow", dur: 3 },
+  { phase: "green", dur: 8 },
+  { phase: "yellow", dur: 3 },
 ];
 const TOTAL = CYCLE.reduce((s, c) => s + c.dur, 0);
 
 const BRIGHT: Record<Phase, string> = { red: "#ef4444", yellow: "#facc15", green: "#22c55e" };
 const DIM: Record<Phase, string> = { red: "#3b1111", yellow: "#3b3511", green: "#0b3b1a" };
 
-function getPhase(): { phase: Phase; elapsed: number; remaining: number } {
-  const t = Math.floor(Date.now() / 1000) % TOTAL;
-  let acc = 0;
-  for (const c of CYCLE) {
-    if (t < acc + c.dur) return { phase: c.phase, elapsed: t - acc, remaining: c.dur - (t - acc) };
-    acc += c.dur;
+/** Phase changes from the start of the current cycle: `[phase, startMs, endMs]`, `count` of them
+ *  (the cycle is aligned to the clock, so every renderer agrees on the phase). */
+function phases(nowMs: number, count: number): Array<[Phase, number, number]> {
+  let t = Math.floor(nowMs / (TOTAL * 1000)) * TOTAL * 1000;
+  const out: Array<[Phase, number, number]> = [];
+  for (let i = 0; out.length < count; i++) {
+    const c = CYCLE[i % CYCLE.length];
+    const end = t + c.dur * 1000;
+    if (end > nowMs) out.push([c.phase, t, end]);
+    t = end;
   }
-  return { phase: "red", elapsed: 0, remaining: 3 };
+  return out;
 }
 
 function light(phase: Phase, active: Phase): WidgetElement {
@@ -47,11 +52,14 @@ function signalCard(phase: Phase, currentPhase: Phase, label: string, dur: strin
   };
 }
 
-function buildTrafficLight(): WidgetConfig {
-  const { phase, remaining } = getPhase();
+/** One phase's layouts, used as templates: the phase's timing comes as `use` args
+ *  (`s` / `e` Unix ms, `t` the end as ISO), so the bar and the countdown run on the device. */
+function phaseLayouts(phase: Phase): Record<"small" | "medium" | "large", WidgetElement> {
   const label = phase === "red" ? "STOP" : phase === "yellow" ? "CAUTION" : "GO";
   const color = BRIGHT[phase];
-  const progress = remaining / (phase === "yellow" ? 1 : 3);
+  const bar: WidgetElement = { type: "progress", value: 0, bind: { startAt: "arg.s", endAt: "arg.e" }, tint: color };
+  const countdown = (fontSize: number): WidgetElement =>
+    ({ type: "timer", targetDate: "{{arg.t}}", counting: "down", fontSize, color: "#a1a1aa" });
 
   const lightsV: WidgetElement = {
     type: "vstack", spacing: 6, alignment: "center",
@@ -85,7 +93,8 @@ function buildTrafficLight(): WidgetConfig {
       { type: "vstack", spacing: 6, alignment: "leading", children: [
         { type: "text", content: "Traffic Light", fontSize: 14, fontWeight: "bold", color: "#e4e4e7" },
         { type: "text", content: label, fontSize: 28, fontWeight: "bold", color },
-        { type: "progress", value: progress, tint: color, label: `${remaining}s remaining`, color: "#a1a1aa" },
+        bar,
+        { type: "hstack", spacing: 4, children: [countdown(11), { type: "text", content: "remaining", fontSize: 11, color: "#a1a1aa" }] },
         { type: "spacer" },
         { type: "hstack", spacing: 8, children: [
           { type: "shape", shapeType: "circle", fill: phase === "red" ? BRIGHT.red : DIM.red, size: 10 },
@@ -112,7 +121,8 @@ function buildTrafficLight(): WidgetConfig {
         { type: "vstack", spacing: 8, alignment: "leading", children: [
           { type: "text", content: label, fontSize: 36, fontWeight: "bold", color },
           { type: "text", content: `Signal: ${phase.toUpperCase()}`, fontSize: 13, color: "#a1a1aa" },
-          { type: "progress", value: progress, tint: color, label: `Next change in ${remaining}s`, color: "#a1a1aa" },
+          bar,
+          { type: "hstack", spacing: 4, children: [{ type: "text", content: "Next change in", fontSize: 11, color: "#a1a1aa" }, countdown(11)] },
         ] },
       ] },
       { type: "divider", color: "#3f3f46" },
@@ -129,10 +139,32 @@ function buildTrafficLight(): WidgetConfig {
   return { small, medium, large };
 }
 
+const FAMILIES = ["small", "medium", "large"] as const;
+
+/** Layouts for one phase: each family is a `use` of that phase's template. */
+function at([phase, s, e]: [Phase, number, number]): Pick<WidgetConfig, "small" | "medium" | "large"> {
+  const args = { s, e, t: new Date(e).toISOString() };
+  return Object.fromEntries(FAMILIES.map((f) => [f, { type: "use", template: `${f}_${phase}`, args }])) as never;
+}
+
+/** Now plus the next 11 phase changes as timeline entries (about a minute): WidgetKit
+ *  switches the lights itself, the bar and the countdown run on the device clock, and asks
+ *  for a new timeline after the last entry. Fewer entries load faster (each is rendered). */
+function buildTrafficLight(): WidgetConfig {
+  const list = phases(Date.now(), 12);
+  const templates: Record<string, WidgetElement> = {};
+  for (const p of ["red", "yellow", "green"] as Phase[]) {
+    const l = phaseLayouts(p);
+    for (const f of FAMILIES) templates[`${f}_${p}`] = l[f];
+  }
+  return { ...at(list[0]), entries: list.slice(1).map((ph) => ({ at: ph[1], ...at(ph) })), templates };
+}
+
 export const trafficLight: PresetDef = {
   icon: "\u{1F6A6}",
   name: "Traffic Light",
   config: buildTrafficLight(),
   builder: buildTrafficLight,
-  intervalMs: 1000,
+  // Entries cover ~a minute ahead; the tick only moves that window on.
+  intervalMs: 20_000,
 };

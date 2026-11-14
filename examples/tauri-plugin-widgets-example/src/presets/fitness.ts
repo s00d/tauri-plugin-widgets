@@ -1,4 +1,18 @@
+import type { WidgetElement } from "tauri-plugin-widgets-api";
 import type { PresetDef } from "./types";
+
+/** Water glasses live in widget state (`fit_w`): "+1 glass" counts in-process (no app),
+ *  and after the goal the same button resets to 0. */
+const GOAL = 8;
+const water = (extra: object = {}): WidgetElement =>
+  ({ type: "progress", value: 0, total: GOAL, bind: { value: "state.fit_w" }, tint: "#ffe66d", ...extra }) as WidgetElement;
+/** In the large layout only (small / medium have no room for another row). */
+const waterBtn = (fontSize: number): WidgetElement[] => [
+  { type: "button", label: "+1 glass", set: { fit_w: "$inc" }, when: { path: "state.fit_w", lt: GOAL },
+    backgroundColor: "#4ecdc4", color: "#ffffff", fontSize, cornerRadius: 6 },
+  { type: "button", label: "Reset water", set: { fit_w: 0 }, when: { not: { path: "state.fit_w", lt: GOAL } },
+    backgroundColor: "#4ecdc4", color: "#ffffff", fontSize, cornerRadius: 6 },
+];
 
 export const fitness: PresetDef = {
   icon: "\u{1F3C3}",
@@ -7,6 +21,7 @@ export const fitness: PresetDef = {
     if (action === "sync_fitness") log("Fitness data synced successfully");
   },
   config: {
+    state: { fit_w: 7 },
     small: {
       type: "vstack", padding: 12, spacing: 8, cornerRadius: 16,
       background: { light: "#FFF5F5", dark: "#0d1117" },
@@ -15,7 +30,7 @@ export const fitness: PresetDef = {
         { type: "gauge", value: 0.72, min: 0, max: 1, currentValueLabel: "72%", label: "Steps", gaugeStyle: "circular", tint: "#ff6b6b" },
         { type: "hstack", spacing: 8, children: [
           { type: "progress", value: 0.45, barStyle: "linear", tint: "#4ecdc4", label: "Calories", color: "secondaryLabel" },
-          { type: "progress", value: 0.88, barStyle: "linear", tint: "#ffe66d", label: "Water", color: "secondaryLabel" },
+          water({ barStyle: "linear", label: "Water", color: "secondaryLabel" }),
         ]},
       ],
     },
@@ -30,7 +45,7 @@ export const fitness: PresetDef = {
         { type: "divider", color: "separator" },
         { type: "vstack", spacing: 6, flex: 1, children: [
           { type: "progress", value: 0.45, tint: "#4ecdc4", label: "Calories: 450 / 1000", color: "secondaryLabel" },
-          { type: "progress", value: 0.88, tint: "#ffe66d", label: "Water: 7 / 8 glasses", color: "secondaryLabel" },
+          water({ label: `Water: {{state.fit_w}} / ${GOAL} glasses`, color: "secondaryLabel" }),
           { type: "progress", value: 0.33, tint: "#ff6b6b", label: "Exercise: 20 / 60 min", color: "secondaryLabel" },
         ]},
       ],
@@ -43,13 +58,14 @@ export const fitness: PresetDef = {
           { type: "image", systemName: "figure.run", color: "#ff6b6b", size: 24 },
           { type: "text", content: "Today's Activity", textStyle: "title3", fontWeight: "bold", color: "label" },
           { type: "spacer" },
+          ...waterBtn(12),
           { type: "button", label: "Sync", action: "sync_fitness", backgroundColor: "#ff6b6b", color: "#ffffff", fontSize: 12, cornerRadius: 6 },
         ]},
         { type: "divider", color: "separator" },
         { type: "hstack", spacing: 12, children: [
           { type: "gauge", value: 0.72, min: 0, max: 1, currentValueLabel: "72%", label: "Steps", gaugeStyle: "circular", tint: "#ff6b6b", flex: 1 },
           { type: "gauge", value: 0.45, min: 0, max: 1, currentValueLabel: "45%", label: "Calories", gaugeStyle: "circular", tint: "#4ecdc4", flex: 1 },
-          { type: "gauge", value: 0.88, min: 0, max: 1, currentValueLabel: "88%", label: "Water", gaugeStyle: "circular", tint: "#ffe66d", flex: 1 },
+          { type: "gauge", value: 0, min: 0, max: GOAL, bind: { value: "state.fit_w" }, currentValueLabel: `{{state.fit_w}}/${GOAL}`, label: "Water", gaugeStyle: "circular", tint: "#ffe66d", flex: 1 },
         ]},
         { type: "divider", color: "separator" },
         { type: "vstack", spacing: 6, children: [

@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Semantic IR colors (`label`, `accent`, …) on widgets without an explicit background:
+     resolved by the launcher, so they follow day / night (values-night) and, on Android 12+,
+     the wallpaper accent (values-v31). -->
+<resources>
+    <color name="tauri_color_label">#FF111111</color>
+    <color name="tauri_color_secondarylabel">#FF555555</color>
+    <color name="tauri_color_separator">#FFD1D1D6</color>
+    <color name="tauri_color_systembackground">#FFFFFFFF</color>
+    <color name="tauri_color_secondarysystembackground">#FFF2F2F7</color>
+    <color name="tauri_color_accent">#FF2563EB</color>
+    <color name="tauri_widget_surface">#FFF2F2F7</color>
+    <color name="tauri_widget_ink">#FF111111</color>
+</resources>

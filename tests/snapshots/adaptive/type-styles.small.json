@@ -2,7 +2,11 @@
   "$schema": "http://adaptivecards.io/schemas/adaptive-card.json",
   "body": [
     {
-      "id": "card:#111827;gap:6",
+      "backgroundImage": {
+        "fillMode": "repeat",
+        "url": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAAEElEQVR4AQEFAPr/ABEYJ/8B3gFQbIJpsQAAAABJRU5ErkJggg=="
+      },
+      "id": "card:#111827",
       "items": [
         {
           "color": "Light",
@@ -15,8 +19,9 @@
         },
         {
           "color": "Accent",
-          "id": "fg:#38bdf8",
+          "id": "fg:#38bdf8;gap:6",
           "size": "Default",
+          "spacing": "Default",
           "text": "mono 0123",
           "type": "TextBlock",
           "weight": "Default",
@@ -24,8 +29,9 @@
         },
         {
           "color": "Light",
-          "id": "fg:#e2e8f0",
+          "id": "fg:#e2e8f0;gap:6",
           "size": "Default",
+          "spacing": "Default",
           "text": "Serif body",
           "type": "TextBlock",
           "weight": "Default",
@@ -33,15 +39,16 @@
         },
         {
           "color": "Light",
-          "id": "fg:#94a3b8",
+          "id": "fg:#94a3b8;gap:6",
           "size": "Default",
+          "spacing": "Default",
           "text": "Caption line",
           "type": "TextBlock",
           "weight": "Default",
           "wrap": true
         }
       ],
-      "spacing": "Default",
+      "spacing": "None",
       "style": "emphasis",
       "type": "Container"
     }

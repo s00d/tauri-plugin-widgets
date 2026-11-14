@@ -97,6 +97,36 @@ export function initIosAction(opts: InitIosOptions): void {
     console.log("  App entitlements already have properties in project.yml — add the App Group there if missing");
   }
 
+  // Live activities (`startActivity`): ActivityKit needs the flag in the APP's Info.plist.
+  {
+    // Re-read the block: the entitlements step above may have rewritten it.
+    const start = spec.indexOf(`\n  ${appTarget}:\n`, targetsAt()) + 1;
+    const next = spec.slice(start + 1).search(/\n {2}[^\s#][^\n]*:\n/);
+    const block = spec.slice(start, next < 0 ? undefined : start + 1 + next + 1);
+    const info = block.match(/^ {4}info:\n {6}path: .+\n {6}properties:\n/m);
+    // Frequent updates: more than the default hourly budget of push / local updates.
+    const missing = ["NSSupportsLiveActivities", "NSSupportsLiveActivitiesFrequentUpdates"].filter(
+      (k) => !new RegExp(`^ {8}${k}:`, "m").test(block),
+    );
+    if (missing.length === 0) {
+      // already there
+    } else if (info && start > 0) {
+      const patched = block.replace(info[0], `${info[0]}${missing.map((k) => `        ${k}: true\n`).join("")}`);
+      spec = spec.replace(block, patched);
+      writeFileSync(specPath, spec, "utf-8");
+      console.log(`  App Info.plist: ${missing.join(", ")} (live activities)`);
+    } else {
+      console.log("  Add NSSupportsLiveActivities = YES (and NSSupportsLiveActivitiesFrequentUpdates) to the app's Info.plist to use startActivity()");
+    }
+  }
+
+  // `tauri ios init` writes iOS 14.0; current Xcode (SDK minimum 15.0) refuses to build it.
+  spec = spec.replace(/^(\s+deploymentTarget:\n\s+iOS: )["']?(\d+(?:\.\d+)?)["']?$/m, (line, head, v) => {
+    if (Number.parseFloat(v) >= 15) return line;
+    console.log(`  project deployment target iOS ${v} → 15.0 (Xcode minimum)`);
+    return `${head}15.0`;
+  });
+
   if (spec.includes(MARKER)) {
     console.log("  project.yml already has the widget extension");
   } else {
@@ -104,6 +134,10 @@ export function initIosAction(opts: InitIosOptions): void {
       spec.match(/DEVELOPMENT_TEAM: (\S+)/)?.[1] ||
       String((conf.data.bundle as { iOS?: { developmentTeam?: string } } | undefined)?.iOS?.developmentTeam || "");
     const swiftPkg = relative(appleDir, join(cwd, "node_modules", "tauri-plugin-widgets-api", "swift"));
+    // App Store rejects an extension whose version differs from its app: copy the app's.
+    const appVersion = (key: string) => appBlock.match(new RegExp(`^ {8}${key}: (.+)$`, "m"))?.[1]?.trim();
+    const shortVersion = appVersion("CFBundleShortVersionString") ?? JSON.stringify(String(conf.data.version ?? "1.0.0"));
+    const bundleVersion = appVersion("CFBundleVersion") ?? shortVersion;
     const sources = relative(appleDir, widgetDir);
 
     const packages = `${MARKER} (package)\npackages:\n  TauriWidgets:\n    path: ${swiftPkg}\n`;
@@ -123,6 +157,10 @@ export function initIosAction(opts: InitIosOptions): void {
       `      path: ${TARGET}/Info.plist`,
       "      properties:",
       "        CFBundleDisplayName: Widgets",
+      `        CFBundleShortVersionString: ${shortVersion}`,
+      `        CFBundleVersion: ${bundleVersion}`,
+      // Read by TauriInstanceQuery before any provider ran (Edit Widget choices).
+      `        TauriWidgetsAppGroup: ${appGroup}`,
       "        NSExtension:",
       "          NSExtensionPointIdentifier: com.apple.widgetkit-extension",
       "    entitlements:",

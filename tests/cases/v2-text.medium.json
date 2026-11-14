@@ -1,0 +1,10 @@
+{
+  "fixture": "core/v2-text",
+  "size": "medium",
+  "theme": "dark",
+  "locale": "en_US",
+  "macos": {
+    "width": 338,
+    "height": 158
+  }
+}

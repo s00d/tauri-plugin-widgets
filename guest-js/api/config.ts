@@ -73,10 +73,13 @@ export async function setWidgetConfig(
   /** Skip native widget reload (WidgetKit / AppWidgetManager).
    *  Desktop widget windows are always updated instantly via eval push. */
   skipReload = false,
+  /** One placement only (see `getActiveWidgets`): Android `appWidgetId`, the Apple Edit
+   *  Widget choice, a window `instance`. Other placements keep the widget-wide config. */
+  instance?: string,
 ): Promise<ApplyOutcome> {
   if (!widgetId) throw new Error("setWidgetConfig: 'widgetId' must not be empty");
   return await invoke<ApplyOutcome>(`${PLUGIN_ID}|set_widget_config`, {
-    config, group: group || null, widgetId, skipReload,
+    config, group: group || null, widgetId, skipReload, instance: instance || null,
   });
 }
 
@@ -101,6 +104,7 @@ export async function setWidgetConfigFromPath(
   group?: string,
   widgetId = "default",
   skipReload = false,
+  instance?: string,
 ): Promise<ApplyOutcome> {
   const trimmedPath = path?.trim() ?? "";
   if (!trimmedPath) {
@@ -114,6 +118,7 @@ export async function setWidgetConfigFromPath(
     group: group || null,
     widgetId,
     skipReload,
+    instance: instance || null,
   });
 }
 
@@ -127,10 +132,13 @@ export async function setWidgetConfigFromPath(
 export async function getWidgetConfig(
   group?: string,
   widgetId = "default",
+  /** Read one placement's own config (no fallback to the widget-wide one). */
+  instance?: string,
 ): Promise<WidgetConfig | null> {
   if (!widgetId) throw new Error("getWidgetConfig: 'widgetId' must not be empty");
   return await invoke<WidgetConfig | null>(`${PLUGIN_ID}|get_widget_config`, {
     group: group || null,
     widgetId,
+    instance: instance || null,
   });
 }

@@ -23,6 +23,9 @@ export type WidgetConfig = {
   small?: ElNode;
   medium?: ElNode;
   large?: ElNode;
+  /** Contract v3: local state defaults and the content-change hint. */
+  state?: Record<string, unknown>;
+  transition?: string;
   __nonce?: number;
 };
 

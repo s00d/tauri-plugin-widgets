@@ -174,6 +174,12 @@
       "size": "small",
       "path": "*",
       "reason": "toggle check glyph + label packing differs Glance vs HTML"
+    },
+    {
+      "fixture": "core/v2-chart",
+      "size": "medium",
+      "path": "overlap",
+      "reason": "Android draws charts (axes, legend) into one bitmap: no text views to compare; pixels gate the labels"
     }
   ]
 }

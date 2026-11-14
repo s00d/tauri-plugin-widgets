@@ -56,9 +56,9 @@ pub fn resolve_driver(cfg: &WidgetsPluginConfig) -> crate::Result<Arc<dyn Transp
     #[cfg(not(target_os = "macos"))]
     {
         let _ = cfg;
-        return Err(Error::new(
+        Err(Error::new(
             "Apple transport drivers are only available on macOS host builds",
-        ));
+        ))
     }
     #[cfg(target_os = "macos")]
     {
@@ -86,9 +86,9 @@ pub fn build_driver(
     #[cfg(not(target_os = "macos"))]
     {
         let _ = kind;
-        return Err(Error::new(
+        Err(Error::new(
             "Apple transport drivers are only available on macOS host builds",
-        ));
+        ))
     }
     #[cfg(target_os = "macos")]
     {
@@ -348,117 +348,256 @@ impl Transport for FakeTransport {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::config::tests::ENV_LOCK;
     use crate::config::WidgetsPluginConfig;
 
-    fn map_v1() -> DataMap {
+    fn cfg(kind: Option<TransportKind>, group: Option<&str>) -> WidgetsPluginConfig {
+        WidgetsPluginConfig {
+            transport: kind,
+            app_group: group.map(Into::into),
+            ..Default::default()
+        }
+    }
+
+    fn map(nonce: u64, widget: &str) -> DataMap {
         let mut m = DataMap::new();
-        m.insert("config:probe".into(), r#"{"version":1}"#.into());
-        touch_meta(&mut m);
+        m.insert(format!("config:{widget}"), r#"{"version":1}"#.into());
+        store::touch_meta_above(&mut m, nonce.saturating_sub(1));
         m
     }
 
+    /// Choosing a driver from config: explicit kinds need an appGroup (blank counts as
+    /// missing) → off macOS no Apple driver exists → mobile accepts appGroup / auto only.
+    #[test]
+    fn driver_choice_from_config() {
+        let _env = ENV_LOCK.lock().unwrap_or_else(|e| e.into_inner());
+        std::env::remove_var("WIDGET_TRANSPORT");
+        // 1. appGroup is checked first, for every explicit kind.
+        for kind in [
+            TransportKind::AppGroup,
+            TransportKind::UserDefaults,
+            TransportKind::WidgetContainer,
+        ] {
+            for group in [None, Some("  ")] {
+                let err = build_driver(kind, &cfg(Some(kind), group))
+                    .err()
+                    .expect("no group");
+                assert!(err.to_string().contains("appGroup"), "{kind:?}: {err}");
+            }
+        }
+        // 2. Platform gate.
+        #[cfg(not(target_os = "macos"))]
+        {
+            let c = cfg(Some(TransportKind::WidgetContainer), Some("group.t"));
+            for err in [
+                build_driver(TransportKind::WidgetContainer, &c)
+                    .err()
+                    .unwrap(),
+                resolve_driver(&c).err().unwrap(),
+            ] {
+                assert!(err.to_string().contains("only available on macOS"), "{err}");
+            }
+        }
+        #[cfg(target_os = "macos")]
+        {
+            let err = build_driver(TransportKind::Auto, &cfg(None, Some("group.t")))
+                .err()
+                .unwrap();
+            assert!(err.to_string().contains("invalid"), "{err}");
+        }
+        // 3. Mobile (iOS rules off Android).
+        #[cfg(not(target_os = "android"))]
+        {
+            for kind in [TransportKind::AppGroup, TransportKind::Auto] {
+                assert_eq!(
+                    validate_mobile_transport(&cfg(Some(kind), Some("group.t"))).unwrap(),
+                    TransportKind::AppGroup
+                );
+            }
+            let err =
+                validate_mobile_transport(&cfg(Some(TransportKind::AppGroup), None)).unwrap_err();
+            assert!(err.to_string().contains("appGroup is required"), "{err}");
+            for kind in [TransportKind::UserDefaults, TransportKind::WidgetContainer] {
+                let err = validate_mobile_transport(&cfg(Some(kind), Some("group.t"))).unwrap_err();
+                assert!(err.to_string().contains("appGroup only"), "{err}");
+                assert!(err.to_string().contains(kind.as_str()), "{err}");
+            }
+        }
+    }
+
+    /// File drivers on a macOS host (temp container root): container driver write → read →
+    /// receipt → a newer write wins → concurrent writers leave one whole map and no temp
+    /// files → a corrupt file reads as nothing and the next write recovers; appGroup fails
+    /// loudly without a container and works with the test override.
     #[cfg(target_os = "macos")]
     #[test]
-    fn explicit_appgroup_fails_loudly_when_container_missing() {
-        let cfg = WidgetsPluginConfig {
-            transport: Some(TransportKind::AppGroup),
-            app_group: Some("group.test.missing".into()),
-            extension_bundle_id: None,
+    fn file_driver_write_read_concurrent_and_recovery() {
+        let _env = ENV_LOCK.lock().unwrap_or_else(|e| e.into_inner());
+        std::env::remove_var("WIDGET_TRANSPORT");
+        let tmp = tempfile::tempdir().unwrap();
+        std::env::set_var("WIDGET_CONTAINER_ROOT", tmp.path());
+        std::env::remove_var("WIDGET_APP_GROUP_DATA_FILE");
+        let mut c = cfg(
+            Some(TransportKind::WidgetContainer),
+            Some("group.test.driver"),
+        );
+        c.extension_bundle_id = Some("test.driver.widgetkit".into());
+
+        // 1. Explicit container driver; bundle id from config reaches the path helpers.
+        let t = resolve_driver(&c).unwrap();
+        assert_eq!(t.name(), NAME_CONTAINER);
+        assert!(t.available());
+        let path = crate::macos_transport::sandbox_widget_data_path("group.test.driver");
+        assert!(
+            path.starts_with(tmp.path())
+                && path.to_string_lossy().contains("test.driver.widgetkit")
+        );
+        assert!(t.read().is_none());
+
+        // 2. Write → read → receipt.
+        let v1 = map(1, "w");
+        t.write(&v1).unwrap();
+        assert_eq!(t.read(), Some(v1.clone()));
+        let r = Receipt {
+            read_from: NAME_CONTAINER.into(),
+            nonce: 1,
+            ts: 5,
         };
-        unsafe {
-            std::env::remove_var("WIDGET_APP_GROUP_DATA_FILE");
+        t.write_receipt(&r).unwrap();
+        assert_eq!(t.read_receipt(), Some(r));
+        let v2 = map(2, "w");
+        t.write(&v2).unwrap();
+        assert_eq!(store::map_nonce(&t.read().unwrap()), 2);
+
+        // 3. Concurrent writers: atomic rename keeps one complete map, no temp leftovers.
+        let writers: Vec<_> = (10..18u64)
+            .map(|n| {
+                let t = Arc::clone(&t);
+                std::thread::spawn(move || {
+                    for k in 0..5 {
+                        t.write(&map(n * 10 + k, "w")).unwrap();
+                    }
+                })
+            })
+            .collect();
+        writers.into_iter().for_each(|h| h.join().unwrap());
+        let last = t.read().expect("whole map after concurrent writes");
+        assert!((100..180).contains(&store::map_nonce(&last)), "{last:?}");
+        let leftovers: Vec<_> = std::fs::read_dir(path.parent().unwrap())
+            .unwrap()
+            .flatten()
+            .filter(|e| e.file_name().to_string_lossy().contains(".tmp."))
+            .collect();
+        assert!(leftovers.is_empty(), "{leftovers:?}");
+
+        // 4. Corruption → nothing read → next write recovers.
+        std::fs::write(&path, "{truncated").unwrap();
+        assert!(t.read().is_none());
+        t.write(&v1).unwrap();
+        assert_eq!(t.read(), Some(v1));
+
+        // 5. appGroup: loud error without a container (some macOS installs return one),
+        //    a working file driver with the override.
+        match build_driver(
+            TransportKind::AppGroup,
+            &cfg(None, Some("group.test.missing")),
+        ) {
+            Err(err) => assert!(err.to_string().contains("App Group"), "{err}"),
+            Ok(_) => eprintln!("skip: App Group container available for group.test.missing"),
         }
-        match build_driver(TransportKind::AppGroup, &cfg) {
-            Err(err) => {
-                let msg = err.to_string();
-                assert!(
-                    msg.contains("App Group")
-                        || msg.contains("appGroup")
-                        || msg.contains("widgetContainer"),
-                    "expected loud appGroup error, got: {msg}"
-                );
-            }
-            Ok(_) => {
-                // Some macOS installs return a container URL for arbitrary group ids.
-                eprintln!(
-                    "skip: App Group container unexpectedly available for group.test.missing"
-                );
-            }
-        }
-    }
-
-    #[test]
-    fn explicit_container_writes_only_container() {
-        let container = FakeTransport::new(NAME_CONTAINER);
-        let appgroup = FakeTransport::new(NAME_APPGROUP);
-        let m = map_v1();
-        container.write(&m).unwrap();
-        assert_eq!(container.write_count(), 1);
-        assert_eq!(appgroup.write_count(), 0);
-        assert!(appgroup.read().is_none());
-        assert!(container.read().is_some());
-    }
-
-    #[test]
-    fn unchanged_value_skips_second_write_semantics() {
-        // Mirrors desktop set_items dedup: same bytes → no second transport write.
-        let t = FakeTransport::new(NAME_CONTAINER);
-        let mut map = DataMap::new();
-        map.insert("k".into(), "v".into());
-        touch_meta(&mut map);
-        t.write(&map).unwrap();
-        let before = t.write_count();
-        if map.get("k").map(String::as_str) == Some("v") {
-            // no write
-        } else {
-            t.write(&map).unwrap();
-        }
-        assert_eq!(t.write_count(), before);
-    }
-
-    #[test]
-    fn auto_latches_after_first_receipt_and_never_switches() {
-        let appgroup = FakeTransport::new(NAME_APPGROUP);
-        let container = FakeTransport::new(NAME_CONTAINER);
-
-        let mut probe = DataMap::new();
-        probe.insert("__probe__".into(), "1".into());
-        touch_meta(&mut probe);
-        let nonce = map_nonce(&probe);
-        appgroup.write(&probe).unwrap();
-        container.write(&probe).unwrap();
-        appgroup.plant_receipt(Receipt {
-            read_from: NAME_APPGROUP.into(),
-            nonce,
-            ts: store::now_ms(),
-        });
-
-        let latched = probe_once_among(
-            vec![
-                appgroup.clone() as Arc<dyn Transport>,
-                container.clone() as Arc<dyn Transport>,
-            ],
-            NAME_CONTAINER,
+        let file = tmp.path().join("ag/widget_data.json");
+        std::env::set_var("WIDGET_APP_GROUP_DATA_FILE", &file);
+        let ag = build_driver(
+            TransportKind::AppGroup,
+            &cfg(None, Some("group.test.driver")),
         )
         .unwrap();
-        assert_eq!(latched.name(), NAME_APPGROUP);
+        assert_eq!(ag.name(), NAME_APPGROUP);
+        ag.write(&v2).unwrap();
+        assert!(file.exists());
+        assert_eq!(ag.read(), Some(v2));
 
-        // Later container receipts must not switch the already-chosen driver in production;
-        // resolve_driver is one-shot. Here we only assert latch picked appgroup once.
-        container.plant_receipt(Receipt {
-            read_from: NAME_CONTAINER.into(),
-            nonce: nonce + 1,
-            ts: store::now_ms(),
-        });
-        assert_eq!(latched.name(), NAME_APPGROUP);
+        for k in [
+            "WIDGET_CONTAINER_ROOT",
+            "WIDGET_APP_GROUP_DATA_FILE",
+            "WIDGET_EXTENSION_BUNDLE",
+        ] {
+            std::env::remove_var(k);
+        }
     }
 
+    /// `auto` probe latch rules over fakes: every candidate gets the probe once → the one
+    /// whose own receipt acks the probe nonce wins → mismatched name / stale nonce do not
+    /// count → no ack falls back → a missing fallback is an error. A later receipt on
+    /// another transport does not change an already latched driver.
     #[test]
-    fn require_app_group_message() {
-        let cfg = WidgetsPluginConfig::default();
-        match build_driver(TransportKind::WidgetContainer, &cfg) {
-            Err(err) => assert!(err.to_string().contains("appGroup")),
-            Ok(_) => panic!("expected missing appGroup error"),
+    fn auto_probe_latches_on_matching_receipt_else_fallback() {
+        let pair = || {
+            (
+                FakeTransport::new(NAME_APPGROUP),
+                FakeTransport::new(NAME_CONTAINER),
+            )
+        };
+        let dyns = |a: &Arc<FakeTransport>, b: &Arc<FakeTransport>| {
+            vec![
+                a.clone() as Arc<dyn Transport>,
+                b.clone() as Arc<dyn Transport>,
+            ]
+        };
+        let ack = |from: &str, nonce: u64| Receipt {
+            read_from: from.into(),
+            nonce,
+            ts: store::now_ms(),
+        };
+
+        // 1. Matching ack (probe nonce is 1 on a fresh map) → appgroup.
+        let (ag, ct) = pair();
+        ag.plant_receipt(ack(NAME_APPGROUP, 1));
+        let latched = probe_once_among(dyns(&ag, &ct), NAME_CONTAINER).unwrap();
+        assert_eq!(latched.name(), NAME_APPGROUP);
+        assert_eq!((ag.write_count(), ct.write_count()), (1, 1));
+        assert_eq!(
+            ag.read().unwrap().get("__probe__").map(String::as_str),
+            Some("1")
+        );
+        ct.plant_receipt(ack(NAME_CONTAINER, 2));
+        assert_eq!(latched.name(), NAME_APPGROUP);
+
+        // 2. Receipt names another transport, or acks an older nonce → fallback.
+        for planted in [ack(NAME_CONTAINER, 1), ack(NAME_APPGROUP, 0)] {
+            let (ag, ct) = pair();
+            ag.plant_receipt(planted);
+            assert_eq!(
+                probe_once_among(dyns(&ag, &ct), NAME_CONTAINER)
+                    .unwrap()
+                    .name(),
+                NAME_CONTAINER
+            );
         }
+        // 3. No receipt and no fallback candidate.
+        let (ag, ct) = pair();
+        assert!(probe_once_among(dyns(&ag, &ct), NAME_DEFAULTS).is_err());
+    }
+
+    /// Fake driver contract used by the host tests, plus the freshest-map pick: writes are
+    /// counted per driver, availability toggles, and the higher nonce wins.
+    #[test]
+    fn fake_driver_contract_and_freshest_pick() {
+        let container = FakeTransport::new(NAME_CONTAINER);
+        let appgroup = FakeTransport::new(NAME_APPGROUP);
+        container.write(&map(1, "w")).unwrap();
+        assert_eq!((container.write_count(), appgroup.write_count()), (1, 0));
+        assert!(appgroup.read().is_none() && container.read().is_some());
+        container.set_available(false);
+        assert!(!container.available() && appgroup.available());
+        let r = Receipt {
+            read_from: NAME_CONTAINER.into(),
+            nonce: 1,
+            ts: 1,
+        };
+        appgroup.write_receipt(&r).unwrap();
+        assert_eq!(appgroup.read_receipt(), Some(r));
+        let picked = pick_freshest_maps(vec![map(3, "old"), map(7, "new"), map(5, "mid")]);
+        assert!(picked.contains_key("config:new"), "{picked:?}");
     }
 }

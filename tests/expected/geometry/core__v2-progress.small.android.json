@@ -1,0 +1,224 @@
+{
+  "kind": "FrameLayout",
+  "rect": [
+    0,
+    0,
+    510,
+    510
+  ],
+  "children": [
+    {
+      "kind": "FrameLayout",
+      "rect": [
+        0,
+        0,
+        510,
+        510
+      ],
+      "children": [
+        {
+          "kind": "FrameLayout",
+          "rect": [
+            0,
+            0,
+            510,
+            510
+          ],
+          "children": [
+            {
+              "kind": "LinearLayout",
+              "rect": [
+                0,
+                0,
+                510,
+                510
+              ],
+              "children": [
+                {
+                  "kind": "LinearLayout",
+                  "rect": [
+                    36,
+                    36,
+                    438,
+                    68
+                  ],
+                  "children": [
+                    {
+                      "kind": "LinearLayout",
+                      "rect": [
+                        0,
+                        0,
+                        438,
+                        44
+                      ],
+                      "children": [
+                        {
+                          "kind": "TextView",
+                          "rect": [
+                            0,
+                            0,
+                            438,
+                            44
+                          ],
+                          "text": "track",
+                          "px": 33,
+                          "color": "#FF22C55E"
+                        }
+                      ]
+                    },
+                    {
+                      "kind": "ImageView",
+                      "rect": [
+                        0,
+                        44,
+                        438,
+                        24
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "kind": "FrameLayout",
+                  "rect": [
+                    36,
+                    104,
+                    438,
+                    24
+                  ]
+                },
+                {
+                  "kind": "LinearLayout",
+                  "rect": [
+                    36,
+                    128,
+                    438,
+                    62
+                  ],
+                  "children": [
+                    {
+                      "kind": "LinearLayout",
+                      "rect": [
+                        0,
+                        0,
+                        438,
+                        44
+                      ],
+                      "children": [
+                        {
+                          "kind": "TextView",
+                          "rect": [
+                            0,
+                            0,
+                            438,
+                            44
+                          ],
+                          "text": "done (past range)",
+                          "px": 33,
+                          "color": "#FF3B82F6"
+                        }
+                      ]
+                    },
+                    {
+                      "kind": "ImageView",
+                      "rect": [
+                        0,
+                        44,
+                        438,
+                        18
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "kind": "FrameLayout",
+                  "rect": [
+                    36,
+                    190,
+                    438,
+                    24
+                  ]
+                },
+                {
+                  "kind": "LinearLayout",
+                  "rect": [
+                    36,
+                    214,
+                    438,
+                    61
+                  ],
+                  "children": [
+                    {
+                      "kind": "ImageView",
+                      "rect": [
+                        0,
+                        0,
+                        438,
+                        18
+                      ]
+                    },
+                    {
+                      "kind": "LinearLayout",
+                      "rect": [
+                        0,
+                        18,
+                        438,
+                        43
+                      ],
+                      "children": [
+                        {
+                          "kind": "TextView",
+                          "rect": [
+                            0,
+                            6,
+                            393,
+                            37
+                          ],
+                          "text": "0",
+                          "px": 27,
+                          "color": "#99F2F2F7"
+                        },
+                        {
+                          "kind": "TextView",
+                          "rect": [
+                            393,
+                            6,
+                            45,
+                            37
+                          ],
+                          "text": "100",
+                          "px": 27,
+                          "color": "#99F2F2F7"
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "kind": "FrameLayout",
+                  "rect": [
+                    36,
+                    275,
+                    438,
+                    24
+                  ]
+                },
+                {
+                  "kind": "TextView",
+                  "rect": [
+                    36,
+                    299,
+                    438,
+                    65
+                  ],
+                  "text": "Done!",
+                  "px": 48,
+                  "color": "#FFE5E7EB"
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

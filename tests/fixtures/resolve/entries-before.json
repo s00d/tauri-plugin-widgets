@@ -1,0 +1,11 @@
+{
+  "about": "Before the first entry the base layout shows.",
+  "config": {
+    "version": 1,
+    "small": { "type": "text", "content": "base" },
+    "entries": [{ "at": 1000, "small": { "type": "text", "content": "first" } }]
+  },
+  "ctx": { "nowMs": 999, "locale": "en" },
+  "expected": { "version": 1, "small": { "type": "text", "content": "base" } },
+  "nextChangeMs": 1000
+}

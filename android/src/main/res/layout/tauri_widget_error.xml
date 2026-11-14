@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- onCompositionError fallback: styled like the widget surface, tap opens the app. -->
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/tauri_widget_error_root"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@drawable/tauri_widget_surface"
+    android:padding="12dp">
+    <TextView
+        android:id="@+id/tauri_widget_error_text"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="center"
+        android:gravity="center"
+        android:text="@string/tauri_widget_error"
+        android:textColor="@color/tauri_widget_ink"
+        android:textSize="13sp" />
+</FrameLayout>

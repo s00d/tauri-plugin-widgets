@@ -1,0 +1,90 @@
+{
+  "$schema": "http://adaptivecards.io/schemas/adaptive-card.json",
+  "body": [
+    {
+      "backgroundImage": {
+        "fillMode": "repeat",
+        "url": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAAEElEQVR4AQEFAPr/ABEYJ/8B3gFQbIJpsQAAAABJRU5ErkJggg=="
+      },
+      "id": "card:#111827",
+      "items": [
+        {
+          "color": "Light",
+          "id": "fg:#f8fafc",
+          "size": "Medium",
+          "text": "Москва 18°",
+          "type": "TextBlock",
+          "weight": "Bolder",
+          "wrap": true
+        },
+        {
+          "color": "Accent",
+          "id": "fg:#38bdf8;gap:6",
+          "size": "Default",
+          "spacing": "Default",
+          "text": "東京 · العربية · 🚀",
+          "type": "TextBlock",
+          "weight": "Default",
+          "wrap": true
+        },
+        {
+          "id": "gap:6",
+          "items": [
+            {
+              "color": "Accent",
+              "size": "Small",
+              "text": "湿度 humidity",
+              "type": "TextBlock",
+              "wrap": true
+            },
+            {
+              "columns": [
+                {
+                  "backgroundImage": {
+                    "fillMode": "repeat",
+                    "url": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAAEElEQVR4AQEFAPr/AKeL+v8HNQMs58LqyQAAAABJRU5ErkJggg=="
+                  },
+                  "id": "fill:#a78bfa",
+                  "items": [],
+                  "minHeight": "6px",
+                  "type": "Column",
+                  "width": 33
+                },
+                {
+                  "backgroundImage": {
+                    "fillMode": "repeat",
+                    "url": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAAEElEQVR4AQEFAPr/AKeL+kAGdgJtp/VhtwAAAABJRU5ErkJggg=="
+                  },
+                  "items": [],
+                  "minHeight": "6px",
+                  "spacing": "None",
+                  "type": "Column",
+                  "width": 67
+                }
+              ],
+              "spacing": "Small",
+              "type": "ColumnSet"
+            }
+          ],
+          "spacing": "Default",
+          "type": "Container"
+        },
+        {
+          "color": "Light",
+          "id": "fg:#94a3b8;gap:6",
+          "size": "Small",
+          "spacing": "Default",
+          "text": "€1,234.56  vs  ₽999",
+          "type": "TextBlock",
+          "weight": "Default",
+          "wrap": true
+        }
+      ],
+      "spacing": "None",
+      "style": "emphasis",
+      "type": "Container"
+    }
+  ],
+  "type": "AdaptiveCard",
+  "version": "1.5"
+}

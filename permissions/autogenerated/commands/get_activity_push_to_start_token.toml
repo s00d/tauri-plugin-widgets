@@ -1,0 +1,13 @@
+# Automatically generated - DO NOT EDIT!
+
+"$schema" = "../../schemas/schema.json"
+
+[[permission]]
+identifier = "allow-get-activity-push-to-start-token"
+description = "Enables the get_activity_push_to_start_token command without any pre-configured scope."
+commands.allow = ["get_activity_push_to_start_token"]
+
+[[permission]]
+identifier = "deny-get-activity-push-to-start-token"
+description = "Denies the get_activity_push_to_start_token command without any pre-configured scope."
+commands.deny = ["get_activity_push_to_start_token"]

@@ -1,0 +1,25 @@
+// Mutation testing (PIT) of the unit-tested, UI-free Kotlin: render-time resolution,
+// store keys, scheduler math. Report: build/reports/pitest/. A surviving mutant means no
+// test notices that change — fix the test. Applied only with -Ppitest=true.
+pitest {
+    targetClasses = [
+        'git.s00d.widgets.Resolve',
+        'git.s00d.widgets.Resolve$*',
+        'git.s00d.widgets.WidgetStoreKeys',
+        'git.s00d.widgets.WidgetSanitizer',
+        'git.s00d.widgets.WidgetScheduler',
+    ]
+    targetTests = [
+        'git.s00d.widgets.ResolveTest',
+        'git.s00d.widgets.WidgetStateTest',
+        'git.s00d.widgets.WidgetPersistenceTest',
+    ]
+    threads = 1
+    outputFormats = ['HTML', 'XML']
+    timestampedReports = false
+    // Null checks the Kotlin compiler inserts and log calls are not behaviour.
+    avoidCallsTo = ['kotlin.jvm.internal', 'android.util.Log']
+    // Compiler-generated getters of Resolve.Scope's constructor vals: the class reads its
+    // fields directly, so these are never called (unkillable, not behaviour).
+    excludedMethods = ['getStrings', 'getFallback', 'getTemplates', 'getLocals', 'getIndex', 'getDepth']
+}

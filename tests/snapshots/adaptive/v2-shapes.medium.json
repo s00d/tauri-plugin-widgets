@@ -1,0 +1,93 @@
+{
+  "$schema": "http://adaptivecards.io/schemas/adaptive-card.json",
+  "body": [
+    {
+      "backgroundImage": {
+        "fillMode": "cover",
+        "url": "data:image/png;base64,<png>"
+      },
+      "items": [
+        {
+          "columns": [
+            {
+              "items": [
+                {
+                  "height": "44px",
+                  "horizontalAlignment": "Center",
+                  "size": "Medium",
+                  "type": "Image",
+                  "url": "data:image/png;base64,<png>",
+                  "width": "44px"
+                }
+              ],
+              "type": "Column",
+              "width": "auto"
+            },
+            {
+              "id": "gap:12",
+              "items": [
+                {
+                  "height": "44px",
+                  "horizontalAlignment": "Center",
+                  "size": "Medium",
+                  "type": "Image",
+                  "url": "data:image/png;base64,<png>",
+                  "width": "44px"
+                }
+              ],
+              "spacing": "Medium",
+              "type": "Column",
+              "width": "auto"
+            },
+            {
+              "id": "gap:12;#2",
+              "items": [
+                {
+                  "size": "Medium",
+                  "style": "Person",
+                  "type": "Image",
+                  "url": "data:image/png;base64,<png>"
+                }
+              ],
+              "spacing": "Medium",
+              "type": "Column",
+              "width": "auto"
+            },
+            {
+              "id": "gap:12;#3",
+              "items": [
+                {
+                  "size": "Medium",
+                  "type": "Image",
+                  "url": "https://invalid.invalid/missing.png"
+                }
+              ],
+              "spacing": "Medium",
+              "type": "Column",
+              "width": "auto"
+            },
+            {
+              "id": "gap:12;#4",
+              "items": [
+                {
+                  "size": "Medium",
+                  "type": "Image",
+                  "url": "data:image/png;base64,<png>"
+                }
+              ],
+              "spacing": "Medium",
+              "type": "Column",
+              "width": "auto"
+            }
+          ],
+          "spacing": "None",
+          "type": "ColumnSet"
+        }
+      ],
+      "spacing": "None",
+      "type": "Container"
+    }
+  ],
+  "type": "AdaptiveCard",
+  "version": "1.5"
+}

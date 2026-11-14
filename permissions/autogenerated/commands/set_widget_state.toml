@@ -1,0 +1,13 @@
+# Automatically generated - DO NOT EDIT!
+
+"$schema" = "../../schemas/schema.json"
+
+[[permission]]
+identifier = "allow-set-widget-state"
+description = "Enables the set_widget_state command without any pre-configured scope."
+commands.allow = ["set_widget_state"]
+
+[[permission]]
+identifier = "deny-set-widget-state"
+description = "Denies the set_widget_state command without any pre-configured scope."
+commands.deny = ["set_widget_state"]

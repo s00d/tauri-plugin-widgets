@@ -15,8 +15,6 @@ export default defineContentConfig({
       schema: z.object({
         // Set by scripts/generate.mjs on pages built from the sources (no "Edit this page" link).
         generated: z.boolean().optional(),
-        // Full-width page without the table of contents (widget constructor).
-        wide: z.boolean().optional(),
         links: z
           .array(
             z.object({

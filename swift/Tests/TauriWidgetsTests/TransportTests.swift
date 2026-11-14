@@ -2,142 +2,68 @@ import Foundation
 import XCTest
 @testable import TauriWidgets
 
-/// Symmetric with Rust `tests/macos_transports.rs`: same temp Containers layout,
-/// Swift `loadFreshestMap` must see what a Rust-shaped write left on disk.
+/// Symmetric with Rust `tests/transports.rs`: same temp Containers layout. One
+/// store walked through the transport races: Rust-shaped container write → receipt →
+/// App Group file vs container by nonce → stale UserDefaults with a higher nonce.
 final class TransportTests: XCTestCase {
-    private var tmpRoot: URL!
-    private var previousEnv: [String: String?] = [:]
+    private var box: StoreSandbox!
 
     override func setUp() {
         super.setUp()
-        tmpRoot = FileManager.default.temporaryDirectory
-            .appendingPathComponent("tauri-widgets-transport-\(UUID().uuidString)")
-        try? FileManager.default.createDirectory(at: tmpRoot, withIntermediateDirectories: true)
-
-        setEnv("WIDGET_CONTAINER_ROOT", tmpRoot.path)
-        setEnv("WIDGET_EXTENSION_BUNDLE", "test.app.widgetkit")
-        setEnv(
-            "WIDGET_APP_GROUP_DATA_FILE",
-            tmpRoot.appendingPathComponent("appgroup/widget_data.json").path
-        )
+        box = StoreSandbox("transport", rustLayout: true)
     }
 
     override func tearDown() {
-        for (k, v) in previousEnv {
-            if let v {
-                setenv(k, v, 1)
-            } else {
-                unsetenv(k)
-            }
-        }
-        previousEnv.removeAll()
-        try? FileManager.default.removeItem(at: tmpRoot)
+        box.restore()
         super.tearDown()
     }
 
-    func testLoadFreshestSeesRustSandboxWrite() throws {
-        let group = "group.test.app"
-        let widgetId = "probe"
-        let sandbox = URL(fileURLWithPath: TauriWidgetDataStore.ownContainerDataPath())
-
-        let map: [String: String] = [
-            TauriWidgetStoreKeys.configKey(widgetId): #"{"version":1,"small":{"type":"text","content":"from-rust"}}"#,
-            TauriWidgetStoreKeys.metaNonce: "42",
-            TauriWidgetStoreKeys.metaUpdatedAt: "1700000000000",
+    private func map(_ content: String, nonce: String, at: String) -> [String: String] {
+        [
+            TauriWidgetStoreKeys.configKey("probe"): #"{"version":1,"small":{"type":"text","content":"\#(content)"}}"#,
+            TauriWidgetStoreKeys.metaNonce: nonce,
+            TauriWidgetStoreKeys.metaUpdatedAt: at,
         ]
-        try writeMap(map, to: sandbox)
+    }
 
+    /// Given Rust-shaped writes in the container, App Group file and stale UserDefaults, when Swift loads, then the freshest live file wins and the receipt never bumps the nonce.
+    func testTransportRace() throws {
+        let group = box.group
+
+        // 1. Rust wrote the sandbox container file: Swift reads it from the container.
+        try box.writeMap(map("from-rust", nonce: "42", at: "1700000000000"), to: box.ownFile)
         let (loaded, source) = TauriWidgetDataStore.loadFreshestMapWithSource(appGroup: group)
         XCTAssertEqual(loaded[TauriWidgetStoreKeys.metaNonce], "42")
         XCTAssertEqual(source, TauriWidgetTransportName.container)
+        XCTAssertEqual(TauriWidgetDataStore.loadConfigAcknowledging(appGroup: group, widgetId: "probe")?.small?.content,
+                       "from-rust")
 
-        let cfg = TauriWidgetDataStore.loadConfigAcknowledging(appGroup: group, widgetId: widgetId)
-        XCTAssertEqual(cfg?.small?.content, "from-rust")
-
-        // Receipt is a sibling file — config map nonce unchanged.
-        let receiptURL = URL(fileURLWithPath: TauriWidgetDataStore.ownContainerReceiptPath())
-        let receiptData = try Data(contentsOf: receiptURL)
-        let receipt = try JSONDecoder().decode(WidgetTransportReceipt.self, from: receiptData)
+        // 2. The read plants a receipt in a sibling file; the config map's nonce is untouched.
+        let receipt = try JSONDecoder().decode(WidgetTransportReceipt.self, from: Data(
+            contentsOf: URL(fileURLWithPath: TauriWidgetDataStore.ownContainerReceiptPath())))
         XCTAssertEqual(receipt.source, TauriWidgetTransportName.container)
         XCTAssertEqual(receipt.readFrom, TauriWidgetTransportName.container)
         XCTAssertEqual(receipt.nonce, 42)
+        let after = try JSONSerialization.jsonObject(with: Data(contentsOf: box.ownFile)) as? [String: String]
+        XCTAssertEqual(after?[TauriWidgetStoreKeys.metaNonce], "42", "receipt must not bump config nonce")
 
-        let mapAfter = try JSONSerialization.jsonObject(
-            with: Data(contentsOf: sandbox)
-        ) as? [String: String]
-        XCTAssertEqual(mapAfter?[TauriWidgetStoreKeys.metaNonce], "42", "receipt must not bump config nonce")
-    }
+        // 3. Both file transports carry a config: the higher nonce wins.
+        try box.writeMap(map("old", nonce: "1", at: "1"), to: box.appGroupFile)
+        try box.writeMap(map("new", nonce: "99", at: "2"), to: box.ownFile)
+        XCTAssertEqual(TauriWidgetDataStore.loadConfig(appGroup: group, widgetId: "probe")?.small?.content, "new")
+        try box.writeMap(map("ag", nonce: "100", at: "3"), to: box.appGroupFile)
+        XCTAssertEqual(TauriWidgetDataStore.loadFreshestMapWithSource(appGroup: group).1, TauriWidgetTransportName.appGroup)
+        XCTAssertEqual(TauriWidgetDataStore.loadConfig(appGroup: group, widgetId: "probe")?.small?.content, "ag")
 
-    func testPickFreshestAcrossFileTransports() throws {
-        let group = "group.test.app"
-        let widgetId = "probe"
-
-        let older: [String: String] = [
-            TauriWidgetStoreKeys.configKey(widgetId): #"{"version":1,"small":{"type":"text","content":"old"}}"#,
-            TauriWidgetStoreKeys.metaNonce: "1",
-            TauriWidgetStoreKeys.metaUpdatedAt: "1",
-        ]
-        let newer: [String: String] = [
-            TauriWidgetStoreKeys.configKey(widgetId): #"{"version":1,"small":{"type":"text","content":"new"}}"#,
-            TauriWidgetStoreKeys.metaNonce: "99",
-            TauriWidgetStoreKeys.metaUpdatedAt: "2",
-        ]
-
-        try writeMap(
-            older,
-            to: URL(fileURLWithPath: ProcessInfo.processInfo.environment["WIDGET_APP_GROUP_DATA_FILE"]!)
-        )
-        try writeMap(newer, to: URL(fileURLWithPath: TauriWidgetDataStore.ownContainerDataPath()))
-
-        let cfg = TauriWidgetDataStore.loadConfig(appGroup: group, widgetId: widgetId)
-        XCTAssertEqual(cfg?.small?.content, "new")
-    }
-
-    /// Stale UserDefaults with a high leftover nonce must not beat live file writes.
-    func testFileConfigBeatsStaleHigherNonceDefaults() throws {
-        let group = "group.test.app"
-        let widgetId = "probe"
-
-        let fileMap: [String: String] = [
-            TauriWidgetStoreKeys.configKey(widgetId): #"{"version":1,"small":{"type":"text","content":"from-file"}}"#,
-            TauriWidgetStoreKeys.metaNonce: "3",
-            TauriWidgetStoreKeys.metaUpdatedAt: "300",
-        ]
-        try writeMap(fileMap, to: URL(fileURLWithPath: TauriWidgetDataStore.ownContainerDataPath()))
-
-        let staleDefaults: [String: String] = [
-            TauriWidgetStoreKeys.configKey(widgetId): #"{"version":1,"small":{"type":"text","content":"stale-ud"}}"#,
-            TauriWidgetStoreKeys.metaNonce: "65",
-            TauriWidgetStoreKeys.metaUpdatedAt: "1",
-        ]
+        // 4. Stale UserDefaults with a leftover high nonce never beat live file writes.
+        try box.writeMap(map("old", nonce: "1", at: "1"), to: box.appGroupFile)
+        try box.writeMap(map("from-file", nonce: "3", at: "300"), to: box.ownFile)
         let ud = UserDefaults(suiteName: group)!
-        ud.set(staleDefaults, forKey: "widget_data")
+        ud.set(map("stale-ud", nonce: "65", at: "1"), forKey: "widget_data")
         ud.synchronize()
-        defer {
-            ud.removeObject(forKey: "widget_data")
-            ud.synchronize()
-        }
-
-        let (map, source) = TauriWidgetDataStore.loadFreshestMapWithSource(appGroup: group)
-        XCTAssertEqual(source, TauriWidgetTransportName.container)
-        XCTAssertEqual(map[TauriWidgetStoreKeys.metaNonce], "3")
-        let cfg = TauriWidgetDataStore.loadConfig(appGroup: group, widgetId: widgetId)
-        XCTAssertEqual(cfg?.small?.content, "from-file")
-    }
-
-    private func setEnv(_ key: String, _ value: String) {
-        if previousEnv[key] == nil {
-            previousEnv[key] = getenv(key).map { String(cString: $0) }
-        }
-        setenv(key, value, 1)
-    }
-
-    private func writeMap(_ map: [String: String], to url: URL) throws {
-        try FileManager.default.createDirectory(
-            at: url.deletingLastPathComponent(),
-            withIntermediateDirectories: true
-        )
-        let data = try JSONSerialization.data(withJSONObject: map, options: [.prettyPrinted])
-        try data.write(to: url, options: .atomic)
+        let (m, src) = TauriWidgetDataStore.loadFreshestMapWithSource(appGroup: group)
+        XCTAssertEqual(src, TauriWidgetTransportName.container)
+        XCTAssertEqual(m[TauriWidgetStoreKeys.metaNonce], "3")
+        XCTAssertEqual(TauriWidgetDataStore.loadConfig(appGroup: group, widgetId: "probe")?.small?.content, "from-file")
     }
 }

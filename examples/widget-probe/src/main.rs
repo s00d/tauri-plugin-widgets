@@ -43,6 +43,9 @@ fn open_widget(app: &tauri::AppHandle, cfg: &WidgetConfig, size: &str) -> Result
         group: Some(GROUP.into()),
         widget_id: Some(WIDGET_ID.into()),
         size: Some(size.to_string()),
+        // Harness screenshots need the same spot every run.
+        remember_position: Some(false),
+        ..Default::default()
     })
     .map_err(|e| e.to_string())?;
     Ok(())
