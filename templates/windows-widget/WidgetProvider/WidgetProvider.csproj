@@ -10,10 +10,13 @@
     <Platforms>x64;ARM64</Platforms>
     <RuntimeIdentifiers>win-x64;win-arm64</RuntimeIdentifiers>
     <WindowsAppSDKSelfContained>false</WindowsAppSDKSelfContained>
-    <EnableMsixTooling>false</EnableMsixTooling>
+    <!-- MSIX tooling = WinAppSDK's own MSBuild tasks (tools/net6.0 in the NuGet), so
+         `dotnet build` works; without it the PRI / payload targets load Visual Studio's
+         AppxPackage tasks (MSB4062). Unpackaged all the same (WindowsPackageType None),
+         as the WinUI templates do. -->
+    <EnableMsixTooling>true</EnableMsixTooling>
     <WindowsPackageType>None</WindowsPackageType>
-    <!-- No XAML / resources: skip WinAppSDK's PRI step, whose task ships only with Visual
-         Studio's MSBuild (`dotnet build` failed with MSB4062 ExpandPriContent). -->
+    <!-- No XAML / resources: nothing to put in a resources.pri. -->
     <AppxGeneratePriEnabled>false</AppxGeneratePriEnabled>
     <!-- Smoke=true: compile Store + provider stubs without WinAppSDK Appx/PRI tools -->
     <Smoke Condition="'$(Smoke)' == ''">false</Smoke>
