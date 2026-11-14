@@ -10,6 +10,7 @@ import { renderProgress, renderGauge, renderChart, renderList } from "./data";
 import { renderButton, renderToggle, renderLink } from "./interactive";
 import { renderDivider, renderSpacer } from "./spacing";
 import type { ElNode, ParentAxis } from "../types";
+import { setRenderEl } from "./child";
 
 export function renderEl(d: ElNode, parentAxis?: ParentAxis): HTMLElement | SVGElement {
   const el = build(d, parentAxis);
@@ -19,6 +20,8 @@ export function renderEl(d: ElNode, parentAxis?: ParentAxis): HTMLElement | SVGE
   if (d.__node != null) el.setAttribute("data-node", String(d.__node));
   return el;
 }
+
+setRenderEl(renderEl);
 
 function build(d: ElNode, parentAxis?: ParentAxis): HTMLElement | SVGElement {
   switch (d.type) {

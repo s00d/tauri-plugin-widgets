@@ -1,6 +1,6 @@
 import { applyStyle, resolveColor, svg, tintTrack } from "../style";
 import { addTimer, boundEmit } from "../ctx";
-import { renderEl } from "./element";
+import { renderEl } from "./child";
 import type { ElNode } from "../types";
 
 /** Fraction of [startAt, endAt] elapsed now (0…1), or null when not time-driven. */

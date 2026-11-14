@@ -1,7 +1,7 @@
 import { applyStyle, resolveColor, tintTrack } from "../style";
 import { systemGlyph } from "./media";
 import { boundTap } from "../ctx";
-import { renderEl } from "./element";
+import { renderEl } from "./child";
 import type { ElNode } from "../types";
 
 export function renderButton(d: ElNode): HTMLElement {

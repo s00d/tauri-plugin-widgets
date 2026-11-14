@@ -1,5 +1,5 @@
 import { applyStyle } from "../style";
-import { renderEl } from "./element";
+import { renderEl } from "./child";
 import type { ElNode, ParentAxis } from "../types";
 
 /**
