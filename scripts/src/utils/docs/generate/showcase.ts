@@ -1,7 +1,9 @@
 // @ts-nocheck
+import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import {
   PUBLIC,
+  ROOT,
   listCases,
   loadCase,
   loadFixture,
@@ -44,19 +46,11 @@ export function genShowcase(report, check) {
     }
 
     const primary = entries[0];
-    let fixtureJson = "";
-    try {
-      fixtureJson = JSON.stringify(loadFixture(primary.case.fixture), null, 2);
-    } catch (e) {
-      fixtureJson = `/* ${e} */`;
+    const fixtureJson = fixtureText(primary.case.fixture);
+    // Every size gets its JSON: the constructor's templates load non-primary sizes too.
+    for (const { name, case: c } of entries) {
+      writeOrCheck(report, join(PUBLIC, "gallery-data", `${name}.json`), fixtureText(c.fixture) + "\n", check);
     }
-
-    writeOrCheck(
-      report,
-      join(PUBLIC, "gallery-data", `${primary.name}.json`),
-      fixtureJson.endsWith("\n") ? fixtureJson : fixtureJson + "\n",
-      check,
-    );
 
     parts.push(`::collapsible{name="config JSON"}\n\n\`\`\`json\n${fixtureJson}\n\`\`\`\n\n::\n`);
     // The playground fetches /gallery-data/<case>.json (written above).
@@ -64,4 +58,23 @@ export function genShowcase(report, check) {
   }
 
   writeBlock(report, "docs/content/4.showcase.md", "showcase", parts.join("\n"), check);
+  checkConstructorTemplates(report);
+}
+
+function fixtureText(fixture) {
+  try {
+    return JSON.stringify(loadFixture(fixture), null, 2);
+  } catch (e) {
+    return `/* ${e} */`;
+  }
+}
+
+/** The constructor fetches /gallery-data/<id>.json for each template: every id must be a case. */
+function checkConstructorTemplates(report) {
+  const src = readFileSync(join(ROOT, "docs/app/components/content/WidgetConstructor.vue"), "utf8");
+  const block = src.match(/const TEMPLATES = \[([\s\S]*?)\n\]/)?.[1] ?? "";
+  const cases = new Set(listCases());
+  for (const [, id] of block.matchAll(/id: '([^']+)'/g)) {
+    if (!cases.has(id)) report.stale.push(`constructor template "${id}" has no tests/cases/${id}.json`);
+  }
 }
