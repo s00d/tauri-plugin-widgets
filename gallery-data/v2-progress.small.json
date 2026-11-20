@@ -1,0 +1,46 @@
+{
+  "$schema": "https://s00d.github.io/tauri-plugin-widgets/schemas/widget-config.v1.json",
+  "version": 1,
+  "small": {
+    "type": "vstack",
+    "padding": 12,
+    "spacing": 8,
+    "background": "#111827",
+    "children": [
+      {
+        "type": "progress",
+        "value": 0.3,
+        "label": "track",
+        "tint": "#22c55e",
+        "trackColor": "#374151",
+        "thickness": 8
+      },
+      {
+        "type": "progress",
+        "value": 0,
+        "label": "done (past range)",
+        "startAt": 1000,
+        "endAt": 2000,
+        "tint": "#3b82f6"
+      },
+      {
+        "type": "gauge",
+        "value": 0.4,
+        "min": 0,
+        "max": 1,
+        "minLabel": "0",
+        "maxLabel": "100",
+        "gaugeStyle": "linear",
+        "tint": "#f59e0b"
+      },
+      {
+        "type": "timer",
+        "targetDate": "2001-01-01T00:00:00Z",
+        "counting": "down",
+        "completedText": "Done!",
+        "fontSize": 16,
+        "color": "#e5e7eb"
+      }
+    ]
+  }
+}

@@ -1,0 +1,76 @@
+{
+  "$schema": "https://s00d.github.io/tauri-plugin-widgets/schemas/widget-config.v1.json",
+  "version": 1,
+  "large": {
+    "type": "list",
+    "spacing": 2,
+    "fontSize": 12,
+    "color": "#e2e8f0",
+    "background": "#0f172a",
+    "padding": 8,
+    "items": [
+      {
+        "text": "Item 01",
+        "checked": false
+      },
+      {
+        "text": "Item 02",
+        "checked": true
+      },
+      {
+        "text": "Item 03"
+      },
+      {
+        "text": "Item 04"
+      },
+      {
+        "text": "Item 05"
+      },
+      {
+        "text": "Item 06"
+      },
+      {
+        "text": "Item 07"
+      },
+      {
+        "text": "Item 08"
+      },
+      {
+        "text": "Item 09"
+      },
+      {
+        "text": "Item 10"
+      },
+      {
+        "text": "Item 11"
+      },
+      {
+        "text": "Item 12"
+      },
+      {
+        "text": "Item 13"
+      },
+      {
+        "text": "Item 14"
+      },
+      {
+        "text": "Item 15"
+      },
+      {
+        "text": "Item 16"
+      },
+      {
+        "text": "Item 17"
+      },
+      {
+        "text": "Item 18"
+      },
+      {
+        "text": "Item 19"
+      },
+      {
+        "text": "Item 20"
+      }
+    ]
+  }
+}

@@ -1,0 +1,74 @@
+{
+  "$schema": "https://s00d.github.io/tauri-plugin-widgets/schemas/widget-config.v1.json",
+  "version": 1,
+  "medium": {
+    "type": "hstack",
+    "padding": 12,
+    "spacing": 12,
+    "background": {
+      "gradientType": "linear",
+      "stops": [
+        {
+          "color": "#0f172a",
+          "location": 0
+        },
+        {
+          "color": "#1e3a8a",
+          "location": 0.7
+        },
+        {
+          "color": "#7c3aed",
+          "location": 1
+        }
+      ],
+      "startPoint": {
+        "x": 0,
+        "y": 0
+      },
+      "endPoint": {
+        "x": 1,
+        "y": 1
+      }
+    },
+    "children": [
+      {
+        "type": "shape",
+        "shapeType": "roundedRectangle",
+        "fill": "#22c55e",
+        "cornerRadius": 10,
+        "size": 44
+      },
+      {
+        "type": "shape",
+        "shapeType": "ellipse",
+        "fill": "#f59e0b",
+        "size": 44
+      },
+      {
+        "type": "image",
+        "systemName": "star.fill",
+        "size": 40,
+        "color": "#facc15",
+        "clipShape": "ellipse"
+      },
+      {
+        "type": "image",
+        "url": "https://invalid.invalid/missing.png",
+        "fallbackSystemName": "photo",
+        "size": 40,
+        "color": "#94a3b8"
+      },
+      {
+        "type": "image",
+        "systemName": "cloud.sun.rain.fill",
+        "size": 40,
+        "symbolRendering": "palette",
+        "paletteColors": [
+          "#e5e7eb",
+          "#facc15",
+          "#38bdf8"
+        ]
+      }
+    ]
+  }
+}

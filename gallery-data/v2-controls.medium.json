@@ -1,0 +1,71 @@
+{
+  "$schema": "https://s00d.github.io/tauri-plugin-widgets/schemas/widget-config.v1.json",
+  "version": 1,
+  "medium": {
+    "type": "vstack",
+    "padding": 10,
+    "spacing": 8,
+    "background": "#111827",
+    "children": [
+      {
+        "type": "hstack",
+        "spacing": 6,
+        "children": [
+          {
+            "type": "button",
+            "label": "Bordered",
+            "variant": "bordered",
+            "action": "a"
+          },
+          {
+            "type": "button",
+            "label": "Go",
+            "variant": "prominent",
+            "systemName": "play.fill",
+            "backgroundColor": "#2563eb",
+            "action": "b"
+          },
+          {
+            "type": "button",
+            "label": "Plain",
+            "variant": "plain",
+            "action": "c"
+          },
+          {
+            "type": "button",
+            "label": "Off",
+            "variant": "outline",
+            "disabled": true,
+            "action": "d"
+          }
+        ]
+      },
+      {
+        "type": "hstack",
+        "spacing": 12,
+        "children": [
+          {
+            "type": "toggle",
+            "isOn": true,
+            "label": "Switch",
+            "tint": "#22c55e"
+          },
+          {
+            "type": "toggle",
+            "isOn": false,
+            "label": "Check",
+            "variant": "checkbox",
+            "uncheckedTint": "#64748b"
+          },
+          {
+            "type": "toggle",
+            "isOn": true,
+            "label": "Checked",
+            "variant": "checkbox",
+            "tint": "#f59e0b"
+          }
+        ]
+      }
+    ]
+  }
+}

@@ -1,0 +1,29 @@
+{
+  "$schema": "https://s00d.github.io/tauri-plugin-widgets/schemas/widget-config.v1.json",
+  "version": 1,
+  "medium": {
+    "type": "hstack",
+    "spacing": 8,
+    "padding": 12,
+    "background": "#0f172a",
+    "children": [
+      {
+        "type": "text",
+        "content": "L",
+        "fontSize": 16,
+        "color": "#fff"
+      },
+      {
+        "type": "divider",
+        "thickness": 2,
+        "color": "#64748b"
+      },
+      {
+        "type": "text",
+        "content": "R",
+        "fontSize": 16,
+        "color": "#fff"
+      }
+    ]
+  }
+}

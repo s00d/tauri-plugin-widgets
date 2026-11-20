@@ -1,0 +1,161 @@
+{
+  "$schema": "https://s00d.github.io/tauri-plugin-widgets/schemas/widget-config.v1.json",
+  "version": 1,
+  "small": {
+    "type": "vstack",
+    "padding": 14,
+    "spacing": 10,
+    "cornerRadius": 16,
+    "background": {
+      "light": "#F2F2F7",
+      "dark": "#1C1C1E"
+    },
+    "children": [
+      {
+        "type": "spacer"
+      },
+      {
+        "type": "zstack",
+        "alignment": "center",
+        "children": [
+          {
+            "type": "shape",
+            "shapeType": "circle",
+            "fill": "#263878FA",
+            "size": 48
+          },
+          {
+            "type": "image",
+            "systemName": "checkmark.circle.fill",
+            "size": 28,
+            "color": "#3878FA"
+          }
+        ]
+      },
+      {
+        "type": "text",
+        "content": "No upcoming payments",
+        "fontSize": 13,
+        "fontWeight": "semibold",
+        "fontDesign": "rounded",
+        "color": "secondaryLabel",
+        "alignment": "center",
+        "lineLimit": 2
+      },
+      {
+        "type": "spacer"
+      }
+    ]
+  },
+  "medium": {
+    "type": "vstack",
+    "padding": 12,
+    "spacing": 8,
+    "cornerRadius": 16,
+    "background": {
+      "light": "#F2F2F7",
+      "dark": "#1C1C1E"
+    },
+    "children": [
+      {
+        "type": "label",
+        "text": "Upcoming",
+        "systemName": "calendar.badge.clock",
+        "fontSize": 11,
+        "fontWeight": "bold",
+        "color": "label",
+        "iconColor": "#3878FA",
+        "spacing": 4
+      },
+      {
+        "type": "spacer"
+      },
+      {
+        "type": "zstack",
+        "alignment": "center",
+        "children": [
+          {
+            "type": "shape",
+            "shapeType": "circle",
+            "fill": "#263878FA",
+            "size": 40
+          },
+          {
+            "type": "image",
+            "systemName": "checkmark.circle.fill",
+            "size": 22,
+            "color": "#3878FA"
+          }
+        ]
+      },
+      {
+        "type": "text",
+        "content": "No upcoming payments",
+        "fontSize": 12,
+        "fontWeight": "semibold",
+        "color": "secondaryLabel",
+        "alignment": "center",
+        "lineLimit": 2
+      },
+      {
+        "type": "spacer"
+      }
+    ]
+  },
+  "large": {
+    "type": "vstack",
+    "padding": 14,
+    "spacing": 10,
+    "cornerRadius": 16,
+    "background": {
+      "light": "#F2F2F7",
+      "dark": "#1C1C1E"
+    },
+    "children": [
+      {
+        "type": "label",
+        "text": "Upcoming",
+        "systemName": "calendar.badge.clock",
+        "fontSize": 11,
+        "fontWeight": "bold",
+        "color": "label",
+        "iconColor": "#3878FA",
+        "spacing": 4
+      },
+      {
+        "type": "spacer"
+      },
+      {
+        "type": "zstack",
+        "alignment": "center",
+        "children": [
+          {
+            "type": "shape",
+            "shapeType": "circle",
+            "fill": "#263878FA",
+            "size": 52
+          },
+          {
+            "type": "image",
+            "systemName": "checkmark.circle.fill",
+            "size": 30,
+            "color": "#3878FA"
+          }
+        ]
+      },
+      {
+        "type": "text",
+        "content": "No upcoming payments",
+        "fontSize": 14,
+        "fontWeight": "semibold",
+        "fontDesign": "rounded",
+        "color": "secondaryLabel",
+        "alignment": "center",
+        "lineLimit": 2
+      },
+      {
+        "type": "spacer"
+      }
+    ]
+  }
+}
